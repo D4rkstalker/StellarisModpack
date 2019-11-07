@@ -1,0 +1,96 @@
+#######################################
+#                                     #
+########## Wheel Of Fortune ###########
+#                                     #
+#######################################
+
+create_treasures_pirate_country = {
+	if = { 
+		limit = { any_country = { has_country_flag = treasures_pirate_country }
+		random_country = {
+			limit = { has_country_flag = treasures_pirate_country } }
+			save_event_target_as = treasures_pirate_country
+		}
+		else = {
+			create_country = {
+				name = "NAME_Pirates"
+				type = pirate
+				name_list = "PRT1"
+				effect = {
+					every_country = { establish_communications_no_message = last_created_country }
+					randomize_flag_symbol = "pirate"
+					save_event_target_as = treasures_pirate_country
+					set_country_flag = treasures_pirate_country
+				}
+			}
+			#last_created_country = { randomize_flag_symbol = "pirate" }
+		}
+	}
+}
+
+treasures_pirate_mission_generation = {
+	random_system_within_border = {		
+		save_event_target_as = special_project_target_system
+		random_system_planet = { save_event_target_as = special_project_target }
+		create_treasures_pirate_country = yes
+		create_fleet = {
+			name = "NAME_Pirate_Fleet"
+			settings = { spawn_debris = no }
+			effect = {
+				set_owner = event_target:treasures_pirate_country
+				create_pirate_ships_3 = yes
+				create_pirate_ships_8 = yes
+				create_ship = {
+					name = random 
+					design = "NAME_Corsair"
+					effect = { set_ship_flag = target_ship_project set_disable_at_health = 0.05 save_event_target_as = target_ship_project_ship }
+				}
+				set_location = { target = event_target:special_project_target distance = 50 angle = random }
+				set_fleet_stance = aggressive
+				set_aggro_range_measure_from = self
+				set_aggro_range = 150
+			}
+		}
+	}
+	enable_special_project = { name = "TREASURES_PIRATES" location = event_target:target_ship_project_ship owner = root }
+}
+
+treasures_project_finish_select_ship = {
+	ROOT = { set_ship_flag = treasures_ship_finished_project }	
+	random_country = {
+		limit = { 
+			any_owned_ship = { 
+				has_ship_flag = target_ship_project
+				solar_system = { 
+					any_ship_in_system = { 
+						has_ship_flag = treasures_ship_finished_project 
+						#distance = { source = PREV max_distance <= 100 }
+					}
+				} 
+			}
+		}
+		random_owned_ship = {
+			limit = {
+				has_ship_flag = target_ship_project
+				solar_system = { 
+					any_ship_in_system = { 
+						has_ship_flag = treasures_ship_finished_project 
+						#distance = { source = PREV max_distance <= 100 }
+					}
+				} 
+			}
+			save_event_target_as = treasures_ship_finished_project
+		}		
+		ROOT = { remove_ship_flag = treasures_ship_finished_project }	
+	}
+}
+
+treasures_opinion_set = {
+	event_target:CountryTargetForPresent = {
+		if = { limit = { OR = { is_hostile_to = ROOT is_rival = ROOT } } add_opinion_modifier = { modifier = opinion_treasures_present_hostile who = ROOT } }
+		else_if = { limit = { OR = { is_domineering_to = ROOT is_unfriendly_to = ROOT is_dismissive_to = ROOT } } add_opinion_modifier = { modifier = opinion_treasures_present_unfriendly who = ROOT } }
+		else_if = { limit = { OR = { is_neutral_to = ROOT } } add_opinion_modifier = { modifier = opinion_treasures_present_normal who = ROOT } }
+		else_if = { limit = { OR = { is_patronizing_to = ROOT is_friendly_to = ROOT is_cordial_to = ROOT } } add_opinion_modifier = { modifier = opinion_treasures_present_normal who = ROOT } }
+		else = { add_opinion_modifier = { modifier = opinion_treasures_present_normal who = ROOT } }
+	}
+}

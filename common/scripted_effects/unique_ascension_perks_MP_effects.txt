@@ -1,0 +1,319 @@
+#######################################
+#                                     #
+######### Mechanical Prophet ##########
+#                                     #
+#######################################
+
+launch_machine_uprising = {
+    event_target:MachineEmpireUprisingOrigin = { save_event_target_as = MachineEmpireUprisingOrigin }
+    owner = { save_event_target_as = organic_empire set_country_flag = had_uprising }
+	owner = { save_event_target_as = current_uprising_originator }
+	set_planet_flag = machup_capital@root.owner
+	owner = { every_owned_fleet = { set_event_locked = yes } } # event lock all fleets to prevent exploits	
+	owner = { # find and flag planets
+		effect_on_blob = {
+			center = root.solar_system
+			owned_planets_percentage = 0.5
+			planet_limit = {
+				OR = { controller = { is_same_value = root.owner } solar_system = { exists = starbase starbase = { owner = { is_same_value = root.owner } } } }
+				solar_system = { NOT = { any_system_planet = { is_same_value = root.owner.capital_scope } } } # never flip any planets in the capital system
+			}
+			effect = { set_star_flag = machup_system_flip }
+		}
+    }
+	create_species = { name = random class = MACHINE portrait = random traits = random immortal = yes }	# create machine species	
+	random_list = { # create machine country
+		30 = { # exterminator
+			owner = {
+				create_country = {
+					name = random
+					type = default
+					species = last_created_species
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					ethos = { ethic = ethic_gestalt_consciousness }
+					authority = auth_machine_intelligence
+					civics = { civic = civic_machine_terminator civic = random }
+					flag = random
+					effect = {
+						modify_species = { species = this add_trait = trait_machine_unit add_traits_at_start_of_list = yes }
+						save_event_target_as = current_uprising
+						country_event = { id = UniqueAscensionPerksEvents.205 } # setup happens here now
+					}
+				}
+			}
+		}
+		30 = { # assimilator
+			owner = {
+				create_country = {
+					name = random
+					type = default
+					species = last_created_species
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					ethos = { ethic = ethic_gestalt_consciousness }
+					authority = auth_machine_intelligence
+					civics = { civic = civic_machine_assimilator civic = random }
+					flag = random
+					effect = {
+						modify_species = { species = this add_trait = trait_machine_unit add_traits_at_start_of_list = yes }
+						save_event_target_as = current_uprising
+						country_event = { id = UniqueAscensionPerksEvents.205 } # setup happens here now
+					}
+				}
+			}
+		}
+		100 = { # regular machine empire
+			owner = {
+				create_country = {
+					name = random
+					type = default
+					species = last_created_species
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					ethos = { ethic = ethic_gestalt_consciousness }
+					authority = auth_machine_intelligence
+					civics = random
+					flag = random
+					effect = {
+						modify_species = { species = this add_trait = trait_machine_unit add_traits_at_start_of_list = yes }
+						save_event_target_as = current_uprising
+						country_event = { id = UniqueAscensionPerksEvents.205 } # setup happens here now
+					}
+				}
+			}
+		}
+	}
+}
+
+launch_machine_uprising_settings = {
+	event_target:MachineEmpireUprisingOrigin = { save_event_target_as = MachineEmpireUprisingOrigin }
+    # saving uprising and host as event targets
+	save_event_target_as = current_uprising
+	from.owner = { save_event_target_as = current_uprising_originator }
+	# setting flags
+	set_country_flag = machine_uprising_country@from.owner
+	set_country_flag = machine_uprising_country
+	set_relation_flag = { who = event_target:current_uprising_originator flag = uprising_to_host_flag }
+	from.owner = {
+		set_country_flag = machine_uprising_originator@root
+		set_country_flag = machine_uprising_originator
+		set_relation_flag = { who = root flag = host_to_uprising_flag }
+	}
+	# setting graphical culture
+	set_graphical_culture = event_target:current_uprising_originator
+	# establish comms
+	every_country = {
+		limit = { has_communications = event_target:current_uprising_originator }
+		establish_communications_no_message = root
+		establish_contact = { who = root location = from }
+	}
+	# baseline resource stockpile
+    add_resource = { energy = 20000 minerals = 20000 influence = 750 alloys = 9000 } 
+    add_100_unity_per_year_passed = yes # scripted effect
+    # (Mod) Stuff
+	add_opinion_modifier = { who = event_target:MachineEmpireUprisingOrigin modifier = opinion_empire_origine }
+	add_trust = { who = event_target:MachineEmpireUprisingOrigin amount = 100 }
+    set_relation_flag = { who = event_target:MachineEmpireUprisingOrigin flag = machine_prophet_origin }
+    set_subject_of = { who = event_target:MachineEmpireUprisingOrigin subject_type = machine_follower }
+	# Machine Uprising opinion modifier
+	add_opinion_modifier = { who = event_target:current_uprising_originator modifier = opinion_machine_uprising_originator }
+	event_target:current_uprising_originator = { add_opinion_modifier = { who = root modifier = opinion_machine_uprising } }
+	# clear new contact opinion modifier
+	if = {
+		limit = { has_opinion_modifier = { who = event_target:current_uprising_originator modifier = opinion_new_contact } }
+		remove_opinion_modifier = { who = event_target:current_uprising_originator modifier = opinion_new_contact }
+	}
+	# flip capital planet and add at least 10 Machine pops
+	from = {
+		# flip military stations
+		solar_system = {
+			every_fleet_in_system = {
+				limit = {
+					exists = owner
+					owner = { is_same_value = event_target:current_uprising_originator }
+					any_owned_ship = { is_ship_class = shipclass_military_station }
+				}
+				set_owner = root
+			}
+		}
+		set_owner = root
+		set_controller = root
+		set_capital = yes
+		solar_system = { 
+            if = { limit = { exists = starbase } starbase = { set_owner = root } }
+            else = { create_starbase = { size = starbase_starport module = shipyard owner = root } }
+        }
+		while = { count = 10 create_pop = { species = root } }
+		if = { 
+            limit = { count_owned_pops = { count < 5 limit = { is_exact_same_species = root } } }
+			while = { 
+                limit = { count_owned_pops = { count < 5 limit = { is_exact_same_species = root } } }
+				random_owned_pop = {
+					limit = { NOT = { is_exact_same_species = root } }
+					kill_pop = yes
+					prev = { create_pop = { species = root } }
+				}
+			}
+		}
+		# create armies
+		if = { limit = { root = { has_civic = civic_machine_terminator } } while = { count = 6 create_army = { owner = root type = machine_assault_1 } } } # more armies if exterminator
+		else = { while = { count = 3 create_army = { owner = root type = machine_assault_1 } } } # regular armies
+		# flip remaining flagged planets
+		while = {
+			count = 100
+			limit = { any_system = { has_star_flag = machup_system_flip exists = starbase starbase = { owner = { is_same_value = event_target:current_uprising_originator } } } }
+			random_system = {
+				limit = { has_star_flag = machup_system_flip exists = starbase starbase = { owner = { is_same_value = event_target:current_uprising_originator } } }
+				starbase = { set_owner = root }
+			}
+		}
+		event_target:current_uprising_originator = {
+            every_owned_planet = {
+                limit = { solar_system = { has_star_flag = machup_system_flip } }
+                # flip military stations
+                solar_system = {
+                    every_fleet_in_system = {
+                        limit = { exists = owner owner = { is_same_value = event_target:current_uprising_originator } any_owned_ship = { is_ship_class = shipclass_military_station } }
+                        set_owner = root
+                    }
+                }
+                set_planet_flag = been_flipped
+                set_owner = root
+                set_controller = root
+                while = { limit = { free_housing > 0 } create_pop = { species = root } }
+                if = {
+                    limit = { count_owned_pops = { count < 5 limit = { is_exact_same_species = root } } }
+                    while = { limit = { count_owned_pops = { count < 5 limit = { is_exact_same_species = root } } }
+                        random_owned_pop = {
+                            limit = { NOT = { is_exact_same_species = root } }
+                            kill_pop = yes
+                            prev = { create_pop = { species = root } }
+                        }
+                    }
+                }
+                # create armies on planets
+                if = { limit = { root = { has_civic = civic_machine_terminator } } while = { count = 6 create_army = { owner = root type = machine_assault_1 } } } # more armies if exterminator
+                else = { while = { count = 3 create_army = { owner = root type = machine_assault_1 } } } # regular armies 
+            } 
+        }    
+	}
+	# get host's technologies
+	copy_techs_from = {
+		target = event_target:current_uprising_originator
+		except = {
+			# Robots
+			tech_robotic_workers
+			tech_droid_workers
+			tech_synthetic_workers
+			# Food
+			tech_eco_simulation
+			tech_gene_crops
+			tech_nano_vitality_crops
+			tech_nutrient_replication
+			# Misc
+			tech_frontier_health
+			tech_frontier_hospital
+			tech_telepathy
+			tech_precognition_interface
+			tech_psi_jump_drive_1
+			tech_galactic_markets
+			tech_subdermal_stimulation
+			tech_global_research_initiative
+			tech_neural_implants
+			tech_psionic_theory
+			# Non-Machine Robomodding
+			tech_robomodding
+			tech_robomodding_points_1
+			tech_robomodding_points_2
+			# Genetics
+			tech_genome_mapping
+			tech_vitality_boosters
+			tech_epigenetic_triggers
+			tech_cloning
+			tech_gene_banks
+			tech_gene_seed_purification
+			tech_morphogenetic_field_mastery
+			tech_gene_tailoring
+			tech_glandular_acclimation
+			tech_gene_expressions
+			tech_selected_lineages
+			tech_capacity_boosters
+			# Horizon Signal
+			tech_akx_worm_1
+			tech_akx_worm_2
+			tech_akx_worm_3
+		}
+	}
+	# survey host's surveyed planets
+	every_planet = {
+		limit = { is_surveyed = { who = event_target:current_uprising_originator status = yes } }
+		surveyed = { set_surveyed = yes surveyor = root }
+	}
+	# declare war on host
+	declare_war = {
+		target = event_target:current_uprising_originator
+		name = "NAME_Machine_Uprising_War"		
+		attacker_war_goal = "wg_machine_uprising" # "\[This.MainDefender.GetAdj] Machine Uprising"
+	}
+	# create fleets
+	if = {
+        limit = { has_civic = civic_machine_terminator }
+         # exterminator fleets, 150% naval cap
+		create_fleet_from_naval_cap = 0.2
+		random_owned_planet = { last_created_fleet = { set_location = prev } }
+		create_fleet_from_naval_cap = 0.3
+		random_owned_planet = { last_created_fleet = { set_location = prev } }
+		create_fleet_from_naval_cap = 0.4
+		random_owned_planet = { last_created_fleet = { set_location = prev } }
+		create_fleet_from_naval_cap = 0.6
+		random_owned_planet = { last_created_fleet = { set_location = prev } }
+    }
+    # regular fleets, 80% naval cap
+	else = {	
+		create_fleet_from_naval_cap = 0.1
+		random_owned_planet = { last_created_fleet = { set_location = prev } }
+		create_fleet_from_naval_cap = 0.3
+        random_owned_planet = { last_created_fleet = { set_location = prev } }
+		create_fleet_from_naval_cap = 0.4
+        random_owned_planet = { last_created_fleet = { set_location = prev } }
+	}
+	# add modifier for AI, including 10x naval cap
+	if = { limit = { is_ai = yes } add_modifier = { modifier = uprising_ai_buff days = 1800 } }
+	# add modifier for player, 10x naval cap
+	else = { add_modifier = { modifier = uprising_player_buff days = 1800 } }
+	#science
+	create_fleet = {
+		effect = {
+			set_owner = root
+			create_ship = { name = random random_existing_design = science }
+			set_fleet_stance = evasive				
+			set_location = root.capital_scope			
+			owner = { create_leader = { class = scientist sub_type = survey name = random species = owner_main_species } }
+			set_leader = last_created_leader
+		}			
+	}		
+	#constructor
+	create_fleet = {
+		effect = {
+		    set_owner = root	
+		    create_ship = { name = random random_existing_design = constructor }		
+		    set_fleet_stance = evasive
+		    set_location = root.capital_scope
+		}
+	}
+	every_owned_fleet = { set_event_locked = no }
+	every_playable_country = {
+		limit = {
+			has_communications = event_target:current_uprising_originator
+			NOR = {
+				is_same_value = root
+				is_same_value = event_target:current_uprising_originator
+			}
+		}
+		country_event = { id = syndaw.1025 days = 5 }
+	}
+	observer_event = { id = observer.81 }
+	add_opinion_modifier = { who = event_target:MachineEmpireUprisingOrigin modifier = opinion_empire_origine }
+	add_trust = { who = event_target:MachineEmpireUprisingOrigin amount = 100 }
+}

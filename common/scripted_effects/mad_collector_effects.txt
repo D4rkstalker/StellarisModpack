@@ -1,0 +1,498 @@
+initiate_mad_collectors = {
+		set_country_type = consolidated_planet_state
+		
+        create_leader = {
+            class = admiral
+            species = owner_main_species
+            name = random
+            skill = 10
+            event_leader = yes
+            leader_age_min = 50
+            leader_age_max = 200
+            traits = {
+                trait = leader_trait_admiral_chosen
+            }
+        }
+		
+	create_fleet = {
+		name = "Hoarder V"
+		settings = {
+			spawn_debris = yes
+			is_boss = yes
+		}
+		effect = {
+			save_global_event_target_as = thanos
+			set_owner = event_target:target_collectors
+			create_ship = {
+				name = random
+				design = Mothership
+				effect = { 
+					
+					save_global_event_target_as = thanos_ship
+					set_ship_flag = thanos_ship
+				}
+			}
+			set_fleet_flag = thanos_fleet
+			set_location = {
+			## change for new_location2 to spawn over planet
+				target = event_target:spawning_gateway
+
+			}
+			assign_leader = last_created_leader
+			set_fleet_stance = agressive
+			set_aggro_range_measure_from = self
+			set_aggro_range = 50
+			
+			
+			#give_collector_missing_runes = yes
+	
+	
+			
+			fleet_event = { id = complexwar.5077 days = 5 }			
+			
+		}
+	}
+	set_global_flag = thanos_hunting
+
+
+## create a space station in system if there is none
+random_system = {
+			limit = {
+				has_star_flag = collectors
+			}
+			if = {limit = {exists = starbase}
+				starbase = {
+				set_owner = event_target:target_collectors
+				}
+			}		
+			else = {
+				create_starbase = {
+					size = starbase_outpost
+					owner = event_target:target_collectors
+				}	
+			
+			}		
+		}
+
+	
+}
+
+## fleet scope
+chase_power_runes = {	
+if = {
+			limit = {
+			 any_country = {
+				has_any_power_runes = yes
+			 }
+			}			
+			
+			closest_system = {
+				limit = {
+					any_system_planet = {
+						exists = owner
+						owner = { 
+						is_country_type = default 
+						has_any_power_runes = yes
+						}
+						is_colony = yes
+						is_capital = yes
+						##NOT = { has_planet_flag = has_been_balanced }
+					}
+					}
+					save_event_target_as = raid_system
+				}
+				event_target:raid_system = {
+					random_system_planet = {
+						limit = {
+							exists = owner
+							owner = { 
+							is_country_type = default 
+							has_any_power_runes = yes
+							}
+							is_colony = yes
+							is_capital = yes
+							##NOT = { has_planet_flag = has_been_balanced }
+						}
+						save_event_target_as = raid_planet
+						
+									## set hostile, just in case country got a new rune in the meantime
+									event_target:target_collectors = {
+										set_faction_hostility = {
+											target = prev.owner
+											set_hostile = yes
+										}
+									}
+									owner = {
+										set_faction_hostility = {
+										target = event_target:target_collectors
+										set_hostile = yes
+										}	
+									}
+						
+					}
+				}
+				auto_move_to_planet = {
+					target = event_target:raid_planet
+					clear_auto_move_on_arrival = no
+				}
+			
+			}	
+			}
+			
+##fleet scope
+destroy_ftl_system = {
+##set_timed_global_flag = { flag = thanos_idle_flag days = 61 }
+		closest_system = {
+			limit = {
+			exists = owner
+			NOT = {has_star_flag = thanos_ftl_flag}
+			owner = {
+				has_technology = tech_ftl_inhibitor
+				is_country_type = default 
+				is_hostile = event_target:target_collectors
+				}
+				exists = starbase 
+				starbase = {
+					has_starbase_size >= starbase_starport
+					}
+				##
+			}
+			set_timed_star_flag  = { flag = thanos_ftl_flag days = 181 }
+			save_event_target_as = destroy_system
+		}
+		event_target:destroy_system = {
+		
+		
+		random_system_planet = {
+						limit = {
+							is_star = yes
+						}
+						save_event_target_as = raid_star
+					}
+				}
+		auto_move_to_planet = {
+					target = event_target:raid_star
+					clear_auto_move_on_arrival = no
+				}
+		
+}
+
+## fleet scope, moves it to the collector home planet
+thanos_go_home = {
+remove_global_flag = thanos_purging
+remove_global_flag = thanos_hunting
+remove_global_flag = thanos_purging_countdown
+
+set_global_flag = thanos_going_home
+
+
+event_target:thanos = {
+remove_auto_move_target = yes
+	auto_move_to_planet = {
+					target = event_target:collector_home_planet
+					clear_auto_move_on_arrival = no
+				}
+	}
+}
+
+## thanos was killed, reform their stuff, kill the ruler and revert country type
+reform_collectors = {
+	set_global_flag = mad_collector_died
+	
+	event_target:target_collectors = {
+	destroy_country = yes
+	}
+	create_defeated_collectors = yes
+	
+	 every_country = {
+	 limit = {is_country_type = default}
+	establish_communications_no_message = event_target:target_collectors
+	}
+}
+
+
+## collector kills them all
+thanos_snap = {
+        every_pop = {
+				limit = {
+			exists = owner
+			owner = { NOT = { is_country = event_target:target_collectors } }	
+				}
+                    kill_pop = yes
+        }
+		
+		##notify
+        every_country = {
+            every_owned_leader = {
+				limit = {
+			exists = owner
+			owner = { NOT = { is_country = event_target:target_collectors } }	
+				}
+                        kill_leader = {
+                            show_notification = yes
+                        }
+            }
+            country_event = { id = nyblax_cube.100 }
+        }
+		
+		## destroy ship and remove stones
+		event_target:thanos_ship = {
+								delete_ship = this
+						}
+		remove_all_collector_stones = yes
+
+    }
+
+remove_all_collector_stones =  {
+			remove_global_flag = r_damage_rune
+			remove_global_flag = r_haste_rune
+			remove_global_flag = r_illusion_rune
+			remove_global_flag = r_arcane_rune
+			remove_global_flag = r_invisibility_rune
+			remove_global_flag = r_regeneration_rune
+			
+			}
+
+steal_runes_from_collector = {
+
+## give the stones and the gauntlet
+		if = { limit = {has_global_flag = r_damage_rune} add_relic = r_damage_rune}	
+		if = { limit = {has_global_flag = r_haste_rune} add_relic = r_haste_rune}	
+		if = { limit = {has_global_flag = r_illusion_rune} add_relic = r_illusion_rune}	
+		if = { limit = {has_global_flag = r_arcane_rune} add_relic = r_arcane_rune}	
+		if = { limit = {has_global_flag = r_invisibility_rune} add_relic = r_invisibility_rune}	
+		if = { limit = {has_global_flag = r_regeneration_rune} add_relic = r_regeneration_rune}	
+	
+		remove_all_collector_stones = yes
+		
+		}
+		
+give_collector_missing_runes = {
+
+## check if anybody has any infinity stones, give thanos the rest
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_damage_rune } }				
+				}
+				set_global_flag = r_damage_rune
+				set_global_flag = r_damage_rune_collected		
+			}
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_haste_rune } }				
+				}
+				set_global_flag = r_haste_rune
+				set_global_flag = r_haste_rune_collected		
+			}
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_illusion_rune } }				
+				}
+				set_global_flag = r_illusion_rune	
+				set_global_flag = r_illusion_rune_collected				
+			}
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_arcane_rune } }				
+				}
+				set_global_flag = r_arcane_rune		
+				set_global_flag = r_arcane_rune_collected	
+			}
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_invisibility_rune } }				
+				}
+				set_global_flag = r_invisibility_rune	
+				set_global_flag = r_invisibility_rune_collected			
+			}
+			if = {
+				limit = {
+				NOT = { any_country = { has_relic = r_regeneration_rune } }				
+				}
+				set_global_flag = r_regeneration_rune	
+				set_global_flag = r_regeneration_rune_collected		
+			}
+	
+			
+				## check if thanos has them all, then snap and send him to his farm
+			if = {
+			limit = { 
+			collector_has_all_runes = yes
+			}
+			## snap and go to the farm
+						thanos_snap = yes
+						event_target:thanos_ship = {
+									delete_ship = this
+							}
+				remove_all_collector_stones = yes
+			}
+}
+
+give_collector_all_runes = {
+if = {
+			limit = { has_relic = r_damage_rune  }
+		
+		 hidden_effect = { remove_relic = r_damage_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.2 } }
+		set_global_flag = r_damage_rune	
+		
+		}
+		
+			if = {
+			limit = { has_relic = r_haste_rune } 
+	
+		 hidden_effect = { remove_relic = r_haste_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.4 } }
+		 set_global_flag = r_haste_rune	
+		}
+		
+			if = {
+			limit = {has_relic = r_illusion_rune } 
+		
+		 hidden_effect = { remove_relic = r_illusion_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.6 } }
+		 set_global_flag = r_illusion_rune	
+		
+		}
+		
+			if = {
+			limit = {  has_relic = r_arcane_rune }
+		
+		 hidden_effect = { remove_relic = r_arcane_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.8 } }
+		 set_global_flag = r_arcane_rune	
+		
+		}
+		
+			if = {
+			limit = {has_relic = r_invisibility_rune } 
+		
+		 hidden_effect = { remove_relic = r_invisibility_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.10 } }
+		 set_global_flag = r_invisibility_rune	
+		
+		 
+		}
+		
+			if = {
+			limit = { has_relic = r_regeneration_rune } 
+		
+		 hidden_effect = { remove_relic = r_regeneration_rune }
+		 hidden_effect = { country_event = { id = power_runes_war.12 } }
+		 set_global_flag = r_regeneration_rune	
+		
+		}
+
+		## check if thanos has them all, then snap and send him to his farm
+		if = {
+		limit = { 
+		collector_has_all_runes = yes
+		}
+			## snap and go to the farm
+			## thanos_snap = yes
+			## this time we want the collector to go back home and start building the cube
+			
+			thanos_go_home = yes	
+		}	
+		
+}
+
+collectors_start_building_cube = {
+set_country_type = hostile_planet_state
+remove_global_flag = thanos_going_home
+set_global_flag = thanos_building_cube
+			add_relic = r_cube
+ 
+			## notify and set no war for 10 years?
+			country_event = { id = cube_war_events.0 }
+			
+			## start cube war
+			country_event = { id = cube_war_events.12 days = 90 }
+			
+			## 50% remainng notification
+			country_event = { id = complexwar.5061 days = 2700 }
+			
+			## boom!
+			country_event = { id = complexwar.5063 days = 5400 }
+			
+}
+
+
+		
+give_away_missing_runes = {
+
+	if = {
+	limit = { is_present_regeneration_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_regeneration_rune_collected	
+                    country_event = { id = pr_maintenance.68 }
+                }
+
+	}
+	else_if = {
+	limit = { is_present_invisibility_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_invisibility_rune_collected	
+                    country_event = { id = pr_maintenance.65 }
+                }
+
+	}
+	else_if = {
+	limit = { is_present_arcane_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_arcane_rune_collected	
+                    country_event = { id = pr_maintenance.62 }
+                }
+
+	}
+	else_if = {
+	limit = { is_present_illusion_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_illusion_rune_collected	
+                    country_event = { id = pr_maintenance.59 }
+                }
+
+	}
+	else_if = {
+	limit = { is_present_haste_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_haste_rune_collected	
+                    country_event = { id = pr_maintenance.56 }
+                }
+
+	}
+	else_if = {
+	limit = { is_present_damage_rune = no }
+				random_playable_country = {
+                    limit = { is_country_type = default is_subject = no }
+					set_global_flag = r_damage_rune_collected	
+                    country_event = { id = pr_maintenance.53 }
+                }
+
+	}
+
+
+
+}
+
+destroy_all_runes = {
+		
+        remove_relic = r_damage_rune
+        remove_relic = r_haste_rune
+        remove_relic = r_illusion_rune
+        remove_relic = r_arcane_rune
+        remove_relic = r_invisibility_rune
+        remove_relic = r_regeneration_rune
+		
+		set_global_flag = r_damage_rune_collected	
+		set_global_flag = r_haste_rune_collected	
+		set_global_flag = r_illusion_rune_collected	
+		set_global_flag = r_arcane_rune_collected	
+		set_global_flag = r_invisibility_rune_collected	
+		set_global_flag = r_regeneration_rune_collected	
+}
