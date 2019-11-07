@@ -1,0 +1,890 @@
+############################
+#
+# War in Heaven Events
+#
+# Written by Martin Anward
+#
+############################
+
+namespace = war_in_heaven
+
+
+###ZoFE Notes: Only war_in_heaven 1, 3, 4 are changed.
+
+
+
+# Ancient Rival awakens
+country_event = {
+	id = war_in_heaven.1
+	title = OK
+	desc = OK
+	
+	hide_window = yes
+	
+	trigger = {
+		host_has_dlc = "Leviathans Story Pack"
+		is_country_type = fallen_empire
+		is_at_war = no
+		fleet_power > 40000
+		has_global_flag = sleepers_awake_happened
+		NOT = { has_global_flag = sleepers_awake_rival_waking }
+		has_country_flag = sleepers_awake_ancient_rival
+		any_country = {
+			is_country_type = awakened_fallen_empire
+			has_country_flag = sleepers_awake_first_sleeper	
+		}
+	}	
+	
+	mean_time_to_happen = {
+		years = 5	
+		modifier = {
+			factor = 0.01
+			OR = {
+				has_global_flag = war_in_heaven_debug
+				NOT = { has_country_flag = timed_ancient_rival }
+			}
+		}
+	}
+
+	immediate = {
+		every_country = {
+			limit = { 
+				OR = {
+					is_country_type = default
+					is_country_type = ascended_empire
+				}
+			}
+			set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+		}
+		random_country = {
+			limit = { 
+				is_country_type = awakened_fallen_empire
+				has_country_flag = sleepers_awake_first_sleeper 
+			}
+			save_event_target_as = FirstSleeper
+			set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+		}			
+		set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+		set_timed_country_flag = { flag = war_in_heaven_timer days = 730 }
+		set_timed_country_flag = { flag = war_in_heaven_timer_2 days = 3650 }
+		set_global_flag = sleepers_awake_rival_waking
+		set_country_type = awakened_fallen_empire
+		change_government = {
+			civics = {
+				civic = civic_revanchist_fervor
+				civic = civic_ancient_caches_of_technology
+			}
+		}
+		# Changing country type resets resources, so give them full stores
+		add_resource = {
+			minerals = 20000
+			energy = 5000
+			influence = 1000
+		}
+		# Add some more fleet
+		country_event = { id = fallen_empires.13 }
+		if = {
+			limit = { 
+				any_country = {
+					is_country_type = default	
+					fleet_power > 50000
+				}
+			}
+			country_event = { id = fallen_empires.13 }
+		}		
+		# Establish communications / notify
+		every_country = {
+			limit = {
+				OR = { 
+					is_country_type = default
+					is_country_type = ascended_empire
+					is_country_type = lost_empire
+					is_country_type = fallen_empire
+				}				
+			}
+			if = {
+				limit = { NOT = { has_communications = root } }
+				establish_communications_no_message = root	
+				root = { save_event_target_as = contact_empire }
+				country_event = { id = action.1 }				
+			}
+			country_event = { id = war_in_heaven.2 }
+		}
+		observer_event = { id = observer.75 }
+	}
+}
+
+
+# The War in Heaven
+country_event = {
+	id = war_in_heaven.3
+	title = OK
+	desc = OK
+	
+	hide_window = yes
+	
+	trigger = {
+		host_has_dlc = "Leviathans Story Pack"
+		is_country_type = awakened_fallen_empire
+		is_at_war = no
+		fleet_power > 40000
+		has_global_flag = sleepers_awake_rival_waking
+		has_country_flag = sleepers_awake_ancient_rival
+		OR = {
+			has_global_flag = war_in_heaven_debug
+			NOT = { has_country_flag = war_in_heaven_timer }
+		}
+		NOT = { has_global_flag = war_in_heaven_started }
+		any_country = {
+			is_country_type = awakened_fallen_empire
+			NOT = { is_same_value = root }
+			has_country_flag = sleepers_awake_first_sleeper	
+			is_at_war = no
+			fleet_power > 40000
+		}
+	}	
+
+	
+	mean_time_to_happen = {
+		years = 1	
+		modifier = {
+			factor = 0.01
+			OR = {
+				has_global_flag = war_in_heaven_debug
+				NOT = { has_country_flag = war_in_heaven_timer_2 }
+			}
+		}
+	}
+
+	immediate = {
+		country_event = { id = fallen_empires.13 }
+		if = {
+			limit = { 
+				any_country = {
+					is_country_type = default	
+					fleet_power > 50000
+				}
+			}
+			country_event = { id = fallen_empires.13 }
+		}	
+		remove_country_flag = ai_no_wars
+		random_country = {
+			limit = { 
+				is_country_type = awakened_fallen_empire
+				has_country_flag = sleepers_awake_first_sleeper 
+			}
+			save_event_target_as = FirstSleeper
+			remove_country_flag = ai_no_wars
+			country_event = { id = fallen_empires.13 }
+			if = {
+				limit = { 
+					any_country = {
+						is_country_type = default	
+						fleet_power > 50000
+					}
+				}
+				country_event = { id = fallen_empires.13 }
+			}			
+		}	
+		set_global_flag = war_in_heaven_started
+		set_global_flag = war_in_heaven_ongoing
+		declare_war = {
+			target = event_target:FirstSleeper
+			name = "NAME_The_War_in_Heaven"
+			attacker_war_goal = "wg_war_in_heaven"
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = ascended_empire
+					is_country_type = lost_empire
+				}
+			}
+			country_event = { id = war_in_heaven.4 }
+		}
+		observer_event = { id = observer.76 }
+	}
+}
+
+country_event = {
+	id = war_in_heaven.4
+	title = war_in_heaven.4.name
+	desc = war_in_heaven.4.desc
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_alien_signal
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = war_in_heaven.4.a
+		trigger = { 
+			is_subject = no 
+			NOT = {
+				any_country = {
+					OR = {
+						is_country_type = awakened_fallen_empire
+						is_country_type = ascended_empire
+					}
+					is_at_war_with = prev
+				}
+			}
+			is_country_type = default
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0
+				OR = {
+					has_valid_civic = civic_hive_devouring_swarm
+					has_valid_civic = civic_fanatic_purifiers
+					has_valid_civic = civic_machine_terminator
+				}
+			}
+			modifier = {
+				factor = 0.5
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_spiritualist
+						NOR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_materialist
+						NOR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}						
+				}
+			}			
+			modifier = {
+				factor = 0.5
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophobe
+						NOR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophile
+						NOR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}
+					}						
+				}
+			}
+			modifier = {
+				factor = 0.1
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophobe
+						OR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}						
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophile
+						OR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}						
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_materialist
+						OR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_spiritualist
+						OR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}					
+				}
+			}			
+		}
+		hidden_effect = { set_country_flag = war_in_heaven_picked_side }
+		if = {
+			limit = { 
+				event_target:FirstSleeper = { 
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+			set_subject_of = {
+				who = event_target:FirstSleeper
+				subject_type = thrall
+			}		
+		}	
+		if = {
+			limit = { 
+				event_target:FirstSleeper = { 
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+			set_subject_of = {
+				who = event_target:FirstSleeper
+				subject_type = signatory
+			}		
+		}			
+		if = {
+			limit = { 
+				event_target:FirstSleeper = { 
+					has_ethic = ethic_fanatic_spiritualist
+				}
+			}
+			set_subject_of = {
+				who = event_target:FirstSleeper
+				subject_type = dominion
+			}		
+		}		
+		if = {
+			limit = { 
+				event_target:FirstSleeper = { 
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+			set_subject_of = {
+				who = event_target:FirstSleeper
+				subject_type = satellite
+			}	
+		}	
+		hidden_effect = {
+			hidden_effect = { add_opinion_modifier = { who = event_target:FirstSleeper modifier = opinion_war_in_heaven_ally } }
+			event_target:FirstSleeper = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_ally } }
+			hidden_effect = { add_opinion_modifier = { who = from modifier = opinion_war_in_heaven_enemy } }
+			from = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }		
+		}
+		join_war = event_target:FirstSleeper
+	}
+	option = {
+		name = war_in_heaven.4.b	
+		trigger = { 
+			is_subject = no 
+			NOT = {
+				any_country = {
+					OR = {
+						is_country_type = awakened_fallen_empire
+						is_country_type = ascended_empire
+					}
+					is_at_war_with = prev
+				}
+			}
+			is_country_type = default
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0
+				OR = {
+					has_valid_civic = civic_hive_devouring_swarm
+					has_valid_civic = civic_fanatic_purifiers
+					has_valid_civic = civic_machine_terminator
+				}
+			}			
+			modifier = {
+				factor = 0.2
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_spiritualist
+						NOR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_materialist
+						NOR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}						
+				}
+			}			
+			modifier = {
+				factor = 0.5
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_xenophobe
+						NOR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_xenophile
+						NOR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}
+					}						
+				}
+			}
+			modifier = {
+				factor = 0.1
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_xenophobe
+						OR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}						
+					}
+					from = { 
+						has_ethic = ethic_fanatic_xenophile
+						OR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}						
+					}
+					from = { 
+						has_ethic = ethic_fanatic_materialist
+						OR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_spiritualist
+						OR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}					
+				}
+			}			
+		}
+		hidden_effect = { set_country_flag = war_in_heaven_picked_side }
+		if = {
+			limit = { 
+				from = { 
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+			set_subject_of = {
+				who = from
+				subject_type = thrall
+			}		
+		}	
+		if = {
+			limit = { 
+				from = { 
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+			set_subject_of = {
+				who = from
+				subject_type = signatory
+			}		
+		}			
+		if = {
+			limit = { 
+				from = { 
+					has_ethic = ethic_fanatic_spiritualist
+				}
+			}
+			set_subject_of = {
+				who = from
+				subject_type = dominion
+			}		
+		}		
+		if = {
+			limit = { 
+				from = { 
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+			set_subject_of = {
+				who = from
+				subject_type = satellite
+			}		
+		}
+		hidden_effect = {
+			hidden_effect = { add_opinion_modifier = { who = from modifier = opinion_war_in_heaven_ally } }
+			from = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_ally } }		
+			hidden_effect = { add_opinion_modifier = { who = event_target:FirstSleeper modifier = opinion_war_in_heaven_enemy } }
+			event_target:FirstSleeper = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }
+		}
+		join_war = from
+	}
+	option = {
+		name = war_in_heaven.4.c
+		trigger = { 
+			is_subject = no 
+		}	
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0.5
+				fleet_power < 20000
+			}			
+			modifier = {
+				factor = 0.5
+				fleet_power < 40000
+			}
+			modifier = {
+				factor = 2
+				fleet_power > 60000
+			}
+			modifier = {
+				factor = 2
+				fleet_power > 80000
+			}			
+			modifier = {
+				factor = 2
+				fleet_power > 100000
+			}	
+			modifier = {
+				factor = 5
+				has_federation = yes
+			}
+			modifier = {
+				factor = 2
+				any_country = {
+					is_ai = no
+					is_in_federation_with = root
+				}
+			}
+		}		
+	}
+	option = {
+		name = war_in_heaven.4.c.2
+		trigger = { 
+			is_subject = no 
+		}
+		ai_chance = {
+			factor = 0
+		}
+	}	
+	option = {
+		name = war_in_heaven.4.d
+		trigger = { 
+			is_subject = yes			
+		}	
+		if = {
+			limit = { overlord = { is_country_type = awakened_fallen_empire } }
+			if = {
+				limit = {
+					overlord = { is_same_value = event_target:FirstSleeper }
+				}
+				join_war = event_target:FirstSleeper
+			}
+			if = {
+				limit = {
+					overlord = { is_same_value = from }
+				}
+				join_war = from
+			}			
+		}			
+	}
+	
+	#### ZoFE new options
+	
+	option = {
+		name = war_in_heaven.4.a
+		trigger = {
+			is_country_type = ascended_empire
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0
+				OR = {
+					has_valid_civic = civic_hive_devouring_swarm
+					has_valid_civic = civic_fanatic_purifiers
+					has_valid_civic = civic_machine_terminator
+				}
+			}
+			modifier = {
+				factor = 0.5
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_spiritualist
+						NOR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_materialist
+						NOR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}						
+				}
+			}			
+			modifier = {
+				factor = 0.5
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophobe
+						NOR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophile
+						NOR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}
+					}						
+				}
+			}
+			modifier = {
+				factor = 0.1
+				OR = {
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophobe
+						OR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}						
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_xenophile
+						OR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}						
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_materialist
+						OR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					event_target:FirstSleeper = { 
+						has_ethic = ethic_fanatic_spiritualist
+						OR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}					
+				}
+			}			
+		}
+		hidden_effect = { set_country_flag = war_in_heaven_picked_side }
+		hidden_effect = {
+			hidden_effect = { add_opinion_modifier = { who = event_target:FirstSleeper modifier = opinion_war_in_heaven_ally } }
+			event_target:FirstSleeper = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_ally } }
+			hidden_effect = { add_opinion_modifier = { who = from modifier = opinion_war_in_heaven_enemy } }
+			from = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }		
+		}
+		join_war = event_target:FirstSleeper
+		every_subject = {
+			limit = {
+				is_country_type = default
+			}
+			join_war = root
+		}
+	}
+	
+	option = {
+		name = war_in_heaven.4.b
+		trigger = {
+			is_country_type = ascended_empire
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0
+				OR = {
+					has_valid_civic = civic_hive_devouring_swarm
+					has_valid_civic = civic_fanatic_purifiers
+					has_valid_civic = civic_machine_terminator
+				}
+			}			
+			modifier = {
+				factor = 0.2
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_spiritualist
+						NOR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_materialist
+						NOR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}						
+				}
+			}			
+			modifier = {
+				factor = 0.5
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_xenophobe
+						NOR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_xenophile
+						NOR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}
+					}						
+				}
+			}
+			modifier = {
+				factor = 0.1
+				OR = {
+					from = { 
+						has_ethic = ethic_fanatic_xenophobe
+						OR = {
+							has_ethic = ethic_pacifist
+							has_ethic = ethic_fanatic_pacifist
+							has_ethic = ethic_xenophile
+							has_ethic = ethic_fanatic_xenophile
+						}						
+					}
+					from = { 
+						has_ethic = ethic_fanatic_xenophile
+						OR = {
+							has_ethic = ethic_militarist
+							has_ethic = ethic_fanatic_militarist
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_fanatic_xenophobe
+						}						
+					}
+					from = { 
+						has_ethic = ethic_fanatic_materialist
+						OR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					from = { 
+						has_ethic = ethic_fanatic_spiritualist
+						OR = {
+							has_ethic = ethic_materialist
+							has_ethic = ethic_fanatic_materialist
+						}
+					}					
+				}
+			}			
+		}
+		hidden_effect = { set_country_flag = war_in_heaven_picked_side }
+		hidden_effect = {
+			hidden_effect = { add_opinion_modifier = { who = from modifier = opinion_war_in_heaven_ally } }
+			from = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_ally } }		
+			hidden_effect = { add_opinion_modifier = { who = event_target:FirstSleeper modifier = opinion_war_in_heaven_enemy } }
+			event_target:FirstSleeper = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }
+		}
+		join_war = from
+		every_subject = {
+			limit = {
+				is_country_type = default
+			}
+			join_war = root
+		}
+	}
+	option = {
+		name = war_in_heaven.4.e
+		trigger = { 
+			is_country_type = ascended_empire
+		}	
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 0.5
+				fleet_power < 10000
+			}			
+			modifier = {
+				factor = 0.5
+				fleet_power < 20000
+			}
+			modifier = {
+				factor = 1.5
+				fleet_power > 40000
+			}
+			modifier = {
+				factor = 2
+				fleet_power > 60000
+			}			
+			modifier = {
+				factor = 10
+				fleet_power > 80000
+			}	
+		}
+		hidden_effect = {
+			hidden_effect = { add_opinion_modifier = { who = from modifier = opinion_war_in_heaven_enemy } }
+			from = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }		
+			hidden_effect = { add_opinion_modifier = { who = event_target:FirstSleeper modifier = opinion_war_in_heaven_enemy } }
+			event_target:FirstSleeper = { add_opinion_modifier = { who = root modifier = opinion_war_in_heaven_enemy } }
+		}
+		declare_war = {
+			target = event_target:FirstSleeper
+			name = "NAME_The_War_in_Heaven"
+			attacker_war_goal = "wg_war_in_heaven"
+		}
+		declare_war = {
+			target = from
+			name = "NAME_The_War_in_Heaven"
+			attacker_war_goal = "wg_war_in_heaven"
+		}
+		every_subject = {
+			limit = {
+				is_country_type = default
+			}
+			join_war = root
+		}
+	}
+	option = {
+		name = war_in_heaven.4.f
+		trigger = { 
+			is_country_type = lost_empire
+		}	
+		ai_chance = {
+			factor = 1000
+		}
+	}
+}

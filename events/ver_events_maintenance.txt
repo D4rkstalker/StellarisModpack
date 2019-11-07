@@ -1,0 +1,504 @@
+# Events used to verify if everything is in order, remove static opinion modifiers that doesn't apply anymore and other under the hood things. Usually called by on_actions/ver_on_actions.txt
+
+namespace = vermain
+
+# vermain.10: Call ver.11, which transform Vassals into custom subject types. (on_monthly_pulse_country)
+country_event = {
+	id = vermain.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		is_overlord = yes
+		any_subject = {
+			OR = {
+				is_subject_type = vassal
+				is_subject_type = subsidiary
+			}
+		}
+	}
+
+	immediate = {
+		every_subject = {
+			limit = {
+				OR = {
+					is_subject_type = vassal
+					is_subject_type = subsidiary
+				}
+			}
+			country_event = { id = ver.11 }
+		}
+	}
+}
+
+# vermain.11: Removes no longer applicable modifiers. (on_monthly_pulse)
+event = {
+	id = vermain.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+
+		# Removes Overlord Indoctrination from former Disciples and Worhsippers
+		every_country = {
+			limit = {
+				has_modifier = ver_overlord_indoctrination
+				OR = {
+					NOT = { is_subject_type = verdisciple }
+					NOT = { is_subject_type = verworshipper }
+					is_at_war_with = overlord
+				}
+			}
+			remove_modifier = ver_overlord_indoctrination
+		}
+
+		# Removes Demilitarized from former Autonomous Regions
+		every_country = {
+			limit = {
+				has_modifier = ver_demilitarized
+				OR = {
+					NOT = { is_subject_type = verautonomous }
+					is_at_war_with = overlord
+				}
+			}
+			remove_modifier = ver_demilitarized
+		}
+
+		# Removes Military Subsidies from former Foederati
+		every_country = {
+			limit = {
+				has_modifier = ver_military_subsidies
+				OR = {
+					NOT = { is_subject_type = verfoederatus }
+					NOT = { is_subject_type = verarmsdealer }
+					is_at_war_with = overlord
+				}
+			}
+			remove_modifier = ver_military_subsidies
+		}
+
+		# Removes Puppet State from former Puppets
+		every_country = {
+			limit = {
+				has_modifier = ver_puppet_state
+				OR = {
+					NOT = { is_subject_type = verpuppet }
+					is_at_war_with = overlord
+				}
+			}
+			remove_modifier = ver_puppet_state
+		}
+
+		# Removes Kobun from former Kobuns
+		every_country = {
+			limit = {
+				has_modifier = ver_kobun_malus
+				OR = {
+					NOT = { is_subject_type = verkobun }
+					is_at_war_with = overlord
+				}
+			}
+			remove_modifier = ver_kobun_malus
+		}
+
+		# Remove taxes from subject empires that are no longer taxed or former subject empires
+		every_country = {
+			limit = {
+				is_country_type = default
+				OR = {
+					AND = {
+						is_subject = yes
+						overlord = { has_policy_flag = ver_no_taxation }
+					}
+					AND = {
+						is_subject = yes
+						overlord = { NOT = { has_policy_flag = ver_no_taxation } }
+						is_at_war_with = overlord
+					}
+					is_subject = no
+				}
+			}
+			ver_remove_overlord_taxes = yes
+		}
+
+		# Remove Parallel Processors from machine authorities without subjects
+		every_country = {
+			limit = {
+				is_country_type = default
+				has_authority = auth_machine_intelligence
+				OR = {
+					is_overlord = no
+					NOT = { any_subject = { is_subject_type = verparallel } }
+				}
+			}
+			ver_remove_parallel_processor_bonuses = yes
+		}
+	}
+}
+
+# vermain.12: Reapply modifiers. (on_monthly_pulse)
+event = {
+	id = vermain.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_country = {
+			limit = {
+				is_subject_type = verautonomous
+				NOR = {
+					has_modifier = ver_demilitarized
+					is_at_war_with = overlord
+				}
+			}
+			add_modifier = { modifier = ver_demilitarized days = -1 }
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_subject_type = verfoederatus
+					is_subject_type = verarmsdealer
+				}
+				NOR = {
+					has_modifier = ver_military_subsidies
+					is_at_war_with = overlord
+				}
+			}
+			add_modifier = { modifier = ver_military_subsidies days = -1 }
+		}
+		every_country = {
+			limit = {
+				is_subject_type = verpuppet
+				NOR = {
+					has_modifier = ver_puppet_state
+					is_at_war_with = overlord
+				}
+			}
+			add_modifier = { modifier = ver_puppet_state days = -1 }
+		}
+		every_country = {
+			limit = {
+				is_subject_type = verkobun
+				NOR = {
+					has_modifier = ver_kobun_malus
+					is_at_war_with = overlord
+				}
+			}
+			add_modifier = { modifier = ver_kobun_malus days = -1 }
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_subject_type = verdisciple
+					is_subject_type = verworshipper
+				}
+				NOR = {
+					has_modifier = ver_overlord_indoctrination
+					is_at_war_with = overlord
+				}
+			}
+			add_modifier = { modifier = ver_overlord_indoctrination days = -1 }
+		}
+	}
+}
+
+# vermain.13: Apply Parallel Processors effects (on_monthly_pulse_country)
+country_event = {
+	id = vermain.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		has_authority = auth_machine_intelligence
+		is_overlord = yes
+		any_subject = {	is_subject_type = verparallel }
+	}
+
+	immediate = {
+		set_variable = { which = ver_total_parallel_processors value = 0 }
+
+		every_subject = {
+			limit = {
+				is_subject_type = verparallel
+				NOT = { is_at_war_with = overlord }
+			}
+			prev = { change_variable = { which = ver_total_parallel_processors value = 1 } }
+		}
+
+		# Apply bonuses
+		if = {
+			limit = {
+				check_variable = { which = ver_total_parallel_processors value = 1 }
+				NOT = { has_modifier = ver_parallel_processors_1 }
+			}
+			ver_remove_parallel_processor_bonuses = yes
+			add_modifier = { modifier = ver_parallel_processors_1 days = -1 }
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = ver_total_parallel_processors value = 2 }
+				NOT = { has_modifier = ver_parallel_processors_2 }
+			}
+			ver_remove_parallel_processor_bonuses = yes
+			add_modifier = { modifier = ver_parallel_processors_2 days = -1 }
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = ver_total_parallel_processors value = 3 }
+				NOT = { has_modifier = ver_parallel_processors_3 }
+			}
+			ver_remove_parallel_processor_bonuses = yes
+			add_modifier = { modifier = ver_parallel_processors_3 days = -1 }
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = ver_total_parallel_processors value >= 4 }
+				NOT = { has_modifier = ver_parallel_processors_4 }
+			}
+			ver_remove_parallel_processor_bonuses = yes
+			add_modifier = { modifier = ver_parallel_processors_4 days = -1 }
+		}
+		else = {
+			ver_remove_parallel_processor_bonuses = yes
+		}
+
+		set_variable = { which = ver_total_parallel_processors value = 0 }
+	}
+}
+
+# vermain.2: Select all countries which are taxing subjects. (on_monthly_pulse_country)
+country_event = {
+	id = vermain.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		is_overlord = yes
+		OR = {
+			has_policy_flag = ver_light_taxes
+			has_policy_flag = ver_moderate_taxes
+			has_policy_flag = ver_heavy_taxes
+			has_policy_flag = ver_burdensome_taxes
+		}
+	}
+
+	immediate = {
+		country_event = { id = vermain.20 days = 1}
+	}
+}
+
+# vermain.20: Calculate aproximate total subjects trade and apply taxes. Called by vermain.2
+country_event = {
+	id = vermain.20
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_variable = { which = ver_subjects_trade value = 0 }
+
+		# Calculate aproximate total subjects trade value
+		every_subject = {
+			limit = {
+				NOR = {
+					has_ethic = ethic_gestalt_consciousness
+					is_at_war_with = overlord
+				}
+			}
+			country_event = { id = vermain.21 }
+		}
+
+		if = {
+			limit = { has_policy_flag = ver_light_taxes }
+			divide_variable = { which = ver_subjects_trade value = 20 }
+		}
+		else_if = {
+			limit = { has_policy_flag = ver_moderate_taxes }
+			divide_variable = { which = ver_subjects_trade value = 10 }
+		}
+		else_if = {
+			limit = { has_policy_flag = ver_heavy_taxes}
+			divide_variable = { which = ver_subjects_trade value = 5 }
+		}
+		else = {
+			divide_variable = { which = ver_subjects_trade value = 3.3 }
+		}
+
+		# Apply trade value bonus to the overlord capital
+		ver_apply_taxes_bonuses = yes
+
+	}
+
+	after = {
+		set_variable = { which = ver_subjects_trade value = 0 }
+	}
+}
+
+# vermain.21: Calculate aproximate total trade value of all subject empires. Called by vermain.20
+country_event = {
+	id = vermain.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope = {
+			solar_system = {
+				switch = {
+					trigger = trade_route_value
+					5 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 1 } } }
+					10 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 5 } } }
+					25 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 10 } } }
+					50 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 25 } } }
+					75 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 50 } } }
+					100 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 75 } } }
+					125 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 100 } } }
+					150 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 125 } } }
+					175 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 150 } } }
+					200 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 175 } } }
+					225 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 200 } } }
+					250 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 225 } } }
+					275 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 250 } } }
+					300 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 275 } } }
+					350 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 300 } } }
+					400 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 350 } } }
+					450 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 400 } } }
+					500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 450 } } }
+					600 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 500 } } }
+					700 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 600 } } }
+					800 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 700 } } }
+					900 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 800 } } }
+					1000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 900 } } }
+					1250 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 1000 } } }
+					1500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 1250 } } }
+					1750 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 1500 } } }
+					2000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 1750 } } }
+					2250 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 2000 } } }
+					2500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 2250 } } }
+					2750 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 2500 } } }
+					3000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 2750 } } }
+					3250 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 3000 } } }
+					3500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 3250 } } }
+					3750 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 3500 } } }
+					4000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 3750 } } }
+					4250 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 4000 } } }
+					4500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 4250 } } }
+					4750 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 4500 } } }
+					5000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 4750 } } }
+					5500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 5000 } } }
+					6000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 5500 } } }
+					6500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 6000 } } }
+					7000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 6500 } } }
+					7500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 7000 } } }
+					8000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 7500 } } }
+					8500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 8000 } } }
+					9000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 8500 } } }
+					9500 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 9000 } } }
+					10000 < { owner.overlord = { change_variable = { which = ver_subjects_trade value = 9500 } } }
+					default = { owner.overlord = { change_variable = { which = ver_subjects_trade value = 10000 } } }
+				}
+			}
+		}
+	}
+}
+
+# vermain.22: If the country has no more subjects, remove trade bonus. (on_monthly_pulse)
+country_event = {
+	id = vermain.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		OR = {
+			is_overlord = no
+			NOT = {	any_subject = {	NOT = { is_at_war_with = overlord } } }
+		}
+	}
+
+	immediate = {
+		ver_remove_taxes_bonuses = yes
+	}
+}
+
+# vermain.23: Apply taxes to any newly-acquired subject. (on_monthly_pulse_country)
+country_event = {
+	id = vermain.23
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		is_subject = yes
+		NOT = { has_ethic = ethic_gestalt_consciousness }
+		overlord = {
+			OR = {
+				has_policy_flag = ver_light_taxes
+				has_policy_flag = ver_moderate_taxes
+				has_policy_flag = ver_heavy_taxes
+				has_policy_flag = ver_burdensome_taxes
+			}
+		}
+	}
+
+	immediate = {
+		ver_remove_overlord_taxes = yes
+		if = {
+			limit = { overlord = { has_policy_flag = ver_light_taxes } }
+			if = {
+				limit = { NOT = { has_modifier = ver_light_overlord_taxes } }
+				ver_remove_overlord_taxes = yes
+				add_modifier = { modifier = ver_light_overlord_taxes days = -1 }
+			}
+		}
+		else_if = {
+			limit = { overlord = { has_policy_flag = ver_moderate_taxes } }
+			if = {
+				limit = { NOT = { has_modifier = ver_moderate_overlord_taxes } }
+				ver_remove_overlord_taxes = yes
+				add_modifier = { modifier = ver_moderate_overlord_taxes days = -1 }
+			}
+		}
+		else_if = {
+			limit = { overlord = { has_policy_flag = ver_heavy_taxes } }
+			if = {
+				limit = { NOT = { has_modifier = ver_heavy_overlord_taxes } }
+				ver_remove_overlord_taxes = yes
+				add_modifier = { modifier = ver_heavy_overlord_taxes days = -1 }
+			}
+		}
+		else_if = {
+			limit = { overlord = { has_policy_flag = ver_burdensome_taxes } }
+			if = {
+				limit = { NOT = { has_modifier = ver_burdensome_overlord_taxes } }
+				ver_remove_overlord_taxes = yes
+				add_modifier = { modifier = ver_burdensome_overlord_taxes days = -1 }
+			}
+		}
+	}
+}
+
+# vermain.40: The Blood Tax pulse (on_five_year_pulse)
+country_event = {
+	id = vermain.40
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		is_overlord = yes
+		any_subject = {
+			OR = {
+				is_subject_type = verblood
+				is_subject_type = verkobun
+			}
+			NOT = { is_at_war_with = overlord }
+		}
+		NOT = { has_country_flag = ver_recent_blood_tribute }
+	}
+
+	immediate = {
+		country_event = { id = ver.40 days = 300 random = 600 }
+	}
+}

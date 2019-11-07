@@ -1,0 +1,1903 @@
+namespace = collectors
+
+# collectors.1: Spawn collectors (on_game_start)
+event = {
+	id = collectors.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+
+		# Planet-State 4: The Pacifist
+		random_system = {
+			limit = { is_appropriate_planet_state_system = yes }
+			create_collectors = yes
+		}
+	}
+}
+
+# collectors.2: Spawn adjustments for the collectors
+country_event = {
+	id = collectors.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:collectors_main_species = {
+			set_citizenship_type = {
+				type = citizenship_full
+				country = event_target:target_collectors
+			}
+			set_living_standard = {
+				type = living_standard_utopian
+				country = event_target:target_collectors
+			}
+		}
+	}
+}
+
+# collectors.12: meeting the collectors for the first time (on_entering_system_fleet)
+fleet_event = {
+	id = collectors.12
+	title = collectors.12.name
+	desc = collectors.12.desc
+	picture = GFX_evt_throne_room
+	show_sound = event_radio_chatter
+	location = event_target:target_collectors
+
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_country_type = default
+			exists = capital_scope
+		}
+		From = {
+			has_star_flag = collectors
+			any_system_planet = {
+				exists = owner
+				owner = {
+					is_mad_collector_country = yes
+					NOT = { has_communications = root.owner }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		From = {
+			random_system_planet = {
+				limit = {
+					exists = owner
+					owner = { is_mad_collector_country = yes }
+				}
+				owner = {
+					save_event_target_as = target_collectors
+				}
+			}
+		}
+
+		owner = {
+			establish_communications_no_message = event_target:target_collectors
+			save_event_target_as = target_default_country
+			#country_event = { id = story.7 days = 2 }
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { owner = { has_valid_civic = civic_fanatic_purifiers } }
+	}
+	option = {
+		name = TASTY
+		trigger = { owner = { has_valid_civic = civic_hive_devouring_swarm } }
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { owner = { has_valid_civic = civic_machine_terminator } }
+	}
+
+	option = {
+		name = collectors.12.a
+		trigger = { owner = { is_homicidal = no } }
+	}
+
+	after = {
+		event_target:target_default_country = {
+			if = {
+				limit = {
+					is_xenophile = yes
+				}
+				add_monthly_resource_mult = {
+					resource = influence
+					value = @tier1influencecontactxenophile
+					min = @tier1influencecontactmin
+					max = @tier1influencecontactmax
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = influence
+					value = @tier1influencecontact
+					min = @tier1influencecontactmin
+					max = @tier1influencecontactmax
+				}
+			}
+
+			hidden_effect = {
+				if = {
+					limit = {
+						event_target:target_collectors = {
+							has_country_flag = collectors
+						}
+					}
+					country_event = { id = collectors.13 }
+					break = yes
+				}
+				
+			}
+		}
+	}
+}
+
+# collectors.13: First contact with the collectors
+country_event = {
+	id = collectors.13
+	title = collectors.13.name
+	desc = collectors.13.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	option = {
+		name = collectors.13.a
+		trigger = { is_homicidal = no }
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+	}
+}
+
+
+
+# collectors.100: collectors Main Menu (Initial)
+country_event = {
+	id = collectors.100
+	title = collectors.100.name
+	desc = collectors.100a.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+		from = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		NOT = { has_country_flag = collectors_diplomacy_engaged }
+		NOT = { has_country_flag = attacked_collectors }
+		NOT = { has_global_flag = galactic_mid_crisis_happened }	
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	# artifacts (collectors.110)
+	option = {
+		name = collectors.100.a
+		trigger = { is_homicidal = no }
+
+		hidden_effect = {
+			country_event = { id = collectors.110 }
+		}
+	}
+	
+	## give precursor shit (collectors.120)
+	option = {
+		name = collectors.100.b
+		trigger = { is_homicidal = no }
+		allow = {
+
+			custom_tooltip = {
+				fail_text = collectors.100.b.questless
+						OR = {
+			AND = {
+				has_event_chain = "vultaum_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = vultaum_chain
+						counter = vultaum_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "yuht_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = yuht_chain
+						counter = yuht_artifacts
+					}
+				}
+			}
+			AND = { 
+				has_event_chain = "first_league_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = first_league_chain
+						counter = first_league_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "irassian_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = irassian_chain
+						counter = irassian_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "cybrex_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = cybrex_chain
+						counter = cybrex_artifacts
+					}
+				}
+			}
+		}
+			}
+		custom_tooltip = {
+				fail_text = collectors.100.b.opinion
+				event_target:target_collectors = {
+					trust = {
+						who = Root
+						value >= 50
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			country_event = { id = collectors.120 }
+		}
+	}
+	
+	
+	# Goodbye
+	option = {
+		name = collectors.100.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+# collectors.101: collectors Main Menu (loop backs)
+country_event = {
+	id = collectors.101
+	title = collectors.100.name
+	desc = collectors.100a.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	# artifacts (collectors.110)
+	option = {
+		name = collectors.100.a
+
+
+		hidden_effect = {
+			country_event = { id = collectors.110 }
+		}
+	}
+	
+	## give precursor shit (collectors.120)
+	option = {
+		name = collectors.100.b
+
+		allow = {
+
+			custom_tooltip = {
+				fail_text = collectors.100.b.questless
+						OR = {
+			AND = {
+				has_event_chain = "vultaum_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = vultaum_chain
+						counter = vultaum_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "yuht_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = yuht_chain
+						counter = yuht_artifacts
+					}
+				}
+			}
+			AND = { 
+				has_event_chain = "first_league_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = first_league_chain
+						counter = first_league_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "irassian_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = irassian_chain
+						counter = irassian_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "cybrex_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = cybrex_chain
+						counter = cybrex_artifacts
+					}
+				}
+			}
+		}
+			}
+		custom_tooltip = {
+				fail_text = collectors.100.b.opinion
+				event_target:target_collectors = {
+					trust = {
+						who = Root
+						value >= 50
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			country_event = { id = collectors.120 }
+		}
+	}
+	
+	
+	# Goodbye
+	option = {
+		name = collectors.100.goodbye
+		default_hide_option = yes
+
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+}
+
+# collectors.110: give minor artifacts
+country_event = {
+	id = collectors.110
+	title = collectors.110.name
+	desc = collectors.110.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	
+	option = {
+		name = collectors.110.a
+		response_text = collectors.110.a.reply
+		
+		is_dialog_only = yes
+		allow = { resource_stockpile_compare = { resource = energy value >= 500 } }
+		hidden_effect = {
+			event_target:target_collectors = {
+				add_trust = {
+					who = root
+					amount = 10
+				}
+			}
+			add_resource = { energy = -500 }
+			add_resource = { minor_artifacts = 1 }
+		}
+	}
+
+	# Back to the main menu
+	option = {
+		name = collectors.110.back
+		hidden_effect = {
+			country_event = { id = collectors.101 }
+		}
+	}
+	# End
+	option = {
+		name = collectors.100.goodbye
+		default_hide_option = yes
+	}
+}
+
+# collectors.120: give precursor stuff
+country_event = {
+	id = collectors.120
+	title = collectors.120.name
+	desc = collectors.120.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	
+	option = {
+		name = collectors.120.a
+		response_text = collectors.120.a.reply
+		
+		is_dialog_only = yes
+		allow = { resource_stockpile_compare = { resource = energy value >= 1000 } }
+		hidden_effect = {
+			event_target:target_collectors = {
+				add_trust = {
+					who = root
+					amount = 20
+				}
+			}
+			add_resource = { energy = -1000 }
+			collector_surrenders_artifact = yes
+		}
+	}
+
+	# Back to the main menu
+	option = {
+		name = collectors.110.back
+		hidden_effect = {
+			country_event = { id = collectors.101 }
+		}
+	}
+	# End
+	option = {
+		name = collectors.100.goodbye
+		default_hide_option = yes
+	}
+}
+
+
+
+# collectors.102: collectors go bananas
+country_event = {
+	id = collectors.102
+	title = collectors.101.name
+	desc = collectors.101a.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+	NOT = { collector_has_all_runes = yes }
+		from = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		NOT = { has_country_flag = collectors_diplomacy_engaged }
+		has_global_flag = galactic_mid_crisis_happened	
+		NOT = {  has_global_flag = mad_collector_died }
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	# tell me more
+	option = {
+		name = collectors.101.tellmore	
+	
+			hidden_effect = {
+			country_event = { id = collectors.103 }
+		}
+		}
+		
+	# give runes
+	option = {
+		name = collectors.101.surrender
+		response_text = collectors.101.surrender.reply
+		trigger = { has_any_power_runes = yes }
+		hidden_effect = {
+			give_collector_all_runes = yes
+			
+						##lets be friends
+						event_target:target_collectors = {
+								set_faction_hostility = {
+									target = prev
+									set_hostile = no
+								}
+							}
+								set_faction_hostility = {
+									target = event_target:target_collectors
+									set_hostile = no
+								}	
+			
+			
+			remove_country_flag = collectors_diplomacy_engaged
+		}		
+		}
+
+	# Goodbye
+	option = {
+		name = collectors.101.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	# Goodbye2
+	option = {
+		name = collectors.101.goodbye2
+		default_hide_option = yes
+		trigger = { 
+			has_any_power_runes = yes
+		}
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+
+
+# collectors.103: collectors go bananas 2
+country_event = {
+	id = collectors.103
+	title = collectors.101b.name
+	desc = collectors.101b.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+# tell me more
+	option = {
+		name = collectors.101b.tellmore	
+
+			hidden_effect = {
+			country_event = { id = collectors.104 }
+		}
+		}
+		# give runes
+	option = {
+		name = collectors.101.surrender
+		response_text = collectors.101.surrender.reply
+		trigger = { has_any_power_runes = yes }
+		hidden_effect = {
+			give_collector_all_runes = yes
+			
+						##lets be friends
+						event_target:target_collectors = {
+								set_faction_hostility = {
+									target = prev
+									set_hostile = no
+								}
+							}
+								set_faction_hostility = {
+									target = event_target:target_collectors
+									set_hostile = no
+								}	
+			
+			
+			remove_country_flag = collectors_diplomacy_engaged
+		}		
+		}
+	# Goodbye
+	option = {
+		name = collectors.101.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}	
+	# Goodbye2
+	option = {
+		name = collectors.101.goodbye2
+		default_hide_option = yes
+		trigger = { 
+			has_any_power_runes = yes
+		}
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+
+
+# collectors.104: collectors go bananas 3
+country_event = {
+	id = collectors.104
+	title = collectors.101c.name
+	desc = collectors.101c.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+# tell me more
+	option = {
+		name = collectors.101c.tellmore	
+
+			hidden_effect = {
+			country_event = { id = collectors.105 }
+		}
+		}
+		# give runes
+	option = {
+		name = collectors.101.surrender
+		response_text = collectors.101.surrender.reply
+		trigger = { has_any_power_runes = yes }
+		hidden_effect = {
+			give_collector_all_runes = yes
+			
+						##lets be friends
+						event_target:target_collectors = {
+								set_faction_hostility = {
+									target = prev
+									set_hostile = no
+								}
+							}
+								set_faction_hostility = {
+									target = event_target:target_collectors
+									set_hostile = no
+								}	
+			
+			
+			remove_country_flag = collectors_diplomacy_engaged
+		}		
+		}
+	# Goodbye
+	option = {
+		name = collectors.101.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}	
+	# Goodbye2
+	option = {
+		name = collectors.101.goodbye2
+		default_hide_option = yes
+		trigger = { 
+			has_any_power_runes = yes
+		}
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+
+# collectors.105: collectors go bananas 4
+country_event = {
+	id = collectors.105
+	title = collectors.101d.name
+	desc = collectors.101d.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+		# give runes
+	option = {
+		name = collectors.101.surrender
+		response_text = collectors.101.surrender.reply
+		trigger = { has_any_power_runes = yes }
+		hidden_effect = {
+			give_collector_all_runes = yes
+			
+						##lets be friends
+						event_target:target_collectors = {
+								set_faction_hostility = {
+									target = prev
+									set_hostile = no
+								}
+							}
+								set_faction_hostility = {
+									target = event_target:target_collectors
+									set_hostile = no
+								}	
+			
+			
+			remove_country_flag = collectors_diplomacy_engaged
+		}		
+		}
+	# Goodbye
+	option = {
+		name = collectors.101.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}	
+	# Goodbye2
+	option = {
+		name = collectors.101.goodbye2
+		default_hide_option = yes
+		trigger = { 
+			has_any_power_runes = yes
+		}
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+# collectors.106: collectors go bananas and have all the runes
+country_event = {
+	id = collectors.106
+	title = collectors.106.name
+	desc = collectors.106.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+	collector_has_all_runes = yes
+		from = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		NOT = { has_country_flag = collectors_diplomacy_engaged }
+		has_global_flag = galactic_mid_crisis_happened	
+		NOT = {  has_global_flag = mad_collector_died }
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	# sure thing bro
+	option = {
+	response_text = collectors.106.reply
+		name = collectors.106.a	
+		}
+		# sure thing bro
+	option = {
+	response_text = collectors.106.reply
+		name = collectors.106.b	
+		}
+	# sure thing bro
+	option = {
+	response_text = collectors.106.reply
+		name = collectors.106.c
+		}
+		# sure thing bro
+	option = {
+	response_text = collectors.106.reply
+		name = collectors.106.d	
+		}	
+
+
+	# Goodbye
+	option = {
+		name = collectors.101.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+
+# Fleet 1 - Entering Borders being maaad, collectors.1010
+fleet_event = {
+	# on_crossing_border
+	# Scope = Fleet
+	# From = Origin System
+	# FromFrom = Destination System
+	id = collectors.1010
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = event_target:thanos
+		is_same_value = event_target:thanos		
+		
+		
+		fromfrom = {
+			exists = space_owner
+			space_owner = { is_country_type = default }
+			space_owner = { NOT = { has_country_flag = collector_intimidated} }
+			space_owner = { has_any_power_runes = yes }	
+			space_owner = { is_hostile = event_target:target_collectors }	
+				
+		}		
+	}
+
+	immediate = {
+
+		# First Contact message		
+		fromfrom.space_owner = {	
+			set_country_flag = collector_intimidated		
+			country_event = { id = collectors.1020 days = 5 }
+		}
+		
+		
+	}
+}
+
+# collectors.1020: collectors is bananas and goes to empire, ask nicely for the runes
+country_event = {
+	id = collectors.1020
+	title = collectors.1020.name
+	desc = collectors.1020.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+		# give runes
+	option = {
+		name = collectors.101.surrender
+		response_text = collectors.101.surrender.reply
+		trigger = { has_any_power_runes = yes }
+		hidden_effect = {
+			give_collector_all_runes = yes
+			
+						##lets be friends
+						event_target:target_collectors = {
+								set_faction_hostility = {
+									target = prev
+									set_hostile = no
+								}
+							}
+								set_faction_hostility = {
+									target = event_target:target_collectors
+									set_hostile = no
+								}	
+			
+			
+			remove_country_flag = collectors_diplomacy_engaged
+		}		
+		}
+
+
+
+	option = {
+		name = SCUM
+		response_text = collectors.101.nosurrender.reply
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		response_text = collectors.101.nosurrender.reply
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		response_text = collectors.101.nosurrender.reply
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}	
+	# Goodbye2
+	option = {
+		name = collectors.101.goodbye2
+		response_text = collectors.101.nosurrender.reply
+		default_hide_option = yes
+		trigger = { 
+			has_any_power_runes = yes
+		}
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+}
+
+
+# collectors.200: mad collector is dead
+country_event = {
+	id = collectors.200
+	title = collectors.200.name
+	desc = collectors.200a.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+		from = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		NOT = { has_country_flag = collectors_diplomacy_engaged }
+		has_global_flag = galactic_mid_crisis_happened	
+		has_global_flag = mad_collector_died
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	# artifacts (collectors.110)
+	option = {
+		name = collectors.200.a
+		trigger = { is_homicidal = no }
+
+		hidden_effect = {
+			country_event = { id = collectors.210 }
+		}
+	}
+	
+	## give precursor shit (collectors.120)
+	option = {
+		name = collectors.200.b
+		trigger = { is_homicidal = no }
+		allow = {
+
+			custom_tooltip = {
+				fail_text = collectors.100.b.questless
+						OR = {
+			AND = {
+				has_event_chain = "vultaum_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = vultaum_chain
+						counter = vultaum_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "yuht_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = yuht_chain
+						counter = yuht_artifacts
+					}
+				}
+			}
+			AND = { 
+				has_event_chain = "first_league_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = first_league_chain
+						counter = first_league_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "irassian_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = irassian_chain
+						counter = irassian_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "cybrex_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = cybrex_chain
+						counter = cybrex_artifacts
+					}
+				}
+			}
+		}
+			}
+		custom_tooltip = {
+				fail_text = collectors.100.b.opinion
+				event_target:target_collectors = {
+					trust = {
+						who = Root
+						value >= 50
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			country_event = { id = collectors.220 }
+		}
+	}
+	
+	
+	# Goodbye
+	option = {
+		name = collectors.200.goodbye
+		default_hide_option = yes
+		trigger = { is_homicidal = no }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+}
+
+
+# collectors.201: mad collector is dead Main Menu (loop backs)
+country_event = {
+	id = collectors.201
+	title = collectors.200.name
+	desc = collectors.200a.desc
+	location = From
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	# artifacts (collectors.110)
+	option = {
+		name = collectors.200.a
+
+
+		hidden_effect = {
+			country_event = { id = collectors.210 }
+		}
+	}
+	
+	## give precursor shit (collectors.220)
+	option = {
+		name = collectors.200.b
+
+		allow = {
+
+			custom_tooltip = {
+				fail_text = collectors.200.b.questless
+						OR = {
+			AND = {
+				has_event_chain = "vultaum_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = vultaum_chain
+						counter = vultaum_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "yuht_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = yuht_chain
+						counter = yuht_artifacts
+					}
+				}
+			}
+			AND = { 
+				has_event_chain = "first_league_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = first_league_chain
+						counter = first_league_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "irassian_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = irassian_chain
+						counter = irassian_artifacts
+					}
+				}
+			}
+			AND = {
+				has_event_chain = "cybrex_chain"
+				NOT = {
+					has_completed_event_chain_counter = {
+						event_chain = cybrex_chain
+						counter = cybrex_artifacts
+					}
+				}
+			}
+		}
+			}
+		custom_tooltip = {
+				fail_text = collectors.200.b.opinion
+				event_target:target_collectors = {
+					trust = {
+						who = Root
+						value >= 50
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			country_event = { id = collectors.220 }
+		}
+	}
+	
+	
+	# Goodbye
+	option = {
+		name = collectors.200.goodbye
+		default_hide_option = yes
+
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+}
+
+# collectors.210: give minor artifacts
+country_event = {
+	id = collectors.210
+	title = collectors.210.name
+	desc = collectors.210.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	
+	option = {
+		name = collectors.210.a
+		response_text = collectors.210.a.reply
+		
+		is_dialog_only = yes
+		allow = { resource_stockpile_compare = { resource = energy value >= 250 } }
+		hidden_effect = {
+			event_target:target_collectors = {
+				add_trust = {
+					who = root
+					amount = 10
+				}
+			}
+			add_resource = { energy = -250 }
+			add_resource = { minor_artifacts = 1 }
+		}
+	}
+
+	# Back to the main menu
+	option = {
+		name = collectors.210.back
+		hidden_effect = {
+			country_event = { id = collectors.201 }
+		}
+	}
+	# End
+	option = {
+		name = collectors.200.goodbye
+		default_hide_option = yes
+	}
+}
+
+# collectors.220: give precursor stuff
+country_event = {
+	id = collectors.220
+	title = collectors.220.name
+	desc = collectors.220.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+	
+	option = {
+		name = collectors.220.a
+		response_text = collectors.220.a.reply
+		
+		is_dialog_only = yes
+		allow = { resource_stockpile_compare = { resource = energy value >= 500 } }
+		hidden_effect = {
+			event_target:target_collectors = {
+				add_trust = {
+					who = root
+					amount = 20
+				}
+			}
+			add_resource = { energy = -500 }
+			collector_surrenders_artifact = yes
+		}
+	}
+
+	# Back to the main menu
+	option = {
+		name = collectors.210.back
+		hidden_effect = {
+			country_event = { id = collectors.201 }
+		}
+	}
+	# End
+	option = {
+		name = collectors.200.goodbye
+		default_hide_option = yes
+	}
+}
+
+
+
+
+
+
+
+
+# collectors.19: collectors conquered  (on_planet_attackers_win)
+country_event = {
+	id = collectors.19
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		From = { is_mad_collector_country = yes }
+		is_country_type = default
+		
+	}
+
+	immediate = {
+		From = { save_event_target_as = target_collectors }
+		FromFrom = { save_event_target_as = target_collectors_capital }
+
+		if = {
+			limit = { From = { has_country_flag = collectors } }
+			country_event = { id = collectors.1000 }
+		}
+		
+	}
+}
+
+# collectors.1000: collectors destroyed (HIDDEN)
+event = {
+	id = collectors.1000
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		country_event = { id = collectors.1001 }
+		save_event_target_as = collectors_destroyer
+
+		every_country = {
+			limit = {
+				has_communications = event_target:target_collectors
+				NOT = { is_country = event_target:collectors_destroyer }
+				is_country_type = default
+			}
+			country_event = { id = collectors.1002 }
+		}
+	}
+}
+
+# collectors.1001: collectors destroyed (Destroyer)
+country_event = {
+	id = collectors.1001
+	title = collectors.1001.name
+	desc = collectors.1001.desc
+	picture = GFX_evt_space_debris
+	location = event_target:target_collectors_capital
+	show_sound = event_ship_bridge
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_country_flag = destroyed_collectors
+		if = {
+			limit = { is_regular_empire = yes }
+			event_target:target_collectors_capital = {
+				add_modifier = {
+					modifier = planet_lost_autonomy
+					years = 10
+				}
+				set_owner = Root
+			}
+		}
+		else = {
+			event_target:target_collectors_capital = {
+				set_owner = Root
+			}
+		}
+	}
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# collectors.1002: collectors Destroyed
+country_event = {
+	id = collectors.1002
+	title = collectors.1002.name
+
+	desc = {
+		text = collectors.1002.a.desc
+	}
+
+	picture = GFX_evt_exploding_ship
+	location = event_target:target_collectors_capital
+	show_sound = event_ship_explosion
+
+	is_triggered_only = yes
+
+
+	##cool story bro
+	option = {
+		name = collectors.1002.a	
+	}
+}
+
+# collectors.1003: Attacked collectors (on_entering_battle)
+country_event = {
+	id = collectors.1003
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		From = { has_country_flag = collectors }
+		OR = {
+		NOT = { has_global_flag = galactic_mid_crisis_happened }	
+		has_global_flag = mad_collector_died
+		}
+	}
+
+	immediate = {
+		From = {
+			save_event_target_as = target_collectors
+			add_trust = {
+				who = Root
+				amount = -100
+			}
+		}
+		set_country_flag = attacked_collectors
+
+	}
+}
+
+
+# collectors.1005: Attacked collectors - Refuses Communications (on_custom_diplomacy)
+country_event = {
+	id = collectors.1005
+	title = collectors.1005.name
+	desc = collectors.1005a.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+		From = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		has_country_flag = attacked_collectors
+		NOT = { has_country_flag = collectors_diplomacy_engaged }
+		NOT = { has_global_flag = galactic_mid_crisis_happened }	
+		
+
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+	}
+	option = {
+		name = collectors.1005.a
+		trigger = { is_homicidal = no }
+		default_hide_option = yes
+	}
+}
+
+
+# collectors.2005: Attacked collectors - Refuses Communications (on_custom_diplomacy) after collector died
+country_event = {
+	id = collectors.2005
+	title = collectors.2005.name
+	desc = collectors.2005a.desc
+
+	is_triggered_only = yes
+	diplomatic = yes
+	force_open = yes
+
+	picture_event_data = {
+		portrait = event_target:target_collectors
+		planet_background = event_target:target_collectors
+		graphical_culture = event_target:target_collectors
+		city_level = event_target:target_collectors
+		room = personality_federation_builders_room
+	}
+
+	trigger = {
+		From = {
+			is_mad_collector_country = yes
+			has_country_flag = collectors
+		}
+		has_country_flag = attacked_collectors
+		NOT = { has_country_flag = collectors_diplomacy_engaged }	
+		has_global_flag = mad_collector_died
+		
+
+	}
+
+	immediate = {
+		set_country_flag = collectors_diplomacy_engaged
+		From = { save_event_target_as = target_collectors }
+	}
+
+	after = {
+		hidden_effect = {
+			remove_country_flag = collectors_diplomacy_engaged
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+	}
+	option = {
+		name = TASTY
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+	}
+	option = {
+		name = EXTERMINATE
+		trigger = { has_valid_civic = civic_machine_terminator }
+	}
+	option = {
+		name = collectors.2005.a
+		trigger = { is_homicidal = no }
+		default_hide_option = yes
+	}
+}
+
