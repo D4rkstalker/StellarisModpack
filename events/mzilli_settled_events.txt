@@ -1,0 +1,497 @@
+namespace = mzilli_settled
+
+event = {
+	id = mzilli_settled.1
+	title = OK
+	desc = OK
+	hide_window = yes
+	is_triggered_only = yes
+	fire_only_once = yes
+	
+	immediate = {
+		every_system = {
+			limit = {
+				OR = {
+					has_star_flag = com_sol
+					AND = {
+						has_star_flag = empire_home_system
+						has_star_flag = empire_cluster
+					}
+				}
+				AND = {
+					exists = space_owner
+					space_owner = {
+						is_country_type = default
+						NOR = {
+							has_civic = civic_life_seeded
+							has_country_flag = no_mzilli_colonies #modders, add this flag to excluse your custom empires if desired
+						}
+					}
+				}
+			}
+			while = {
+				count = 2
+				if = { # Checks for guaranteed colony sites
+					limit = {
+						any_system_planet = {
+							NOT = { has_planet_flag = dormant }
+							has_planet_flag = mzilli_settled_planet #modders, add the flag "mzilli_settled_planet" to make this work
+						}
+					}
+					random_system_planet = {
+						limit = {
+							NOT = { has_planet_flag = dormant }
+							has_planet_flag = mzilli_settled_planet
+						}
+						set_planet_flag = dormant
+						remove_planet_flag = mzilli_settled_planet
+					}
+				}
+				else_if = { # Checks for habitable planets in your system
+					limit = {
+						any_system_planet = {
+							NOR = {
+								has_planet_flag = dormant
+								exists = owner
+								is_planet_class = pc_bespin
+								is_planet_class = pc_bespin_3
+							}
+							habitability = {
+								who = space_owner.owner_species
+								value >= 0.5
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							NOR = {
+								has_planet_flag = dormant
+								exists = owner
+								is_planet_class = pc_bespin
+								is_planet_class = pc_bespin_3
+							}
+							habitability = {
+								who = space_owner.owner_species
+								value >= 0.5
+							}
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else_if = { # Checks for semi-habitable planets in your system
+					limit = {
+						any_system_planet = {
+							NOR = {
+								has_planet_flag = dormant
+								exists = owner
+								is_planet_class = pc_bespin
+								is_planet_class = pc_bespin_3
+							}
+							habitability = {
+								who = space_owner.owner_species
+								value > 0
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							NOR = {
+								has_planet_flag = dormant
+								exists = owner
+								is_planet_class = pc_bespin
+								is_planet_class = pc_bespin_3
+							}
+							habitability = {
+								who = space_owner.owner_species
+								value > 0
+							}
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else_if = { # Next checks for any moons orbiting your homeworld
+					limit = {
+						space_owner = {
+							capital_scope = {
+								has_moon = yes
+								any_moon = {
+									NOR = {
+										has_planet_flag = dormant
+										exists = owner
+									}
+								}
+							}
+						}
+					}
+					space_owner = {
+						capital_scope = {
+							random_moon = {
+								limit = {
+									NOR = {
+										has_planet_flag = dormant
+										exists = owner
+									}
+								}
+								set_planet_flag = dormant
+							}
+						}
+					}
+				}
+				else_if = { # Okay... how about Terraforming Candidates? i.e. Mars
+					limit = {
+						any_system_planet = {
+							has_modifier = "terraforming_candidate"
+							NOT = { has_planet_flag = dormant }
+						}
+					}
+					random_system_planet = {
+						limit = {
+							has_modifier = "terraforming_candidate"
+							NOT = { has_planet_flag = dormant }
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else_if = { # Ugh, fine, just any large-ish Barren World!
+					limit = {
+						any_system_planet = {
+							OR = {
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+							NOT = { has_planet_flag = dormant }
+							planet_size >= 12
+						}
+					}
+					random_system_planet = {
+						limit = {
+							OR = {
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+							NOT = { has_planet_flag = dormant }
+							planet_size >= 12
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else_if = { # Okay... any Barren World at all?
+					limit = {
+						any_system_planet = {
+							OR = {
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+							NOT = { has_planet_flag = dormant }
+						}
+					}
+					random_system_planet = {
+						limit = {
+							OR = {
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+							NOT = { has_planet_flag = dormant }
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else_if = { # Are you fucking serious?
+					limit = {
+						any_system_planet = {
+							is_planet_class = pc_toxic
+							NOT = { has_planet_flag = dormant }
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_planet_class = pc_toxic
+							NOT = { has_planet_flag = dormant }
+						}
+						set_planet_flag = dormant
+					}
+				}
+				else = { # REALLY?
+					random_system_planet = {
+						limit = {
+							OR = {
+								is_planet_class = pc_molten
+								is_planet_class = pc_frozen
+							}
+							NOT = { has_planet_flag = dormant }
+						}
+						set_planet_flag = dormant
+						set_planet_flag = dude_wtf
+					}
+				}
+			}
+			while = {
+				count = 2
+				random_system_planet = {
+					limit = { has_planet_flag = dormant }
+					set_planet_flag = former_dormant
+					remove_planet_flag = dormant
+					if = {
+						limit = { NOT = { habitability = { who = space_owner.owner_species value >= 0.5 } } }
+						if = {
+							limit = { planet_size < 10 }
+							set_planet_size = 10
+						}
+						set_timed_planet_flag = { # The planet takes a few days to stabilize; this prevents unrest events
+							flag = recent_unrest_event
+							days = 360
+						}
+						if = {
+							limit = { has_modifier = "terraforming_candidate" }
+							remove_modifier = "terraforming_candidate"
+						}
+						clear_deposits = yes
+						if = {
+							limit = { # Is this Mars?
+								OR = {
+									has_planet_flag = planet_mars
+									AND = {
+										solar_system = { has_star_flag = sol }
+										is_planet_class = pc_barren
+										NOT = { has_planet_flag = not_mars }
+									}
+								}
+							}
+							set_planet_flag = dormant_mars
+							change_pc = pc_dormant
+							set_planet_entity = { entity = "dormant_planet_mars_entity" }
+							add_modifier {		
+								modifier = "mineral_rich"
+								days = -1
+							}
+							add_modifier {		
+								modifier = "weak_magnetic_field"
+								days = -1
+							}
+						}
+						else_if = {
+							limit = { # Is this Luna?
+								OR = {
+									has_planet_flag = planet_luna
+									AND = {
+										solar_system = { has_star_flag = sol }
+										is_moon = yes
+										is_planet_class = pc_barren_cold
+										NOT = { has_planet_flag = not_luna }
+									}
+								}
+							}
+							set_planet_flag = dormant_luna
+							change_pc = pc_dormant_cold
+							set_planet_entity = { entity = "dormant_cold_planet_luna_entity" }
+						}
+						else = {
+							if = {
+								limit = {
+									OR = {
+										is_planet_class = pc_barren
+										is_planet_class = pc_molten
+										is_planet_class = pc_toxic
+										has_planet_flag = planet_titan
+									}
+								}
+								change_pc = pc_dormant
+								if = {
+									limit = { has_planet_flag = planet_titan }
+									set_planet_entity = { entity = "dormant_planet_titan_entity" }
+								}
+							}
+							else_if = {
+								limit = {
+									OR = {
+										is_planet_class = pc_barren_cold
+										is_planet_class = pc_frozen
+									}
+								}
+								change_pc = pc_dormant_cold
+							}
+							else = { change_pc = rl_dormant_planets }
+							random_list = {
+								80 = {
+									modifier = {
+										factor = 1000
+										solar_system = {
+											OR = {
+												has_star_flag = sol
+												has_star_flag = deneb_system
+											}
+										}
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "strong_magnetic_field" } }
+									}
+									add_modifier {		
+										modifier = "strong_magnetic_field"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "unstable_tectonics" } }
+									}
+									add_modifier {		
+										modifier = "unstable_tectonics"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "weak_magnetic_field" } }
+									}
+									add_modifier {		
+										modifier = "weak_magnetic_field"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "low_gravity" } }
+									}
+									modifier = {
+										factor = 0
+										planet_size > 10
+									}
+									add_modifier {		
+										modifier = "low_gravity"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "high_gravity" } }
+									}
+									modifier = {
+										factor = 0
+										planet_size < 15
+									}
+									add_modifier {		
+										modifier = "high_gravity"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "mineral_rich" } }
+									}
+									add_modifier {		
+										modifier = "mineral_rich"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "asteroid_belt" } }
+									}
+									modifier = {
+										factor = 20
+										has_ring = yes
+									}
+									add_modifier {		
+										modifier = "asteroid_belt"
+										days = -1
+									}
+								}
+								10 = {
+									modifier = {
+										factor = 0
+										solar_system = { any_system_planet = { has_modifier = "natural_beauty" } }
+									}
+									add_modifier {		
+										modifier = "natural_beauty"
+										days = -1
+									}
+								}
+							}
+						}
+						add_deposit = d_geothermal_vent
+						add_deposit = d_rich_mountain
+						random_list = {
+							10 = { add_deposit = d_arid_highlands }
+							10 = { add_deposit = d_veiny_cliffs }
+						}
+						if = {
+							limit = { planet_size > 12 }
+							random_list = {
+								10 = { add_deposit = d_searing_desert }
+								10 = { add_deposit = d_prosperous_mesa }
+							}
+						}
+						if = {
+							limit = { planet_size > 15 }
+							random_list = {
+								10 = {
+									add_deposit = d_arid_highlands
+									add_deposit = d_arid_highlands
+								}
+								10 = { add_deposit = d_ore_rich_caverns }
+							}
+						}
+						if = {
+							limit = { planet_size > 18 }
+							random_list = {
+								10 = { add_deposit = d_arid_highlands }
+								10 = { add_deposit = d_veiny_cliffs }
+							}
+						}
+					}
+					set_owner = space_owner
+					while = {
+						count = 3
+						create_pop = { species = space_owner }
+					}
+					random_list = {
+						100 = {
+							modifier = {
+								factor = 0.01
+								has_planet_flag = dormant_luna
+							}
+							modifier = {
+								factor = 0
+								solar_system = { any_system_planet = { has_planet_flag = dormant_mining } }
+							}
+							add_district = district_mining
+							set_planet_flag = dormant_mining
+						}
+						100 = {
+							modifier = {
+								factor = 0.01
+								OR = {
+									has_planet_flag = dormant_mars
+									has_planet_flag = planet_titan
+								}
+							}
+							modifier = {
+								factor = 0
+								solar_system = { any_system_planet = { has_planet_flag = dormant_generator } }
+							}
+							add_district = district_generator
+							set_planet_flag = dormant_generator
+						}
+					}
+					add_building = building_colony_shelter
+				}
+			}
+			every_system_planet = {
+				limit = { has_planet_flag = former_dormant }
+				remove_planet_flag = former_dormant
+				remove_planet_flag = dormant_generator
+				remove_planet_flag = dormant_mining
+				remove_planet_flag = mzilli_settled_planet
+			}
+		}
+	}
+}
