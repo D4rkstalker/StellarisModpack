@@ -1,4 +1,12 @@
-#Modlist
+# How to install (Treat this as a single mod)
+
+Download and extract it to \Documents\Paradox Interactive\Stellaris\mod\
+
+Move \mod\\! Modpack\Modpack.txt to \mod\ and rename it to Modpack.mod
+
+It will appear in the launcher as "! Modpack"
+
+# Modlist
 
 ! Expanded Events
 
