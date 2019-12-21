@@ -493,18 +493,16 @@ country_event = {
 		name = machinedlc.2.a
 	}
 }
-#civic_assimilating_swarm effect on_action event
+#civic_machine_assimilating_swarm effect on_action event
 planet_event = {
 	id = machinedlc.3
 	hide_window = yes
 	is_triggered_only = yes
 	
 	trigger = {
-		is_owned_by = from
-		from = { has_valid_civic = civic_assimilating_swarm }
+		from = { has_valid_civic = civic_machine_assimilating_swarm }
 		fromfrom = {
 			NOR = {
-				is_same_species = owner.species
 				has_trait = trait_machine_unit
 				has_trait = trait_mechanical
 			}
@@ -512,38 +510,81 @@ planet_event = {
 	}
 	
 	immediate = {
-		create_message = {
-			type = EVENT_MESSAGE_TYPE
-			localization = SWARM_ASSIMILATION_DONE
-			days = 10
-			target = this
-			variable = {
-				type = name
-				localization = SWARM_ASSIMILATION_TARGET_WORLD
-				scope = this
-			}	
+		if = {
+			limit = { from = { has_policy_flag = civic_assimilating_swarm_nanobot_full_assimilation } }
+			create_message = {
+				type = EVENT_MESSAGE_TYPE
+				localization = SWARM_ASSIMILATION_DONE
+				days = 10
+				target = this
+				variable = {
+					type = name
+					localization = SWARM_ASSIMILATION_TARGET_WORLD
+					scope = this
+				}	
+			}
+			create_pop = { species = from.species }
 		}
-		fromfrom = {
-			species = {
-				create_species = {
-					is_mod = no
-					name = this
-					namelist = from
-					plural = this
-					class = "MACHINE"
-					portrait = this
-					traits = {
-						trait = trait_machine_unit
+		if = {
+			limit = { from = { has_policy_flag = civic_assimilating_swarm_nanobot_half_assimilation } }
+			create_message = {
+				type = EVENT_MESSAGE_TYPE
+				localization = SWARM_ASSIMILATION_DONE_2
+				days = 10
+				target = this
+				variable = {
+					type = name
+					localization = SWARM_ASSIMILATION_TARGET_WORLD
+					scope = this
+				}	
+			}
+			fromfrom = {
+				species = {
+					create_species = {
+						is_mod = no
+						name = this
+						namelist = from
+						plural = this
+						class = "MACHINE"
+						portrait = this
+						traits = {
+							trait = trait_machine_unit
+						}
+						traits = this
 					}
-					traits = this
 				}
 			}
+			create_pop = { species = last_created }
+			last_created_pop = {
+				species_modify_clear_trait_pc_preference = yes
+				species_modify_change_trait_lithoid = yes
+				machine_citizenship_set = yes
+			}
 		}
-		create_pop = { species = last_created }
-		last_created_pop = {
-			species_modify_clear_trait_pc_preference = yes
-			species_modify_change_trait_lithoid = yes
-			machine_citizenship_set = yes
+		if = {
+			limit = { from = { has_policy_flag = civic_assimilating_swarm_nanobot_dismantlement } }
+			create_message = {
+				type = EVENT_MESSAGE_TYPE
+				localization = SWARM_ASSIMILATION_DONE_3
+				days = 10
+				target = this
+				variable = {
+					type = name
+					localization = SWARM_ASSIMILATION_TARGET_WORLD
+					scope = this
+				}	
+			}
+			from = {
+				add_resource = {
+					minerals = 200
+					food = 50
+				}
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = 1
+					min = 150
+				}
+			}
 		}
 	}
 }
@@ -551,7 +592,7 @@ planet_event = {
 country_event = {
     id = machinedlc.4
     hide_window = yes
-    is_triggered_only = yes
+	is_triggered_only = yes
 
     immediate = {
         give_technology = { tech = tech_robotic_workers message = no }
@@ -3404,34 +3445,28 @@ country_event = {
 	immediate = {
 		remove_relic = r_machinedlcmod_machine_core_unknown
 		add_relic = r_machinedlcmod_machine_core_unknown_broken
-		if = {
-			limit = { count_country = { limit = { is_fallen_empire_machine = yes } count = 0 } }
-			closest_system = {
-				min_steps = 1
-				max_steps = 4
-				limit = {
-					has_access_fleet = root.owner
-					has_owner = no
-					NOT = { any_ship_in_system = { owner = { is_hostile = root.owner } } }
-				}
-				spawn_system = {
-					min_distance >= 16
-					max_distance <= 39
-					initializer = "machinedlc_relic_unknown_core_system"
-				}
+		closest_system = {
+			limit = { is_owned_by = root }
+			spawn_system = {
+				min_jumps = 1
+				max_jumps = 3
+				initializer = machinedlc_relic_unknown_core_system 
 			}
-			begin_event_chain = { event_chain = machinedlcrelic_unknown_core_chain }
-			create_point_of_interest = {
-				id = hidden_planet
-				name = "machinedlc_relic_2_system_coordinates_poi"
-				desc = "machinedlc_relic_unknown_core_planet_desc"
-				event_chain = "machinedlcrelic_unknown_core_chain"
-				location = event_target:machinedlc_relic_unknown_core_planet
-			}
+		}
+		begin_event_chain = { event_chain = machinedlcrelic_unknown_core_chain }
+		create_point_of_interest = {
+			id = hidden_planet
+			name = "machinedlc_relic_2_system_coordinates_poi"
+			desc = "machinedlc_relic_unknown_core_planet_desc"
+			event_chain = "machinedlcrelic_unknown_core_chain"
+			location = event_target:machinedlc_relic_unknown_core_planet
 		}
 		if = {
 			limit = { count_country = { limit = { is_fallen_empire_machine = yes } count >= 1 } }
-			country_event = { id = machinedlc.74 }
+			random_country = {
+				limit = { is_fallen_empire_machine = yes }
+				save_global_event_target_as = machinedlc_relic_unknown_core_owner_fe
+			}
 		}
 	}
 
@@ -3444,7 +3479,8 @@ ship_event = {
     id = machinedlc.71
     title = "machinedlc.71.name"
     desc = "machinedlc.71.desc"   
-    picture = GFX_evt_ruined_system
+	picture = GFX_evt_ruined_system
+	show_sound = event_mystic_reveal
 	is_triggered_only = yes
 	location = from
 
@@ -3469,117 +3505,152 @@ ship_event = {
     }
 }
 ship_event = {
-    id = machinedlc.72
-    title = "machinedlc.72.name"
-    desc = "machinedlc.72.desc"
+	id = machinedlc.72
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			if = {
+				limit = {
+					any_country = { is_same_empire = event_target:machinedlc_relic_unknown_core_owner_fe }
+					NOT = { has_communications = event_target:machinedlc_relic_unknown_core_owner_fe } 
+				}
+				set_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_no
+			}
+			else_if = {
+				limit = { has_communications = event_target:machinedlc_relic_unknown_core_owner_fe }
+				set_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_yes
+			}
+			else_if = {
+				limit = { count_country = { limit = { is_fallen_empire_machine = yes } count = 0 } }
+				set_country_flag = machinedlc_relic_unknown_core_owner_fe_not_exist
+			}
+			country_event = { id = machinedlc.73 }
+		}
+	}
+}
+country_event = {
+    id = machinedlc.73
+    title = "machinedlc.73.name"
+	desc = { trigger = { NOT = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_yes } } text = machinedlc.73.desc.a }
+	desc = { trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_yes } text = machinedlc.73.desc.b }
 	picture = GFX_evt_in_the_dark
+	show_sound = event_wind_ruins
 	is_triggered_only = yes
 
 	option = {
-		name = machinedlc.72.a
+		name = machinedlc.73.a
+		trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_not_exist }
 		enable_special_project = {
 			name = MACHINEDLC_RELIC_UNKNOWN_CORE_GAIN_PROJECT
 			location = from
 			owner = root.owner
 		}
 	}
-}
-country_event = {
-	id = machinedlc.73
-    title = "machinedlc.73.name"
-    desc = "machinedlc.73.desc"
-	picture = GFX_evt_sapient_AI
-	is_triggered_only = yes
-
 	option = {
 		name = machinedlc.73.a
-		add_relic = r_machinedlcmod_machine_core_central
+		trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_no }
+		enable_special_project = {
+			name = MACHINEDLC_RELIC_UNKNOWN_CORE_GAIN_PROJECT_2
+			location = from
+			owner = root.owner
+		}
+	}
+	option = {
+		name = machinedlc.73.b
+		trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_yes }
 		hidden_effect = {
-			remove_relic = r_machinedlcmod_machine_core_unknown_broken
-			end_event_chain = machinedlcrelic_unknown_core_chain
+			country_event = { id = machinedlc.76 }
 		}
 	}
 }
 country_event = {
 	id = machinedlc.74
-	hide_window = yes
+	title = "machinedlc.74.name"
+	desc = machinedlc.74.desc
+	picture = GFX_evt_sapient_AI
+	show_sound = event_alien_signal
 	is_triggered_only = yes
 
-	immediate = {
-		random_country = {
-			limit = { is_fallen_empire_machine = yes }
-			if = {
-				limit = { has_communications = root }
-				country_event = { id = machinedlc.75 }
-				capital_scope = { save_event_target_as = machinedlc_relic_unknown_core_planet }
-				root = {
-					begin_event_chain = { event_chain = machinedlcrelic_unknown_core_chain }
-					create_point_of_interest = {
-						id = hidden_planet
-						name = "machinedlc_relic_2_system_coordinates_poi"
-						desc = "machinedlc_relic_unknown_core_planet_desc"
-						event_chain = "machinedlcrelic_unknown_core_chain"
-						location = event_target:machinedlc_relic_unknown_core_planet
-					}
-				}
-			}
-			if = {
-				limit = { NOT = { has_communications = root } }
-				capital_scope = { save_event_target_as = machinedlc_relic_unknown_core_planet }
-				root = {
-					begin_event_chain = { event_chain = machinedlcrelic_unknown_core_chain }
-					create_point_of_interest = {
-						id = hidden_planet
-						name = "machinedlc_relic_2_system_coordinates_poi"
-						desc = "machinedlc_relic_unknown_core_planet_desc"
-						event_chain = "machinedlcrelic_unknown_core_chain"
-						location = event_target:machinedlc_relic_unknown_core_planet
-					}
-				}
-			}
+	option = {
+		name = machinedlc.74.a
+		hidden_effect = {
+			establish_communications_no_message = event_target:machinedlc_relic_unknown_core_owner_fe
+			country_event = { id = machinedlc.75 }
 		}
 	}
 }
 country_event = {
 	id = machinedlc.75
-	hide_window = yes
-	is_triggered_only = yes
-
-	trigger = {
-		this = { is_fallen_empire_machine = yes }
-		from = { has_relic = r_machinedlcmod_machine_core_unknown_broken }
-	}
-
-	immediate = {
-		from = {
-			country_event = { id = machinedlc.76 days = 5 }
-			add_event_chain_counter = {
-				event_chain = machinedlcrelic_unknown_core_chain
-				counter = machinedlc_relic_unknown_core_planet_found
-				amount = 1
-			}
-		}
-	}
-}
-country_event = {
-	id = machinedlc.76
-	title = "machinedlc.76.name"
-	desc = "machinedlc.76.desc"
+	title = "machinedlc.75.name"
+	desc = "action.1.desc_79"
 	diplomatic = yes
 
 	is_triggered_only = yes
 
 	picture_event_data = {
-		portrait = from
-		planet_background = from
-		graphical_culture = from
-		city_level = from
-		room = from.ruler
+		portrait = event_target:machinedlc_relic_unknown_core_owner_fe
+		planet_background = event_target:machinedlc_relic_unknown_core_owner_fe
+		graphical_culture = event_target:machinedlc_relic_unknown_core_owner_fe
+		city_level = event_target:machinedlc_relic_unknown_core_owner_fe
+		room = event_target:machinedlc_relic_unknown_core_owner_fe.ruler
+	}
+
+	option = {
+		name = machinedlc.75.a
+		hidden_effect = {
+			country_event = { id = machinedlc.76 }
+		}
+	}
+}
+country_event = {
+	id = machinedlc.76
+	title = "machinedlc.75.name"
+	desc = { trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_no } text = machinedlc.76.desc.a }
+	desc = { trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_contact_yes } text = machinedlc.76.desc.b }
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:machinedlc_relic_unknown_core_owner_fe
+		planet_background = event_target:machinedlc_relic_unknown_core_owner_fe
+		graphical_culture = event_target:machinedlc_relic_unknown_core_owner_fe
+		city_level = event_target:machinedlc_relic_unknown_core_owner_fe
+		room = event_target:machinedlc_relic_unknown_core_owner_fe.ruler
 	}
 
 	option = {
 		name = machinedlc.76.a
-		allow = { has_resource = { type = energy amount >= 8000 } }
+		hidden_effect = {
+			country_event = { id = machinedlc.77 }
+		}
+	}
+}
+country_event = {
+	id = machinedlc.77
+	title = "machinedlc.75.name"
+	desc = "machinedlc.77.desc"
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:machinedlc_relic_unknown_core_owner_fe
+		planet_background = event_target:machinedlc_relic_unknown_core_owner_fe
+		graphical_culture = event_target:machinedlc_relic_unknown_core_owner_fe
+		city_level = event_target:machinedlc_relic_unknown_core_owner_fe
+		room = event_target:machinedlc_relic_unknown_core_owner_fe.ruler
+	}
+
+	after = { #excuted after option is selected
+		clear_global_event_target = machinedlc_relic_unknown_core_owner_fe
+	}
+
+	option = {
+		name = machinedlc.77.a
+		allow = { resource_stockpile_compare = { resource = energy value >= 8000 } }
 		add_resource = { energy = -8000 }
 		add_relic = r_machinedlcmod_machine_core_central
 		hidden_effect = {
@@ -3588,7 +3659,7 @@ country_event = {
 		}
 	}
 	option = {
-		name = machinedlc.76.b
+		name = machinedlc.77.b
 		enable_special_project = {
 			name = MACHINEDLC_RELIC_UNKNOWN_CORE_ACTIVATE_PROJECT
 			location = capital_scope
@@ -3596,15 +3667,17 @@ country_event = {
 	}
 }
 country_event = {
-	id = machinedlc.77
-	title = "machinedlc.73.name"
-	desc = "machinedlc.77.desc"
+	id = machinedlc.78
+	title = "machinedlc.78.name"
+	desc = { trigger = { NOT = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_not_exist } } text = machinedlc.78.desc.a }
+	desc = { trigger = { has_country_flag = machinedlc_relic_unknown_core_owner_fe_not_exist } text = machinedlc.78.desc.b }
 	picture = GFX_evt_sapient_AI
+	show_sound = relic_activation_isolated_contingency_core
 
 	is_triggered_only = yes
 
 	option = {
-		name = machinedlc.73.a
+		name = machinedlc.78.a
 		add_relic = r_machinedlcmod_machine_core_central
 		hidden_effect = {
 			remove_relic = r_machinedlcmod_machine_core_unknown_broken
@@ -3613,7 +3686,7 @@ country_event = {
 	}
 }
 country_event = {
-	id = machinedlc.78
+	id = machinedlc.79
 	hide_window = yes
 	is_triggered_only = yes
 
