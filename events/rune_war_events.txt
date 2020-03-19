@@ -1,0 +1,423 @@
+namespace = cube_war_events
+
+country_event = {
+    id = cube_war_events.0
+    hide_window = yes
+
+    is_triggered_only = yes
+
+    immediate = {
+        every_country = {
+            limit = { is_country_type = default }
+            set_timed_country_flag = { flag = ai_no_wars days = 360 }
+        }
+        random_country = {
+            limit = {
+                has_relic = r_cube
+            }
+            save_event_target_as = cube_holder
+            set_timed_country_flag = { flag = ai_no_wars days = 360 }
+        }
+        # notify
+        every_country = {
+            limit = {
+                is_country_type = default
+                NOT = { has_relic = r_cube }
+            }
+            country_event = { id = cube_war_events.1 }
+        }
+    }
+}
+
+## notify everybody that  the cube was activated
+country_event = {
+    id = cube_war_events.1
+    title = cube_war_events.1.name
+    desc = cube_war_events.1.desc
+    picture = GFX_evt_fallen_empire_awakes
+    show_sound = event_alien_signal
+
+    is_triggered_only = yes
+
+    option = {
+        name = cube_war_events.1.a
+    }
+}
+
+## end first event
+
+
+# Find a leader for non-aligned league of empires
+country_event = {
+    id = cube_war_events.12
+    title = OK
+    desc = OK
+
+    hide_window = yes
+
+    is_triggered_only = yes
+
+
+    immediate = {
+	awaken_paranoid_fe = yes
+	
+		# Find strongest neutral power and offer them to become league leader
+		# First federation leaders are asked, then simply the strongest country
+		if = {
+			limit = {
+				any_federation = {
+					NOT = {
+						any_member = {
+							has_relic = r_cube
+						}
+					}
+					any_member = {
+						is_federation_leader = yes
+						NOT = { has_country_flag = cube_war_league_leader_declined }
+					}
+					NOT = {
+						any_federation = {
+							NOT = { is_same_value = prev }
+							relative_power = {
+								who = prev
+								value > equivalent
+								category = fleet
+							}
+							any_member = {
+								is_federation_leader = yes
+								NOT = { has_country_flag = cube_war_league_leader_declined }
+							}
+						}
+					}
+				}
+			}
+			random_federation = {
+				limit = {
+					NOT = {
+						any_member = {
+							has_relic = r_cube
+						}
+					}
+					any_member = {
+						is_federation_leader = yes
+						NOT = { has_country_flag = cube_war_league_leader_declined }
+					}
+					NOT = {
+						any_federation = {
+							NOT = { is_same_value = prev }
+							relative_power = {
+								who = prev
+								value > equivalent
+								category = fleet
+							}
+							any_member = {
+								is_federation_leader = yes
+								NOT = { has_country_flag = cube_war_league_leader_declined }
+							}
+						}
+					}
+				}
+				random_member = {
+					limit = {
+						is_federation_leader = yes
+						NOT = { has_country_flag = cube_war_league_leader_declined }
+					}
+					country_event = { id = cube_war_events.13 }
+				}
+			}
+		}
+
+		else = {
+			random_country = {
+				limit = {	
+					is_subject = no
+					NOT = { has_relic = r_cube }
+					OR = {
+						is_country_type = default
+						is_country_type = awakened_fallen_empire
+					}				
+					NOT = { has_country_flag = cube_war_league_leader_declined }
+	
+					NOT = {
+						any_country = {
+							is_country_type = default
+							relative_power = {
+								who = prev
+								value > equivalent
+							}
+							is_subject = no
+							NOT = { has_relic = r_cube }
+							OR = {
+								is_country_type = default
+								is_country_type = awakened_fallen_empire
+							}
+							NOT = { has_country_flag = cube_war_league_leader_declined }
+						}
+					}
+				}
+				country_event = { id = cube_war_events.13 }
+			}
+		}
+	}
+}
+
+
+## ask if he wants to be leader
+country_event = {
+    id = cube_war_events.13
+    title = cube_war_events.13.name
+    desc = cube_war_events.13.desc
+    picture = GFX_evt_fallen_empire_awakes
+    show_sound = event_alien_signal
+    location = root
+
+    is_triggered_only = yes
+
+	## form alliance
+    option = {
+        name = cube_war_events.13.a
+        ai_chance = {
+            factor = 100
+            modifier = {
+                factor = 0
+                OR = {
+                    has_valid_civic = civic_hive_devouring_swarm
+                    has_valid_civic = civic_fanatic_purifiers
+                    has_valid_civic = civic_machine_terminator
+                }
+            }
+        }
+        hidden_effect = {
+		## we have leader, form alliance and go to war!
+		 set_country_flag = cube_war_league_leader
+
+			set_timed_country_flag = { flag = ai_no_leave_fed days = 5400 }
+			set_timed_country_flag = { flag = interdictors_member days = 5400 }
+			
+			## if he had a federation, keep it, else create new
+						if = {
+						limit = { #existing federation will become the Non-Aligned League
+							has_federation = yes
+							is_federation_leader = yes
+						}
+						federation = {
+							set_name = "The Interdictors"
+							set_federation_flag = the_interdictors
+							if = {
+								limit = {
+									has_federation_perk = cohesion_join_1
+								}
+								add_cohesion = 50
+							}
+						}
+
+					}
+					else_if = {
+						limit = { has_federation = yes }
+						leave_alliance = {
+							override_requirements = yes
+						}
+						## leave my alliance and create my own thingy
+						 join_alliance = {
+							who = root
+							name = "The Interdictors"
+							override_requirements = yes
+						}
+						hidden_effect = {
+								root.federation = {
+									set_federation_flag = the_interdictors
+									if = {
+										limit = {
+											has_federation_perk = cohesion_join_1
+										}
+										add_cohesion = 50
+									}
+									else = { add_cohesion = 100 }
+									add_federation_experience = 4200 #level 3 with some breathing room
+								}
+							}
+						
+					}
+					else = {
+					##create my own thingy
+					join_alliance = {
+							who = root
+							name = "The Interdictors"
+							override_requirements = yes
+						}
+						hidden_effect = {
+								root.federation = {
+									set_federation_flag = the_interdictors
+									if = {
+										limit = {
+											has_federation_perk = cohesion_join_1
+										}
+										add_cohesion = 50
+									}
+									else = { add_cohesion = 100 }
+									add_federation_experience = 4200 #level 3 with some breathing room
+								}
+							}
+					}
+		        
+				## invite everybody to the party
+				every_country = {
+					limit = {
+						is_subject = no
+						NOT = {
+								has_relic = r_cube
+						}
+						OR = {
+							is_country_type = default
+							is_fe_country = yes
+							}						
+						NOT = { has_country_flag = cube_war_league_leader }
+					}
+				
+					country_event = { id = cube_war_events.20 }
+				}
+		   
+            country_event = { id = cube_war_events.50 days = 120 }
+           
+
+
+        }
+    }
+
+	## decline alliance
+    option = {
+        name = cube_war_events.13.b
+        ai_chance = {
+            factor = 1
+        }
+        hidden_effect = {
+		set_country_flag = cube_war_league_leader_declined
+            country_event = { id = cube_war_events.12 }
+        }
+    }
+}
+
+
+
+
+## join alliance
+country_event = {
+    id = cube_war_events.20
+    title = cube_war_events.20.name
+    desc = cube_war_events.20.desc
+    picture = GFX_evt_fallen_empire_awakes
+    show_sound = event_alien_signal
+    location = from
+
+    is_triggered_only = yes
+
+    option = {
+        name = cube_war_events.20.a
+        ai_chance = {
+            factor = 100
+        }
+        
+		set_timed_country_flag = { flag = interdictors_member days = 5400 }
+		set_timed_country_flag = { flag = ai_no_leave_fed days = 5400 }
+		join_alliance = {
+			who = from
+			override_requirements = yes
+		}
+				hidden_effect = {
+					from.federation = { #counteract the -100 cohesion you'd normally get for new members
+						if = {
+							limit = {
+								has_federation_perk = cohesion_join_1
+							}
+							add_cohesion = 50
+						}
+						else = { add_cohesion = 100 }
+						#add_federation_experience = 150
+					}
+				}
+				if = {
+					limit = {
+						is_overlord = yes
+						from.federation = {
+							has_federation_law = allow_subjects_to_join_yes
+						}
+					}
+					every_subject = {
+						join_alliance = {
+							who = from
+							override_requirements = yes
+						}
+						hidden_effect = {
+							from.federation = {
+								add_cohesion = 100
+								#add_federation_experience = 100
+							}
+						}
+					}
+				}
+       
+    }
+    option = {
+        name = cube_war_events.20.b
+        ai_chance = {
+            factor = 1
+        }
+
+    }
+}
+
+
+
+## to warrr!
+country_event = {
+    id = cube_war_events.50
+    title = cube_war_events.50.name
+    desc = cube_war_events.50.desc
+    picture = GFX_evt_fallen_empire_awakes
+    show_sound = event_alien_signal
+    location = from
+
+    is_triggered_only = yes
+
+
+    option = {
+        name = cube_war_events.50.a
+        every_country = {
+            limit = {
+                is_same_value = event_target:cube_holder
+            }
+            root = {
+                declare_war = {
+                    target = event_target:cube_holder
+                    name = "The Interdiction"
+                    attacker_war_goal = "wg_cube_war"
+                }
+            hidden_effect = {
+                every_subject = {
+                    join_war = prev
+                }
+            }
+        }
+    }
+    hidden_effect = {
+        every_country = {
+            country_event = { id = cube_war_events.51 }
+        }
+    }
+}
+}
+
+## notify avengers have assembled
+country_event = {
+    id = cube_war_events.51
+    title = cube_war_events.51.name
+    desc = cube_war_events.51.desc
+    picture = GFX_evt_fallen_empire_awakes
+    show_sound = event_alien_signal
+
+    is_triggered_only = yes
+
+    option = {
+        name = cube_war_events.51.a
+    }
+}
