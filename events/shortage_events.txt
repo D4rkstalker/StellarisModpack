@@ -1,0 +1,245 @@
+namespace = shortage_realism_events
+
+### Set Shortage Flags
+### Biological Starvation Event Chain Trigger
+
+###log = "shortage_mod: [This.starvation_flag_shortage_mod]"
+###log = "starvation_timer: [This.starvation_timer]"
+
+###log = "shortage_mod: [This.low_maintanance_shortage_mod]"
+###log = "maintanence_timer: [This.low_maint_timer]"
+
+country_event = {
+	id = shortage_realism_events.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_country_resource = { type = food amount > 0 } }
+				count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 0 } 
+				check_variable = { which = starvation_flag_shortage_mod value = 1 }
+			}
+			if = {
+				### Trigger it immediately, too much time has passed
+				limit = { check_variable = { which = starvation_timer value >= 90 } }
+				country_event = { id = shortage_realism_events.10 }
+			}
+			change_variable = { which = starvation_timer value = 30 }
+		}
+
+		if = {
+			limit = {
+				NOT = { has_country_resource = { type = food amount > 0 } }
+				count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 0 } 
+			}
+			set_variable = { which = starvation_flag_shortage_mod value = 1 }
+			
+		}
+		else = {
+			set_variable = { which = starvation_flag_shortage_mod value = 0 }
+			set_variable = { which = starvation_timer value = 0 }
+		}
+	}
+}
+
+### Robotic Low Maintanence Event Chain Trigger
+country_event = {
+	id = shortage_realism_events.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				check_variable = { which = low_maintanance_shortage_mod value = 1 }
+				NOT = { has_country_resource = { type = minerals amount > 0 } }
+				count_owned_pops = { limit = { is_robot_pop = yes } count > 0 } 
+			}
+			if = {
+				### Trigger it immediately, too much time has passed
+				limit = { check_variable = { which = low_maint_timer value >= 360 } }
+				country_event = { id = shortage_realism_events.11 }
+			}
+			change_variable = { which = low_maint_timer value = 30 }
+		}
+
+		if = {
+			limit = {
+				NOT = { has_country_resource = { type = minerals amount > 0 } }
+				count_owned_pops = { limit = { is_robot_pop = yes } count > 0 } 
+			}
+			set_variable = { which = low_maintanance_shortage_mod value = 1 }
+		}
+		else = {
+			set_variable = { which = low_maintanance_shortage_mod value = 0 }
+			set_variable = { which = low_maint_timer value = 0 }
+		}
+	}
+}
+
+### Make sure at timer conditions have been met for starvation stuff, when these random events trigger the timers are checked
+
+country_event = {
+	id = shortage_realism_events.10
+	hide_window = yes
+	
+	trigger = {
+		NOT = { has_country_resource = { type = food amount > 0 } }
+		count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 0 } 
+		check_variable = { which = starvation_flag_shortage_mod value = 1 }
+	}
+
+	mean_time_to_happen = { 
+		days = 50
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_country_resource = { type = food amount > 0 } }
+				count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 0 } 
+				check_variable = { which = starvation_flag_shortage_mod value = 1 }
+				check_variable = { which = starvation_timer value > 40 }
+			}
+
+			set_variable = { which = starvation_flag_shortage_mod value = 0 }
+			set_variable = { which = starvation_timer value = 0 }
+
+			set_variable = {which = num_bio_pops_die value = 1 }
+
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 30 } }
+				set_variable = {which = num_bio_pops_die value = 2 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 30 } }
+				set_variable = {which = num_bio_pops_die value = 4 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 120 } }
+				set_variable = {which = num_bio_pops_die value = 8 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 200 } }
+				set_variable = {which = num_bio_pops_die value = 16 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 500 } }
+				set_variable = {which = num_bio_pops_die value = 32 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { NOT = { is_robot_pop = yes } } count > 1000 } }
+				set_variable = {which = num_bio_pops_die value = 64 }
+			}
+			log = "Bio Pops Die: [This.num_bio_pops_die]"
+
+			country_event = { id = shortage_realism_events.3 }
+		}
+	}
+}
+
+###Synth Pops Die Random Event Trigger
+country_event = {
+	id = shortage_realism_events.11
+	hide_window = yes
+	
+	trigger = {
+		NOT = { has_country_resource = { type = minerals amount > 0 } }
+		count_owned_pops = { limit = { is_robot_pop = yes } count > 0 } 
+		check_variable = { which = low_maintanance_shortage_mod value = 1 }
+	}
+
+	mean_time_to_happen = { 
+		days = 170
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_country_resource = { type = minerals amount > 0 } }
+				count_owned_pops = { limit = { is_robot_pop = yes } count > 0 } 
+				check_variable = { which = low_maintanance_shortage_mod value = 1 }
+				check_variable = { which = low_maint_timer value > 150 }
+			}
+			set_variable = { which = low_maint_timer value = 0 }
+			set_variable = { which = low_maintanance_shortage_mod value = 0 }
+
+			set_variable = {which = num_synth_pops_die value = 1 }
+
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 15 } }
+				set_variable = {which = num_synth_pops_die value = 2 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 30 } }
+				set_variable = {which = num_synth_pops_die value = 4 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 120 } }
+				set_variable = {which = num_synth_pops_die value = 8 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 250 } }
+				set_variable = {which = num_synth_pops_die value = 16 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 500 } }
+				set_variable = {which = num_synth_pops_die value = 32 }
+			}
+			if = {
+				limit = { count_owned_pops = { limit = { is_robot_pop = yes } count > 1000 } }
+				set_variable = {which = num_synth_pops_die value = 64 }
+			}
+			log = "Robo Pops Die: [This.num_synth_pops_die value]"
+
+			country_event = { id = shortage_realism_events.4 }
+		}
+	}
+}
+
+##Bio Pops Starve Event
+country_event = {
+	id = shortage_realism_events.3
+	title = shortage_realism_events.3.name
+	desc = shortage_realism_events.3.desc
+	is_triggered_only = yes
+	trackable = yes
+	picture = GFX_evt_space_funeral
+	show_sound = event_red_alert
+
+	immediate = {
+		while = { 
+			count = num_bio_pops_die
+			random_owned_pop = { limit = { NOT = { is_robot_pop = yes } } kill_pop = yes  } 
+		}
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+###Synthethic Pops Die Event
+country_event = {
+	id = shortage_realism_events.4
+	title = shortage_realism_events.4.name
+	desc = shortage_realism_events.4.desc
+	trackable = yes
+	picture = GFX_evt_space_funeral
+	show_sound = event_red_alert
+	is_triggered_only = yes
+
+	immediate = {
+		while = { 
+			count = num_synth_pops_die
+			random_owned_pop = { limit = { is_robot_pop = yes } kill_pop = yes  } 
+		}
+	}
+
+	option = {
+		name = OK
+	}
+}
+

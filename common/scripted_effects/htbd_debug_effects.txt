@@ -1,0 +1,224 @@
+#####################################
+### Here, There Be Dragons Events ###
+### by Gogabor			  ###
+#####################################
+
+htbd_system_stats = {
+	#if = {
+	#	limit = { exists = space_owner }
+	#	log = "[This.GetName] is owned by [This.Owner.GetName]"
+	#}
+	if = {
+		limit = { htbd_friend_system = yes }
+		if = {
+			limit = {
+				space_owner = { htbd_has_friend_edict = yes }
+			}
+			log = "		-> FRIEND (active edict)"
+		}
+		else = {
+			log = "		-> FRIEND"
+		}
+	}
+	if = {
+		limit = { has_star_flag = htbd_recent_star_@prevprev }
+		log = "		-> RECENT"
+	}
+	if = {
+		limit = { htbd_has_fear_station = yes }
+		log = "		-> FEAR"
+	}
+	else_if = {
+		limit = { htbd_has_fear_aura = yes }
+		log = "		-> FEAR AURA"
+	}
+	if = {
+		limit = { htbd_good_system = yes }
+		log = "		-> GOOD"
+	}
+	if = {
+		limit = { htbd_bad_system = yes }
+		log = "		-> BAD"
+	}
+	if = {
+		limit = { htbd_avoid_system = yes }
+		log = "		-> AVOID"
+	}
+	if = {
+		limit = { has_star_flag = hostile_system }
+		log = "		-> hostile"
+	}
+	if = {
+		limit = { is_bottleneck_system = yes }
+		log = "		-> bottleneck"
+	}
+	if = {
+		limit = { htbd_has_ftl_inhibitor = yes }
+		log = "		-> has an inhibitor!"
+	}
+	if = {
+		limit = { has_star_flag = htbd_pass_stay }
+		log = "		-> ETHER HOLE"
+	}
+}
+
+# This = fleet
+htbd_travel_debug = {
+	log = "[This.GetName] wants to leave [Solar_System.GetName]"
+	solar_system = {
+		save_event_target_as = htbd_dbg_system
+		#if = {
+		#	limit = { exists = space_owner }
+		#	log = "Owner is [This.Owner.GetName]"
+		#}
+		if = {
+			limit = { exists = starbase }
+			log = "Has starbase!"
+		}
+		if = {
+			limit = {
+				htbd_has_ftl_inhibitor = yes
+			}
+			log = "[This.GetName] has an inhibitor!"
+		}
+		log = "---------- by HYPERLANES to:"
+		every_neighbor_system = {
+			ignore_hyperlanes = no
+			limit = { always = yes }
+			htbd_system_stats = yes
+		}
+		log = "---------- by NEIGHBORs (neighbors, excluding less than 3 HL):"
+		every_neighbor_system = {
+			ignore_hyperlanes = yes
+			limit = {
+				NOT = { distance = { source = prev type = hyperlane min_jumps = 1 max_jumps = 3 } }
+			}
+			htbd_system_stats = yes
+		}
+		if = {
+			limit = {
+				has_natural_wormhole = yes
+			}
+			log = "[This.GetName] has WORMHOLE, try to find its pair by old way:"
+			closest_system = {
+				min_steps = 1
+				max_steps = 1
+				limit = {
+					has_natural_wormhole = yes
+				}
+				log = "[Prev.GetName] has wormhole to [This.GetName]"
+				htbd_system_stats = yes
+			}
+			# OR maybe that way?
+			random_system = {
+				limit = {
+					has_natural_wormhole = yes
+					closest_system = {
+						min_steps = 1
+						max_steps = 1
+						is_same_value = event_target:htbd_dbg_system
+					}
+				}
+				log = "[Prev.GetName] has wormhole to [This.GetName]"
+				htbd_system_stats = yes
+			}
+		}
+		if = {
+			limit = {
+				has_natural_wormhole = yes
+			}
+			log = "[This.GetName] has WORMHOLE, try to find its pair by jump distance:"
+			random_system = {
+				limit = {
+					has_natural_wormhole = yes
+					distance = { source = prev use_bypasses = yes min_jumps = 1 max_jumps = 1 }
+				}
+				log = "[Prev.GetName] has wormhole to [This.GetName]"
+				htbd_system_stats = yes
+			}
+		}
+		if = {
+			limit = {
+				has_star_flag = htbd_pass_stay
+			}
+			log = "---------- by ETHER HOLES:"
+			every_system = {
+				limit = {
+					OR = {
+						AND = {
+							prev = { has_star_flag = htbd_pass_to }
+							has_star_flag = htbd_pass_from
+						}
+						AND = {
+							prev = { has_star_flag = htbd_pass_from }
+							has_star_flag = htbd_pass_to
+						}
+					}
+				}
+				log = "Has ether hole to [This.GetName]"
+				htbd_system_stats = yes
+			}
+		}
+	}
+}
+
+# create dragon and dreadnout to debug battles
+htbd_debug_setup = {
+	# devel: to test iteration with dragons
+	every_country = {
+		limit = {
+			is_ai = no
+		}
+		save_event_target_as = my_country
+		capital_scope = {
+			solar_system = {
+				random_system_planet = {
+					create_fleet = {
+						name = "Dragon Slayer"
+						effect = {
+							set_owner = event_target:my_country
+							create_ship = {
+								name = "Dread"
+								design = "NAME_Relic"
+								graphical_culture = "npf_01"
+								upgradable = no
+							}
+							set_location = prev
+						}
+					}
+				}
+				closest_system = {
+					limit = {
+						NOT = { any_system_planet = { is_capital = yes } }
+						any_system_planet = { is_planet_class = pc_molten }
+					}
+					random_system_planet = {
+						htbd_new_fleet = yes
+						last_created_fleet = {
+							htbd_dragon_teen = yes
+							set_fleet_flag = htbd_idle
+						}
+					}
+				}
+				random_rim_system = {
+					limit = {
+						NOT = { any_system_planet = { is_capital = yes } }
+						NOT = {
+							any_ship_in_system = {
+								owner = { is_country_type = htbd_horde }
+							}
+						}
+						any_system_planet = { is_planet_class = pc_molten }
+					}
+					random_system_planet = {
+						htbd_new_fleet = yes
+						last_created_fleet = {
+							htbd_dragon_adult = yes
+							set_fleet_flag = htbd_idle
+						}
+					}
+				}
+			}
+		}
+	}
+}

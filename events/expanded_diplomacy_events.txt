@@ -1,0 +1,353 @@
+############################
+#
+# Expanded Diplomacy Events
+#
+############################
+
+namespace = diploexpanded
+
+##################################
+# Restored and Misc Events
+# Reserved 1 - 99
+##################################
+# Insulting Admiral: at war with insulted
+country_event = {
+	id = diploexpanded.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_country_flag = insulting_admiral_timer
+		FROM = {
+			OR = {
+				AND = {
+					any_attacker = { is_same_value = root }
+					any_defender = { has_country_flag = insulted_party@root }
+				}
+				AND = {
+					any_defender = { is_same_value = root }
+					any_attacker = { has_country_flag = insulted_party@root }
+				}
+			}
+		}
+	}
+	immediate = {
+		country_event = { id = diploexpanded.2 days = 180 random = 180 }
+	}
+}
+country_event = {
+	id = diploexpanded.2
+	title = "diplomatic.8.name"
+	desc = "diplomatic.8.desc"
+	picture = GFX_evt_throne_room
+	show_sound = event_radio_chatter
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = diplomatic.8.a
+		allow = {
+			resource_stockpile_compare = { resource = influence value >= 100 }
+		}
+		add_resource = { influence = -100 }
+		random_owned_fleet = {
+			set_leader = insulting_admiral
+			leader = {
+				add_skill = 2
+				if = {
+					limit = {
+						NOT = { has_trait = leader_trait_aggressive }
+					}
+					add_trait = leader_trait_aggressive
+				}
+			}
+		}
+		add_modifier = { modifier = inspiring_insulting_admiral days = 3600 }
+	}
+	option = {
+		name = diplomatic.8.a
+	}
+}
+
+##################################
+# War Events
+# Reserved 100 - 199
+##################################
+
+# war starting events
+country_event = {
+	id = diploexpanded.100
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_gestalt = no
+		from = {
+			is_war_participant = { who = root side = attackers }
+			NOR = {
+				using_war_goal = { type = wg_end_threat owner = attacker }
+				using_war_goal = { type = wg_end_threat_swarm owner = attacker }
+				using_war_goal = { type = wg_end_threat_assimilators owner = attacker }
+				using_war_goal = { type = cb_stop_colossus owner = attacker }
+				using_war_goal = { type = wg_end_threat_ae owner = attacker }
+			}
+		}
+		any_owned_planet = {
+			NOT = { has_modifier = war_protests }
+			NOT = { has_modifier = crushed_war_protests }
+			count_pops = {
+				limit = {
+					pop_has_ethic = ethic_pacifist
+					is_enslaved = no
+					is_being_purged = no
+				}
+				count > 3
+			}
+		}
+	}
+	
+	immediate = {
+		random_owned_planet = {
+			limit = {
+				NOT = { has_modifier = war_protests }
+				NOT = { has_modifier = crushed_war_protests }
+				count_pops = {
+					limit = {
+					pop_has_ethic = ethic_pacifist
+						is_enslaved = no
+						is_being_purged = no
+					}
+					count > 3
+				}
+			}
+			random_list = {
+				1 = {
+					modifier = {
+						factor = 3
+						ROOT = { is_militarist = yes }
+					}
+				}
+				1 = {
+					modifier = {
+						factor = 3
+						ROOT = { is_pacifist = yes }
+					}
+					planet_event = { id = diploexpanded.101 days = 60 random = 360 }
+				}
+			}
+		}
+	}
+}
+
+# War protests
+planet_event = {
+	id = diploexpanded.101
+	title = "diploexpanded.101.name"
+	desc = "diploexpanded.101.desc"
+	desc = "diploexpanded.101.desc.b"
+	desc = "diploexpanded.101.desc.c"
+	picture = GFX_evt_alien_propaganda
+	show_sound = event_public_unrest
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		owner = {
+			any_war = {
+				is_war_participant = { who = prev side = attackers }
+			}
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		add_modifier = { modifier = "war_protests" days = 1800 }
+		hidden_effect = {
+			random_list = {
+				1 = {
+					modifier = {
+						factor = 3
+						exists = owner
+						owner = { is_militarist = yes }
+					}
+					modifier = {
+						factor = 2
+						exists = owner
+						owner = { is_authoritarian = yes }
+					}
+				}
+				1 = {
+					country_event = { id = diploexpanded.102 days = 180 random = 360 }
+					modifier = {
+						factor = 2
+						exists = owner
+						owner = { is_pacifist = yes }
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = diploexpanded.101.a
+		alloy = { is_egalitarian = no }
+		add_modifier = { modifier = "crushed_war_protests" days = 1800 }
+		hidden_effect = {
+			random_list = {
+				4 = {
+					modifier = {
+						factor = 1.5
+						exists = owner
+						owner = { is_militarist = yes }
+					}
+					modifier = {
+						factor = 1.5
+						exists = owner
+						owner = { is_authoritarian = yes }
+					}
+				}
+				1 = {
+					modifier = {
+						factor = 4
+						exists = owner
+						owner = { is_pacifist = yes }
+					}
+					country_event = { id = diploexpanded.102 days = 180 random = 360 }
+				}
+			}
+		}
+	}
+}
+
+# war protests spread, causing higher war exhaustion
+country_event = {
+	id = diploexpanded.102
+	title = "diploexpanded.102.name"
+	desc = "diploexpanded.102.desc"
+	picture = GFX_evt_alien_propaganda
+	show_sound = event_public_unrest
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		any_war = {
+			is_war_participant = { who = root side = attackers }
+		}
+		any_owned_planet = {
+			NOT = { has_modifier = war_protests }
+			NOT = { has_modifier = crushed_war_protests }
+			count_pops = {
+				limit = {
+					pop_has_ethic = ethic_pacifist
+					is_enslaved = no
+					is_being_purged = no
+				}
+				count > 3
+			}
+		}
+	}
+	
+	immediate = {
+		add_modifier = { modifier = country_war_protests days = 3600 }
+		random_owned_planet = {
+			limit = {
+				NOT = { has_modifier = war_protests }
+				NOT = { has_modifier = crushed_war_protests }
+				count_pops = {
+					limit = {
+					pop_has_ethic = ethic_pacifist
+						is_enslaved = no
+						is_being_purged = no
+					}
+					count > 3
+				}
+			}
+			add_modifier = { modifier = "war_protests" days = 1800 }
+		}
+		random_owned_planet = {
+			limit = {
+				NOT = { has_modifier = war_protests }
+				NOT = { has_modifier = crushed_war_protests }
+				count_pops = {
+					limit = {
+					pop_has_ethic = ethic_pacifist
+						is_enslaved = no
+						is_being_purged = no
+					}
+					count > 3
+				}
+			}
+			add_modifier = { modifier = "war_protests" days = 1800 }
+		}
+		random_owned_planet = {
+			limit = {
+				NOT = { has_modifier = war_protests }
+				NOT = { has_modifier = crushed_war_protests }
+				count_pops = {
+					limit = {
+					pop_has_ethic = ethic_pacifist
+						is_enslaved = no
+						is_being_purged = no
+					}
+					count > 3
+				}
+			}
+			add_modifier = { modifier = "war_protests" days = 1800 }
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		tooltip = {
+			add_modifier = { modifier = country_war_protests days = 3600 }
+			random_owned_planet = {
+				limit = {
+					NOT = { has_modifier = war_protests }
+					NOT = { has_modifier = crushed_war_protests }
+					count_pops = {
+						limit = {
+						pop_has_ethic = ethic_pacifist
+							is_enslaved = no
+							is_being_purged = no
+						}
+						count > 3
+					}
+				}
+				add_modifier = { modifier = "war_protests" days = 1800 }
+			}
+			random_owned_planet = {
+				limit = {
+					NOT = { has_modifier = war_protests }
+					NOT = { has_modifier = crushed_war_protests }
+					count_pops = {
+						limit = {
+						pop_has_ethic = ethic_pacifist
+							is_enslaved = no
+							is_being_purged = no
+						}
+						count > 3
+					}
+				}
+				add_modifier = { modifier = "war_protests" days = 1800 }
+			}
+			random_owned_planet = {
+				limit = {
+					NOT = { has_modifier = war_protests }
+					NOT = { has_modifier = crushed_war_protests }
+					count_pops = {
+						limit = {
+						pop_has_ethic = ethic_pacifist
+							is_enslaved = no
+							is_being_purged = no
+						}
+						count > 3
+					}
+				}
+				add_modifier = { modifier = "war_protests" days = 1800 }
+			}
+		}
+	}
+}
+
+# High war exhaustion, people get unhappy

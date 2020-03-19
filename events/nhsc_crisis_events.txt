@@ -1,0 +1,245 @@
+namespace = nhsc_crisis
+
+## ##################################################### ##
+##          Checking if the prerequites are met          ##
+## ##################################################### ##
+
+event = {
+	id = nhsc_crisis.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_crises_allowed = yes
+		NOR = {
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = nhsc_unbidden_crisis_triggered
+			has_global_flag = nhsc_unbidden_crisis_started
+		}
+		OR = {
+			has_global_flag = nhsc_dangerous_tech_1_researched
+			has_global_flag = nhsc_dangerous_tech_2_researched
+		}
+	}
+
+	immediate = {
+		### someone rushed dangerous techs : no more than 15 years have passed since endgame started
+		### it is impossible to research any of the dangerous techs before endgame without using cheats due to weighting of the gate tech
+		if = {
+			limit = { end_game_years_passed < 15 }
+			random_country = {
+				limit = { is_country_type = default }
+				country_event = { id = nhsc_crisis.2 days = 9000 } # wait 25 years
+			}
+		}
+		### between 15 and 30 years has passed since endgame starated
+		if = {
+			limit = {
+				end_game_years_passed > 15
+				end_game_years_passed < 30
+			}
+			random_country = {
+				limit = { is_country_type = default }
+				country_event = { id = nhsc_crisis.2 days = 5400 } # wait 15 years
+			}
+        	}
+		# more than 30 years passed since endgame started
+		if = {
+			limit = { end_game_years_passed > 30 }
+			random_country = {
+				limit = { is_country_type = default }
+				country_event = { id = nhsc_crisis.2 days = 3600 } # wait 10 years
+			}
+		}
+	}
+}
+
+## ##################################################### ##
+##    Setting global flag so that we can get rolling     ##
+## ##################################################### ##
+
+country_event = {
+	id = nhsc_crisis.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOR = {
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = nhsc_unbidden_crisis_triggered
+			has_global_flag = nhsc_unbidden_crisis_started
+		}
+	}
+
+	immediate = {
+		set_global_flag = nhsc_unbidden_crisis_triggered
+	}
+}
+
+## ##################################################### ##
+##  Rolling dice to start the extradimensional invasion  ##
+## ##################################################### ##
+
+event = {
+	id = nhsc_crisis.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_crises_allowed = yes
+		has_global_flag = nhsc_unbidden_crisis_triggered
+		NOR = {
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = nhsc_unbidden_crisis_started
+		}
+	}
+
+	immediate = {
+		random_list = {
+			10 = {
+				# only less dangerous techs have been researched
+				if = {
+					limit = {
+						has_global_flag = nhsc_dangerous_tech_1_researched
+						NOT = { has_global_flag = nhsc_dangerous_tech_2_researched }
+					}
+					random_list = {
+						# crisis starts
+						25 = {
+							random_country = {
+								limit = { is_country_type = default }
+								country_event = { id = nhsc_crisis.4 days = 180 random = 90 }
+							}
+						}
+						# nothing happens
+						75 = {}
+					}
+				}
+				# highly-dangerous techs have been researched
+				if = {
+					limit = { has_global_flag = nhsc_dangerous_tech_2_researched }
+					random_list = {
+						# crisis starts
+						50 = {
+							random_country = {
+								limit = { is_country_type = default }
+								country_event = { id = nhsc_crisis.4 days = 180 random = 90 }
+							}
+						}
+						# nothing happens
+						50 = {}
+					}
+				}
+			}
+			90 = {} # nothing happens
+		}
+	}
+}
+
+## ##################################################### ##
+##          Extradimensional invasion begins...          ##
+## ##################################################### ##
+
+country_event = {
+	id = nhsc_crisis.4
+	hide_window = yes
+	is_triggered_only = yes
+	fire_only_once = yes
+
+	trigger = {
+		is_crises_allowed = yes
+		NOR = {
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = nhsc_unbidden_crisis_started
+		}
+	}
+
+	immediate = {
+		set_global_flag = nhsc_unbidden_crisis_started
+		### call vanilla initializer for unbidden
+		country_event = { id = crisis.1000 days = 0 random = 0 }
+		### unset flag that prevents other crises from happening. add 1 day of delay to guarantee that everything works in proper order
+		country_event = { id = nhsc_crisis.5 days = 1 random = 0 }
+	}
+}
+
+country_event = {
+	id = nhsc_crisis.5
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_global_flag = nhsc_unbidden_crisis_started
+	}
+
+	immediate = {
+		if = {
+			limit = { has_global_flag = galactic_crisis_happened }
+			remove_global_flag = galactic_crisis_happened
+		}
+	}
+}
+
+## ##################################################### ##
+##                      Re:Invasion...                   ##
+## ##################################################### ##
+
+event = {
+	id = nhsc_crisis.6
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_crises_allowed = yes
+		end_game_years_passed > 0
+		OR = {
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = nhsc_unbidden_crisis_started
+		}
+		has_global_flag = nhsc_repeated_unbidden_invasion
+	}
+
+	immediate = {
+		random_country = {
+			limit = {
+				has_country_flag = extradimensionals_expunged
+			}
+			country_event = { id = nhsc_crisis.7 days = 180 }
+		}
+	}
+}
+
+# this event removes global flags that prevent unbidden crisis from happening again.
+# done from country scope because flag 'extradimensionals_expunged' appears to be the only way to tell that crisis has been beaten
+country_event = {
+	id = nhsc_crisis.7
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		remove_global_flag = nhsc_unbidden_crisis_started
+		remove_global_flag = extradimensional_invasion_happened
+		remove_country_flag = extradimensionals_expunged
+	}
+}
+
+## ##################################################### ##
+##                 for testing purposes...               ##
+## ##################################################### ##
+
+event = {
+	id = nhsc_crisis.666 ### more appropriate event name
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_crises_allowed = yes
+	}
+
+	immediate = {
+		random_country = {
+			limit = { is_country_type = default }
+			country_event = { id = nhsc_crisis.4 days = 10 random = 5 }
+		}
+	}
+}

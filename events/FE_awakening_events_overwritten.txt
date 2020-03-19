@@ -1,0 +1,206 @@
+#this overwrites the awakening trigger event.
+namespace = fallen_empires_awakening
+
+# Sleepers Awake
+country_event = {
+	id = fallen_empires_awakening.1
+	title = OK
+	desc = OK
+	hide_window = yes
+	trigger = {
+		OR = {
+			is_country_type = fallen_empire
+		#special condition for the sleeper: has to still own the thinkery and the farms 
+			AND = {
+				is_sleeper = yes
+				any_owned_planet = {
+					has_planet_flag = hive_core_world
+				}
+			}
+		}
+		OR = {
+			# Fragged a holy world
+			has_country_flag = holy_world_killed
+			# Original trigger
+			AND = {
+				NOT = { has_global_flag = sleepers_awake_happened }
+				NOT = { has_global_flag = guardians_of_the_galaxy_happened }			
+				end_game_years_passed >= 0
+			#this is her to prevent the machine FE from awakening. changed from not having gestalt ethic to having machine authority
+				NOT = { has_authority = auth_machine_intelligence }
+				if = {
+					limit = {
+						NOT = {
+							is_sleeper = yes
+						}
+					}
+					is_at_war = no
+				}
+				fleet_power > 40000
+				# Wake up if regular empire is growing too strong or has started to conquer other fallen empires
+				any_country = {
+					is_country_type = default
+					OR = {
+						fleet_power > 50000
+						any_owned_planet = {
+							has_planet_flag = fallen_empire_world
+						}
+					}
+				}
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		years = 50
+		modifier = {
+			factor = 0.5
+			any_country = {
+				is_country_type = default
+				fleet_power > 75000
+			}
+		}
+		modifier = {
+			factor = 1.5
+			num_fallen_empires > 1
+			num_fallen_empires < 3
+		}
+		modifier = {
+			factor = 2.0
+			num_fallen_empires > 2
+			num_fallen_empires < 4
+		}
+		modifier = {
+			factor = 2.5
+			num_fallen_empires > 3
+		}
+		modifier = {
+			factor = 0.1
+			any_country = {
+				is_country_type = default
+				any_owned_planet = {
+					has_planet_flag = fallen_empire_world
+					NOT = { is_original_owner = root }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		set_global_flag = sleepers_awake_happened
+		# event for the sleeper
+		if = {
+			limit = {
+				is_sleeper = yes
+			}
+			country_event = { id = sleeper_the_awoken.05 }
+		#give the empires some time to react. this way it will not immediatly declare war on drone planet holders
+			set_timed_country_flag = { flag = ai_no_wars days = 360 }
+		#announcement to all players
+			every_country = {
+				limit = {
+					is_ai = no
+				}
+				country_event = { id = sleeper_the_awoken.07 }
+			}
+		}
+		# Notify players (only if its not the sleeper, it has its own in its awakening event)
+		if = {
+			limit = {
+				is_sleeper = no
+			}
+			country_event = { id = fallen_empires_awakening.3 } #took this further down to save space
+			every_country = {
+				limit = {
+					is_ai = no
+				}
+				country_event = { id = fallen_empires_awakening.2 }
+			}
+		}
+		observer_event = { id = observer.73 }
+
+		# Fragged a holy world
+		if = {
+			limit = {
+				has_country_flag = holy_world_killed
+			}
+			country_event = { id = planet_destruction.611 days = 5 }
+		}
+
+		# War in Heaven (the sleeper can not become a rival, but can instead awaken feral DURING the war in heaven)
+		if = {
+			limit = { host_has_dlc = "Leviathans Story Pack" }
+			random_list = {
+				40 = { # War in Heaven with Fallen Empire of opposing ethos
+					random_country = {
+						limit = {
+							NOT = { is_same_value = root }
+							is_country_type = fallen_empire
+							NOT = { has_ethic = ethic_gestalt_consciousness }
+							OR = {
+								AND = {
+									has_ethic = ethic_fanatic_xenophobe
+									root = { has_ethic = ethic_fanatic_xenophile }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_xenophile
+									root = { has_ethic = ethic_fanatic_xenophobe }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_spiritualist
+									root = { has_ethic = ethic_fanatic_materialist }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_materialist
+									root = { has_ethic = ethic_fanatic_spiritualist }
+								}
+							}
+						}
+						set_country_flag = sleepers_awake_ancient_rival
+						set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+						every_country = {
+							limit = { is_country_type = default }
+							set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						}	
+					}
+			#sleeper trigger
+					random_country = {
+						limit = {
+							is_sleeper = yes
+						}
+						country_event = { id = sleeper_the_awoken.02 days = 1800 random = 720 }
+					}
+				}
+				20 = { # War in Heaven with Fallen Empire of different ethos
+					random_country = {
+						limit = {
+							NOT = { is_same_value = root }
+							is_country_type = fallen_empire
+							NOT = { has_ethic = ethic_gestalt_consciousness }
+						}
+						set_country_flag = sleepers_awake_ancient_rival
+						set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+						every_country = {
+							limit = {
+								is_country_type = default
+							}
+							set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						}						
+					}
+			#sleeper trigger
+					random_country = {
+						limit = {
+							is_sleeper = yes
+						}
+						country_event = { id = sleeper_the_awoken.02 days = 1800 random = 720 }
+					}
+				}
+				40 = { } # No War in Heaven
+			}
+		}
+	}
+}
