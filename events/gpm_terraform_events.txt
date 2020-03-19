@@ -12,25 +12,9 @@ planet_event = {
 	
 	immediate = {
 		THIS = {
-
 			# set planet flag to tell scripts this planet is now a terraformed planet (used to limit removing vanilla features
 			set_planet_flag = gpm_is_terraformed_world
-		
-			# if this world has a specific modifier, apply matching planet graphics
-			if = { 
-				limit = { has_modifier = Precursor_Energy_Grid } 
-				gpm_set_precursor_energy_grid = yes
-			}
 
-			# spawn a random precursor ruin if there is a precursor planet modifier
-			if = {
-				limit = { 
-					gpm_has_precursor_modifiers = yes
-					NOT = { gpm_has_precursor_feature = yes }
-				}
-				gpm_spawn_precursor_feature = yes
-			}
-			
 			# Remove bad modifiers where is makes sense
 			gpm_remove_negative_modifiers = yes
 			
@@ -39,16 +23,16 @@ planet_event = {
 			
 			# Remove good modifiers where it makes sense
 			gpm_remove_positive_modifiers = yes
+			
+			# we check for habitable world and apply a terraform bonus (+districts) to help with dissapearing districts
+			gpm_spawn_terraform_tier_modifier = yes
 
+			# switch _nb modifiers for their bonus equivelents
+			gpm_switch_nb_modifiers = yes
 			
 			
-			# Death World Civic Start; If we terraform the death world capital, it removes the modifier and replaces it with the capital modifier
-			if = {
-				limit = { has_modifier = "gpm_Death_world" }
-				remove_modifier = "gpm_Death_world"
-			}
-			
-			# Remove valuable world modifier backup (this gets removed trough the terraform links, but in some edge cases it doesn't, so this way it does get removed).
+
+			# Remove valuable world/terraform candidate modifier  (this gets removed trough the terraform links, but in some edge cases it doesn't, so this way it does get removed).
 			if = {
 				limit = { has_modifier = terraforming_candidate_precursor }
 				remove_modifier = terraforming_candidate_precursor
@@ -57,200 +41,52 @@ planet_event = {
 				limit = { has_modifier = terraforming_candidate }
 				remove_modifier = terraforming_candidate
 			}
-			
-			# If world was a wondrous world, remove modifier and replace with ruins modifier
-			# if = {
-			# 	limit = { has_modifier = Planet_Wonder_Discovered }
-			# 	remove_modifier = Planet_Wonder_Discovered
-			# 	add_modifier = { modifier = Planet_Wonder_Ruined days = -1 } 
-			# }
-			# For safety we check with flag instead of modifier to reset colour
-			# if = {
-			# 	limit = { 
-			# 		OR = {
-			# 			has_planet_flag = "gpm_is_wondrous_planet" 
-			# 			has_planet_flag = "gpm_is_wondrous_planet_colour" 
-			# 		}
-			# 	}
-			# 	set_name = "color_default_white_col"
-			# 	remove_planet_flag = "gpm_is_wondrous_planet_colour"
-			# 	remove_planet_flag = "gpm_is_wondrous_planet"
-			# }	
-			
+
 			# Planetary Computer/AI worlds interaction
-			# Wipe everything from worlds that isn't a planet trait (like gravity or rotation or magnetic field)
+			# Wipe everything from worlds
 			# Chance to spawn a machine modifier.
 			if = {
-				limit = { gpm_is_planet_machine = yes }
-				gpm_crisis_purge_modifiers = yes
-				if = {
-					limit = {
-						has_modifier = Precursor_Planetary_Shield
-						NOT = { has_modifier = Precursor_Planetary_Shield_on }
-					}
-					add_modifier = { modifier = Precursor_Planetary_Shield_on days = -1 }
-				}
-				remove_modifier = chthonian_planet
-				remove_modifier = carbon_world
-				random_list = {
-					25 = { }
-					85 = { gpm_spawn_machine_modifier = yes }
-				}
+				limit = { gpm_is_planet_class_machine = yes }
+				gpm_purge_all_planetary_modifiers = yes
+				gpm_purge_all_core_modifiers = yes
+				# if = {
+				# 	limit = {
+				# 		has_modifier = gpm_precursor_planetary_shield
+				# 		NOT = { has_modifier = gpm_precursor_planetary_shield }
+				# 	}
+				# 	add_modifier = { modifier = gpm_precursor_planetary_shield days = -1 }
+				# }
+				gpm_roll_machine_world_modifiers = yes
 			}
 
-				
 
-			
-			# We try to apply a unique terraform bonus modifier (not always)
-			# But not if the world is a computer planet or AI planet or anything like that
-			# if = {
-			# 	limit = { 
-			# 		NOR = { 
-			# 			num_modifiers < 4 
-			# 			gpm_is_planet_machine = yes
-			# 		}						
-			# 	}
-			# 	random_list = {
-			# 		85 = {}
-			# 		15 = { gpm_spawn_terraform_tier_modifier = yes }
-			# 	}
-			# }
-
-			# we check for habitable world and apply a terraform bonus (+districts) to help with dissapearing districts
+			# Roll planet modifiers based on planet class and amount based on starting choice
 			if = {
 				limit = {
-					gpm_is_planet_habitable = yes
-					gpm_is_planet_machine = no
-					NOT = { is_planet_class = pc_hive }
-					NOT = { gpm_is_planet_city = yes }
-					NOT = { is_planet_class = pc_gaia}
-					NOT = { has_modifier = gpm_terraforming_world_engineering }
+					gpm_is_planet_class_normal_habitable = yes
 				}
-				add_modifier = { modifier = gpm_terraforming_world_engineering days = -1 }
+				gpm_roll_terraform_modifiers = yes
 			}
-			if = {
-				limit = {
-					is_planet_class = pc_gaia
-					NOT = { has_modifier = gpm_terraforming_gaia_engineering }
-				}
-				add_modifier = { modifier = gpm_terraforming_gaia_engineering days = -1 }
+
+			# if this world has a specific modifier, apply matching planet graphics
+			if = { 
+				limit = { has_modifier = gpm_precursor_energy_grid } 
+				gpm_set_precursor_energy_grid = yes
 			}
-			
-			# Guaranteed reroll if less than 4 modifiers is found
+			# We check to see if we need to remove and add planetary features after the world was changed.
+			gpm_remove_planetary_features = yes
+			gpm_roll_planetary_features = yes
+			# spawn a random precursor ruin if there is a precursor planet modifier
 			if = {
 				limit = { 
-					num_modifiers < 4 
-					NOT = { gpm_is_planet_machine = yes }
+					gpm_has_precursor_modifiers = yes
+					NOT = { gpm_has_precursor_feature = yes }
 				}
-				gpm_spawn_terraform_modifier = yes
-			}
-			
-			# If low amount of modifiers is chosen at the start:
-			if = {
-				limit = { has_global_flag = gpm_modifier_amount_low }
-				# chance for extra modifiers if less than 2 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 2
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-				
-				# chance for extra modifiers if less than 3 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 3
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-			}
-			# If normal amount of modifiers is chosen at the start:
-			if = {
-				limit = { has_global_flag = gpm_modifier_amount_normal }
-				# chance for extra modifiers if less than 2 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 2
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-				
-				# chance for extra modifiers if less than 3 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 3
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-				
-				# chance for extra modifiers if less than 4 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 4
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-			}
-			# If normal amount of modifiers is chosen at the start:
-			if = {
-				limit = { has_global_flag = gpm_modifier_amount_high }
-				gpm_spawn_terraform_modifier = yes
-				
-				# chance for extra modifiers if less than 3 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 3
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
-				
-				# chance for extra modifiers if less than 4 modifiers
-				if = {
-					limit = { 
-						num_modifiers < 4
-						NOT = { gpm_is_planet_machine = yes }
-					}
-					random_list = {
-						75 = {}
-						25 = { gpm_spawn_terraform_modifier = yes }
-					}
-				}
+				gpm_spawn_precursor_features = yes
 			}
 
-
-			# We check to see if we need to remove and add planetary features after the world was changed.
-			if = {
-				limit = {
-					NOT = { is_planet_class = pc_gaia }
-				}
-				gpm_remove_planetary_features = yes
-			}
-			gpm_spawn_special_features = yes
-			gpm_spawn_planetary_feature = yes
+			# Safety check to remove blockers
+			clear_blockers = yes
 		}
 	}
 }

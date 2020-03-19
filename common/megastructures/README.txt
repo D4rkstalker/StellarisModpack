@@ -13,7 +13,7 @@
 #	build_cost = {
 #		minerals = 8
 #		energy = 13
-#		influcence = 21
+#		influence = 21
 #	}
 #	monthly_production = {
 #		energy = 34
@@ -39,4 +39,7 @@
 #			}
 #		}
 #	}
+#
+#	construction_blocked_by_others = no # default yes, set to no if other constructions in same system
+#										should block construction of this type
 #}
