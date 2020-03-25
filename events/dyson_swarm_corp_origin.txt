@@ -17,7 +17,10 @@ country_event = {
 	}
 	
 	immediate = {
-		capital_scope = { save_event_target_as = original_capital }
+		capital_scope = { 
+			save_event_target_as = original_capital
+			set_planet_flag = dyson_hostage_planet_@FROM
+		}
 		random_system = {
 			limit = {
 				starting_system = yes
@@ -42,7 +45,6 @@ country_event = {
 					set_planet_flag = eco_no_pollution
 					set_planet_entity = {
 						entity = "orbital_habitat_entity"
-						graphical_culture = fromfrom
 					}
 					surveyed = {
 						set_surveyed = yes
@@ -58,8 +60,7 @@ country_event = {
 					prevent_anomaly = yes
 					set_planet_flag = is_dyson_swarm
 				#add deposits
-					add_deposit = d_dyson_swarm_planetary_access
-					add_deposit = d_dyson_food_reserves
+					add_deposit = d_dyson_swarm_valuable_crystal_asteroid
 				#add pops and ownership
 					set_owner = FROM
 					set_controller = FROM
@@ -68,7 +69,7 @@ country_event = {
 					while = {
 						count = 15
 						create_pop = {
-							species = last_created_species
+							species = owner_species
 							ethos = random
 						}
 						last_created_pop = {
@@ -77,7 +78,7 @@ country_event = {
 					}
 					every_owned_pop = {
 						modify_species = {
-							species = last_created_species
+							species = owner_species
 							add_trait = trait_low_gravity_adaptation
 							add_traits_at_start_of_list = yes
 							hidden_effect = {
@@ -91,8 +92,6 @@ country_event = {
 					}
 				#spawning buildings and districts
 					add_district = dyson_swarm_solar_stations
-					add_district = dyson_swarm_solar_stations
-					add_district = dyson_swarm_mining_bays
 					add_district = dyson_swarm_mining_bays
 					add_district = dyson_swarm_zero_g_labs
 					add_building = building_capital
@@ -174,9 +173,30 @@ country_event = {
 				} 
 			}
 		}
+		#move the species homeworld to a random barren world three systems out
+		capital_scope = {
+			solar_system = {
+				closest_system = {
+					limit = { has_owner = no }
+					random_planet = {
+						limit = { is_planet_class = pc_barren }
+						save_event_target_as = destroyed_homeworld
+						set_planet_flag = destroyed_homeworld@FROM
+					}
+				}
+			}
+		}
+		owner_species = {
+			set_species_homeworld = event_target:destroyed_homeworld
+		}
+		give_technology = { tech = "tech_dyson_swarm" message = no }
+		give_technology = { tech = "tech_hydroponics" message = no }
+		add_resource = { food = 200 }
+		set_country_flag = did_not_do_food_trade_yet
 		event_target:original_capital = { planet_event = { id = dyson_starting.101 } }
 		country_event = { id = dyson_starting.102 }
-		country_event = { id = dyson_starting.103 }
+		#country_event = { id = dyson_starting.105 days = 1460 }
+		country_event = { id = dyson_starting.105 days = 20 }
 	}
 }
 #set up hostage planet
@@ -186,22 +206,26 @@ planet_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		set_planet_flag = dyson_hostage_planet
+		save_event_target_as = dyson_hostage_planet
 		prevent_anomaly = yes
 		while = {
-			count = 18
+			count = 40
 			random_pop = { kill_pop = yes }
 		}
-		remove_district = district_city
-		remove_district = district_city
-		remove_district = district_mining
-		remove_district = district_farming
-		remove_district = district_farming
-		remove_district = district_generator
-		remove_district = district_generator
-		create_country = {
+		create_species = {
 			name = random
-			type = primitive
+			class = random_non_machine
+			portrait = random
+			homeworld = event_target:dyson_hostage_planet
+			traits = random
+		}
+		while = {
+			count = 24
+			create_pop = { species = last_created }
+		}
+		create_country = {
+			name = NAME_hostages
+			type = primitive_clone
 			name_list = random 
 			ship_prefix = ISS 
 			authority = random
@@ -213,67 +237,299 @@ planet_event = {
 			flag = random
 			ethos = random
 			effect = {
-				set_primitive_age = eternal_cold_war_age
-				set_country_flag = eternal_cold_war_age
+				set_primitive_age = machine_age
+				set_country_flag = machine_age
 				save_event_target_as = hostage_planet_country
+			#prevent them from ever advancing normaly
+				set_country_flag = recently_advanced
 			} 
 		}
 		set_owner = event_target:hostage_planet_country
 		set_controller = event_target:hostage_planet_country
+		remove_district = district_city
+		remove_district = district_city
+		remove_district = district_city
+		remove_district = district_mining
+		remove_district = district_mining
+		remove_district = district_mining
+		remove_district = district_farming
+		remove_district = district_farming
+		remove_district = district_farming
+		remove_district = district_generator
+		remove_district = district_generator
+		remove_district = district_generator
+		remove_building = building_capital
+		remove_building = building_bureaucratic_1
+		remove_building = building_factory_1
+		remove_building = building_foundry_1
+		remove_building = building_research_lab_1
+		remove_building = building_commercial_zone
+		add_building = building_primitive_capital
+		add_building = building_urban_dwellings
+		add_building = building_primitive_factory
+		add_building = building_primitive_mine
+		add_building = building_primitive_farm
+		add_building = building_primitive_power_plant
+		space_owner = {
+			establish_communications_no_message = event_target:hostage_planet_country
+		}
 	}
 }
+#introduction
 country_event = {
 	id = dyson_starting.102
-	hide_window = yes
+	title = dyson_starting.102.title
+	desc = dyson_starting.102.desc
+	
 	is_triggered_only = yes
-
-	immediate = {
-		establish_communications_no_message = event_target:hostage_planet_country
-		set_variable = { 
-			which = dyson_power_c
-			value = 10
-		}
-		set_variable = { 
-			which = dyson_power_a
-			value = 10
-		}
+	
+	option = {
+		name = dyson_starting.102.a
 	}
 }
-#Introduction
+#communications with the natives
 country_event = {
 	id = dyson_starting.103
-	title = dyson_starting.103.title
+	title = dyson_starting.communications
 	desc = dyson_starting.103.desc
+	diplomatic = yes
 	
-	is_triggered_only = yes 
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+	}
+	
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
 	
 	option = {
-		name = dyson_starting.103.a
+		trigger = {
+			NOR = {
+				has_country_flag = allowed_food_trade
+				has_country_flag = denied_food_trade
+			}
+		}
+		name = dyson_starting.103.first_food
+		country_event = { id = dyson_starting.104 }
+	}
+	option = {
+		trigger = {
+			OR = {
+				has_country_flag = allowed_food_trade
+				has_country_flag = denied_food_trade
+			}
+		}
+		name = dyson_starting.103.establish_trade
+		country_event = { id = dyson_starting.107 }
+	}
+	option = {
+		name = dyson.goodbye
 	}
 }
-#Hostage planet interaction menu
+#establish tradedeal (trade value)
+country_event = {
+	id = dyson_starting.107
+	title = dyson_starting.communications
+	desc = dyson_starting.107.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
+	
+	option = {
+		trigger = { NOT = { has_country_flag = dyson_trade_deposits_now_worth_double } }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.107.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals value < 26 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 100 }
+		}
+		name = dyson_starting.107.yes_1
+		add_resource = { energy = -100 }
+		capital_scope = {
+			add_deposit = d_dyson_corp_value_trade_1
+		}
+		change_variable = { which = dyson_number_of_tradedeals value = 1 }
+	}
+	option = {
+		trigger = { has_country_flag = dyson_trade_deposits_now_worth_double }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.107.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals value < 51 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 150 }
+		}
+		name = dyson_starting.107.yes_2
+		add_resource = { energy = -150 }
+		capital_scope = {
+			add_deposit = d_dyson_corp_value_trade_2
+		}
+		change_variable = { which = dyson_number_of_tradedeals value = 1 }
+	}
+	option = {
+		name = dyson_starting.107.no
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#first food deal
 country_event = {
 	id = dyson_starting.104
-	title = dyson_starting.104.title
-	desc = dyson_starting.104.desc
+	title = dyson_starting.communications
+	desc = {
+		trigger = { NOT = { has_country_flag = denied_food_trade } }
+		text = dyson_starting.104.desc_1
+	}
+	desc = {
+		trigger = { has_country_flag = denied_food_trade }
+		text = dyson_starting.104.desc_2
+	}
+	diplomatic = yes
 	
-	is_triggered_only = yes 
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+	}
+	
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
 	
 	option = {
-		name = dyson_starting.104.a
+		name = dyson_starting.104.yes
+		custom_tooltip = dyson_starting.104.yes.tooltip
+		response_text = dyson_starting.104.yes.response
+		capital_scope = {
+			add_deposit = d_dyson_corp_food_trade
+		}
+		set_country_flag = allowed_food_trade
+		hidden_effect = {
+			if = {
+				limit = { has_country_flag = food_deal_now_triggers_advancement }
+				#country_event = { id = dyson_starting.106 days = 90 }
+				country_event = { id = dyson_starting.106 days = 10 }
+			}
+		}
+	}
+	option = {
+		name = dyson_starting.104.no
+		custom_tooltip = dyson_starting.104.no.tooltip
+		response_text = dyson_starting.104.no.response
+		set_country_flag = denied_food_trade
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
+#gatekeeper for the natives advancement, fired four years after gamestart. Check for the following flags: denied_food_trade and did_not_do_food_trade_yet. If they are not present, the natives will stay machine age for three more years or until the trade is done anyways.
+country_event = {
+	id = dyson_starting.105
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = { has_country_flag = allowed_food_trade }
+			country_event = { id = dyson_starting.106 }
+		}
+		else = {
+			set_country_flag = food_deal_now_triggers_advancement
+			country_event = { id = dyson_starting.106 days = 1095 }
+		}
+	}
+}
+#notify player of the natives advancement, advance them
+country_event = {
+	id = dyson_starting.106
+	title = dyson_starting.106.title
+	desc = {
+		trigger = { has_country_flag = allowed_food_trade }
+		text = dyson_starting.106.desc_1
+	}
+	desc = {
+		trigger = { NOT = { has_country_flag = allowed_food_trade } }
+		text = dyson_starting.106.desc_2
+	}
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+		event_target:the_natives = {
+			set_primitive_age = atomic_age
+			set_country_flag = atomic_age
+			capital_scope = {
+				save_event_target_as = the_natives_planet
+				while = {
+					count = 2
+					create_pop = {
+						species = owner_species
+					}
+				}
+			}
+		}
+		#can no longer sell shiny stuff
+		capital_scope = { set_planet_flag = no_more_shiny_stuff }
+		#tradedeposits are now worth double, replace them with version 2
+		set_country_flag = dyson_trade_deposits_now_worth_double
+		capital_scope = {
+			while = {
+				limit = { has_deposit = d_dyson_corp_value_trade_1 }
+				remove_deposit = d_dyson_corp_value_trade_1
+				add_deposit = d_dyson_corp_value_trade_2
+			}
+		}
+		#country_event = { id = dyson_starting.108 days = 720 }
+		country_event = { id = dyson_starting.108 days = 10 }
+	}
+	
+	option = {
+		name = dyson_starting.106.a
+	}
+}
+#Leader is found out to have helped the natives advancement for money and exotic food
+country_event = {
+	id = dyson_starting.108
+	title = dyson_starting.108.title
+	desc = dyson_starting.108.desc
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+		random_owned_leader = {
+			limit = { leader_class = scientist }
+			save_event_target_as = { corrupt_scientist }
+		}
+	}
+	
+	option = {
+		name = dyson_starting.108.fire
+		custom_tooltip = dyson_starting.108.fire.tooltip
+		add_resource = { energy = 50 }
+		hidden_effect = {
+			event_target:corrupt_scientist = {
+				kill_leader = {
+					show_notification = no
+				}
+			}
+		}
+	}
+	option = {
+		name = dyson_starting.108.keep
+		add_resource = { influence = -100 }
+		add_resource = { energy = 50 }
+	}
+}
 
 
 

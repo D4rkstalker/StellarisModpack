@@ -1,0 +1,643 @@
+################################
+#
+# Federation Succession Events
+#
+# Written by Douglas Furen
+#
+###############################
+
+namespace = covenantfed
+
+### BIDDING WAR
+
+#################################################
+### BIDDING WAR EVENT (SETUP)
+#################################################
+country_event = {
+	id = covenantfed.900
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		federation = {
+			has_federation_law = challenge_type_bidding_war_covenant
+			NOT = { has_federation_flag = bidding_war_underway }
+		}
+	}
+
+	immediate = {
+		federation = {
+			set_federation_flag = bidding_war_underway
+			random_member = {
+				limit = {
+					is_federation_leader = yes
+				}
+				save_event_target_as = bidding_federation_leader
+				set_variable = {
+					which = current_pot_variable
+					value = 50
+				}
+			}
+			every_member = {
+				country_event = { id = covenantfed.899 }
+			}
+		}
+		country_event = { id = covenantfed.901 days = 3 }
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - INTRODUCTION
+#################################################
+country_event = {
+	id = covenantfed.899
+	title = covenantfed.899.name
+	desc = covenantfed.899.desc
+	picture = GFX_evt_board_meeting
+	show_sound = event_default
+
+	is_triggered_only = yes
+
+	option = {
+		name = covenantfed.899.a
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT (OPEN)
+#################################################
+country_event = {
+	id = covenantfed.901
+	title = covenantfed.901.name
+	desc = covenantfed.901.desc
+	picture = GFX_evt_civil_action
+	show_sound = event_vote
+
+	is_triggered_only = yes
+
+	immediate = {
+		federation = {
+			set_federation_flag = bidding_in_process
+		}
+		event_target:bidding_federation_leader = {
+			if = {
+				limit = {
+					check_variable = {
+						which = current_pot_variable
+						value <= 100
+					}
+				}
+				federation = { set_federation_flag = cheap_bid_flag }
+			}
+			else_if = {
+				limit = {
+					check_variable = {
+						which = current_pot_variable
+						value >= 1000
+					}
+				}
+				federation = { set_federation_flag = expensive_bid_flag }
+			}
+			else = {
+				federation = { set_federation_flag = normal_bid_flag }
+			}
+		}
+	}
+
+	after = {
+		hidden_effect = {
+			federation = {
+				remove_federation_flag = cheap_bid_flag
+				remove_federation_flag = normal_bid_flag
+				remove_federation_flag = expensive_bid_flag
+			}
+			set_country_flag = bid_complete
+			country_event = { id = covenantfed.902 }
+		}
+	}
+
+	# Place Expensive bid
+	option = {
+		name = covenantfed.901.a
+		custom_tooltip = covenantfed.901.a.tooltip
+		trigger = {
+			federation = {
+				has_federation_flag = expensive_bid_flag
+			}
+		}
+		allow = {
+			resource_stockpile_compare = {
+				resource = sr_zro
+				value >= 100
+			}
+		}
+		add_resource = {
+			sr_zro = -100
+		}
+		hidden_effect = {
+			event_target:bidding_federation_leader = {
+				change_variable = {
+					which = current_pot_variable
+					value = 100
+				}
+			}
+		}
+		ai_chance = {
+			factor = 5
+		}
+	}
+
+	# Place Cheap bid
+	option = {
+		name = covenantfed.901.b
+		custom_tooltip = covenantfed.901.b.tooltip
+		trigger = {
+			federation = {
+				has_federation_flag = cheap_bid_flag
+			}
+		}
+		allow = {
+			resource_stockpile_compare = {
+				resource = sr_zro
+				value >= 25
+			}
+		}
+		add_resource = {
+			sr_zro = -25
+		}
+		hidden_effect = {
+			event_target:bidding_federation_leader = {
+				change_variable = {
+					which = current_pot_variable
+					value = 25
+				}
+			}
+		}
+		ai_chance = {
+			factor = 20
+		}
+	}
+
+	# Place Normal bid
+	option = {
+		name = covenantfed.901.c
+		custom_tooltip = covenantfed.901.c.tooltip
+		trigger = {
+			federation = {
+				has_federation_flag = normal_bid_flag
+			}
+		}
+		allow = {
+			resource_stockpile_compare = {
+				resource = sr_zro
+				value >= 50
+			}
+		}
+		add_resource = {
+			sr_zro = -50
+		}
+		hidden_effect = {
+			event_target:bidding_federation_leader = {
+				change_variable = {
+					which = current_pot_variable
+					value = 50
+				}
+			}
+		}
+		ai_chance = {
+			factor = 10
+		}
+	}
+
+	# Forfeit
+	option = {
+		name = covenantfed.901.d
+		custom_tooltip = covenantfed.901.d.tooltip
+		hidden_effect = {
+			set_country_flag = has_abstained
+		}
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - (HIDDEN)
+#################################################
+country_event = {
+	id = covenantfed.902
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		federation = {
+			remove_federation_flag = bidding_in_process
+		}
+		if = {
+			limit = {
+				NOT = { has_country_flag = has_abstained }
+				federation = {
+					NOT = {
+						any_member = {
+							NOT = { is_same_value = root }
+							NOT = { has_country_flag = has_abstained }
+						}
+					}
+				}
+			}
+			save_event_target_as = federation_bidding_winner
+			event_target:federation_bidding_winner = {
+				country_event = { id = covenantfed.904 days = 2 }
+			}
+			federation = {
+				every_member = {
+					remove_country_flag = bid_complete
+					remove_country_flag = has_abstained
+					country_event = { id = covenantfed.903 }	# Declare winner event
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				federation = {
+					any_member = {
+						NOR = {
+							has_country_flag = bid_complete
+							has_country_flag = has_abstained
+						}
+					}
+				}
+			}
+			federation = {
+				random_member = {
+					limit = {
+						NOR = {
+							has_country_flag = bid_complete
+							has_country_flag = has_abstained
+						}
+					}
+					country_event = { id = covenantfed.901 days = 2 } # This is the 'open' initiate bidding war event
+				}
+			}
+		}
+		else = {
+			federation = {
+				every_member = {
+					limit = {
+						has_country_flag = bid_complete
+					}
+					remove_country_flag = bid_complete
+				}
+				random_member = {
+					limit = {
+						NOR = {
+							has_country_flag = bid_complete
+							has_country_flag = has_abstained
+						}
+					}
+					country_event = { id = covenantfed.901 days = 2 } # This is the 'open' initiate bidding war event
+				}
+			}
+		}
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - DECLARE WINNER
+#################################################
+country_event = {
+	id = covenantfed.903
+	title = covenantfed.903.name
+	desc = covenantfed.903.desc
+	picture = GFX_evt_announcement
+	show_sound = event_announcement
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_federation_leader = event_target:federation_bidding_winner
+		event_target:federation_bidding_winner = {
+			set_country_flag = the_golden_rule_challenge_winner
+		}
+	}
+
+	option = {
+		name = covenantfed.903.a
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - WINNER'S DECISION
+#################################################
+country_event = {
+	id = covenantfed.904
+	title = covenantfed.904.name
+	desc = covenantfed.904.desc
+	picture = GFX_evt_treasure_pile
+	show_sound = event_default
+
+	is_triggered_only = yes
+
+	immediate = {
+	}
+
+	after = {
+		hidden_effect = {
+			event_target:bidding_federation_leader = {
+				set_variable = {
+					which = current_pot_variable
+					value = 0
+				}
+			}
+			federation = {
+				every_member = {
+					limit = {
+						NOT = { has_country_flag = the_golden_rule_challenge_winner }
+					}
+					country_event = { id = covenantfed.906 days = 2 }
+				}
+			}
+		}
+	}
+
+	### Invest
+	option = {
+		name = covenantfed.904.a
+		custom_tooltip = covenantfed.904.a.tooltip
+		federation = {
+			every_member = {
+				add_modifier = {
+					modifier = "business_is_booming"
+					days = 360
+				}
+			}
+			set_federation_flag = winner_decision_invest
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 50
+				is_megacorp = yes
+			}
+			modifier = {
+				factor = 10
+				has_ethic = ethic_egalitarian
+			}
+			modifier = {
+				factor = 15
+				has_ethic = ethic_fanatic_egalitarian
+			}
+			modifier = {
+				factor = 10
+				has_ethic = ethic_xenophile
+			}
+			modifier = {
+				factor = 15
+				has_ethic = ethic_fanatic_xenophile
+			}
+			modifier = {
+				factor = 20
+				has_civic = civic_trading_posts
+			}
+			modifier = {
+				factor = 20
+				has_civic = civic_free_traders
+			}
+		}
+	}
+
+	### Distribute
+	option = {
+		name = covenantfed.904.b
+		custom_tooltip = covenantfed.904.b.tooltip
+		event_target:bidding_federation_leader = {
+			if = {
+				limit = {
+					check_variable = {
+						which = current_pot_variable
+						value <= 100
+					}
+				}
+				federation = {
+					every_member = {
+						add_resource = { sr_zro = 10 }
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					check_variable = {
+						which = current_pot_variable
+						value >= 1000
+					}
+				}
+				federation = {
+					every_member = {
+						add_resource = { sr_zro = 50 }
+					}
+				}
+			}
+			else = {
+				federation = {
+					every_member = {
+						add_resource = { sr_zro = 25 }
+					}
+				}
+			}
+		}
+		federation = {
+			set_federation_flag = winner_decision_distribute
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 50
+				has_ethic = ethic_egalitarian
+			}
+			modifier = {
+				factor = 75
+				has_ethic = ethic_fanatic_egalitarian
+			}
+		}
+	}
+
+	### Appropriate
+	option = {
+		name = covenantfed.904.c
+		custom_tooltip = covenantfed.904.c.tooltip
+		if = {
+			limit = {
+				event_target:bidding_federation_leader = {
+					check_variable = {
+						which = current_pot_variable
+						value <= 100
+					}
+				}
+			}
+			add_resource = { sr_zro = 70 }
+		}
+		else_if = {
+			limit = {
+				event_target:bidding_federation_leader = {
+					check_variable = {
+						which = current_pot_variable
+						value >= 1000
+					}
+				}
+			}
+			add_resource = { sr_zro = 750 }
+		}
+		else = {
+			owner = {
+				add_resource = { sr_zro = 150 }
+			}
+		}
+		add_modifier = {
+			modifier = "midas_stigma"
+			days = 1800
+		}
+		federation = {
+			set_federation_flag = winner_decision_appropriate
+		}
+		ai_chance = {
+			factor = 100
+			modifier = {
+				factor = 15
+				has_ethic = ethic_authoritarian
+			}
+			modifier = {
+				factor = 25
+				has_ethic = ethic_fanatic_authoritarian
+			}
+			modifier = {
+				factor = 15
+				has_ethic = ethic_xenophobe
+			}
+			modifier = {
+				factor = 25
+				has_ethic = ethic_fanatic_xenophobe
+			}
+			modifier = {
+				factor = 25
+				has_ethic = ethic_gestalt_consciousness
+			}
+			modifier = {
+				factor = 50
+				has_civic = civic_criminal_heritage
+			}
+			modifier = {
+				factor = 50
+				has_civic = civic_ruthless_competition
+			}
+		}
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - CLEAN-UP EVENT (HIDDEN)
+#################################################
+country_event = {
+	id = covenantfed.905
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		federation = {
+			remove_federation_flag = bidding_war_underway
+			remove_federation_flag = bidding_in_process
+			remove_federation_flag = cheap_bid_flag
+			remove_federation_flag = expensive_bid_flag
+			remove_federation_flag = normal_bid_flag
+			remove_federation_flag = winner_decision_invest
+			remove_federation_flag = winner_decision_distribute
+			remove_federation_flag = winner_decision_appropriate
+			every_member = {
+				remove_country_flag = bid_complete
+				remove_country_flag = has_abstained
+			}
+		}
+		event_target:federation_bidding_winner = {
+			remove_country_flag = the_golden_rule_challenge_winner
+		}
+	}
+}
+
+#################################################
+### BIDDING WAR EVENT - DECISION BROADCAST
+#################################################
+country_event = {
+	id = covenantfed.906
+	title = covenantfed.906.name
+	desc = {
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_invest
+			}
+		}
+		text = covenantfed.906.desc.a
+	}
+	desc = {
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_distribute
+			}
+		}
+		text = covenantfed.906.desc.b
+	}
+	desc = {
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_appropriate
+			}
+		}
+		text = covenantfed.906.desc.c
+	}
+
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:federation_bidding_winner
+		room = event_target:federation_bidding_winner
+		planet_background = event_target:federation_bidding_winner
+	}
+
+	after = {
+		hidden_effect = {
+			federation = {
+				every_member = {
+					country_event = { id = covenantfed.905 days = 360 }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = MARVELOUS
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_invest
+			}
+		}
+	}
+
+	option = {
+		name = DEAL
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_distribute
+			}
+		}
+	}
+
+	option = {
+		name = CURSES
+		trigger = {
+			federation = {
+				has_federation_flag = winner_decision_appropriate
+			}
+		}
+	}
+}
