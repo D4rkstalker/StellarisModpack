@@ -894,3 +894,152 @@ event = {
 	}
 }
 
+# Fleet scope
+fleet_event = {
+	id = htbd_gl.101
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		htbd_debug = yes
+	}
+
+	immediate = {
+		solar_system = {
+		save_event_target_as = htbd_dbg_system
+		log = "[Root.GetName] wants to leave [htbd_dbg_system.GetName]"
+		if = {
+			limit = { exists = starbase }
+			log = "[htbd_dbg_system.GetName] has starbase!"
+		}
+		if = {
+			limit = {
+				htbd_has_ftl_inhibitor = yes
+			}
+			log = "[htbd_dbg_system.GetName] has an inhibitor!"
+		}
+		log = "---------- by HYPERLANES to:"
+		every_neighbor_system = {
+			ignore_hyperlanes = no
+			limit = { always = yes }
+			htbd_system_stats = yes
+		}
+		log = "---------- by NEIGHBORs (neighbors, excluding less than 3 HL):"
+		every_neighbor_system = {
+			ignore_hyperlanes = yes
+			limit = {
+				NOT = { distance = { source = prev type = hyperlane min_jumps = 1 max_jumps = 3 } }
+			}
+			htbd_system_stats = yes
+		}
+		if = {
+			limit = {
+				has_natural_wormhole = yes
+			}
+			log = "[htbd_dbg_system.GetName] has WORMHOLE, try to find its pair by jump distance:"
+			every_system = {
+				limit = {
+					has_natural_wormhole = yes
+					distance = { source = prev type=hyperlane use_bypasses=yes bypass_empire=event_target:htbd_country min_jumps = 1 max_jumps = 1 }
+				}
+				log = "[Prev.GetName] has wormhole to [This.GetName]"
+				htbd_system_stats = yes
+			}
+		}
+		if = {
+			limit = {
+				has_star_flag = htbd_pass_stay
+			}
+			log = "---------- by ETHER HOLES:"
+			every_system = {
+				limit = {
+					OR = {
+						AND = {
+							prev = { has_star_flag = htbd_pass_to }
+							has_star_flag = htbd_pass_from
+						}
+						AND = {
+							prev = { has_star_flag = htbd_pass_from }
+							has_star_flag = htbd_pass_to
+						}
+					}
+				}
+				htbd_system_stats = yes
+			}
+		}
+		}
+	}
+}
+
+# FROM is system
+planet_event = {
+	id = htbd_gl.102
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		htbd_debug = yes
+	}
+
+	immediate = {
+		solar_system = {
+			log = "-> [this.GetName] system"
+			if = {
+				limit = { exists = space_owner }
+				log = "		-> is owned by [space_owner.GetName]"
+			}
+			if = {
+				limit = { htbd_friend_system = yes }
+				if = {
+					limit = {
+						space_owner = { htbd_has_friend_edict = yes }
+					}
+					log = "		-> FRIEND (active edict)"
+				}
+				else = {
+					log = "		-> FRIEND"
+				}
+			}
+			if = {
+				limit = { has_star_flag = htbd_recent_star_@prevprev }
+				log = "		-> RECENT"
+			}
+			if = {
+				limit = { htbd_has_fear_station = yes }
+				log = "		-> FEAR"
+			}
+			else_if = {
+				limit = { htbd_has_fear_aura = yes }
+				log = "		-> FEAR AURA"
+			}
+			if = {
+				limit = { htbd_good_system = yes }
+				log = "		-> GOOD"
+			}
+			if = {
+				limit = { htbd_bad_system = yes }
+				log = "		-> BAD"
+			}
+			if = {
+				limit = { htbd_avoid_system = yes }
+				log = "		-> AVOID"
+			}
+			if = {
+				limit = { has_star_flag = hostile_system }
+				log = "		-> hostile"
+			}
+			if = {
+				limit = { is_bottleneck_system = yes }
+				log = "		-> bottleneck"
+			}
+			if = {
+				limit = { htbd_has_ftl_inhibitor = yes }
+				log = "		-> has an inhibitor!"
+			}
+			if = {
+				limit = { has_star_flag = htbd_pass_stay }
+				log = "		-> ETHER HOLE"
+			}
+		}
+	}
+}

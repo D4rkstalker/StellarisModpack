@@ -2,7 +2,7 @@
 #
 # Observation Post Events
 #
-# Written by Henrik Eklund
+# Written by Henrik Thyrwall
 #
 ############################
 
@@ -11,6 +11,7 @@ namespace = observation
 ### PASSIVE OBSERVATION ###
 
 ### Incoming Asteroid
+
 # Incoming Asteroid (HIDDEN)
 planet_event = {
 	id = observation.1
@@ -33,7 +34,7 @@ planet_event = {
 	
 	immediate = {
 		save_event_target_as = primitive_impact_planet
-		set_timed_global_flag = { flag = asteroid_sighted_prim_global days = 600 } # 50 years
+		set_global_flag = asteroid_sighted_prim_global
 		set_planet_flag = asteroid_sighted_prim_planet
 		observation_outpost_owner = {
 			country_event = { id = observation.2 }
@@ -55,13 +56,14 @@ country_event = {
 	
 	immediate = {
 		event_target:primitive_impact_planet = {
-			destroy_colony = yes
-			change_pc = pc_barren
-			reset_planet = yes
-			add_modifier = {
-				modifier = terraforming_candidate
-				days = -1
+			owner = {
+				every_owned_pop = {
+					kill_pop = yes
+				}
 			}
+			destroy_colony = yes
+			add_deposit = d_lithoid_crater
+			add_modifier = { modifier = lithoid_crater }
 		}
 		remove_country_flag = asteroid_sighted_prim_country
 	}
@@ -73,50 +75,16 @@ country_event = {
 				dismantle = yes
 			}
 		}
-	}
-}
-
-# Observation Outpost collides with Asteroid
-country_event = {
-	id = observation.4
-	title = "observation.4.name"
-	desc = "observation.4.desc"
-	picture = GFX_evt_asteroid_approaching_planet
-	show_sound = event_ship_explosion
-	location = event_target:primitive_impact_planet
-	
-	is_triggered_only = yes
-	
-	immediate = {
-		remove_country_flag = asteroid_sighted_prim_country
-	}
-	
-	option = {
-		name = "observation.4.a"
-		event_target:primitive_impact_planet = {
-			observation_outpost = {
-				dismantle = yes
+		hidden_effect = {
+			if = {
+				limit = { has_lithoids = yes }
+				random_list = {
+					1 = { } # nothing happens
+					1 = {
+						country_event = { id = primitivesexpanded.68 days = 360 random = 720 }
+					}
+				}
 			}
-		}
-	}
-}
-
-# Asteroid Destroyed (HIDDEN)
-country_event = {
-	id = observation.5
-	hide_window = yes
-	
-	is_triggered_only = yes
-	
-	trigger = {
-		exists = from
-		FROM = { has_country_flag = incoming_asteroid_prim }
-	}
-	
-	immediate = {
-		random_country = {
-			limit = { has_country_flag = asteroid_sighted_prim_country }
-			country_event = { id = observation.6 }
 		}
 	}
 }
@@ -144,8 +112,10 @@ country_event = {
 			limit = { has_planet_flag = asteroid_sighted_prim_planet }
 			save_event_target_as = asteroid_prim_planet
 		}
+		remove_global_flag = asteroid_sighted_prim_global
 		remove_country_flag = asteroid_sighted_prim_country
 		event_target:asteroid_prim_planet = {
+			remove_planet_flag = asteroid_sighted_prim_planet
 			if = {
 				limit = {
 					exists = owner
@@ -285,58 +255,71 @@ country_event = {
 	
 	is_triggered_only = yes
 	
-	option = {
-		name = CURIOUS
-		hidden_effect = {
-			FROM = { 
-				set_planet_flag = cult_reported
-				owner = {
-					if = {
-						limit = { has_country_flag = stone_age }
-						remove_country_flag = stone_age
-					}				
-					if = {
-						limit = { has_country_flag = bronze_age }
-						remove_country_flag = bronze_age
+	immediate = {
+		FROM = {
+			set_planet_flag = cult_reported
+			owner = {
+				if = {
+					limit = { has_country_flag = stone_age }
+					remove_country_flag = stone_age
+				}				
+				if = {
+					limit = { has_country_flag = bronze_age }
+					remove_country_flag = bronze_age
+				}
+				if = {
+					limit = { has_country_flag = iron_age }
+					remove_country_flag = iron_age
+				}
+				if = {
+					limit = { has_country_flag = late_medieval_age }
+					remove_country_flag = late_medieval_age
+				}
+				if = {
+					limit = { has_country_flag = renaissance_age }
+					remove_country_flag = renaissance_age
+				}
+				if = {
+					limit = { has_country_flag = steam_age }
+					remove_country_flag = steam_age
+				}
+				change_government = {
+					civics = {
+						civic = civic_increasing_urbanization
+						civic = civic_atmospheric_pollution
 					}
-					if = {
-						limit = { has_country_flag = iron_age }
-						remove_country_flag = iron_age
-					}
-					if = {
-						limit = { has_country_flag = late_medieval_age }
-						remove_country_flag = late_medieval_age
-					}
-					if = {
-						limit = { has_country_flag = renaissance_age }
-						remove_country_flag = renaissance_age
-					}
-					if = {
-						limit = { has_country_flag = steam_age }
-						remove_country_flag = steam_age
-					}
-					change_government = {
-						civics = {
-							civic = civic_increasing_urbanization
-							civic = civic_atmospheric_pollution
+				}
+				set_primitive_age_effect = { primitive_age = industrial_age }
+				if = {
+					limit = {
+						NOR = {
+							is_materialist = no
+							ROOT = { is_materialist = no }
 						}
 					}
-					set_country_flag = industrial_age
-					set_primitive_age = industrial_age
-					home_planet = {
-						clear_blockers = yes
-						add_deposit = d_decrepit_dwellings
-						add_deposit = d_failing_infrastructure
-						remove_building = building_stone_palace
-						remove_building = building_primitive_dwellings
-						add_building = building_primitive_capital
-						add_building = building_urban_dwellings
-						add_building = building_primitive_farm
-						create_pop = { species = owner_main_species }
+					random_list = {
+						1 = {
+							shift_ethic = "ethic_spiritualist"
+							while = {
+								count = 3			
+								random_owned_pop = {
+									limit = {
+										is_same_species = owner.species
+										NOT = { has_ethic = "ethic_spiritualist" }
+									}
+									pop_change_ethic = "ethic_spiritualist"
+								}
+							}
+						}
+						1 = { }
 					}
 				}
 			}
 		}
+	}
+	
+	option = {
+		name = CURIOUS
 	}
 }
 
@@ -373,28 +356,6 @@ planet_event = {
 				NOT = { has_country_flag = primitive_shuttle_crash_1 }
 			}
 			country_event = { id = observation.36 }
-		}
-	}
-}
-
-# New Weapons
-country_event = {
-	id = observation.44
-	title = "observation.44.name"
-	desc = "observation.44.desc"
-	picture = GFX_evt_ground_combat
-	show_sound = event_ground_battle
-	location = FROM
-	
-	is_triggered_only = yes
-	
-	option = {
-		name = "observation.44.a"
-		FROM = {
-			owner = {
-				custom_tooltip = acquired_tech_tooltip
-				hidden_effect = { set_country_flag = acquired_tech }
-			}
 		}
 	}
 }
@@ -1838,7 +1799,6 @@ planet_event = {
 
 ### COVERT INFILTRATION
 
-
 ### Aliens did it!
 #Hidden trigger event
 planet_event = {
@@ -1862,6 +1822,7 @@ planet_event = {
 				has_ethic = ethic_gestalt_consciousness
 			}
 		}
+		exists = owner
 		owner = {
 			is_country_type = primitive
 			OR = {
@@ -1889,19 +1850,20 @@ planet_event = {
 	
 	immediate = {
 		add_building = building_great_pyramid
-		owner = {
-			random_owned_pop = { pop_change_ethic = ethic_spiritualist }
-			random_owned_pop = { pop_change_ethic = ethic_spiritualist }
-			random_list = {
-				50 = { }
-				50 = {
-					modifier = {
-						factor = 0
-						is_materialist = yes
+		random_pop = {
+			owner = {
+				random_list = {
+					40 = { }
+					30 = {
+						shift_ethic = ethic_spiritualist
+						random_owned_pop = { pop_change_ethic = ethic_spiritualist }
+						random_owned_pop = { pop_change_ethic = ethic_spiritualist }
 					}
-					shift_ethic = ethic_spiritualist
-					random_owned_pop = { pop_change_ethic = ethic_spiritualist }
-					random_owned_pop = { pop_change_ethic = ethic_spiritualist }
+					30 = {
+						shift_ethic = ethic_xenophile
+						random_owned_pop = { pop_change_ethic = ethic_xenophile }
+						random_owned_pop = { pop_change_ethic = ethic_xenophile }
+					}
 				}
 			}
 		}

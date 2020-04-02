@@ -42,7 +42,10 @@ country_event = {
 			}
 			random_owned_megastructure = {
 				limit = {
-					is_megastructure_type = lgate_disabled
+					OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					}
 				}
 				save_event_target_as = candidate_gateway
 			}
@@ -69,13 +72,19 @@ country_event = {
 		if = {
 			limit = {
 				any_owned_megastructure = {
-					is_megastructure_type = lgate_disabled
+					OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					}
 				}
 				has_technology = tech_lgate_activation
 			}
 			random_owned_megastructure = {
 				limit = {
-					is_megastructure_type = lgate_disabled
+					OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					}
 				}
 				save_event_target_as = candidate_gateway
 			}
@@ -88,7 +97,7 @@ country_event = {
 }
 
 country_event = {
-	# Changed by FirePrince
+	# Changed by FirePrince: Possibility of all random events at the same time
 	id = distar.10950
 	hide_window = yes
 	is_triggered_only = yes
@@ -98,18 +107,54 @@ country_event = {
 		set_global_flag = l_cluster_opened
 		# Spawn L-Cluster
 		country_event = { id = distar.11000 }
-		# outcome, to be determined at game start
+		# Outcome, to be determined at game start
+		if = {
+			limit = { has_global_flag = dragon_season }
+			# All gates must not be deactivated, so call it first
+			country_event = { id = distar.13000 }
+			# Make friendly
+			country_event = { id = distar.13006 days = 1 }
+		}
+		# Enable L-Gate
+		#if = { limit = { exists = from.solar_system }
+		from.solar_system = {
+			if = {
+				# flag prevents the Tempest from using this gate,
+				# do not set the flag if there's only one l-gate system
+				limit = {
+					any_system = {
+						has_star_flag = lgate
+						NOT = { is_same_value = prev }
+					}
+				}
+				set_star_flag = lgate_originating_system
+			}
+			else = {
+				root = { set_country_flag = only_one_lgate }
+			}
+			random_system_megastructure = {
+				limit = {
+					OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					}
+					NOT = { has_megastructure_flag = lgate_activated }
+				}
+				activate_lgate = yes
+			}
+		}
 		if = {
 			limit = { has_global_flag = gray_goo_crisis_set }
-			# Vanilla double call?
-			# every_megastructure = {
-			# 	limit = {
-			# 		is_megastructure_type = lgate_disabled
-			# 		#NOT = { has_megastructure_flag = lgate_activated }
-			# 	}
-			# 	activate_lgate = yes
-			# }
 			country_event = { id = graygoo.1 days = 1 }
+			# Why vanilla double call?
+			every_megastructure = {
+				limit = {
+					is_megastructure_type = lgate_base
+					NOT = { has_megastructure_flag = lgate_activated }
+				}
+				activate_gateway = this
+				set_megastructure_flag = lgate_activated
+			}
 		}
 		else_if = {
 			limit = { has_global_flag = gray_goo_empire_set }
@@ -123,59 +168,24 @@ country_event = {
 				country_event = { id = distar.10960 days = 200 random = 500 }
 			}
 		}
-		# Always Dragons!
-		if = {
-			limit = { has_global_flag = dragon_season }
-			# all gates must not be deactivated, so call it first
-			country_event = { id = distar.13000 }
-			# Make friendly
-			country_event = { id = distar.13006 days = 1 }
+		# Activated terminal egress L-Gate
+		event_target:lcluster1 = {
+			random_system_megastructure = {
+				activate_lgate = yes
+			}
 		}
-		# Enable L-Gate
-		if = {
-			limit = { exists = from.solar_system }
-			from.solar_system = {
-				if = {
-					# flag prevents the Tempest from using this gate,
-					# do not set the flag if there's only one l-gate system
-					limit = {
-						any_system = {
-							has_star_flag = lgate
-							NOT = { is_same_value = prev }
-						}
-					}
-					set_star_flag = lgate_originating_system
-				}
-				else = {
-					root = { set_country_flag = only_one_lgate }
-				}
-				random_system_megastructure = {
-					limit = {
-						is_megastructure_type = lgate_disabled
-						NOT = { has_megastructure_flag = lgate_activated }
-					}
-					activate_lgate = yes
-				}
-			}
-			# Activated terminal egress L-Gate
-			event_target:lcluster1 = {
-				random_system_megastructure = {
-					limit = { is_megastructure_type = lgate_disabled }
-					activate_lgate = yes
-				}
-			}
-			set_country_flag = lgates_activated
-			set_global_flag = lgates_activated_globally
-			every_playable_country = {
-				if = {
-					limit = { is_researching_technology = tech_lgate_activation }
-					give_technology = {
-						tech = tech_lgate_activation
-						message = no
-					}
+		set_global_flag = lgates_activated_globally
+		every_playable_country = {
+			if = {
+				limit = { is_researching_technology = tech_lgate_activation }
+				give_technology = {
+					tech = tech_lgate_activation
+					message = no
 				}
 			}
 		}
+		set_country_flag = lgates_activated
+		#}
 	}
 }
 
@@ -202,7 +212,10 @@ event = {
 					which = num_lcluster_clues
 					value > 5
 				}
-				any_owned_megastructure = { is_megastructure_type = lgate_disabled }
+				any_owned_megastructure = { OR = {
+					is_megastructure_type = lgate_base
+					is_megastructure_type = lgate_disabled
+				} }
 			}
 		}
 	}
@@ -224,7 +237,10 @@ event = {
 						which = num_lcluster_clues
 						value > 5
 					}
-					any_owned_megastructure = { is_megastructure_type = lgate_disabled }
+					any_owned_megastructure = { OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					} }
 				}
 			}
 			random_relation = {
@@ -237,7 +253,10 @@ event = {
 						which = num_lcluster_clues
 						value > 5
 					}
-					any_owned_megastructure = { is_megastructure_type = lgate_disabled }
+					any_owned_megastructure = { OR = {
+						is_megastructure_type = lgate_base
+						is_megastructure_type = lgate_disabled
+					} }
 				}
 				save_event_target_as = lgate_warning_country
 				set_country_flag = lgate_warned@prev
@@ -260,8 +279,6 @@ country_event = {
 				is_megastructure_type = lgate_base
 				is_megastructure_type = lgate_disabled
 			}
-			# Prevent endless call?
-			NOT = { has_megastructure_flag = lgate_activated }
 		}
 	}
 	immediate = {
@@ -274,8 +291,8 @@ country_event = {
 				NOT = { has_megastructure_flag = lgate_activated }
 			}
 			activate_lgate = yes
+			country_event = { id = distar.10960 days = 200 random = 500 }
 		}
-		country_event = { id = distar.10960 days = 200 random = 500 }
 	}
 }
 

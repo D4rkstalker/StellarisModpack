@@ -11,19 +11,13 @@ planet_event = {
 
 	immediate = {
 	#set_global_flag = plague_happened ## this is douplicate but we use for debugging
-	## infect all the pops?
-		every_owned_pop = {
-				limit = {
-						AND = {
-							is_sapient = yes
-							is_robot_pop = no
-						}
-				}
+	## infect planet
+
 				add_modifier = {
 					modifier = "pop_plague_1"
 					days = -1
 				}
-			}
+			
 	## infect nearby planet empires
 	while = {
 	count = 3
@@ -41,10 +35,7 @@ planet_event = {
 					set_country_flag = ground_one
 					force_infect_random_owned_planet = yes
 					force_infect_random_owned_planet = yes
-					force_infect_random_owned_planet = yes
-					force_infect_random_owned_planet = yes
-					force_infect_random_owned_planet = yes
-					force_infect_random_owned_planet = yes
+
 					
 					}
 				}
@@ -81,45 +72,96 @@ event = {
 		}
 		
 	immediate = {
-		every_playable_country = {
+	
+	
+	## increase phase of plague
+	## spread more plague	
+			every_playable_country = {
 		limit = {NOT = { has_country_flag = plague_contained }}
 			if = {
 					limit = {
 						any_owned_planet = {
-							AND = {
 							is_plagued = yes
-							NOT = { has_modifier = planet_under_quarentine }
-							}
+						NOT = {	has_modifier = planet_under_quarentine }
 						}
 					}
-			inner_planets_spread_disease = yes ## inner spread
+					## spread more plague
 			spread_disease = yes ## neighbour spread
-			
+						## increase phase of plague
+						every_owned_planet = {
+						limit = {
+						is_plagued = yes
+						NOT = {	has_modifier = planet_under_quarentine }
+						}
+							inner_planets_spread_disease = yes ## inner spread to my own planets
+							increase_disease_phase = yes
+						}
 				}
-			}	
-			
-			## heal each year, just in case.. my guess is that this will lag every year, but until i test the cure some more ill be using this fix			
-			every_playable_country = {
-			limit = {NOT = { has_country_flag = plague_cured }}
-			
-			if = { limit = { any_owned_pop = { is_infected = yes } } 
-			
-			every_owned_pop = {
-				limit = { is_infected = yes	}
-				remove_modifier = "pop_plague_1"
-				remove_modifier = "pop_plague_2"
-				remove_modifier = "pop_plague_3"
-				remove_modifier = "pop_plague_4"
-				remove_modifier = "pop_plague_5"
-			}
 			}
 			
-			}
+			
+		## heal plague
+		## reworked, should not lag anymore		
+		every_playable_country = {
+		limit = {has_country_flag = plague_cured }
+		
+		if = { limit = { any_owned_planet = { is_infected = yes } } 
+		
+		every_owned_planet = {
+			limit = { is_infected = yes	}
+			remove_modifier = "pop_plague_1"
+			remove_modifier = "pop_plague_2"
+			remove_modifier = "pop_plague_3"
+			remove_modifier = "pop_plague_4"
+			remove_modifier = "pop_plague_5"
+		}
+		}
+		
+		}
+			
 			
 			
 			
     }
 }
+
+## kill 1 pop evert 20/50 days
+planet_event = {
+    id = complexplague.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {		
+		}
+		
+	immediate = {
+	
+	if = {
+		limit = { has_modifier = "pop_plague_5" }
+	
+			if = {
+				limit = { 
+					owner = {NOT = { has_country_flag = plague_contained } }
+					NOT = {	has_modifier = planet_under_quarentine }
+				}
+	
+				random_owned_pop = {
+				kill_pop = yes
+				}
+			}
+			else = {
+				random_list = {
+								20 = { random_owned_pop = {	kill_pop = yes	}	}
+								80 = {}	
+							}
+				}
+		planet_event = { id = complexplague.11 days = 20 random = 50 }				
+		}			
+			
+    }
+}
+
+
 
 ## cycle each country and increase disease phase
 event = {
@@ -134,8 +176,17 @@ event = {
 		
 	immediate = {
 	
-		if = {limit = { any_playable_country = {NOT = { has_country_flag = plague_cured}}}}
-		else = {set_global_flag = plague_ended}
+	##check if plague ended
+	if = {
+	limit = {
+				any_planet = { is_infected = yes }
+			}
+			
+			}
+	else = { set_global_flag = plague_ended }
+	
+		#if = {limit = { any_playable_country = {NOT = { has_country_flag = plague_cured}}}}
+		#else = {set_global_flag = plague_ended}
 			
 			
 		every_playable_country = {
@@ -198,7 +249,7 @@ planet_event = {
 
 	immediate = {
 	## infect all the pops
-		infect_random_pop = yes
+		infect_planet = yes
 
 	
     }

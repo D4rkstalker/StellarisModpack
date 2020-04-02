@@ -13,37 +13,6 @@ namespace = ancrel
 ###############################
 
 ### Zroni Precursor Chain ###
-fleet_event = { 
-	id = ancrel.3
-	title = "ancrel.3.name"
-	desc = ancrel.3.desc
-	picture = GFX_evt_baol_datacrystals
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.3.a
-		owner = {
-			add_monthly_resource_mult = {
-				resource = physics_research
-				value = @tier1researchreward
-				min = @tier1researchmin
-				max = @tier1researchmax
-			}
-			add_monthly_resource_mult = {
-				resource = society_research
-				value = @tier1researchreward
-				min = @tier1researchmin
-				max = @tier1researchmax
-			}
-		}
-	}
-}
-
 fleet_event = {
 	id = ancrel.4
 	title = "ancrel.3.name"
@@ -66,71 +35,19 @@ fleet_event = {
 						has_star_flag = first_zoroni_site@root.owner
 						is_same_value = root.owner.capital_scope.solar_system
 					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-					distance = {
-						source = root.solar_system
-						use_bypasses = no
-						min_jumps = 1
-						max_jumps = 25
-					}
-				}
-			}
-			closest_system = {
-				limit = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-				}
-				min_steps = 1
-				max_steps = 25
-				random_system_planet = {
-					limit = {
-						habitable_planet = yes
-						has_anomaly = no
-						is_colony = no
-						NOT = { exists = archaeological_site }
-					}
-					create_archaeological_site = zroni_digsite_2
-					add_deposit = d_zro_deposit_3
-				}
-			}
-		}
-		else_if = {
-			limit = {
-				any_system = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					distance = {
 						source = root.solar_system
@@ -149,24 +66,30 @@ fleet_event = {
 						is_same_value = root.owner.capital_scope.solar_system
 					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 				}
 				min_steps = 1
 				max_steps = 25
+				set_star_flag = zroni_expanded
 				random_system_planet = {
 					limit = {
 						habitable_planet = yes
 						has_anomaly = no
 						is_colony = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					create_archaeological_site = zroni_digsite_2
 					add_deposit = d_zro_deposit_3
@@ -174,11 +97,34 @@ fleet_event = {
 			}
 		}
 		else = {
-			solar_system = {
-				spawn_system = {
-					min_distance >= 20
-					max_distance <= 200
-					initializer = "ancrel_expanded_init_zroni_1"
+			owner = {
+				random_system_within_border = {
+					spawn_system = {
+						min_distance >= 10
+						max_distance <= 25
+						initializer = "ancrel_expanded_init_zroni_1"
+					}
+				}
+			}
+		}
+		random_system = {
+			limit = { has_star_flag = zroni_expanded }
+			save_event_target_as = zroni_expanded_system
+			closest_system = {
+				min_steps = 2
+				limit = {
+					exists = owner
+					owner = { is_same_value = root.owner }
+				}
+				add_hyperlane = { from = this to = prev }
+			}
+		}
+		owner = {
+			if = {
+				limit = { NOT = { has_event_chain = zroni_chain } }
+				begin_event_chain = {
+					event_chain = "zroni_chain"
+					target  = this
 				}
 			}
 		}
@@ -186,7 +132,16 @@ fleet_event = {
 
 	option = {
 		name = OK
-		small_artifact_reward = yes
+		owner = {
+			add_resource = { minor_artifacts = 5 }
+			create_point_of_interest = {
+				id = zroni_system_poi.1
+				name = "zroni_system_1_poi"
+				desc = "zroni_system_1_poi_desc"
+				event_chain = "zroni_chain"
+				location = event_target:zroni_expanded_system
+			}
+		}
 		owner = {
 			IF = {
 				limit = {
@@ -202,6 +157,16 @@ fleet_event = {
 					progress = 0.25
 				}
 			}
+			ELSE_IF = {
+				limit = {
+					is_regular_empire = yes
+					has_tech_option = tech_psionic_theory
+				}
+				add_tech_progress = {
+					tech = tech_psionic_theory
+					progress = 0.5
+				}
+			}
 			ELSE = {
 				add_monthly_resource_mult = {
 					resource = society_research
@@ -214,25 +179,7 @@ fleet_event = {
 	}
 }
 
-fleet_event = { 
-	id = ancrel.5
-	title = "ancrel.1.name"
-	desc = ancrel.5.desc
-	picture = GFX_evt_overgrown_city
-	show_sound = event_wind_ruins
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.3.a
-		small_artifact_reward = yes
-	}
-}
-
-fleet_event = { 
+fleet_event = {
 	id = ancrel.6
 	title = "ancrel.3.name"
 	desc = ancrel.6.desc
@@ -254,77 +201,25 @@ fleet_event = {
 						has_star_flag = first_zoroni_site@root.owner
 						is_same_value = root.owner.capital_scope.solar_system
 					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-					distance = {
-						source = root.solar_system
-						use_bypasses = no
-						min_jumps = 1
-						max_jumps = 10
-					}
-				}
-			}
-			closest_system = {
-				limit = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-				}
-				min_steps = 1
-				max_steps = 10
-				random_system_planet = {
-					limit = {
-						habitable_planet = yes
-						has_anomaly = no
-						is_colony = no
-						NOT = { exists = archaeological_site }
-					}
-					create_archaeological_site = zroni_digsite_3
-					add_deposit = d_zro_deposit_3
-				}
-			}
-		}
-		else_if = {
-			limit = {
-				any_system = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					distance = {
 						source = root.solar_system
 						use_bypasses = no
 						min_jumps = 1
-						max_jumps = 10
+						max_jumps = 25
 					}
 				}
 			}
@@ -337,24 +232,30 @@ fleet_event = {
 						is_same_value = root.owner.capital_scope.solar_system
 					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 				}
 				min_steps = 1
-				max_steps = 10
+				max_steps = 25
+				set_star_flag = zroni_expanded
 				random_system_planet = {
 					limit = {
 						habitable_planet = yes
 						has_anomaly = no
 						is_colony = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					create_archaeological_site = zroni_digsite_3
 					add_deposit = d_zro_deposit_3
@@ -362,11 +263,34 @@ fleet_event = {
 			}
 		}
 		else = {
-			solar_system = {
-				spawn_system = {
-					min_distance >= 20
-					max_distance <= 200
-					initializer = "ancrel_expanded_init_zroni_2"
+			owner = {
+				random_system_within_border = {
+					spawn_system = {
+						min_distance >= 10
+						max_distance <= 25
+						initializer = "ancrel_expanded_init_zroni_2"
+					}
+				}
+			}
+		}
+		random_system = {
+			limit = { has_star_flag = zroni_expanded }
+			save_event_target_as = zroni_expanded_system
+			closest_system = {
+				min_steps = 2
+				limit = {
+					exists = owner
+					owner = { is_same_value = root.owner }
+				}
+				add_hyperlane = { from = this to = prev }
+			}
+		}
+		owner = {
+			if = {
+				limit = { NOT = { has_event_chain = zroni_chain } }
+				begin_event_chain = {
+					event_chain = "zroni_chain"
+					target  = this
 				}
 			}
 		}
@@ -374,36 +298,20 @@ fleet_event = {
 
 	option = {
 		name = OK
-		small_artifact_reward = yes
-	}
-}
-
-fleet_event = { 
-	id = ancrel.7
-	title = zroni_digsite_2
-	desc = ancrel.7.desc
-	picture = GFX_evt_zro_3
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = INTERESTING
 		owner = {
-			add_monthly_resource_mult = {
-				resource = society_research
-				value = @tier3researchreward
-				min = @tier3researchmin
-				max = @tier3researchmax
+			add_resource = { minor_artifacts = 5 }
+			create_point_of_interest = {
+				id = zroni_system_poi.1
+				name = "zroni_system_1_poi"
+				desc = "zroni_system_1_poi_desc"
+				event_chain = "zroni_chain"
+				location = event_target:zroni_expanded_system
 			}
 		}
 	}
 }
 
-fleet_event = { 
+fleet_event = {
 	id = ancrel.8
 	title = zroni_digsite_2
 	desc = ancrel.8.desc
@@ -425,77 +333,25 @@ fleet_event = {
 						has_star_flag = first_zoroni_site@root.owner
 						is_same_value = root.owner.capital_scope.solar_system
 					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-					distance = {
-						source = root.solar_system
-						use_bypasses = no
-						min_jumps = 1
-						max_jumps = 10
-					}
-				}
-			}
-			closest_system = {
-				limit = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-				}
-				min_steps = 1
-				max_steps = 10
-				random_system_planet = {
-					limit = {
-						habitable_planet = yes
-						has_anomaly = no
-						is_colony = no
-						NOT = { exists = archaeological_site }
-					}
-					create_archaeological_site = zroni_digsite_4
-					add_deposit = d_zro_deposit_3
-				}
-			}
-		}
-		else_if = {
-			limit = {
-				any_system = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					distance = {
 						source = root.solar_system
 						use_bypasses = no
 						min_jumps = 1
-						max_jumps = 10
+						max_jumps = 25
 					}
 				}
 			}
@@ -508,24 +364,30 @@ fleet_event = {
 						is_same_value = root.owner.capital_scope.solar_system
 					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 				}
 				min_steps = 1
-				max_steps = 10
+				max_steps = 25
+				set_star_flag = zroni_expanded
 				random_system_planet = {
 					limit = {
 						habitable_planet = yes
 						has_anomaly = no
 						is_colony = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					create_archaeological_site = zroni_digsite_4
 					add_deposit = d_zro_deposit_3
@@ -533,11 +395,34 @@ fleet_event = {
 			}
 		}
 		else = {
-			solar_system = {
-				spawn_system = {
-					min_distance >= 20
-					max_distance <= 200
-					initializer = "ancrel_expanded_init_zroni_3"
+			owner = {
+				random_system_within_border = {
+					spawn_system = {
+						min_distance >= 10
+						max_distance <= 25
+						initializer = "ancrel_expanded_init_zroni_3"
+					}
+				}
+			}
+		}
+		random_system = {
+			limit = { has_star_flag = zroni_expanded }
+			save_event_target_as = zroni_expanded_system
+			closest_system = {
+				min_steps = 2
+				limit = {
+					exists = owner
+					owner = { is_same_value = root.owner }
+				}
+				add_hyperlane = { from = this to = prev }
+			}
+		}
+		owner = {
+			if = {
+				limit = { NOT = { has_event_chain = zroni_chain } }
+				begin_event_chain = {
+					event_chain = "zroni_chain"
+					target  = this
 				}
 			}
 		}
@@ -545,29 +430,20 @@ fleet_event = {
 
 	option = {
 		name = OK
-		small_artifact_reward = yes
+		owner = {
+			add_resource = { minor_artifacts = 5 }
+			create_point_of_interest = {
+				id = zroni_system_poi.1
+				name = "zroni_system_1_poi"
+				desc = "zroni_system_1_poi_desc"
+				event_chain = "zroni_chain"
+				location = event_target:zroni_expanded_system
+			}
+		}
 	}
 }
 
-fleet_event = { 
-	id = ancrel.9
-	title = zroni_digsite_2
-	desc = ancrel.9.desc
-	picture = GFX_evt_baol_datacrystals
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.9.a
-		small_artifact_reward = yes
-	}
-}
-
-fleet_event = { 
+fleet_event = {
 	id = ancrel.10
 	title = "ancrel.3.name"
 	desc = ancrel.10.desc
@@ -589,77 +465,25 @@ fleet_event = {
 						has_star_flag = first_zoroni_site@root.owner
 						is_same_value = root.owner.capital_scope.solar_system
 					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-					distance = {
-						source = root.solar_system
-						use_bypasses = no
-						min_jumps = 1
-						max_jumps = 10
-					}
-				}
-			}
-			closest_system = {
-				limit = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						is_colony = no
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-					}
-				}
-				min_steps = 1
-				max_steps = 10
-				random_system_planet = {
-					limit = {
-						habitable_planet = yes
-						has_anomaly = no
-						is_colony = no
-						NOT = { exists = archaeological_site }
-					}
-					create_archaeological_site = zroni_digsite_5
-					add_deposit = d_zro_deposit_4
-				}
-			}
-		}
-		else_if = {
-			limit = {
-				any_system = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_zoroni_site@root.owner
-						is_same_value = root.owner.capital_scope.solar_system
-					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					distance = {
 						source = root.solar_system
 						use_bypasses = no
 						min_jumps = 1
-						max_jumps = 10
+						max_jumps = 25
 					}
 				}
 			}
@@ -672,24 +496,30 @@ fleet_event = {
 						is_same_value = root.owner.capital_scope.solar_system
 					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
 						is_colony = no
 						has_anomaly = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 				}
 				min_steps = 1
-				max_steps = 10
+				max_steps = 25
+				set_star_flag = zroni_expanded
 				random_system_planet = {
 					limit = {
 						habitable_planet = yes
 						has_anomaly = no
 						is_colony = no
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = hatchling_egg }
 					}
 					create_archaeological_site = zroni_digsite_5
 					add_deposit = d_zro_deposit_4
@@ -697,11 +527,34 @@ fleet_event = {
 			}
 		}
 		else = {
-			solar_system = {
-				spawn_system = {
-					min_distance >= 20
-					max_distance <= 200
-					initializer = "ancrel_expanded_init_zroni_4"
+			owner = {
+				random_system_within_border = {
+					spawn_system = {
+						min_distance >= 10
+						max_distance <= 25
+						initializer = "ancrel_expanded_init_zroni_4"
+					}
+				}
+			}
+		}
+		random_system = {
+			limit = { has_star_flag = zroni_expanded }
+			save_event_target_as = zroni_expanded_system
+			closest_system = {
+				min_steps = 2
+				limit = {
+					exists = owner
+					owner = { is_same_value = root.owner }
+				}
+				add_hyperlane = { from = this to = prev }
+			}
+		}
+		owner = {
+			if = {
+				limit = { NOT = { has_event_chain = zroni_chain } }
+				begin_event_chain = {
+					event_chain = "zroni_chain"
+					target  = this
 				}
 			}
 		}
@@ -709,43 +562,89 @@ fleet_event = {
 
 	option = {
 		name = INTRIGUING 
-		small_artifact_reward = yes		
-	}
-}
-
-fleet_event = { 
-	id = ancrel.11
-	title = zroni_digsite_5
-	desc = ancrel.11.desc
-	picture = GFX_evt_dead_city
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.3.a
-		small_artifact_reward = yes
-	}
-}
-fleet_event = { 
-	id = ancrel.12
-	title = "ancrel.3.name"
-	desc = ancrel.12.desc
-	picture = GFX_evt_zro_3
-	show_sound = event_bad_omen
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.12.a
 		owner = {
-			add_resource = { sr_zro = 100 }
+			add_resource = { minor_artifacts = 5 }
+			create_point_of_interest = {
+				id = zroni_system_poi.1
+				name = "zroni_system_1_poi"
+				desc = "zroni_system_1_poi_desc"
+				event_chain = "zroni_chain"
+				location = event_target:zroni_expanded_system
+			}
+		}	
+	}
+}
+
+fleet_event = {
+	id = ancrel.13
+	title = "ancrel.3.name"
+	desc = ancrel.13.desc
+	picture = GFX_evt_zro_4
+	show_sound = event_finding_loot
+	location = from
+
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	option = {
+		name = ancrel.13.a
+		owner = {
+			add_resource = { minor_artifacts = 5 }
+			set_global_flag = Zrocursor_system_discovered
+			set_country_flag = last_zroni_system
+			if = {
+				limit = {
+					any_system_within_border = { has_star_flag = precursor_zroni_1 }
+				}
+				random_system_within_border = {
+					limit = { has_star_flag = precursor_zroni_1 }
+					spawn_system = {
+						min_distance = 10
+						max_distance = 30
+						max_jumps = 0
+						initializer = "Zrocursor_system"
+					}
+				}
+			}
+			else = {
+				random_system = {
+					limit = { has_star_flag = precursor_zroni_1 }
+					spawn_system = {
+						min_distance = 10
+						max_distance = 30
+						max_jumps = 0
+						initializer = "Zrocursor_system"
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			random_system = {
+				limit = { has_star_flag = Zrocursor }
+				random_system_planet = {
+					limit = { is_planet_class = pc_shattered }
+					set_deposit = d_minerals_5
+				}
+				random_system_planet = {
+					limit = { is_planet_class = pc_gas_giant }
+					set_deposit = d_energy_5
+				}
+				random_system_planet = {
+					limit = {
+						is_planet_class = pc_shattered
+						NOT = { has_deposit = d_minerals_5 }
+					}
+					set_deposit = d_minerals_5
+				}
+				random_system_planet = {
+					limit = {
+						is_planet_class = pc_gas_giant
+						NOT = { has_deposit = d_energy_5 }
+					}
+					set_deposit = d_energy_5
+				}
+			}
 		}
 	}
 }
@@ -764,98 +663,10 @@ fleet_event = {
 
 	option = {
 		name = ancrel.101.a
-		owner = {
-			add_monthly_resource_mult = {
-				resource = society_research
-				value = @tier3researchreward
-				min = @tier3researchmin
-				max = @tier3researchmax
-			}
+		owner = { 
+			add_resource = { sr_zro = 50 }
 		}
-	}
-}
-fleet_event = { 
-	id = ancrel.16
-	title = "ancrel.3.name"
-	desc = ancrel.16.desc
-	picture = GFX_evt_zro_3
-	show_sound = event_bad_omen
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.16.a
 		small_artifact_reward = yes
-	}
-}
-fleet_event = { 
-	id = ancrel.17
-	title = "ancrel.3.name"
-	desc = ancrel.17.desc
-	picture = GFX_evt_zro_3
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.16.a
-		owner = {
-			add_monthly_resource_mult = {
-				resource = physics_research
-				value = @tier4researchreward
-				min = @tier4researchmin
-				max = @tier4researchmax
-			}
-		}
-	}
-}
-fleet_event = { 
-	id = ancrel.18
-	title = "ancrel.3.name"
-	desc = ancrel.18.desc
-	picture = GFX_evt_zro_5
-	show_sound = event_screams
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.18.a
-		small_artifact_reward = yes
-	}
-}
-
-#Relic world
-fleet_event = { 
-	id = ancrel.22
-	title = "ancrel.21.name"
-	desc = ancrel.22.desc
-	picture = GFX_evt_relic_world
-	show_sound = event_wind_ruins
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = ancrel.9.a
-		owner = {
-			add_monthly_resource_mult = {
-				resource = physics_research
-				value = @tier3researchreward
-				min = @tier3researchmin
-				max = @tier3researchmax
-			}
-		}
 	}
 }
 
@@ -1001,7 +812,7 @@ fleet_event = {
 				add_deposit = d_radioactive_wasteland
 				add_deposit = d_failing_infrastructure
 				if = {
-					limit = { NOT = { is_planet_class = pc_nuked } }
+					limit = { is_nuked = no }
 					add_modifier = {
 						modifier = "recovered_tomb_world"
 						days = -1
@@ -1014,24 +825,30 @@ fleet_event = {
 	option = {
 		name = OK
 		owner = {
-			add_monthly_resource_mult = {
-				resource = physics_research
-				value = @tier1researchreward
-				min = @tier1researchmin
-				max = @tier1researchmax
-			}
-			add_monthly_resource_mult = {
-				resource = society_research
-				value = @tier1researchreward
-				min = @tier1researchmin
-				max = @tier1researchmax
+			locked_random_list = {
+				50 = {
+					add_monthly_resource_mult = {
+     					resource = society_research
+     					value = @tier3researchreward
+     					min = @tier3researchmin
+     					max = @tier3researchmax
+     				}
+				}
+				50 = {
+					add_monthly_resource_mult = {
+     					resource = engineering_research
+     					value = @tier3researchreward
+     					min = @tier3researchmin
+     					max = @tier3researchmax
+     				}
+				}
 			}
 		}
 		tooltip = {
 			from = {
 				planet = {
 					if = {
-						limit = { NOT = { is_planet_class = pc_nuked } }
+						limit = { is_nuked = no }
 						add_modifier = {
 							modifier = "recovered_tomb_world"
 							days = -1
@@ -1040,23 +857,6 @@ fleet_event = {
 				}
 			}
 		}
-	}
-}
-fleet_event = { 
-	id = ancrel.105
-	title = "ancrel.105.name"
-	desc = ancrel.105.desc
-	picture = GFX_evt_derelict_interior
-	show_sound = event_whispering
-	location = from
-
-	archaeology = yes
-
-	is_triggered_only = yes
-
-	option = {
-		name = OK
-		small_artifact_reward = yes
 	}
 }
 fleet_event = { 
@@ -1133,7 +933,7 @@ ship_event = {
 			
 		}
 	}
-	picture = GFX_evt_ship_in_orbit
+	picture = GFX_evt_ship_in_orbit_3
 	show_sound = event_finding_loot
 	location = from
 
@@ -1172,7 +972,7 @@ ship_event = {
 			}
 		}
 		owner = {
-			add_resource = { alloys = 5000 }
+			add_resource = { alloys = 2500 }
 		}
 		name = EXCELLENT
 	}
@@ -1323,9 +1123,7 @@ ship_event = {
 	}
 
 	after = {
-		owner = {
-			add_resource = { minor_artifacts = 4 }
-		}
+		medium_artifact_reward = yes
 		FROM = { 
 			remove_planet_flag = aliens_site_junk
 			remove_planet_flag = aliens_site_nothing
@@ -1350,6 +1148,15 @@ fleet_event = { #Ancient battle
 
 	option = {
 		name = CURIOUS
+		small_artifact_reward = yes
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
 		from = {
 			planet = { add_deposit = d_battle_graveyard }
 		}
@@ -1507,8 +1314,8 @@ ship_event = {
 			is_star = no
 			NOT = { exists = archaeological_site }
 			NOR = {
-				is_planet_class = pc_gas_giant
-				is_planet_class = pc_molten
+				is_gas_giant = yes
+				is_molten = yes
 			}
 		}
 		owner = {
@@ -1534,14 +1341,7 @@ ship_event = {
 		FROM = {
 			if = {
 				limit = {
-					from = {
-						OR = {
-							is_planet_class = pc_barren
-							is_planet_class = pc_barren_cold
-						}
-						planet_size > 9
-						planet_size < 26
-					}
+					can_be_terraforming_candidate = yes
 				}
 				custom_tooltip = TERRAFORMING_CANDIDATE_EFFECT
 				hidden_effect = {
@@ -1585,67 +1385,12 @@ fleet_event = {
 						has_star_flag = first_grunur_site@root.owner
 						has_star_flag = sol_system
 					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						NOT = { is_planet_class = pc_city }
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-						is_colony = no
-					}
-				}
-			}
-			closest_system = {
-				limit = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_grunur_site@root.owner
-						has_star_flag = sol_system
-					}
-					exists = owner
-					owner = { is_same_value = root.owner }
-					any_system_planet = {
-						habitable_planet = yes
-						NOT = { is_planet_class = pc_city }
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-						is_colony = no
-					}
-					distance = {
-						source = root.solar_system
-						use_bypasses = no
-						min_jumps = 1
-						max_jumps = 10
-					}
-				}
-				min_steps = 1
-				max_steps = 10
-				random_system_planet = {
-					limit = {
-						habitable_planet = yes
-						NOT = { is_planet_class = pc_city }
-						has_anomaly = no
-						NOT = { exists = archaeological_site }
-						is_colony = no
-					} 
-					save_event_target_as = baol_colony_3
-				}
-			}
-		}
-		else_if = {
-			limit = {
-				any_system = {
-					has_access_fleet = root.owner
-					NOR = {
-						is_same_value = root.solar_system
-						has_star_flag = first_grunur_site@root.owner
-						has_star_flag = sol_system
-					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
@@ -1665,8 +1410,11 @@ fleet_event = {
 						has_star_flag = sol_system
 					}
 					OR = {
-						has_owner = no
-						owner = { is_same_value = root.owner }
+						NOT = { exists = owner }
+						AND = {
+							exists = owner
+							owner = { is_same_value = root.owner }
+						}
 					}
 					any_system_planet = {
 						habitable_planet = yes
@@ -1700,7 +1448,7 @@ fleet_event = {
 			solar_system = {
 				spawn_system = {
 					min_distance >= 10
-					max_distance <= 100
+					max_distance <= 25
 					initializer = "ancrel_expanded_init_baol_1"
 				}
 			}
@@ -1721,6 +1469,55 @@ fleet_event = {
 				name = "BAOL_COLONY_3"
 				location = this
 				owner = root.owner
+			}
+		}
+	}
+}
+
+#The Last Baol system
+country_event = {
+	id = ancrel.2015
+	title = "ancrel.2015.name"
+	desc = "ancrel.2015.desc"
+	picture = GFX_evt_star_chart
+	location = event_target:last_baol_system
+	show_sound = event_alien_signal
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_system = {
+			limit = { has_star_flag = last_baol_system }
+			save_event_target_as = last_baol_system
+			random_system_planet = {
+				limit = { is_molten = yes }
+				set_deposit = d_energy_5
+			}
+			random_system_planet = {
+				limit = { is_planet_class = pc_broken }
+				set_deposit = d_alloys_5
+			}
+			random_system_planet = {
+				limit = { is_gas_giant = yes }
+				set_deposit = d_energy_5
+			}
+		}
+		observer_event = { id = observer.85 }
+		event_target:last_baol_system = {
+			random_neighbor_system = {
+				save_event_target_as = last_baol_neighbor
+			}
+		}
+	}
+
+	option = {
+		name = INCREDIBLE
+		end_event_chain = "baol_chain"
+		event_target:the_last_baol_obj = {
+			enable_special_project = {
+				name = "THE_LAST_BAOL"
+				location = this
+				owner = root
 			}
 		}
 	}
@@ -1994,7 +1791,7 @@ fleet_event = {
 		}
 	}
 
-	after = { 
+	after = {
 		from = { set_site_progress_locked = no } 
 	}
 
@@ -2047,6 +1844,69 @@ ship_event = {
 		hidden_effect = {
 			if = {
 				limit = { exists = event_target:rubricator_planet }
+				create_point_of_interest = {
+					id = hidden_planet
+					name = "rubricator_coordinates_poi"
+					desc = rubricator_coordinates_desc
+					event_chain = rubricator_chain
+					location = event_target:rubricator_planet
+				}
+			}
+			else_if = {
+				limit = {
+					any_system = {
+						distance = {
+							source = root.solar_system
+							use_bypasses = no
+							min_jumps = 2
+							max_jumps = 4
+						}
+						has_access_fleet = root.owner
+						is_owned_by = root.owner
+						NOT = {
+							any_ship_in_system = {
+								owner = { 
+									is_hostile = root.owner
+								}
+							}
+						}
+					}
+				}
+				closest_system = {
+					min_steps = 2
+					max_steps = 4
+					limit = {
+						has_access_fleet = root.owner
+						is_owned_by = root.owner
+						NOT = {
+							any_ship_in_system = {
+								owner = { 
+									is_hostile = root.owner
+								}
+							}
+						}
+					}
+					spawn_system = {
+						min_distance >= 6
+						max_distance <= 10
+						initializer = rubricator_system
+					}
+					if = {
+						limit = {
+							any_system = {
+								has_star_flag = rubricator_system
+								NOT = { has_hyperlane_to = prev }
+							}
+						}
+						random_system = {
+							limit = {
+								has_star_flag = rubricator_system
+								NOT = { has_hyperlane_to = prev }
+							}
+							add_hyperlane = { from = this to = prev }
+						}
+					}
+				}
 				create_point_of_interest = {
 					id = hidden_planet
 					name = "rubricator_coordinates_poi"
@@ -2408,7 +2268,11 @@ planet_event = {
 	trigger = {
 		has_ancrel = yes
 		num_pops > 0
-		habitable_planet = yes
+		OR = {
+			is_dry = yes
+			is_wet = yes
+			is_cold = yes
+		}
 		NOT = { exists = archaeological_site }
 		NOR = { 
 			has_global_flag = arc_hunting_grounds
@@ -2441,7 +2305,7 @@ event = {
 	trigger = {
 		mid_game_years_passed >= 20
 		OR = {
-			NOT = { end_game_years_passed >= 100 }
+			NOT = { end_game_years_passed >= 200 }
 			count_country = {
 				limit = { is_ai = no }
 				count > 1
@@ -2749,11 +2613,13 @@ fleet_event = {
 		owner = {
 			if = {
 				limit = { is_gestalt = no }
-				add_resource = { energy = 3000 }
+				add_resource = { energy = 2000 }
 				add_resource = { consumer_goods = 1000 }
+				add_resource = { rare_crystals = 250 }
 			}
 			else = {
 				add_resource = { energy = 4000 }
+				add_resource = { rare_crystals = 250 }
 			}
 			set_country_flag = star_petal_completed # ability to make luxury habitats
 		}
@@ -2766,7 +2632,7 @@ fleet_event = {
 	id = ancrel.6260
 	title = "ancrel.6260.name"
 	desc = "ancrel.6260.desc"
-	picture = GFX_evt_barren_dig_site
+	picture = GFX_evt_space_walk
 	show_sound = event_finding_loot
 	
 	archaeology = yes
@@ -2929,7 +2795,10 @@ fleet_event = {
 	option = {
 		name = OK
 		fromfrom = {
-			planet = { set_planet_flag = d_society_3 }
+			planet = {
+				set_planet_flag = d_society_3
+				hidden_effect = { add_modifier = { modifier = planet_hidden_lab days = -1 } }
+			}
 		}
 		owner = {
 			add_random_research_option = {
@@ -2971,7 +2840,10 @@ fleet_event = {
 	option = {
 		name = OK
 		fromfrom = {
-			planet = { set_planet_flag = d_physics_3 }
+			planet = {
+				set_planet_flag = d_physics_3
+				hidden_effect = { add_modifier = { modifier = planet_hidden_lab days = -1 } }
+			}
 		}
 		owner = {
 			if = {
@@ -3035,54 +2907,13 @@ fleet_event = {
 	option = {
 		name = FASCINATING
 		owner = {
-			add_research_option = tech_space_elevator
-			if = {
-				limit = {
-					has_tech_option = tech_housing_2
-				}
-				add_tech_progress = {
-					tech = tech_housing_2
-					progress = 0.5
-				}
-			}
-			else_if = {
-				limit = {
-					NOT = { has_technology = tech_housing_2 }
-					NOT = { has_valid_civic = civic_agrarian_idyll }
-				}
-				add_research_option = tech_housing_2
-				add_tech_progress = {
-					tech = tech_housing_2
-					progress = 0.1
-				}
-			}
-			else_if = {
-				limit = {
-					has_tech_option = tech_housing_agrarian_idyll
-				}
-				add_tech_progress = {
-					tech = tech_housing_agrarian_idyll
-					progress = 0.5
-				}
-			}
-			else_if = {
-				limit = {
-					NOT = { has_technology = tech_housing_agrarian_idyll }
-					has_valid_civic = civic_agrarian_idyll
-				}
-				add_research_option = tech_housing_agrarian_idyll
-				add_tech_progress = {
-					tech = tech_housing_agrarian_idyll
-					progress = 0.1
-				}
-			}
-			else = {
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier3researchreward
-					min = @tier3researchmin
-					max = @tier3researchmax
-				}
+			#add_research_option = tech_space_elevator
+			add_modifier = { modifier = moon_bump_megastructure days = -1 }
+			add_monthly_resource_mult = {
+				resource = engineering_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
 			}
  		}
 	}
@@ -3260,7 +3091,7 @@ fleet_event = {
 	option = {
 		name = OOPS
 		owner = {
-			add_resource = { alloys = 200 }
+			add_resource = { alloys = 500 }
 		}
 		fromfrom = {
 			planet = { add_deposit = d_alloys_5 }
@@ -3866,31 +3697,13 @@ fleet_event = {
 					progress = 0.2
 				}
 			}
-			else_if = {
-				limit = {
-					has_tech_option = tech_ecological_adaptation
-				}
-				add_tech_progress = {
-					tech = tech_ecological_adaptation
-					progress = 0.25
-				}
-			}
-			else_if = {
-				limit = {
-					NOT = { has_technology = tech_ecological_adaptation }
-				}
-				add_research_option = tech_ecological_adaptation
-				add_tech_progress = {
-					tech = tech_ecological_adaptation
-					progress = 0.1
-				}
-			}
 			else = {
+				add_resource = { minerals = 2000 }
 				add_monthly_resource_mult = {
 					resource = society_research
-					value = @tier5researchreward
-					min = @tier5researchmin
-					max = @tier5researchmax
+					value = @tier4researchreward
+					min = @tier4researchmin
+					max = @tier4researchmax
 				}
 			}
 		}
@@ -4179,11 +3992,14 @@ fleet_event = {
 	option = {
 		name = INCREDIBLE
 		owner = {
-			add_monthly_resource_mult = {
-				resource = society_research
-				value = @tier4researchreward
-				min = @tier4researchmin
-				max = @tier4researchmax
+			add_modifier = { modifier = aurora_encryption days = -1 }
+			owner = { 
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = @tier2researchreward
+					min = @tier2researchmin
+					max = @tier2researchmax
+				}
 			}
  		}
 	}
@@ -4321,7 +4137,7 @@ fleet_event = {
 				}
 				else = {
 					hidden_effect = { clear_deposits = yes }
-					set_deposit = d_society_3
+					set_deposit = d_society_5
 				}
 			}
 		}
@@ -4833,7 +4649,10 @@ fleet_event = {
 			}
 		}
 		owner = { 
-			add_resource = { influence = 100 }
+			add_resource = {
+				influence = 100
+				unity = 500
+			}
 			if = {
 				limit = {
 					has_tech_option = tech_society_3
@@ -4867,7 +4686,11 @@ fleet_event = {
 		name = TASTY
 		trigger = { owner = { has_civic = civic_hive_devouring_swarm } }
 		owner = { 
-			add_resource = { food = 500 }
+			add_resource = {
+				food = 500
+				unity = 500
+				society_research = 500
+			}
 			if = {
 				limit = {
 					has_tech_option = tech_society_3
@@ -4901,7 +4724,10 @@ fleet_event = {
 		name = distar.216.a.exter
 		trigger = { owner = { has_civic = civic_machine_terminator } }
 		owner = { 
-			add_resource = { society_research = 1000 }
+			add_resource = {
+				unity = 500
+				society_research = 1000
+			}
 			if = {
 				limit = {
 					has_tech_option = tech_society_3
@@ -5586,12 +5412,7 @@ ship_event = {
 					if = {
 						limit = {
 							from = {
-								OR = {
-									is_planet_class = pc_barren
-									is_planet_class = pc_barren_cold
-								}
-								planet_size > 9
-								planet_size < 26
+								can_be_terraforming_candidate = yes
 							}
 						}
 						custom_tooltip = TERRAFORMING_CANDIDATE_EFFECT
@@ -5794,7 +5615,7 @@ country_event = {
 				max = @tier3researchmax
 			}
 			add_monthly_resource_mult = {
-				resource = society
+				resource = society_research
 				value = @tier3researchreward
 				min = @tier3researchmin
 				max = @tier3researchmax
@@ -5817,7 +5638,7 @@ country_event = {
 				max = @tier4researchmax
 			}
 			add_monthly_resource_mult = {
-				resource = society
+				resource = society_research
 				value = @tier4researchreward
 				min = @tier4researchmin
 				max = @tier4researchmax
@@ -5837,7 +5658,7 @@ country_event = {
 				max = @tier5researchmax
 			}
 			add_monthly_resource_mult = {
-				resource = society
+				resource = society_research
 				value = @tier5researchreward
 				min = @tier5researchmin
 				max = @tier5researchmax
@@ -6614,10 +6435,6 @@ country_event = {
 			if = {
 				limit = { NOT = { has_technology = tech_mega_engineering } }
 				add_research_option = tech_mega_engineering
-				add_tech_progress = {
-					tech = tech_mega_engineering
-					progress = 0.10
-				}
 			}
 			else_if = {
 				limit = {
@@ -6786,7 +6603,7 @@ country_event = {
 		}
 
 		if = {
-			limit = { is_gestalt = yes}
+			limit = { is_gestalt = yes }
 			add_modifier = {
 				modifier = artifact_zroni_research_completed_gestalt # field manipulation research bonus
 				days = -1
