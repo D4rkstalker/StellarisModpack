@@ -56,9 +56,10 @@ country_event = {
 					set_planet_flag = megastructure
 					set_planet_flag = habitat
 					set_planet_flag = colony_event
-					set_planet_flag = dyson_corperate_hq
+					set_planet_flag = dyson_corperate_hq@FROM
 					prevent_anomaly = yes
 					set_planet_flag = is_dyson_swarm
+					set_planet_flag = dyson_init_decison_yes
 				#add deposits
 					add_deposit = d_dyson_swarm_valuable_crystal_asteroid
 				#add pops and ownership
@@ -191,12 +192,11 @@ country_event = {
 		}
 		give_technology = { tech = "tech_dyson_swarm" message = no }
 		give_technology = { tech = "tech_hydroponics" message = no }
-		add_resource = { food = 200 }
-		set_country_flag = did_not_do_food_trade_yet
 		event_target:original_capital = { planet_event = { id = dyson_starting.101 } }
 		country_event = { id = dyson_starting.102 }
-		#country_event = { id = dyson_starting.105 days = 1460 }
+		#country_event = { id = dyson_starting.105 days = 1825 } #atomic age advancement, checks after five years
 		country_event = { id = dyson_starting.105 days = 20 }
+		set_variable = { which = dyson_number_of_tradedeals value = 0 }
 	}
 }
 #set up hostage planet
@@ -224,23 +224,23 @@ planet_event = {
 			create_pop = { species = last_created }
 		}
 		create_country = {
-			name = NAME_hostages
+			name = random
 			type = primitive_clone
 			name_list = random 
 			ship_prefix = ISS 
 			authority = random
 			civics = {
 				civic = civic_hostage_planet
-				civic = civic_atmospheric_pollution
 			}
 			species = last_created
 			flag = random
 			ethos = random
+			origin = "origin_dyson_native_upstart"
 			effect = {
 				set_primitive_age = machine_age
 				set_country_flag = machine_age
 				save_event_target_as = hostage_planet_country
-			#prevent them from ever advancing normaly
+			#prevent them from ever advancing normaly, if that is even possible with the new countrytype.... Better safe than sorry.
 				set_country_flag = recently_advanced
 			} 
 		}
@@ -270,8 +270,25 @@ planet_event = {
 		add_building = building_primitive_mine
 		add_building = building_primitive_farm
 		add_building = building_primitive_power_plant
+	#reinforced military
+		while = {
+			count = 15
+			create_army = {
+				name = random
+				species = last_created
+				type = industrial_army
+				owner = event_target:hostage_planet_country
+			}
+		}
 		space_owner = {
+			save_event_target_as = greedy_corp
 			establish_communications_no_message = event_target:hostage_planet_country
+	#add a flag to identify the corp belonging to these natives
+			set_country_flag = dyson_corp_belonging_to_primitives_@event_target:hostage_planet_country
+		}
+	#and the other way around
+		event_target:hostage_planet_country = {
+			set_country_flag = dyson_primitives_belonging_to_corp_@event_target:greedy_corp
 		}
 	}
 }
@@ -282,6 +299,55 @@ country_event = {
 	desc = dyson_starting.102.desc
 	
 	is_triggered_only = yes
+	
+	immediate = {
+		capital_scope = {
+			#add deposits, because this event gets kinda weird when triggered through the other events
+			solar_system = {
+				every_system_planet = {
+					limit = { dyson_is_asteroid = yes }
+					planet_event = { id = dyson_swarm_other.5 }
+				}
+				every_system_planet = {
+					limit = { dyson_is_molten_planet = yes }
+					planet_event = { id = dyson_swarm_other.7 }
+				}
+				every_system_planet = {
+					limit = { dyson_is_minable_planet = yes }
+					planet_event = { id = dyson_swarm_other.8 }
+				}
+				every_system_planet = {
+					limit = { dyson_is_ice_asteroid = yes }
+					planet_event = { id = dyson_swarm_other.9 }
+				}
+				every_system_planet = {
+					limit = { dyson_is_gas_giant = yes }
+					planet_event = { id = dyson_swarm_other.10 }
+				}
+			}
+			random_list = {
+				5 = {
+				}
+				10 = { add_deposit = d_dyson_swarm_astroid }
+				30 = { add_deposit = d_dyson_swarm_mote_fields }
+				30 = {
+					add_deposit = d_dyson_swarm_mote_fields
+					add_deposit = d_dyson_swarm_mote_fields
+				}
+				20 = {	
+					add_deposit = d_dyson_swarm_mote_fields 
+					add_deposit = d_dyson_swarm_mote_fields 
+					add_deposit = d_dyson_swarm_mote_fields
+				}
+				5 = {
+					add_deposit = d_dyson_swarm_mote_fields
+					add_deposit = d_dyson_swarm_mote_fields 
+					add_deposit = d_dyson_swarm_mote_fields 
+					add_deposit = d_dyson_swarm_mote_fields
+				}
+			}
+		}
+	}
 	
 	option = {
 		name = dyson_starting.102.a
@@ -307,10 +373,7 @@ country_event = {
 	
 	option = {
 		trigger = {
-			NOR = {
-				has_country_flag = allowed_food_trade
-				has_country_flag = denied_food_trade
-			}
+			NOT = { has_country_flag = allowed_food_trade }
 		}
 		name = dyson_starting.103.first_food
 		country_event = { id = dyson_starting.104 }
@@ -325,6 +388,57 @@ country_event = {
 		name = dyson_starting.103.establish_trade
 		country_event = { id = dyson_starting.107 }
 	}
+	option = {
+		trigger = {
+			has_country_flag = dyson_natives_atomic
+		}
+		name = dyson_starting.103.establish_trade_minerals
+		country_event = { id = dyson_starting.109 }
+	}
+	option = {
+		trigger = {
+			OR = {
+				has_country_flag = dyson_natives_atomic
+				has_country_flag = allowed_food_trade
+			}
+		}
+		name = dyson_starting.103.establish_trade_food
+		country_event = { id = dyson_starting.123 }
+	}
+	option = {
+		trigger = {
+			has_country_flag = dyson_natives_atomic
+			check_variable = { which = dyson_number_of_tradedeals value > 9 }
+		}
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.103.slavetooltip
+				NOT = { has_country_flag = recently_bought_native_pops }
+			}
+		}
+		name = dyson_starting.103.buy_pops
+		country_event = { id = dyson_starting.110 }
+	}
+	option = {
+		trigger = {
+			has_country_flag = dyson_natives_atomic
+			NOR = {
+				has_country_flag = chose_arrested_development_route
+				check_variable = { which = infiltration_level value > 0 }
+			}
+		}
+		name = dyson_starting.103.infiltration_choice
+		country_event = { id = dyson_starting.124 }
+	}
+#infiltration menus
+	option = {
+		trigger = {
+			has_country_flag = chose_arrested_development_route
+		}
+		name = dyson_starting.103.arrested_infiltration
+		country_event = { id = dyson_starting.128 }
+	}
+	
 	option = {
 		name = dyson.goodbye
 	}
@@ -344,39 +458,260 @@ country_event = {
 	}
 	
 	option = {
-		trigger = { NOT = { has_country_flag = dyson_trade_deposits_now_worth_double } }
+		trigger = { NOT = { has_country_flag = dyson_natives_atomic } }
 		allow = {
 			custom_tooltip = {
-				text = dyson_starting.107.to_many_deals
-				check_variable = { which = dyson_number_of_tradedeals value < 26 }
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals value < 21 }
 			}
 			resource_stockpile_compare = { resource = energy value >= 100 }
 		}
-		name = dyson_starting.107.yes_1
+		name = dyson_starting.107.yes
+		is_dialog_only = yes
 		add_resource = { energy = -100 }
-		capital_scope = {
+		event_target:corp_dyson_swarm = {
 			add_deposit = d_dyson_corp_value_trade_1
 		}
 		change_variable = { which = dyson_number_of_tradedeals value = 1 }
 	}
 	option = {
-		trigger = { has_country_flag = dyson_trade_deposits_now_worth_double }
+		trigger = { 
+			NOT = { has_country_flag = dyson_arrested_development_corp }
+			has_country_flag = dyson_natives_atomic
+		}
 		allow = {
 			custom_tooltip = {
-				text = dyson_starting.107.to_many_deals
+				text = dyson_starting.to_many_deals
 				check_variable = { which = dyson_number_of_tradedeals value < 51 }
 			}
-			resource_stockpile_compare = { resource = energy value >= 150 }
+			resource_stockpile_compare = { resource = energy value >= 200 }
 		}
-		name = dyson_starting.107.yes_2
-		add_resource = { energy = -150 }
-		capital_scope = {
+		name = dyson_starting.107.yes
+		is_dialog_only = yes
+		add_resource = { energy = -200 }
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_value_trade_2
+		}
+		change_variable = { which = dyson_number_of_tradedeals value = 1 }
+		hidden_effect = {
+		#events
+			if = {
+				limit = { 
+					check_variable = { which = dyson_number_of_tradedeals value > 19 } 
+					has_country_flag = goal_three
+					NOT = { has_country_flag = dyson_blackmail_betrail_done }
+				}
+				random_list = {
+					50 = {
+						country_event = { id = dyson_starting.131 days = 30 }
+					}
+					50 = {
+						country_event = { id = dyson_starting.133 days = 30 }
+					}
+				}
+				set_country_flag = dyson_blackmail_betrail_done
+			}
+			if = {
+				limit = { 
+					check_variable = { which = dyson_number_of_tradedeals value > 39 } 
+					has_country_flag = goal_seven
+					NOT = { has_country_flag = dyson_strawcorp_done }
+				}
+				country_event = { id = dyson_starting.139 days = 10 }
+			}
+			if = {
+				limit = { 
+					check_variable = { which = dyson_number_of_tradedeals value > 49 } 
+					has_country_flag = goal_seven
+				}
+				country_event = { id = dyson_starting.141 }
+			}
+		}
+	}
+	option = {
+		trigger = { 
+			has_country_flag = dyson_arrested_development_corp
+			has_country_flag = dyson_natives_atomic
+		}
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals value < 101 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 200 }
+		}
+		name = dyson_starting.107.yes
+		is_dialog_only = yes
+		add_resource = { energy = -200 }
+		event_target:corp_dyson_swarm = {
 			add_deposit = d_dyson_corp_value_trade_2
 		}
 		change_variable = { which = dyson_number_of_tradedeals value = 1 }
 	}
 	option = {
 		name = dyson_starting.107.no
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#tradedeal (minerals)
+country_event = {
+	id = dyson_starting.109
+	title = dyson_starting.communications
+	desc = dyson_starting.109.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
+
+	option = {
+		trigger = { NOT = { has_country_flag = dyson_arrested_development_corp } }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals_minerals value < 6 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 100 }
+		}
+		name = dyson_starting.109.yes
+		is_dialog_only = yes
+		add_resource = { energy = -100 }
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_mineral_trade
+		}
+		change_variable = { which = dyson_number_of_tradedeals_minerals value = 1 }
+	}
+	option = {
+		trigger = { has_country_flag = dyson_arrested_development_corp }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals_minerals value < 21 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 100 }
+		}
+		name = dyson_starting.109.yes
+		is_dialog_only = yes
+		add_resource = { energy = -100 }
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_mineral_trade
+		}
+		change_variable = { which = dyson_number_of_tradedeals_minerals value = 1 }
+	}
+	option = {
+		name = dyson_starting.107.no
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#tradedeal (food)
+country_event = {
+	id = dyson_starting.123
+	title = dyson_starting.communications
+	desc = dyson_starting.123.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
+
+	option = {
+		trigger = { NOT = { has_country_flag = dyson_arrested_development_corp } }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals_food value < 6 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 100 }
+		}
+		name = dyson_starting.123.yes
+		is_dialog_only = yes
+		add_resource = { energy = -100 }
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_food_trade
+		}
+		change_variable = { which = dyson_number_of_tradedeals_food value = 1 }
+	}
+	option = {
+		trigger = { has_country_flag = dyson_arrested_development_corp }
+		allow = {
+			custom_tooltip = {
+				text = dyson_starting.to_many_deals
+				check_variable = { which = dyson_number_of_tradedeals_food value < 21 }
+			}
+			resource_stockpile_compare = { resource = energy value >= 100 }
+		}
+		name = dyson_starting.123.yes
+		is_dialog_only = yes
+		add_resource = { energy = -100 }
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_food_trade
+		}
+		change_variable = { which = dyson_number_of_tradedeals_food value = 1 }
+	}
+	option = {
+		name = dyson_starting.107.no
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#gather some pops, requires at least 10 tradedeals to have been done first, intentured assets civic gets half price.
+country_event = {
+	id = dyson_starting.110
+	title = dyson_starting.communications
+	desc = dyson_starting.110.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:the_natives = {
+			owner_species = {
+				save_event_target_as = the_natives_species
+			}
+		}
+	}
+	
+	option = {
+		trigger = {
+			NOT = {
+				has_valid_civic = civic_indentured_assets
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 500 }
+			resource_stockpile_compare = { resource = influence value >= 50 }
+		}
+		name = dyson_starting.110.yes
+		add_resource = { energy = -500 }
+		add_resource = { influence = -50 }
+		event_target:corp_dyson_swarm = {
+			create_pop = { species = event_target:the_natives_species }
+		}
+		set_timed_country_flag = { flag = recently_bought_native_pops days = 1080 }
+	}
+	option = {
+		trigger = {
+			has_valid_civic = civic_indentured_assets
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 250 }
+			resource_stockpile_compare = { resource = influence value >= 25 }
+		}
+		name = dyson_starting.110.yes
+		add_resource = { energy = -250 }
+		add_resource = { influence = -25 }
+		event_target:corp_dyson_swarm = {
+			create_pop = { species = event_target:the_natives_species }
+		}
+		set_timed_country_flag = { flag = recently_bought_native_pops days = 1080 }
+	}
+	option = {
+		name = dyson_starting.110.no
 		country_event = { id = dyson_starting.103 }
 	}
 }
@@ -409,8 +744,8 @@ country_event = {
 		name = dyson_starting.104.yes
 		custom_tooltip = dyson_starting.104.yes.tooltip
 		response_text = dyson_starting.104.yes.response
-		capital_scope = {
-			add_deposit = d_dyson_corp_food_trade
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_food_trade_tech
 		}
 		set_country_flag = allowed_food_trade
 		hidden_effect = {
@@ -428,7 +763,7 @@ country_event = {
 		set_country_flag = denied_food_trade
 	}
 }
-#gatekeeper for the natives advancement, fired four years after gamestart. Check for the following flags: denied_food_trade and did_not_do_food_trade_yet. If they are not present, the natives will stay machine age for three more years or until the trade is done anyways.
+#gatekeeper for the natives advancement, fired four years after gamestart. Checks denied_food_trade flag. If it is not present, the natives will stay machine age for three more years or until the trade is done anyways.
 country_event = {
 	id = dyson_starting.105
 	hide_window = yes
@@ -446,7 +781,7 @@ country_event = {
 		}
 	}
 }
-#notify player of the natives advancement, advance them
+#notify player of the natives advancement and advance them
 country_event = {
 	id = dyson_starting.106
 	title = dyson_starting.106.title
@@ -459,6 +794,7 @@ country_event = {
 		text = dyson_starting.106.desc_2
 	}
 	picture = GFX_evt_metropolis
+	show_sound = event_cityscape
 	
 	is_triggered_only = yes
 	
@@ -475,40 +811,63 @@ country_event = {
 						species = owner_species
 					}
 				}
+			#reinforced military
+				remove_all_armies = yes
+				while = {
+					count = 20
+					create_army = {
+						name = random
+						species = last_created
+						type = postatomic_army
+						owner = event_target:the_natives
+					}
+				}
 			}
 		}
-		#can no longer sell shiny stuff
-		capital_scope = { set_planet_flag = no_more_shiny_stuff }
-		#tradedeposits are now worth double, replace them with version 2
-		set_country_flag = dyson_trade_deposits_now_worth_double
-		capital_scope = {
+	#can no longer sell shiny stuff
+		event_target:corp_dyson_swarm = { set_planet_flag = no_more_shiny_stuff }
+	#tradedeposits are now worth double, replace them with version 2
+		set_country_flag = dyson_natives_atomic
+		event_target:corp_dyson_swarm = {
 			while = {
 				limit = { has_deposit = d_dyson_corp_value_trade_1 }
 				remove_deposit = d_dyson_corp_value_trade_1
 				add_deposit = d_dyson_corp_value_trade_2
 			}
 		}
-		#country_event = { id = dyson_starting.108 days = 720 }
-		country_event = { id = dyson_starting.108 days = 10 }
+		if = {
+			limit = { NOT = { has_country_flag = allowed_food_trade } }
+			#country_event = { id = dyson_starting.108 days = 720 } #scientist betrayal
+			country_event = { id = dyson_starting.108 days = 10 }
+		}
+		#country_event = { id = dyson_starting.137 days = 7300 random = 720 } #early space age gatekeeper, 20-22 years
+		country_event = { id = dyson_starting.137 days = 10 random = 12 }
 	}
 	
 	option = {
 		name = dyson_starting.106.a
 	}
 }
-#Leader is found out to have helped the natives advancement for money and exotic food
+#Leader is found out to have helped the natives advancement for money and exotic food (if player refuses to trade food with them)
 country_event = {
 	id = dyson_starting.108
 	title = dyson_starting.108.title
 	desc = dyson_starting.108.desc
+	picture = GFX_evt_dark_alley
+	show_sound = event_criminal_activity
 	
 	is_triggered_only = yes
 	
 	immediate = {
 		find_natives_again = yes
+		event_target:the_natives = {
+			capital_scope = {
+				save_event_target_as = the_natives_capital
+			}
+		}
 		random_owned_leader = {
 			limit = { leader_class = scientist }
-			save_event_target_as = { corrupt_scientist }
+			save_event_target_as = corrupt_scientist
 		}
 	}
 	
@@ -516,6 +875,7 @@ country_event = {
 		name = dyson_starting.108.fire
 		custom_tooltip = dyson_starting.108.fire.tooltip
 		add_resource = { energy = 50 }
+		add_resource = { food = 20 }
 		hidden_effect = {
 			event_target:corrupt_scientist = {
 				kill_leader = {
@@ -528,15 +888,1135 @@ country_event = {
 		name = dyson_starting.108.keep
 		add_resource = { influence = -100 }
 		add_resource = { energy = 50 }
+		add_resource = { food = 20 }
+	}
+}
+#early space age advancement (not if arrested if was chosen)
+country_event = {
+	id = dyson_starting.137
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = { NOT = { has_country_flag = chose_arrested_development_route } }
+			country_event = { id = dyson_starting.111 }
+		}
+		else_if = {
+			limit = { has_country_flag = chose_arrested_development_route }
+			#do nothing, event is fired differently
+		}
+	}
+}
+country_event = {
+	id = dyson_starting.111
+	title = dyson_starting.111.title
+	desc = {
+		trigger = { check_variable = { which = infiltration_level value > 239 } }	
+		text = dyson_starting.111.desc_annex
+	}
+	desc = {
+		trigger = { check_variable = { which = infiltration_level value < 240 } }	
+		text = dyson_starting.111.desc_advancement
+	}
+	desc = {
+		trigger = { has_country_flag = chose_arrested_development_route }	
+		text = dyson_starting.111.desc_arrested
+	}
+	picture = GFX_evt_metropolis
+	show_sound = event_cityscape
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+	#infiltration level variable high enough. They will join the players empire. removes trade deposits as well, adds buff
+		if = {
+			limit = { check_variable = { which = infiltration_level value > 239 } }
+			country_event = { id = dyson_starting.112 }
+		}
+	#infiltration level not high enough, will advance to early space age
+		else = {
+			event_target:the_natives = {
+				set_primitive_age = early_space_age
+				set_country_flag = early_space_age
+				capital_scope = {
+					create_fleet = {
+						name = "NAME_Space_Station"
+						effect = {
+							set_owner = event_target:the_natives
+							create_ship = {
+								name = "NAME_Space_Station"
+								design = "NAME_Space_Station"
+							}
+							set_location = PREV
+						}
+					}
+				}
+			}
+		}
+	#next advancement: FTL capabilities
+		#country_event = { id = dyson_starting.113 days = 36000 }
+		#country_event = { id = dyson_starting.113 days = 10 }
+	}
+	
+	option = {
+		name = dyson_starting.111.a
+	}
+}
+#annex event
+country_event = {
+	id = dyson_starting.112
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:the_natives = {
+			capital_scope = {
+				set_owner = event_target:greedy_corp
+				add_modifier = { modifier = infiltration_happiness days = 14600 }
+				remove_all_armies = yes
+				create_army = {
+					name = random
+					owner = ROOT
+					species = owner_main_species
+					type = "defense_army"
+				}
+				remove_building = building_primitive_dwellings
+				remove_building = building_stone_palace
+				remove_building = building_primitive_farm
+				remove_building = building_primitive_mine
+				remove_building = building_primitive_factory
+				remove_building = building_primitive_capital
+				remove_building = building_urban_dwellings
+				remove_building = building_urban_dwellings
+				add_building = building_capital
+				add_district = district_city
+				add_district = district_city
+				add_district = district_city
+				add_district = district_city
+				add_district = district_farming
+				add_district = district_farming
+				add_district = district_farming
+				add_district = district_mining
+				add_district = district_mining
+				add_district = district_generator
+				add_district = district_generator
+				add_building = building_research_lab_1
+				add_building = building_foundry_1
+				add_building = building_factory_1
+			}
+			destroy_country = yes
+		}
+		event_target:corp_dyson_swarm = {
+			dyson_remove_all_trade_deposits = yes
+		}
+	}
+}
+#ftl advancement/ arrested development gatekeeper
+country_event = {
+	id = dyson_starting.113
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+		if = {
+			limit = { 
+				check_variable = { which = infiltration_level value > 239 }
+				NOT = { has_country_flag = arrested_development_route_threshhold }
+			}
+			country_event = { id = dyson_starting.114 }  #annexation
+		}
+		else_if = {
+			limit = { has_country_flag = arrested_development_route_threshhold }
+			country_event = { id = dyson_starting.121 } #arrested development gatekeeper
+		}
+		else = {
+			country_event = { id = dyson_starting.115 } #the natives declare war
+		}
+	}
+}
+#outcome 1: infiltration high enough, annex them.
+country_event = {
+	id = dyson_starting.114
+	title = dyson_starting.114.title
+	desc = dyson_starting.114.desc
+	picture = GFX_evt_metropolis
+	show_sound = event_cityscape
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+		set_country_flag = dyson_corp_origin_no_comms
+		country_event = { id = dyson_starting.112 }
+	}
+	option = {
+		name = dyson_starting.114.a
+	}
+}
+#outcome 2: infiltration not high enough, did not go for arrested development. They declare war on the player.
+#a mercenary fleet spawns, as well as some armies on the actual swarm. The swarm gets annexed if these armies win. If they also manage to take the starbase, they will become an FTL country that is at (total) war with the player
+country_event = {
+	id = dyson_starting.115
+	title = dyson_starting.115.title
+	desc = dyson_starting.115.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
+
+	immediate = {
+		set_country_flag = dyson_corp_origin_no_comms
+		find_natives_again = yes
+		owner_species = {
+			save_event_target_as = merc_species
+		}
+		event_target:the_natives = {
+			create_leader = {
+				class = admiral
+				species = event_target:merc_species
+				name = random
+				event_leader = yes
+				skill = 3
+				leader_age_min = 25
+				leader_age_max = 45
+				traits = {
+					trait = leader_trait_mercenary_warrior
+					trait = random_trait
+				}
+			}
+		}
+		create_fleet = {
+			name = "NAME_Armada_of_the_Voidborn"
+			effect = {
+				set_owner = event_target:the_natives
+				create_armada_of_the_voidborn = yes
+				set_location = event_target:the_natives_capital
+				assign_leader = last_created_leader
+			}
+			settings = {
+				can_upgrade = no
+				can_disband = no
+				can_change_composition = no
+				uses_naval_capacity = no
+			}
+		}
+		event_target:the_natives = {
+			create_leader = {
+				class = admiral
+				species = event_target:merc_species
+				name = random
+				event_leader = yes
+				skill = 3
+				leader_age_min = 25
+				leader_age_max = 45
+				traits = {
+					trait = leader_trait_mercenary_warrior
+					trait = random_trait
+				}
+			}
+		}
+		create_fleet = {
+			name = "NAME_Star_Rider_Flotilla"
+			effect = {
+				set_owner = event_target:the_natives
+				create_star_rider_flotilla = yes
+				set_location = event_target:the_natives_capital
+				assign_leader = last_created_leader
+			}
+			settings = {
+				can_upgrade = no
+				can_disband = no
+				can_change_composition = no
+				uses_naval_capacity = no
+			}
+		}
+		event_target:the_natives = {
+			owner_species = { save_event_target_as = the_natives_species }
+			capital_scope = {
+				save_event_target_as = the_natives_capital
+			}
+			set_faction_hostility = {
+				target = event_target:greedy_corp
+				set_hostile = yes
+				set_neutral = no
+				set_friendly = no
+			}
+			country_event = { id = dyson_starting.122 days = 5 }
+		}
+	}
+	
+	option = {
+		name = dyson_starting.115.a
+	}
+	option = {
+		name = dyson_starting.115.b
+	}
+	option = {
+		name = dyson_starting.115.c
+		custom_tooltip = dyson_starting.115.c.tooltip
+	}
+}
+#armies land on the dyson swarm
+country_event = {
+	id = dyson_starting.122
+	title = dyson_starting.122.title
+	desc = dyson_starting.122.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:corp_dyson_swarm = {
+			dyson_remove_all_trade_deposits = yes
+			while = {
+				count = 20
+				create_army = {
+					name = "NAME_dyson_native_shadow_ops"
+					species = event_target:the_natives_species
+					type = dyson_primitive_army
+					owner = event_target:the_natives
+				}
+			}
+		}
+	}
+	option = {
+		name = dyson_starting.122.a
+	}
+}
+#triggered when the natives take the starbase or the dyson swarm. If both are taken, they will annex the system and become a ftl civilization at war with corp empire. The player may also choose to play as the primitives at that point.
+country_event = {
+	id = dyson_starting.116
+	title = dyson_starting.116.title
+	desc = dyson_starting.116.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+	
+	is_triggered_only = yes
+
+	immediate = {
+		find_natives_again = yes
+		random_planet = {
+			limit = { has_planet_flag = dyson_hostage_planet_@event_target:greedy_corp }
+			remove_building = building_primitive_farm
+			remove_building = building_primitive_mine
+			remove_building = building_primitive_factory
+			remove_building = building_primitive_capital
+			remove_building = building_urban_dwellings
+			remove_building = building_urban_dwellings
+			add_building = building_capital
+			add_district = district_city
+			add_district = district_city
+			add_district = district_city
+			add_district = district_city
+			add_district = district_farming
+			add_district = district_farming
+			add_district = district_farming
+			add_district = district_mining
+			add_district = district_mining
+			add_district = district_generator
+			add_district = district_generator
+			add_building = building_research_lab_1
+			add_building = building_foundry_1
+			add_building = building_factory_1
+			remove_all_armies = yes
+		}
+		event_target:the_natives = {
+			remove_country_flag = early_space_age
+			set_country_flag = primitives_can_into_space
+			set_country_type = default
+			change_country_flag = random
+			clear_ethos = yes
+			country_add_ethic = ethic_fanatic_egalitarian
+			country_add_ethic = ethic_militarist
+			change_government = {
+				authority = auth_democratic
+				civics = random
+			}
+			set_name = random
+			add_resource = {
+				energy = 1000
+				minerals = 1000
+				alloys = 500
+				food = 1000
+			}
+			random_owned_ship = {
+				limit = { is_ship_size = primitive_space_station }
+				fleet = { destroy_fleet = THIS }
+			}
+			declare_war = {
+				target = event_target:greedy_corp
+				name = "NAME_Dyson_corp_war"
+				attacker_war_goal = "wg_end_threat"
+			}
+			add_modifier = {
+				modifier = dyson_stolen_knowledge
+				days = 1095
+			}
+			capital_scope = {
+				solar_system = {
+					if = {
+						limit = { NOT = { exists = starbase } }
+						create_starbase = {
+							size = starbase_outpost
+							owner = event_target:the_natives
+						}
+					}
+					starbase = {
+						set_owner = event_target:the_natives
+					}
+					every_system_planet = {
+						limit = { num_pops > 1 }
+						set_owner = event_target:the_natives
+						set_controller = event_target:the_natives
+					}
+				}
+			}
+			add_opinion_modifier = {
+				modifier = opinion_dyson_greedy_corp
+				who = event_target:greedy_corp
+			} 
+		}
+		find_natives_again = yes
+	}
+	option = {
+		name = dyson_starting.116.a
+	}
+	option = {
+		name = dyson_starting.116.b
+	}
+	option = {
+		name = dyson_starting.116.c
+		custom_tooltip = dyson_starting.116.c.tooltip
+		hidden_effect = {
+			event_target:the_natives = {
+				set_player = event_target:greedy_corp
+			}
+		}
+	}
+}
+#planet gatekeeper, checks if the starbase is occupied after the invasion is finished.
+country_event = {
+	id = dyson_starting.117
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive_clone
+	}
+	
+	immediate = {
+		find_corp_again = yes
+		set_country_flag = took_dyson_swarm_from_corp
+		if = {
+			limit = {
+				has_country_flag = took_starbase_from_corp
+			}
+			event_target:greedy_corp = {
+				country_event = { id = dyson_starting.116 }
+			}
+		}
+	}
+}
+#starbase gatekeeper, checks if the planet is taken
+ship_event = {
+	id = dyson_starting.118
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		FROM = {
+			owner = {
+				is_country_type = primitive_clone
+			}
+		}
+	}
+	
+	immediate = {
+		FROM = {
+			owner = {
+				set_country_flag = took_starbase_from_corp
+			}
+		}
+		if = {
+			limit = { 
+				FROM = {
+					owner = {
+						has_country_flag = took_dyson_swarm_from_corp
+					}
+				}
+			}
+			owner = {
+				country_event = { id = dyson_starting.116 }
+			}
+		}
+	}
+}
+#corp invades natives
+country_event = {
+	id = dyson_starting.119
+	title = dyson_starting.119.title
+	desc = dyson_starting.119.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+	
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = { is_country_type = primitive_clone }
+		is_country_type = default
+		has_country_flag = dyson_corp_belonging_to_primitives_@FROM
+	}
+
+	immediate = {
+		FROMFROM = {
+			add_modifier = {
+				modifier = planet_culture_shock
+				years = 20
+			}
+			set_owner = ROOT
+			save_event_target_as = the_natives_capital
+		}
+		every_country = {
+			limit = {
+				has_communications = root
+				is_country_type = default
+				NOT = { is_same_value = root }
+			}
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_primitive_violation
+			}
+		}
+		reset_years_of_peace = yes
+	}
+	
+	option = {
+		name = dyson_starting.119.a
+	}
+}
+#invasion by anyone else will trigger the default primitive event
+country_event = {
+	id = dyson_starting.120
+
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = { is_country_type = primitive_clone }
+		is_country_type = default
+		NOT = { has_country_flag = dyson_corp_belonging_to_primitives_@FROM }
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				is_regular_empire = yes
+			}
+			FROMFROM = {
+				add_modifier = {
+					modifier = planet_culture_shock
+					days = 3600
+				}
+				set_owner = ROOT
+			}
+		}
+		else = {
+			FROMFROM = {
+				set_owner = ROOT
+			}
+		}
+		every_country = {
+			limit = {
+				has_communications = root
+				is_country_type = default
+				NOT = { is_same_value = root }
+			}
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_primitive_violation
+			}
+		}
+		if = {
+			limit = {
+				is_ai = no
+			}
+			fromfrom = {
+				save_event_target_as = conquered_primitive_country
+			}
+			from = {
+				owner_species = {
+					save_event_target_as = conquered_primitive_species
+				}
+			}
+			country_event = { id = action.140 }
+		}
+		reset_years_of_peace = yes
+	}
+}
+#Arrested development outcome events
+country_event = {
+	id = dyson_starting.121
+	title = dyson_starting.121.title
+	desc = dyson_starting.121.desc
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = dyson_arrested_development_corp
+		event_target:the_natives = {
+			random_owned_ship = {
+				limit = { is_ship_size = primitive_space_station }
+				fleet = { destroy_fleet = THIS }
+			}
+			set_primitive_age = arrested_development_age
+			set_country_flag = arrested_development_age
+		}
+	}
+	option = {
+		name = dyson_starting.121.a
+		custom_tooltip = dyson_starting.121.a.tooltip
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_arrested_development_steady_income
+		}
+	}
+}
+#Infiltration menu: takeover or arrested development?
+country_event = {
+	id = dyson_starting.124
+	title = dyson_starting.124.title
+	desc = dyson_starting.124.desc
+	picture = GFX_evt_metropolis
+	show_sound = event_cityscape
+	
+	is_triggered_only = yes
+
+	option = {
+		name = dyson_starting.124.infiltrate
+		custom_tooltip = dyson_starting.124.infiltrate.tooltip
+	}
+	option = {
+		name = dyson_starting.124.arrested_development
+		custom_tooltip = dyson_starting.124.arrested_development.tooltip
+		hidden_effect = {
+			country_event = { id = dyson_starting.125 }
+		}
+	}
+	option = {
+		name = dyson_starting.back
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#natives announcement
+country_event = {
+	id = dyson_starting.126
+	title = dyson_starting.communications
+	desc = dyson_starting.126.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:the_natives
+		room = "personality_peaceful_traders_room"
+	}
+
+	option = {
+		name = dyson_starting.126.a
 	}
 }
 
+#arrested development events
+country_event = {
+	id = dyson_starting.125
+	title = dyson_starting.124.title
+	desc = dyson_starting.125.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
 
+	option = {
+		name = dyson_starting.125.confirm
+		hidden_effect = {
+			country_event = { id = dyson_starting.126 days = 30 }
+			set_country_flag = chose_arrested_development_route
+			country_event = { id = dyson_starting.127 }
+		}
+	}
+	option = {
+		name = dyson_starting.back
+		country_event = { id = dyson_starting.124 }
+	}
+}
+#goal 1: establish 15 traderoutes 
+country_event = {
+	id = dyson_starting.127
+	title = dyson_starting.124.title
+	desc = dyson_starting.127.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+	
+	immediate = { set_country_flag = goal_one }
 
+	option = {
+		name = dyson_starting.127.a
+	}
+}
+#arrested development infiltration screen
+#arrested development infiltration screen
+country_event = {
+	id = dyson_starting.128
+	title = dyson_starting.128.title
+	desc = {
+		trigger = { has_country_flag = goal_one }
+		text = dyson_starting.128.desc_1
+	}
+	desc = {
+		trigger = { has_country_flag = goal_two }
+		text = dyson_starting.128.desc_2
+	}
+	desc = {
+		trigger = { has_country_flag = goal_three }
+		text = dyson_starting.128.desc_3
+	}
+	desc = {
+		trigger = { has_country_flag = goal_four }
+		text = dyson_starting.128.desc_4
+	}
+	desc = {
+		trigger = { has_country_flag = goal_five }
+		text = dyson_starting.128.desc_5
+	}
+	desc = {
+		trigger = { has_country_flag = goal_six }
+		text = dyson_starting.128.desc_6
+	}
+	desc = {
+		trigger = { has_country_flag = goal_seven }
+		text = dyson_starting.128.desc_7
+	}
+	desc = {
+		trigger = { has_country_flag = goal_eight }
+		text = dyson_starting.128.desc_8
+	}
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
 
+	option = {
+		name = dyson_starting.128.a
+	}
+	option = {
+		trigger = { has_country_flag = goal_one }
+		allow = { check_variable = { which = dyson_number_of_tradedeals value > 14 } }
+		name = dyson_starting.128.goal_1
+		country_event = { id = dyson_starting.129 }
+	}
+	option = {
+		trigger = { has_country_flag = goal_three }
+		allow = { check_variable = { which = dyson_number_of_tradedeals value > 24 } }
+		name = dyson_starting.128.goal_3
+		country_event = { id = dyson_starting.134 }
+	}
+	option = {
+		trigger = { has_country_flag = goal_five }
+		allow = { check_variable = { which = dyson_number_of_tradedeals value > 34 } }
+		name = dyson_starting.128.goal_5
+		country_event = { id = dyson_starting.136 }
+	}
+	option = {
+		trigger = { has_country_flag = goal_seven }
+		allow = { check_variable = { which = dyson_number_of_tradedeals value > 49 } }
+		name = dyson_starting.128.goal_7
+		country_event = { id = dyson_starting.141 }
+	}
+	option = {
+		trigger = { has_country_flag = goal_eight }
+		allow = { resource_stockpile_compare = { resource = energy value >= 1500 } }
+		name = dyson_starting.128.goal_8
+		country_event = { id = dyson_starting.121 }
+		add_resource = { energy = -1500 }
+	}
+	option = {
+		name = dyson_starting.back
+		country_event = { id = dyson_starting.103 }
+	}
+}
+#industry contact, after reaching goal 1
+country_event = {
+	id = dyson_starting.129
+	title = dyson_starting.129.title
+	desc = dyson_starting.129.desc
+	picture = GFX_evt_board_meeting
+	
+	is_triggered_only = yes
+	
+	immediate = { 
+		set_country_flag = goal_two
+		remove_country_flag = goal_one
+	}
 
+	option = {
+		name = dyson_starting.129.a
+		add_modifier = {
+			modifier = dyson_local_researchers_help
+			days = 360
+		}
+		country_event = { id = dyson_starting.130 days = 360 }
+	}
+	option = {
+		name = dyson_starting.129.b
+		add_modifier = {
+			modifier = dyson_independend_researchers_help
+			days = 360
+		}
+		country_event = { id = dyson_starting.130 days = 360 }
+	}
+}
+country_event = {
+	id = dyson_starting.130
+	title = dyson_starting.130.title
+	desc = dyson_starting.130.desc
+	picture = GFX_evt_board_meeting
+	
+	is_triggered_only = yes
+	
+	immediate = { 
+		set_country_flag = goal_three
+		remove_country_flag = goal_two
+		find_natives_again = yes
+	}
 
+	option = {
+		name = dyson_starting.130.a
+		event_target:corp_dyson_swarm = {
+			add_deposit = d_dyson_corp_value_trade_2
+			add_deposit = d_dyson_corp_value_trade_2
+		}
+		change_variable = { which = dyson_number_of_tradedeals value = 2 }
+		hidden_effect = {
+			if = {
+				limit = { check_variable = { which = dyson_number_of_tradedeals value > 19 } }
+				random_list = {
+					50 = {
+						country_event = { id = dyson_starting.131 days = 30 }
+					}
+					50 = {
+						country_event = { id = dyson_starting.133 days = 30 }
+					}
+				}
+			}
+		}
+	}
+}
+#blackmailer event
+country_event = {
+	id = dyson_starting.131
+	title = dyson_starting.131.title
+	desc = dyson_starting.131.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
 
+	picture_event_data = {
+		room = "no_video_feed_room"
+	}
+
+	option = {
+		name = dyson_starting.131.a
+		add_resource = { energy = -800 }
+	}
+	option = {
+		name = dyson_starting.131.b
+		add_resource = { energy = -100 }
+		add_resource = { influence = -200 }
+	}
+	option = {
+		name = dyson_starting.131.c
+		custom_tooltip = dyson_starting.131.c.tooltip
+		hidden_effect = {
+			country_event = { id = dyson_starting.132 days = 10 }
+		}
+	}
+}
+#embargo event
+country_event = {
+	id = dyson_starting.132
+	title = dyson_starting.132.title
+	desc = dyson_starting.132.desc
+	picture = GFX_evt_civil_action
+	
+	is_triggered_only = yes
+	
+	immediate = { find_natives_again = yes }
+
+	option = {
+		name = dyson_starting.132.a
+		event_target:corp_dyson_swarm = {
+			while = {
+				count = 10
+				remove_deposit = d_dyson_corp_value_trade_2
+			}
+		}
+	}
+}
+#betrayal event
+country_event = {
+	id = dyson_starting.133
+	title = dyson_starting.133.title
+	desc = dyson_starting.133.desc
+	picture = GFX_evt_board_meeting
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		find_natives_again = yes
+	}
+
+	option = {
+		name = dyson_starting.133.a
+		add_resource = { energy = -800 }
+	}
+	option = {
+		name = dyson_starting.133.b
+		custom_tooltip = dyson_starting.133.b.tooltip
+		hidden_effect = {
+			event_target:corp_dyson_swarm = {
+				while = {
+					count = 2
+					remove_deposit = d_dyson_corp_value_trade_2
+				}
+				while = {
+					count = 2
+					add_deposit = d_dyson_corp_value_trade_1
+				}
+			}
+		}
+	}
+}
+#straw company, after reaching goal 3
+country_event = {
+	id = dyson_starting.134
+	title = dyson_starting.134.title
+	desc = dyson_starting.134.desc
+	picture = GFX_evt_board_meeting
+	
+	is_triggered_only = yes
+	
+	immediate = { 
+		set_country_flag = goal_four
+		remove_country_flag = goal_three
+		remove_country_flag = dyson_blackmail_betrail_done
+		find_natives_again = yes
+	}
+
+	option = {
+		name = dyson_starting.134.a
+		add_modifier = { modifier = dyson_local_genesplicers_help days = 360 }
+		country_event = { id = dyson_starting.135 days = 360 }
+	}
+	option = {
+		name = dyson_starting.134.b
+		add_modifier = { modifier = dyson_independend_genesplicers_help days = 360 }
+		country_event = { id = dyson_starting.135 days = 360 }
+	}
+}
+country_event = {
+	id = dyson_starting.135
+	title = dyson_starting.135.title
+	desc = dyson_starting.135.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+	
+	immediate = { 
+		set_country_flag = goal_five
+		remove_country_flag = goal_four
+		find_natives_again = yes
+	}
+
+	option = {
+		name = dyson_starting.135.a
+		hidden_effect = {
+			set_country_flag = dyson_straw_social
+		}
+	}
+	option = {
+		name = dyson_starting.135.b
+		hidden_effect = {
+			set_country_flag = dyson_straw_enterteinment
+		}
+	}
+	option = {
+		name = dyson_starting.135.c
+		hidden_effect = {
+			set_country_flag = dyson_straw_news
+		}
+	}
+}
+country_event = {
+	id = dyson_starting.135
+	title = dyson_starting.135.title
+	desc = dyson_starting.135.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+	
+	immediate = { 
+		set_country_flag = goal_five
+		remove_country_flag = goal_four
+		find_natives_again = yes
+	}
+
+	option = {
+		name = dyson_starting.135.a
+		hidden_effect = {
+			set_country_flag = dyson_straw_social
+		}
+	}
+	option = {
+		name = dyson_starting.135.b
+		hidden_effect = {
+			set_country_flag = dyson_straw_enterteinment
+		}
+	}
+	option = {
+		name = dyson_starting.135.c
+		hidden_effect = {
+			set_country_flag = dyson_straw_news
+		}
+	}
+}
+#hacking event, goal 5
+country_event = {
+	id = dyson_starting.136
+	title = dyson_starting.136.title
+	desc = dyson_starting.136.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+
+	immediate = { 
+		set_country_flag = goal_six
+		remove_country_flag = goal_five
+	}
+
+	option = {
+		name = dyson_starting.136.a
+		custom_tooltip = dyson_starting.136.a.tooltip
+		hidden_effect = {
+			country_event = { id = dyson_starting.111 days = 360 }
+			country_event = { id = dyson_starting.137 days = 380 }
+		}
+	}
+}
+#blackmailing event, goal 6
+country_event = {
+	id = dyson_starting.138
+	title = dyson_starting.138.title
+	desc = dyson_starting.138.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+
+	immediate = { 
+		set_country_flag = goal_seven
+		remove_country_flag = goal_six
+		set_country_flag = arrested_development_route_threshhold
+	}
+
+	option = {
+		name = dyson_starting.138.a
+		custom_tooltip = dyson_starting.138.a.tooltip
+		hidden_effect = {
+			country_event = { id = dyson_starting.111 days = 360 }
+			country_event = { id = dyson_starting.139 days = 380 }
+		}
+	}
+}
+#strawcorp followup
+country_event = {
+	id = dyson_starting.139
+	title = dyson_starting.139.title
+	desc = {
+		text = dyson_starting.139.desc.media
+		trigger = { has_country_flag = dyson_straw_social }
+	}
+	desc = {
+		text = dyson_starting.139.desc.entertain
+		trigger = { has_country_flag = dyson_straw_enterteinment }
+	}
+	desc = {
+		text = dyson_starting.139.desc.news
+		trigger = { has_country_flag = dyson_straw_news }
+	}
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+
+	option = {
+		name = dyson_starting.139.a
+		hidden_effect = {
+			remove_country_flag = dyson_straw_social
+			remove_country_flag = dyson_straw_enterteinment
+			remove_country_flag = dyson_straw_news
+		}
+	}
+}
+#marketcontrol, goal 7
+country_event = {
+	id = dyson_starting.140
+	title = dyson_starting.140.title
+	desc = dyson_starting.140.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+
+	immediate = { 
+		set_country_flag = goal_seven
+		remove_country_flag = goal_six
+	}
+
+	option = {
+		name = dyson_starting.140.a
+		custom_tooltip = dyson_starting.140.a.tooltip
+		hidden_effect = {
+			country_event = { id = dyson_starting.111 days = 360 }
+		}
+	}
+}
+#final step, only pay the 1500 energy in the infiltration menu, goal 8
+country_event = {
+	id = dyson_starting.141
+	title = dyson_starting.141.title
+	desc = dyson_starting.141.desc
+	picture = GFX_evt_metropolis
+	
+	is_triggered_only = yes
+
+	immediate = { 
+		set_country_flag = goal_eight
+		remove_country_flag = goal_seven
+	}
+
+	option = {
+		name = dyson_starting.141.a
+	}
+}
 
 
 
