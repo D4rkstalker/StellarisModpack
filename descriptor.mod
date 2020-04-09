@@ -5,5 +5,6 @@ tags={
 	"Total Conversion"
 }
 name="Stellaris Megamodpack"
-supported_version="2.6.2"
 picture="thumbnail.png"
+supported_version="2.6.*"
+remote_file_id="2052878240"
