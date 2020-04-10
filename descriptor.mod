@@ -1,10 +1,8 @@
 version="1"
 tags={
-	"Balance"
 	"Overhaul"
-	"Total Conversion"
+	"Balance"
 }
-name="Stellaris Megamodpack"
-picture="thumbnail.png"
+name="Stellaris Megapack"
 supported_version="2.6.*"
-remote_file_id="2052878240"
+remote_file_id="2054157567"
