@@ -1,0 +1,1359 @@
+############################
+#
+# Decision Events
+#
+# Written by Annatar
+#
+############################
+
+namespace = newfrontiers_decision_event
+
+#Evacuation
+planet_event = {
+	id = newfrontiers_decision_event.1
+	hide_window = yes
+	
+	trigger = {
+		OR = {
+			has_modifier = planetary_evacuation
+			has_modifier = obligatory_transference
+		}
+		num_pops > 1
+		is_controlled_by = owner
+		has_ground_combat = no
+		has_orbital_bombardment = no
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = { owner = { any_owned_planet = { has_modifier = refugee_reception_center } } }
+			random_pop = {
+				owner = {
+					random_owned_planet = {
+						limit = { has_modifier = refugee_reception_center }
+						resettle_pop = {
+							pop = prevprev
+							planet = this
+						}
+					}
+				}
+			}
+		}
+		else = {
+			limit = { owner = { any_owned_planet = { has_modifier = receiving_terminal } } }
+			random_pop = {
+				owner = {
+					random_owned_planet = {
+						limit = { has_modifier = receiving_terminal }
+						resettle_pop = {
+							pop = prev
+							planet = this
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = { has_modifier = doomsday_cult }
+			planet_event = { id = newfrontiers_decision_event.1 days = 60 }
+		}
+		else = {
+			planet_event = { id = newfrontiers_decision_event.1 days = 30 }
+		}
+	}
+}
+
+#Ark Project Started
+country_event = {
+	id = newfrontiers_decision_event.2
+	title = "newfrontiers_decision_event.2.name"
+	desc = "newfrontiers_decision_event.2.desc"
+	picture = GFX_evt_space_ark
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		save_global_event_target_as = dying_empire
+		set_country_flag = ark_project
+	}
+	
+	option = {
+		name = "newfrontiers_decision_event.2.a"
+		custom_tooltip = newfrontiers_decision_event.2.a.tooltip
+		hidden_effect = {
+			capital_scope = {
+				create_fleet = {
+					name = "NAME_Ark_Fleet"
+					effect = {
+						set_owner = root
+						create_ship = {
+							name = "NAME_Ark"
+							design = "NAME_Project_Ark_Ship"
+							#graphical_culture = owner
+						}
+						set_location = {
+							target = root.capital_scope
+							distance = 5
+							angle = random
+						}
+						save_global_event_target_as = ark_fleet
+						set_fleet_flag = ark_fleet
+					}
+				}
+				if = {
+					limit = { num_pops > 5 }
+					while = {
+						count = 5
+						random_owned_pop = {
+							kill_pop = yes
+						}					
+					}
+				}
+				if = {
+					limit = { 
+						owner = {
+							NOR = {
+								has_authority = auth_hive_mind
+								has_authority = auth_machine_intelligence
+							}
+						}
+					}
+					event_target:ark_fleet = { fleet_event = { id = newfrontiers_decision_event.5 days = 360 random = 90 } } # Ark Events
+				}
+			}
+			
+		}
+	}
+}
+
+#Founding a new world
+fleet_event = {
+	id = newfrontiers_decision_event.3
+	title = "newfrontiers_decision_event.3.name"
+	desc = "newfrontiers_decision_event.3.desc"
+	picture = GFX_evt_space_ark
+	show_sound = event_ship_thrusters
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_fleet_flag = ark_fleet
+		from = { 
+			is_colonizable = yes
+			solar_system = {
+				NOR = {
+					exists = space_owner
+					has_star_flag = hostile_system
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = { 
+				AND = {
+					NOT = { exists = event_target:dying_empire }
+					exists = event_target:ark_empire
+				}
+			}
+			clear_global_event_target = ark_empire
+		}
+	}
+	
+	option = {
+		name = "newfrontiers_decision_event.3.a"
+		custom_tooltip = newfrontiers_decision_event.3.a.tooltip
+		hidden_effect = {
+			founding_ark_world = yes
+			
+			from = { planet_event = { id = newfrontiers_decision_event.34 days = 1 } }
+		}
+	}
+	
+	option = {
+		name = "newfrontiers_decision_event.3.b"
+	}
+}
+
+#New Empire notification
+country_event = {
+	id = newfrontiers_decision_event.4
+	title = "newfrontiers_decision_event.4.name"
+	desc = "newfrontiers_decision_event.4.desc"
+	picture = GFX_evt_news_room
+	location = fromfrom
+	is_triggered_only = yes
+	show_sound = event_cityscape
+
+	trigger = {
+		exists = event_target:ark_empire
+		NOT = { is_same_value = event_target:ark_empire }
+	}
+
+	option = {
+		name = INTERESTING
+	}
+}
+
+#Gatekeeper -  Ark Events
+fleet_event = {
+	id = newfrontiers_decision_event.5
+	hide_window = yes
+	
+	trigger = {
+		exists = event_target:ark_fleet
+		owner = {
+			NOR = {
+				has_authority = auth_hive_mind
+				has_authority = auth_machine_intelligence
+			}
+		}
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		fleet_event = { id = newfrontiers_decision_event.5 days = 360 random = 90 }
+		
+		random_list = { 
+			5 = { # Rebellion on the Ark
+				modifier = {
+					factor = 0
+					has_fleet_flag = rebellion_on_ark
+				}
+				fleet_event = { id = newfrontiers_decision_event.6 days = 1 } 
+			}
+			10 = { # Gain Xenophile on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = xenophile_on_ark
+						has_fleet_flag = xenophobe_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_xenophile"
+								has_ethic = "ethic_fanatic_xenophile"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.7 days = 1 } 
+			}
+			10 = { # Gain Xenophobe on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = xenophile_on_ark
+						has_fleet_flag = xenophobe_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_xenophobe"
+								has_ethic = "ethic_fanatic_xenophobe"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.8 days = 1 } 
+			}
+			10 = { # Gain Pacifist on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = pacifist_on_ark
+						has_fleet_flag = militarist_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_pacifist"
+								has_ethic = "ethic_fanatic_pacifist"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.9 days = 1 } 
+			}
+			10 = { # Gain Militarist on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = pacifist_on_ark
+						has_fleet_flag = militarist_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_militarist"
+								has_ethic = "ethic_fanatic_militarist"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.10 days = 1 } 
+			}
+			10 = { # Gain Authoritarian on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = egalitarian_on_ark
+						has_fleet_flag = authoritarian_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_authoritarian"
+								has_ethic = "ethic_fanatic_authoritarian"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.11 days = 1 } 
+			}
+			10 = { # Gain Egalitarian on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = egalitarian_on_ark
+						has_fleet_flag = authoritarian_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_egalitarian"
+								has_ethic = "ethic_fanatic_egalitarian"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.12 days = 1 } 
+			}
+			10 = { # Gain Materialist on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = spiritualist_on_ark
+						has_fleet_flag = materialist_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_materialist"
+								has_ethic = "ethic_fanatic_materialist"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.13 days = 1 } 
+			}
+			10 = { # Gain Spiritualist on the Ark
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = spiritualist_on_ark
+						has_fleet_flag = materialist_on_ark
+						owner = { 
+							OR = {
+								has_ethic = "ethic_spiritualist"
+								has_ethic = "ethic_fanatic_spiritualist"
+							}
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.14 days = 1 } 
+			}		
+			5 = { # Homeland technology lost
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = technology_lost
+						AND = {
+							exists = event_target:ark_empire
+							owner = { is_same_value = event_target:ark_empire }
+						}
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.15 days = 1 } 
+			}
+			5 = { # Navigation Computer Failure
+				modifier = {
+					factor = 0
+					OR = {
+						has_fleet_flag = navigation_failure
+						NOT = { exists = event_target:ark_empire }
+					}
+				}
+				fleet_event = { id = newfrontiers_decision_event.16 days = 1 } 
+			}
+			5 = { # Damage to residential modules
+				modifier = {
+					factor = 0
+					has_fleet_flag = residential_modules_damage
+				}
+				fleet_event = { id = newfrontiers_decision_event.17 days = 1 } 
+			}
+		}
+	}
+}
+
+# Rebellion on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.6
+	title = "newfrontiers_decision_event.6.name"
+	desc = "newfrontiers_decision_event.6.desc"
+	picture = GFX_evt_interior_battle
+	location = from
+	is_triggered_only = yes
+	show_sound = event_ground_battle
+	
+	trigger = {
+		NOT = { has_fleet_flag = rebellion_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = rebellion_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = { change_government = random }
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.6.tooltip
+	}
+}
+
+# Gain Xenophile on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.7
+	title = "newfrontiers_decision_event.7.name"
+	desc = "newfrontiers_decision_event.7.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = xenophile_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = xenophile_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_xenophile" }
+					25 = { shift_ethic = "ethic_fanatic_xenophile" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.7.tooltip
+	}
+}
+
+# Gain Xenophobe on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.8
+	title = "newfrontiers_decision_event.8.name"
+	desc = "newfrontiers_decision_event.8.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = xenophobe_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = xenophobe_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_xenophobe" }
+					25 = { shift_ethic = "ethic_fanatic_xenophobe" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.8.tooltip
+	}
+}
+
+# Gain Pacifist on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.9
+	title = "newfrontiers_decision_event.9.name"
+	desc = "newfrontiers_decision_event.9.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = pacifist_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = pacifist_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_pacifist" }
+					25 = { shift_ethic = "ethic_fanatic_pacifist" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.9.tooltip
+	}
+}
+
+# Gain Militarist on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.10
+	title = "newfrontiers_decision_event.10.name"
+	desc = "newfrontiers_decision_event.10.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = militarist_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = militarist_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_militarist" }
+					25 = { shift_ethic = "ethic_fanatic_militarist" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.10.tooltip
+	}
+}
+
+# Gain Authoritarian on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.11
+	title = "newfrontiers_decision_event.11.name"
+	desc = "newfrontiers_decision_event.11.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = authoritarian_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = authoritarian_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_authoritarian" }
+					25 = { shift_ethic = "ethic_fanatic_authoritarian" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.11.tooltip
+	}
+}
+
+# Gain Egalitarian on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.12
+	title = "newfrontiers_decision_event.12.name"
+	desc = "newfrontiers_decision_event.12.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = egalitarian_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = egalitarian_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_egalitarian" }
+					25 = { shift_ethic = "ethic_fanatic_egalitarian" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.12.tooltip
+	}
+}
+
+# Gain Materialist on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.13
+	title = "newfrontiers_decision_event.13.name"
+	desc = "newfrontiers_decision_event.13.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = materialist_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = materialist_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_materialist" }
+					25 = { shift_ethic = "ethic_fanatic_materialist" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.13.tooltip
+	}
+}
+
+# Gain Spiritualist on the Ark
+fleet_event = {
+	id = newfrontiers_decision_event.14
+	title = "newfrontiers_decision_event.14.name"
+	desc = "newfrontiers_decision_event.14.desc"
+	picture = GFX_evt_alien_propaganda
+	location = from
+	is_triggered_only = yes
+	show_sound = event_planetary_riot
+	
+	trigger = {
+		NOT = { has_fleet_flag = spiritualist_on_ark }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = spiritualist_on_ark
+		
+		if = {
+			limit = {
+				AND = {
+					exists = event_target:ark_empire
+					owner = { is_same_value = event_target:ark_empire }
+				}
+			}
+			owner = {
+				random_list = {
+					75 = { shift_ethic = "ethic_spiritualist" }
+					25 = { shift_ethic = "ethic_fanatic_spiritualist" }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.14.tooltip
+	}
+}
+
+# Homeland technology lost
+fleet_event = {
+	id = newfrontiers_decision_event.15
+	title = "newfrontiers_decision_event.15.name"
+	desc = "newfrontiers_decision_event.15.desc"
+	picture = GFX_evt_glitchy_matrix
+	location = from
+	is_triggered_only = yes
+	show_sound = event_sensor_ping
+	
+	trigger = {
+		NOT = { has_fleet_flag = technology_lost }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = technology_lost
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.15.tooltip
+	}
+}
+
+# Navigation Computer Failure
+fleet_event = {
+	id = newfrontiers_decision_event.16
+	title = "newfrontiers_decision_event.16.name"
+	desc = "newfrontiers_decision_event.16.desc"
+	picture = GFX_evt_glitchy_matrix
+	location = from
+	is_triggered_only = yes
+	show_sound = event_red_alert
+	
+	trigger = {
+		NOT = { has_fleet_flag = navigation_failure }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = navigation_failure
+		
+		every_planet = {
+			limit = {
+				is_surveyed = {
+					who = root.owner
+					status = yes
+				}
+			}
+			surveyed = {
+				set_surveyed = no
+				surveyor = root.owner
+			}
+		}
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.16.tooltip
+	}
+}
+
+# Damage to residential modules
+fleet_event = {
+	id = newfrontiers_decision_event.17
+	title = "newfrontiers_decision_event.17.name"
+	desc = "newfrontiers_decision_event.17.desc"
+	picture = GFX_evt_ship_damage
+	location = from
+	is_triggered_only = yes
+	show_sound = event_red_alert
+	
+	trigger = {
+		NOT = { has_fleet_flag = residential_modules_damage }
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_fleet_flag = residential_modules_damage
+	}
+
+	option = {
+		name = WORRYING
+		custom_tooltip = newfrontiers_decision_event.17.tooltip
+	}
+}
+
+# Bastion Project completed
+country_event = {
+	id = newfrontiers_decision_event.18
+	title = "newfrontiers_decision_event.18.name"
+	desc = "newfrontiers_decision_event.18.desc"
+	picture = GFX_evt_space_refueling
+	location = event_target:bastion_project
+	is_triggered_only = yes
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+		give_technology = { tech = tech_habitat_1 }
+		hidden_effect = { 
+			set_country_flag = already_built_habitat
+			set_country_flag = bastion_project
+		}
+	}
+}
+
+# Shelter Project Hot completed
+country_event = {
+	id = newfrontiers_decision_event.19
+	title = "newfrontiers_decision_event.19.name"
+	desc = "newfrontiers_decision_event.19.desc"
+	picture = GFX_evt_underground_world
+	location = from
+	is_triggered_only = yes
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Shelter Project Cold completed
+country_event = {
+	id = newfrontiers_decision_event.20
+	title = "newfrontiers_decision_event.20.name"
+	desc = "newfrontiers_decision_event.20.desc"
+	picture = GFX_evt_ice_world
+	location = from
+	is_triggered_only = yes
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Disaster Solutions - No Solutions
+country_event = {
+	id = newfrontiers_decision_event.21
+	title = "newfrontiers_decision_event.21.name"
+	desc = "newfrontiers_decision_event.21.desc"
+	picture = GFX_evt_physics_research
+	location = from
+	is_triggered_only = yes
+	show_sound = event_scanner
+	
+	is_triggered_only = yes
+
+	option = {
+		name = WORRYING
+	}
+}
+
+# Disaster Solutions - Orbit Stabilization
+country_event = {
+	id = newfrontiers_decision_event.22
+	title = "newfrontiers_decision_event.22.name"
+	desc = "newfrontiers_decision_event.22.desc"
+	picture = GFX_evt_observatory
+	location = from
+	is_triggered_only = yes
+	show_sound = event_scanner
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = orbit_stabilization_solution
+	}
+
+	option = {
+		name = EXCELLENT
+		add_research_option = tech_gravitational_flows_theory
+	}
+}
+
+# Disaster Solutions - Planet Bowels Control
+country_event = {
+	id = newfrontiers_decision_event.23
+	title = "newfrontiers_decision_event.23.name"
+	desc = "newfrontiers_decision_event.23.desc"
+	picture = GFX_evt_igneous_mining
+	location = from
+	is_triggered_only = yes
+	show_sound = event_scanner
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = bowels_control_solution
+	}
+
+	option = {
+		name = EXCELLENT
+		add_research_option = tech_core_isostasia_theory
+	}
+}
+
+# Disaster Solutions - Slow down stellar evolution
+country_event = {
+	id = newfrontiers_decision_event.24
+	title = "newfrontiers_decision_event.24.name"
+	desc = "newfrontiers_decision_event.24.desc"
+	picture = GFX_evt_starbase_tunnel
+	location = from
+	is_triggered_only = yes
+	show_sound = event_scanner
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = slow_evolution_solution
+	}
+
+	option = {
+		name = EXCELLENT
+		add_research_option = tech_stellar_process_control
+	}
+}
+
+# Cave Network Expansion Project completed
+planet_event = {
+	id = newfrontiers_decision_event.25
+	title = "newfrontiers_decision_event.25.name"
+	desc = "newfrontiers_decision_event.25.desc"
+	picture = GFX_evt_underground_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+		if = {
+			limit = { has_modifier = "underground_world_exp_1" }
+			add_modifier = { 
+				modifier = "underground_world_exp_2" 
+				days = -1 
+			}
+			remove_modifier = "underground_world_exp_1"
+		}
+		else_if = {
+			limit = { has_modifier = "underground_world_exp_2" }
+			add_modifier = { 
+				modifier = "underground_world_exp_3" 
+				days = -1 
+			}
+			remove_modifier = "underground_world_exp_2"
+		}
+		else = {
+			add_modifier = { 
+				modifier = "underground_world_exp_1" 
+				days = -1 
+			}
+		}
+	}
+}
+
+# cave Collapse 1
+planet_event = {
+	id = newfrontiers_decision_event.26
+	title = "newfrontiers_decision_event.26.name"
+	desc = "newfrontiers_decision_event.26.desc"
+	picture = GFX_evt_underground_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = WORRYING
+		add_deposit = d_collapsed_caves
+	}
+}
+
+# cave Collapse 2
+planet_event = {
+	id = newfrontiers_decision_event.27
+	title = "newfrontiers_decision_event.27.name"
+	desc = "newfrontiers_decision_event.27.desc"
+	picture = GFX_evt_underground_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = CURSES
+		add_deposit = d_collapsed_caves
+		add_deposit = d_collapsed_caves
+		while = {
+			count = 5
+			random_owned_pop = {
+				kill_pop = yes
+			}					
+		}
+	}
+}
+
+# cave Collapse 3
+planet_event = {
+	id = newfrontiers_decision_event.28
+	title = "newfrontiers_decision_event.28.name"
+	desc = "newfrontiers_decision_event.28.desc"
+	picture = GFX_evt_underground_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = CURSES
+		add_deposit = d_collapsed_caves
+		add_deposit = d_collapsed_caves
+		add_deposit = d_collapsed_caves
+		
+		while = {
+			count = 10
+			random_owned_pop = {
+				kill_pop = yes
+			}					
+		}
+		
+		add_modifier = { 
+			modifier = "significant_damage" 
+			days = 120 
+		}
+	}
+}
+
+# Ice Caves Formation Project completed
+planet_event = {
+	id = newfrontiers_decision_event.29
+	title = "newfrontiers_decision_event.29.name"
+	desc = "newfrontiers_decision_event.29.desc"
+	picture = GFX_evt_ice_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+		if = {
+			limit = { has_modifier = "ice_world_exp_1" }
+			add_modifier = { 
+				modifier = "ice_world_exp_2" 
+				days = -1 
+			}
+			remove_modifier = "ice_world_exp_1"
+		}
+		else_if = {
+			limit = { has_modifier = "ice_world_exp_2" }
+			add_modifier = { 
+				modifier = "ice_world_exp_3" 
+				days = -1 
+			}
+			remove_modifier = "ice_world_exp_2"
+		}
+		else = {
+			add_modifier = { 
+				modifier = "ice_world_exp_1" 
+				days = -1 
+			}
+		}
+	}
+}
+
+# Cave Flooding 1
+planet_event = {
+	id = newfrontiers_decision_event.30
+	title = "newfrontiers_decision_event.30.name"
+	desc = "newfrontiers_decision_event.30.desc"
+	picture = GFX_evt_ice_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = WORRYING
+		add_deposit = d_sunken_cavity
+	}
+}
+
+# Cave Flooding 2
+planet_event = {
+	id = newfrontiers_decision_event.31
+	title = "newfrontiers_decision_event.31.name"
+	desc = "newfrontiers_decision_event.31.desc"
+	picture = GFX_evt_ice_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = CURSES
+		add_deposit = d_sunken_cavity
+		add_deposit = d_sunken_cavity
+		while = {
+			count = 5
+			random_owned_pop = {
+				kill_pop = yes
+			}					
+		}
+	}
+}
+
+# Cave Flooding 3
+planet_event = {
+	id = newfrontiers_decision_event.32
+	title = "newfrontiers_decision_event.32.name"
+	desc = "newfrontiers_decision_event.32.desc"
+	picture = GFX_evt_ice_cave
+	location = ROOT
+	is_triggered_only = yes
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = CURSES
+		add_deposit = d_sunken_cavity
+		add_deposit = d_sunken_cavity
+		add_deposit = d_sunken_cavity
+		
+		while = {
+			count = 10
+			random_owned_pop = {
+				kill_pop = yes
+			}					
+		}
+		
+		add_modifier = { 
+			modifier = "significant_damage" 
+			days = 120 
+		}
+	}
+}
+
+# Relic World complete (Ancient World)
+planet_event = {
+	id = newfrontiers_decision_event.33
+	title = newfrontiers_decision_event.33.name
+	desc = newfrontiers_decision_event.33.desc
+	picture = GFX_evt_relic_world
+	show_sound = event_mystic_reveal
+	location = root
+
+	is_triggered_only = yes
+
+	trigger = {
+		is_planet_class = pc_relic
+	}
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Founding Ark World
+planet_event = {
+	id = newfrontiers_decision_event.34
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		destroy_fleet = {
+			target = event_target:ark_fleet
+			kill_leader = no
+		}
+	
+		random_list = {
+			25 = { set_name = "NAME_Salvation" }
+			25 = { set_name = "NAME_New_World" }
+			25 = { set_name = "NAME_Tanis" }
+			25 = { set_name = "NAME_Hope" }
+		}
+		
+		set_capital = yes
+		
+		if = {
+			limit = { event_target:ark_fleet = { has_fleet_flag = residential_modules_damage } }
+			while = {
+				count = 2
+				create_pop = {
+					species = owner_main_species
+				}
+			}
+		}
+		else = {
+			while = {
+				count = 5
+				create_pop = {
+					species = owner_main_species
+				}
+			}
+		}
+		
+		if = {
+			limit = {
+				owner = {
+					OR = {
+						is_machine_empire = yes
+						is_country_type = ai_empire
+					}
+				}
+			}
+			add_building = building_colony_shelter
+		}
+		else_if = {
+			limit = {
+				owner = {
+					OR = {
+						is_hive_empire = yes
+						is_country_type = swarm
+					}
+				}
+			}
+			add_building = building_colony_shelter
+		}
+		else = {
+			add_building = building_colony_shelter
+		}
+		add_deposit = d_remains_of_ark
+		
+		# create armies
+		if = {
+			limit = { event_target:ark_fleet = { has_fleet_flag = residential_modules_damage } }
+			while = {
+				count = 2
+				create_army = {
+					owner = root.owner
+					type = "defense_army"
+				}
+			}
+		}
+		else = {
+			while = {
+				count = 4
+				create_army = {
+					owner = root.owner
+					type = "defense_army"
+				}
+			}
+		}
+		
+		if = {
+			limit = { owner = { has_country_flag = ark_origin } }
+			clear_global_event_target = ark_empire
+			
+			#owner = {
+			#	add_resource = {
+			#		minerals = 1500
+			#		energy = 2000
+			#		food = 1000
+			#		alloys = 500
+			#		consumer_goods = 1000
+			#		influence = 800
+			#	}
+			#}
+		}
+		else = {
+			owner = { set_name = random }
+		}
+		
+	}
+}
+
+# Ark Destroyed (HIDDEN)
+country_event = {
+	id = newfrontiers_decision_event.35
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = ark
+		FROMFROM = { fleet = { has_fleet_flag = ark_fleet } }
+	}
+	
+	immediate = {
+		set_country_type = default
+	}
+}
