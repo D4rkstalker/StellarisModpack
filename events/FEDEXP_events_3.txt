@@ -1,0 +1,180 @@
+namespace = FEDEXP_holy_war
+
+country_event = {
+	id = FEDEXP_holy_war.1
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	trigger = {	
+		is_federation_leader = yes
+		any_war = { 
+			using_war_goal = { owner = defender } #Checks if has invalid wargoal, to prevent joining in the middle of a war.
+			using_war_goal = {
+				type = FEDEXP_wg_cb_deus_vult 
+				owner = root
+			}
+		}
+	}
+
+	immediate = {
+		clear_global_event_target = CrusadingPope
+		clear_global_event_target = CrusadeTarget
+		save_global_event_target_as = CrusadingPope
+		every_war = { 
+			limit = {
+				using_war_goal = { owner = defender } #Checks if has invalid wargoal, to prevent joining in the middle of a war.
+				using_war_goal = {
+					type = FEDEXP_wg_cb_deus_vult 
+					owner = root
+				}
+			}
+			defender = { save_global_event_target_as = CrusadeTarget }
+		}
+		
+		every_federation_ally = {
+			root = {
+				remove_favor = {
+					target = prev
+					value = 10 
+				}
+			}
+		}
+		
+		federation = { 
+			set_timed_federation_flag = { 
+				flag = FEDEXP_declared_holy_war 
+				days = 18000
+			}
+		}
+			
+		every_country = {
+			limit = {
+				is_spiritualist = yes
+				is_country_type = default
+				NOT = { is_in_federation_with = root }
+				NOT = { is_at_war_with = root }
+				OR = {
+					has_federation = no
+					is_federation_leader = yes
+				}
+			}
+			country_event = { id = FEDEXP_holy_war.2 }
+		}
+	}
+}
+
+country_event = {
+	id = FEDEXP_holy_war.2
+	title = "FEDEXP_holy_war.2.name"
+	desc = "FEDEXP_holy_war.2.desc"
+	picture = GFX_evt_announcement
+	show_sound = event_radio_chatter_02
+	location = event_target:CrusadingPope
+
+	is_triggered_only = yes
+	
+	option = {
+		name = FEDEXP_holy_war.2a
+		join_war = event_target:CrusadingPope
+		
+		ai_chance = {
+			factor = 70
+			modifier = {
+				factor = 100
+				is_militarist = yes
+			}
+			modifier = {
+				factor = 150
+				has_ethic = ethic_fanatic_militarist
+			}
+			modifier = {
+				factor = 200
+				OR = {
+					has_civic = civic_warrior_culture
+					has_civic = civic_exalted_priesthood
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = FEDEXP_holy_war.2b
+		event_target:CrusadingPope = { 
+			add_opinion_modifier = { 
+				modifier = opinion_insult
+				who = root
+			}
+			every_federation_ally = {
+				add_opinion_modifier = { 
+					modifier = opinion_military_joint_action_refused
+					who = root
+				}
+			}
+		}
+		add_resource = { influence = 100 }
+		
+		ai_chance = {
+			factor = 30
+			modifier = {
+				factor = 80
+				is_pacifist = yes
+			}
+			modifier = {
+				factor = 150
+				has_ethic = ethic_fanatic_pacifist
+			}
+			modifier = {
+				factor = 200
+				OR = {
+					has_civic = civic_inwards_perfection
+				}
+			}
+		}
+	}
+
+##Increases exhaustion if no influence
+country_event = {
+	id = FEDEXP_holy_war.3
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	trigger = {	
+		has_federation = yes
+		is_federation_leader = yes
+		federation = { has_federation_perk = FEDEXP_holy_wars }
+		any_war = { 
+			root = { is_war_leader = yes }
+			using_war_goal = { 
+				type = FEDEXP_wg_cb_deus_vult 
+				owner = root
+			}
+		}
+		has_country_resource = {
+			type = influence
+			amount <= 0
+		}
+	}
+	
+	immediate = {
+		every_war = {
+			limit = { 
+				root = { is_war_leader = yes }
+				using_war_goal = { 
+					type = FEDEXP_wg_cb_deus_vult 
+					owner = root
+				}
+			}
+			root = { capital_scope = { save_event_target_as = target_planet } }
+			defender = { save_event_target_as = enemy }
+			root = {
+				add_static_war_exhaustion = { 
+					attacker = event_target:enemy
+					location = event_target:target_planet
+					value_for_planet_destruction = 100.0
+				}
+			}
+		}	
+	}
+}

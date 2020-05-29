@@ -261,23 +261,43 @@ country_event = {
 	}
 }
 
-#pops on dyson swarms will become less suited for living on normal planets, triggers every five years on swarms without gravity generators.
-#dyson_swarm_other.40 will randomize when the event happens, so its not at the same time for everyone, reducing lag
+#pops on dyson swarms will become less suited for living on normal planets, triggers every five years for swarms without gravity generators.
+#dyson_swarm_other.40 will randomize when the event happens, so its not at the same time for everyone, reducing lagspikes
 country_event = {
 	id = dyson_swarm_other.40
 	hide_window = yes
 	
 	is_triggered_only = yes
 	
+	trigger = {
+		any_owned_planet = {
+			is_planet_class = pc_dyson_swarm
+			NOT = { has_planet_modifier = pm_dyson_swarm_gravity_generators }
+			num_pops > 6
+			any_owned_pop = {
+				species = {
+					NOR = {
+						is_species_class = ROBOT
+						has_trait = trait_pc_dyson_swarm_preference
+						has_trait = trait_mechanical
+						has_trait = trait_machine_unit
+						has_trait = trait_pc_habitat_preference
+					}
+				}
+			}
+		}
+		NOT = { has_global_flag = dyson_deteriation_off }
+	}
+	
 	immediate = {
 		country_event = {
-			id = dyson_swarm_other.13
+			id = dyson_swarm_other.15
 			days = 1
 			random = 20
 		}
 	}
 }
-
+#notification
 country_event = {
 	id = dyson_swarm_other.13
 	title = dyson_swarm_other.13.title
@@ -286,38 +306,17 @@ country_event = {
 	show_sound = event_scanner
 	
 	is_triggered_only = yes
-	
-	trigger = {
-		any_owned_planet = {
-			is_planet_class = pc_dyson_swarm
-			num_pops > 6
-			NOT = {
-				has_planet_modifier = dyson_swarm_gravity_generators
-			}
-		}
-		NOT = {
-			has_global_flag = dyson_deteriation_off
-		}
-	}
-	
-	immediate = {
-		every_owned_planet = {
-			limit = {
-				is_planet_class = pc_dyson_swarm
-				NOT = {
-					has_planet_modifier = dyson_swarm_gravity_generators
-				}
-			}
-			planet_event = { id = dyson_swarm_other.14 }			
-		}
-	}
-	
+
 	option = {
 		name = dyson_swarm_other.13.a
 		custom_tooltip = dyson_swarm_other.13.a.tooltip
 	}
+	option = {
+		name = dyson_swarm_other.13.b
+		custom_tooltip = dyson_swarm_other.13.b.tooltip
+		set_country_flag = atrophy_notification_off
+	}
 }
-
 #actual trait assignment
 planet_event = {
 	id = dyson_swarm_other.14
@@ -334,18 +333,15 @@ planet_event = {
 						limit = {
 							species = {
 								NOR = {
-									has_trait = trait_low_gravity_adaptation
+									is_species_class = ROBOT
+									has_trait = trait_pc_dyson_swarm_preference
 									has_trait = trait_mechanical
 									has_trait = trait_machine_unit
-									is_species_class = ROBOT
+									has_trait = trait_pc_habitat_preference
 								}
 							}
 						}
-						modify_species = {
-							species = this
-							add_trait = trait_low_gravity_adaptation
-							add_traits_at_start_of_list = yes
-						}
+						dyson_add_atrophy = yes
 					}
 				}
 			}
@@ -356,18 +352,15 @@ planet_event = {
 						limit = {
 							species = {
 								NOR = {
-									has_trait = trait_low_gravity_adaptation
+									is_species_class = ROBOT
+									has_trait = trait_pc_dyson_swarm_preference
 									has_trait = trait_mechanical
 									has_trait = trait_machine_unit
-									is_species_class = ROBOT
+									has_trait = trait_pc_habitat_preference
 								}
 							}
 						}
-						modify_species = {
-							species = this
-							add_trait = trait_low_gravity_adaptation
-							add_traits_at_start_of_list = yes
-						}
+						dyson_add_atrophy = yes
 					}
 				}
 			}
@@ -378,46 +371,42 @@ planet_event = {
 						limit = {
 							species = {
 								NOR = {
-									has_trait = trait_low_gravity_adaptation
+									is_species_class = ROBOT
+									has_trait = trait_pc_dyson_swarm_preference
 									has_trait = trait_mechanical
 									has_trait = trait_machine_unit
-									is_species_class = ROBOT
+									has_trait = trait_pc_habitat_preference
 								}
 							}
 						}
-						modify_species = {
-							species = this
-							add_trait = trait_low_gravity_adaptation
-							add_traits_at_start_of_list = yes
-						}
+						dyson_add_atrophy = yes
 					}
 				}
 			}
 		}
 	}
 }
+#apply the event to swarms, trigger notification if it is on
+country_event = {
+	id = dyson_swarm_other.15
+	hide_window = yes
+	
+	is_triggered_only = yes
 
-#event for turning the muscle deterioration events off for EVERYBODY
-#country_event = {
-#	id = dyson_swarm_other.15
-#	title = dyson_swarm_other.15.title
-#	desc = dyson_swarm_other.15.desc
-#	
-#	is_triggered_only = yes
-#	
-#	option = {
-#		name = dyson_dyson_swarm_other.15.a
-#		hidden_effect = {
-#			remove_global_flag = dyson_deteriation_off
-#		}
-#	}
-#	option = {
-#		name = dyson_dyson_swarm_other.15.b
-#		hidden_effect = {
-#			set_global_flag = dyson_deteriation_off
-#		}
-#	}
-#}
+	immediate = {
+		every_owned_planet = {
+			limit = {
+				is_planet_class = pc_dyson_swarm
+				NOT = { has_planet_modifier = pm_dyson_swarm_gravity_generators }
+			}
+			planet_event = { id = dyson_swarm_other.14 }			
+		}
+		if = {
+			limit = { NOT = { has_country_flag = atrophy_notification_off } }
+			country_event = { id = dyson_swarm_other.13 }
+		}
+	}
+}
 
 #Planetdestruction
 #event to remove all system flags and ambient objects after destroying a dyson swarm through decision and through using the cracker
@@ -436,7 +425,6 @@ planet_event = {
 	}
 	
 	immediate = {
-		remove_planet = yes
 		solar_system = {
 			every_system_ambient_object = {
 				limit = {
@@ -445,6 +433,7 @@ planet_event = {
 				destroy_ambient_object = this
 			}
 		}
+		remove_planet = yes
 	}
 }
 
@@ -470,7 +459,6 @@ planet_event = {
 	}
 	
 	immediate = {
-		remove_planet = yes
 		solar_system = {
 			every_system_ambient_object = {
 				limit = {
@@ -479,6 +467,7 @@ planet_event = {
 				destroy_ambient_object = this
 			}
 		}
+		remove_planet = yes
 	}
 }
 
@@ -498,7 +487,6 @@ planet_event = {
 	}
 	
 	immediate = {
-		remove_planet = yes
 		solar_system = {
 			every_system_ambient_object = {
 				limit = {
@@ -507,6 +495,7 @@ planet_event = {
 				destroy_ambient_object = this
 			}
 		}
+		remove_planet = yes
 	}
 }
 
@@ -616,6 +605,7 @@ country_event = {
 	id = dyson_swarm_other.24
 	title = dyson_swarm_other.24.title
 	desc = dyson_swarm_other.24.desc
+	picture = GFX_evt_gas_giant_station
 	
 	is_triggered_only = yes
 	
@@ -733,6 +723,7 @@ country_event = {
 	title = dyson_swarm_other.27.title
 	desc = dyson_swarm_other.27.desc
 	location = event_target:dyson_depleted_planet_marker
+	picture = GFX_evt_gas_giant_station
 	
 	is_triggered_only = yes
 
@@ -772,6 +763,7 @@ country_event = {
 	id = dyson_swarm_other.38
 	title = dyson_swarm_other.24.title
 	desc = dyson_swarm_other.38.desc
+	picture = GFX_evt_asteroid_field
 	
 	is_triggered_only = yes
 	
@@ -781,19 +773,27 @@ country_event = {
 }
 
 
-#remove planetary trading post if a colony is destroyed/abandoned 
+#remove planetary trading post if the last system colony is destroyed/abandoned 
 planet_event = {
 	id = dyson_swarm_other.26
 	title = dyson_swarm_other.26.title
 	desc = dyson_swarm_other.26.desc
 	location = root
+	picture = GFX_evt_outpost
 	
 	is_triggered_only = yes 
 	
 	trigger = {
 		solar_system = {
 			any_system_planet = {
+				is_planet_class = pc_dyson_swarm
 				has_building = dyson_swarm_planetary_trading_post
+			}
+			any_system_planet = {
+				NOT = {
+					NOT = { is_planet_class = pc_dyson_swarm }
+					num_pops > 0
+				}
 			}
 		}
 	}
@@ -1152,9 +1152,7 @@ planet_event = {
 	
 	trigger = {
 		is_planet_class = pc_dyson_swarm 
-		owner = {
-			is_ai = yes
-		}
+		owner = { is_ai = yes }
 		OR = {
 			has_building = building_luxury_residence
 			has_building = building_communal_housing
@@ -1162,11 +1160,27 @@ planet_event = {
 			has_building = building_hive_warren
 			has_building = building_foundry_1
 			has_building = building_factory_1
+			has_building = building_bureaucratic_1
+			has_building = building_uplink_node
 		}
 	}
 	
 	immediate = {
 		ROOT = {
+			IF = {
+				limit = {
+					has_building = building_uplink_node
+				}
+				remove_building = building_uplink_node
+				add_building = building_dyson_uplink_node_1
+			}
+			IF = {
+				limit = {
+					has_building = building_bureaucratic_1
+				}
+				remove_building = building_bureaucratic_1
+				add_building = building_dyson_bureaucratic_1
+			}
 			IF = {
 				limit = {
 					has_building = building_factory_1
@@ -1212,5 +1226,85 @@ planet_event = {
 		}
 	}
 }
+#add the housing trait to robots on dyson swarms once tech_dyson_swarm_machine_zero_g_adaptation has been researched/ remove it if not on dyson swarm. triggered through on_pop_added
+pop_event = {
+	id = dyson_swarm_other.41
+	hide_window = yes
 
-#41
+	is_triggered_only = yes
+
+	trigger = {
+		OWNER = { has_technology = "tech_dyson_swarm_machine_zero_g_adaptation" }
+		species  = {
+			OR = {
+				is_species_class = ROBOT
+				has_trait = trait_mechanical
+				has_trait = trait_machine_unit
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { 
+					species = { has_trait = trait_robotic_low_gravity_adaptation }
+				}
+				from = {
+					OR = {
+						is_planet_class = pc_habitat
+						is_planet_class = pc_dyson_swarm
+					}
+				}
+			}
+			modify_species = {
+				species = this
+				add_trait = trait_robotic_low_gravity_adaptation
+			}
+		}
+		else_if = {
+			limit = {
+				species = { has_trait = trait_robotic_low_gravity_adaptation }
+				from = {
+					NOR = { 
+						is_planet_class = pc_habitat
+						is_planet_class = pc_dyson_swarm
+					}
+				}
+			}
+			modify_species = {
+				species = this
+				remove_trait = trait_robotic_low_gravity_adaptation
+			}
+		}
+	}
+}
+#add housing trait to all robots once the tech has been researched, triggered through on_tech_increased
+country_event = {
+	id = dyson_swarm_other.42
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		last_increased_tech = "tech_dyson_swarm_machine_zero_g_adaptation"
+	}
+
+	immediate = {
+		every_owned_planet = {
+			limit = { is_planet_class = pc_dyson_swarm }
+			every_owned_pop = {
+				limit = {
+					NOT = { species = { has_trait = trait_robotic_low_gravity_adaptation } }
+				}
+				modify_species = {
+					species = this
+					add_trait = trait_robotic_low_gravity_adaptation
+				}
+			}
+		
+		}
+	}
+}
+
+
