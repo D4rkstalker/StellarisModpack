@@ -1,0 +1,1308 @@
+namespace = compound_fleet_orders
+
+############################################################################
+########################	TARGETTING / TAKING		########################
+############################################################################
+
+# Military fleet orders
+event = {
+	id = compound_fleet_orders.000
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			is_country_type = compound_empire
+			NOT = { has_country_flag = compound_empire_dormant }
+		}
+		exists = event_target:compound_invasion_entry
+	}
+
+	immediate = {
+		event_target:compound_country = {
+			country_event = { id = compound_fleet_spawn.001 }
+			country_event = { id = compound_fleet_orders.001 }
+		}
+	}
+}
+
+country_event = {
+	id = compound_fleet_orders.001
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+
+		######### NOTIFY EVERYONE OF A SOLUTION ONCE COMPOUND HAS FULLY EXPANDED
+		if = {
+			limit = { NOT = { has_global_flag = compound_expansion_complete } }
+			if = {
+				limit = { NOT = { any_system = { has_star_flag = compound_expand } } }
+				every_country = {
+					limit = { is_country_type = default }
+					country_event = { id = annihilator_dialog.014 days = 20 }
+				}
+			}
+		}
+
+		######### GIVE RESHAPERS ORDERS
+		country_event = { id = compound_fleet_orders.013 }
+
+		######### MARK NEXT TARGET
+		if = {
+			limit = {
+				NOR = {
+					has_country_flag = compound_empire_berserk
+					any_system = { has_star_flag = compound_expand }
+				}
+				count_system_within_border = {
+					limit = { has_star_flag = compound_next_target }
+					count <= 1
+				}
+			}
+			event_target:compound_invasion_entry = {
+				while = {
+					count = 5
+					closest_system = {
+						limit = {
+							NOR = {
+								has_star_flag = ehof_compound_system
+								has_star_flag = compound_next_target
+							}
+						}
+						set_star_flag = compound_next_target
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				has_country_flag = compound_empire_berserk
+				count_system_within_border = {
+					limit = { has_star_flag = compound_next_target }
+					count <= 10
+				}
+			}
+			every_system_within_border = {
+				limit = {
+					any_neighbor_system = {
+						OR = {
+							NOT = { exists = owner }
+							AND = {
+								exists = owner
+								owner = { NOT = { is_country_type = compound_empire } }
+							}
+						}
+					}
+				}
+				every_neighbor_system = {
+					limit = {
+						OR = {
+							NOT = { exists = owner }
+							AND = {
+								exists = owner
+								owner = { NOT = { is_country_type = compound_empire } }
+							}
+						}
+					}
+					set_star_flag = compound_next_target
+				}
+			}
+		}
+
+		######### LOCK ARCHITECTS
+		if = {
+			limit = {
+				NOT = { has_country_flag = compound_empire_berserk }
+				count_system_within_border = {
+					limit = { has_star_flag = reshaper_target_system }
+					count > 20
+				}
+			}
+			every_owned_fleet = { limit = { is_ship_size = architect } set_event_locked = yes }
+		}
+		else = { every_owned_fleet = { limit = { is_ship_size = architect } set_event_locked = no } }
+
+		######### CLEAR IDLE FLEET ORDERS
+		if = {
+			limit = {
+				any_owned_fleet = {
+					is_ship_class = shipclass_military
+					is_fleet_idle = yes
+				}
+			}
+			every_owned_fleet = {
+				limit = {
+					is_ship_class = shipclass_military
+					is_fleet_idle = yes
+				}
+				if = { limit = { has_fleet_flag = compound_is_expanding } remove_fleet_flag = compound_is_expanding }
+				if = { limit = { has_fleet_flag = compound_is_attacking } remove_fleet_flag = compound_is_attacking }
+				if = { limit = { has_fleet_flag = compound_is_defending } remove_fleet_flag = compound_is_defending }
+				if = { limit = { has_fleet_flag = compound_annihilator } remove_fleet_flag = compound_annihilator }
+			}
+		}
+
+		######### INITIAL EXPANSION
+		if = {
+			limit = {
+				any_system = {
+					has_star_flag = compound_expand
+					NOT = { has_star_flag = compound_fleet_enroute }
+					any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+				}
+			}
+			random_owned_fleet = {
+				limit = {
+					is_ship_class = shipclass_military
+					NOR = {
+						has_fleet_flag = compound_is_defending
+						has_fleet_flag = compound_is_attacking
+						has_fleet_flag = compound_is_expanding
+						has_fleet_flag = compound_annihilator
+						has_fleet_flag = compound_bombard
+					}
+				}
+				clear_orders = yes
+				clear_fleet_actions = this
+				remove_fleet_flag = compound_patroller
+				set_fleet_flag = compound_is_expanding
+
+				queue_actions = {
+					repeat = {
+						find_closest_system = {
+							trigger = {
+								id = compound_expand.1
+								has_star_flag = compound_expand
+								NOT = { has_star_flag = compound_fleet_enroute }
+								any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+							}
+							found_system = {
+								effect = {
+									id = compound_expand.2
+									set_star_flag = compound_fleet_enroute
+								}
+								move_to = this
+							}
+						}
+					}
+				}
+			}
+			country_event = { id = compound_fleet_orders.001 days = 10 }
+		}
+
+		######### DEFEND (ANNIHILATOR)
+		else_if = {
+			limit = {
+				any_system_within_border = {
+					OR = {
+						AND = {
+							has_star_flag = ehof_compound_cluster
+							any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+						}
+						any_neighbor_system = { any_fleet_in_system = { exists = owner owner = { is_country_type = creators } } }
+						any_fleet_in_system = { exists = owner owner = { is_country_type = creators } }
+					}
+				}
+			}
+			every_owned_fleet = {
+				limit = {
+					is_ship_class = shipclass_military
+					NOT = { has_fleet_flag = compound_bombard }
+				}
+				clear_orders = yes
+				clear_fleet_actions = this
+				remove_fleet_flag = compound_patroller
+				remove_fleet_flag = compound_is_expanding
+				remove_fleet_flag = compound_is_attacking
+				remove_fleet_flag = compound_is_defending
+				set_fleet_flag = compound_annihilator
+
+				queue_actions = {
+					find_random_system = {
+						trigger = {
+							id = compound_annihilator.000
+							OR = {
+								AND = {
+									is_within_borders_of = root
+									any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+								}
+								AND = {
+									is_within_borders_of = root
+									any_fleet_in_system = { exists = owner owner = { is_country_type = creators } }
+								}
+								AND = {
+									is_neighbor_of = root
+									any_fleet_in_system = { exists = owner owner = { is_country_type = creators } }
+								}
+							}
+						}
+						found_system = {
+							effect = {
+								id = compound_annihilator.2
+								set_star_flag = compound_fleet_enroute
+							}
+							move_to = this
+						}
+					}
+				}
+			}
+		}
+
+		######### DEFEND
+		else_if = {
+			limit = {
+				any_system_within_border = {
+					any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+				}
+			}
+			while = {
+				limit = { check_variable = { which = compound_defending_fleets value < 3 } }
+				random_owned_fleet = {
+					limit = {
+						is_ship_class = shipclass_military
+						NOR = {
+							has_fleet_flag = compound_is_defending
+							has_fleet_flag = compound_is_attacking
+							has_fleet_flag = compound_is_expanding
+							has_fleet_flag = compound_annihilator
+							has_fleet_flag = compound_bombard
+						}
+					}
+					root = { change_variable = { which = compound_defending_fleets value = 1 } }
+					clear_orders = yes
+					clear_fleet_actions = this
+					remove_fleet_flag = compound_patroller
+					set_fleet_flag = compound_is_defending
+
+					queue_actions = {
+						find_random_system = {
+							trigger = {
+								id = compound_defend.1
+								is_within_borders_of = root
+								any_fleet_in_system = { exists = owner owner = { is_hostile = root } }
+							}
+							found_system = {
+								effect = {
+									id = compound_defend.2
+									set_star_flag = compound_fleet_enroute
+								}
+								move_to = this
+							}
+						}
+					}
+				}
+			}
+		}
+
+		######### ATTACK
+		else_if = {
+			limit = {
+				OR = {
+					AND = {
+						NOT = { has_country_flag = compound_empire_berserk }
+						count_system_within_border = {
+							limit = { has_star_flag = reshaper_target_system }
+							count <= 5
+						}
+					}
+					has_country_flag = compound_empire_berserk
+				}
+			}
+			if = {
+				limit = { has_country_flag = compound_empire_berserk }
+				every_owned_fleet = {
+					limit = {
+						is_ship_class = shipclass_military
+						NOR = {
+							has_fleet_flag = compound_is_defending
+							has_fleet_flag = compound_is_attacking
+							has_fleet_flag = compound_is_expanding
+							has_fleet_flag = compound_annihilator
+							has_fleet_flag = compound_bombard
+						}
+					}
+					clear_orders = yes
+					clear_fleet_actions = this
+					remove_fleet_flag = compound_patroller
+					set_fleet_flag = compound_is_attacking
+
+					queue_actions = {
+						find_random_system = {
+							trigger = {
+								id = compound_attack.1
+								has_star_flag = compound_next_target
+								NOT = { has_star_flag = compound_fleet_enroute }
+							}
+							found_system = {
+								effect = {
+									id = compound_attack.2
+									set_star_flag = compound_fleet_enroute
+								}
+								move_to = this
+							}
+						}
+					}
+				}
+			}
+			else = {
+				while = {
+					limit = { check_variable = { which = compound_attacking_fleets value < 5 } }
+					random_owned_fleet = {
+						limit = {
+							is_ship_class = shipclass_military
+							NOR = {
+								has_fleet_flag = compound_is_defending
+								has_fleet_flag = compound_is_attacking
+								has_fleet_flag = compound_is_expanding
+								has_fleet_flag = compound_annihilator
+								has_fleet_flag = compound_bombard
+							}
+						}
+						root = { change_variable = { which = compound_attacking_fleets value = 1 } }
+						clear_orders = yes
+						clear_fleet_actions = this
+						remove_fleet_flag = compound_patroller
+						set_fleet_flag = compound_is_attacking
+
+						queue_actions = {
+							find_random_system = {
+								trigger = {
+									id = compound_attack.3
+									has_star_flag = compound_next_target
+									NOT = { has_star_flag = compound_fleet_enroute }
+								}
+								found_system = {
+									effect = {
+										id = compound_attack.4
+										set_star_flag = compound_fleet_enroute
+									}
+									move_to = this
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		######### PATROL
+		else = {
+			if = {
+				limit = {
+					any_owned_fleet = {
+						is_fleet_idle = yes
+						is_ship_class = shipclass_military
+						NOT = { has_fleet_flag = compound_patroller }
+					}
+				}
+				every_owned_fleet = {
+					limit = {
+						is_fleet_idle = yes
+						is_ship_class = shipclass_military
+						NOR = {
+							has_fleet_flag = compound_patroller
+							has_fleet_flag = compound_bombard
+						}
+					}
+					clear_orders = yes
+					clear_fleet_actions = this
+					if = { limit = { has_fleet_flag = compound_is_expanding } remove_fleet_flag = compound_is_expanding }
+					if = { limit = { has_fleet_flag = compound_is_attacking } remove_fleet_flag = compound_is_attacking }
+					if = { limit = { has_fleet_flag = compound_is_defending } remove_fleet_flag = compound_is_defending }
+					if = { limit = { has_fleet_flag = compound_annihilator } remove_fleet_flag = compound_annihilator }
+					set_fleet_flag = compound_patroller
+
+					queue_actions = {
+						repeat = {
+							find_random_system = {
+								trigger = {
+									id = compound_patrol.1
+									OR = {
+										has_star_flag = ehof_compound_system
+										has_star_flag = compound_expand
+									}
+									NOT = { ehof_compound_cluster = yes }
+								}
+								found_system = { move_to = this }
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+}
+
+# Find new target, after clearing current target (Initial expansion)
+fleet_event = {
+	id = compound_fleet_orders.002
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_country_type = compound_empire }
+		from = { has_star_flag = compound_fleet_enroute }
+	}
+
+	immediate = {
+		from = { if = { limit = { has_star_flag = compound_fleet_enroute } remove_star_flag = compound_fleet_enroute } }
+		if = { limit = { has_fleet_flag = compound_is_expanding } remove_fleet_flag = compound_is_expanding }
+		if = { limit = { has_fleet_flag = compound_is_attacking } remove_fleet_flag = compound_is_attacking }
+		if = { limit = { has_fleet_flag = compound_is_defending } remove_fleet_flag = compound_is_defending }
+		if = { limit = { has_fleet_flag = compound_annihilator } remove_fleet_flag = compound_annihilator }
+		owner = { country_event = { id = compound_fleet_orders.001 days = 10 } }
+	}
+}
+
+# Visited compound capital
+fleet_event = {
+	id = compound_fleet_orders.007
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		owner = {
+			NOR = {
+				is_country_type = compound_empire
+				is_country_type = creators
+			}
+		}
+		from = { has_star_flag = compound_capital_system }
+	}
+
+	immediate = {
+		# If the annihlator exists, it will go into shroud ftl to the compound system
+		if = {
+			limit = { exists = event_target:ehof_annihilator }
+			set_global_flag = annihilator_shroud
+			destroy_annihilator = yes
+			owner = { country_event = { id = annihilator.006 days = @annihilator_shroud_time } } # Takes 1 month before going into shroud ftl
+		}
+		owner = { country_event = { id = compound_dialog.10 } }
+	}
+}
+
+# Destroy stations, starbases, convert colonies and purge pops on taking system
+ship_event = {
+	id = compound_fleet_orders.003
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from.owner = { is_country_type = compound_empire }
+		is_ship_class = shipclass_starbase
+	}
+
+	immediate = {
+		solar_system = {
+			if = {
+				limit = {
+					any_system_planet = {
+						NOR = {
+							has_planet_flag = ehof_been_bombarded
+							is_controlled_by = event_target:compound_country
+						}
+						is_colony = yes
+					}
+				}
+				### Set system and planets flags that are eligible for reshaping
+				if = { limit = { NOT = { has_star_flag = ehof_compound_system } } set_star_flag = ehof_compound_system }
+				if = { limit = { has_star_flag = compound_expand } remove_star_flag = compound_expand }
+				if = { limit = { has_star_flag = compound_next_target } remove_star_flag = compound_next_target }
+
+				random_system_planet = {
+					limit = {
+						NOR = {
+							has_planet_flag = ehof_been_bombarded
+							is_controlled_by = event_target:compound_country
+						}
+						is_colony = yes
+					}
+					save_event_target_as = ehof_invade_planet
+					set_planet_flag = ehof_been_bombarded
+				}
+				random_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = { is_country_type = compound_empire }
+						is_ship_class = shipclass_military
+					}
+					set_fleet_flag = compound_bombard
+					clear_fleet_actions = this
+					clear_orders = yes
+					remove_auto_move_target = yes
+					auto_move_to_planet = {
+						target = event_target:ehof_invade_planet
+						clear_auto_move_on_arrival = no
+					}
+				}
+
+				if = {
+					limit = {
+						any_fleet_in_system = {
+							exists = owner
+							owner = { is_country_type = compound_empire }
+							is_ship_class = shipclass_transport
+							NOT = { has_fleet_flag = compound_ready_to_invade }
+						}
+					}
+					random_fleet_in_system = {
+						limit = {
+							exists = owner
+							owner = { is_country_type = compound_empire }
+							is_ship_class = shipclass_transport
+							NOT = { has_fleet_flag = compound_ready_to_invade }
+						}
+						set_fleet_flag = compound_ready_to_invade
+						clear_orders = yes
+						clear_fleet_actions = this
+						remove_auto_move_target = yes
+						auto_move_to_planet = {
+							target = event_target:ehof_invade_planet
+							clear_auto_move_on_arrival = no
+						}
+					}
+				}
+				else = {
+					closest_system = {
+						limit = {
+							any_fleet_in_system = {
+								exists = owner
+								owner = { is_country_type = compound_empire }
+								is_ship_class = shipclass_transport
+								NOT = { has_fleet_flag = compound_ready_to_invade }
+							}
+						}
+						random_fleet_in_system = {
+							limit = {
+								exists = owner
+								owner = { is_country_type = compound_empire }
+								is_ship_class = shipclass_transport
+								NOT = { has_fleet_flag = compound_ready_to_invade }
+							}
+							set_fleet_flag = compound_ready_to_invade
+							clear_orders = yes
+							clear_fleet_actions = this
+							remove_auto_move_target = yes
+							auto_move_to_planet = {
+								target = event_target:ehof_invade_planet
+								clear_auto_move_on_arrival = no
+							}
+						}
+					}
+				}
+			}
+			
+			# Fleet orders
+			event_target:compound_country = {
+				country_event = { id = compound_fleet_spawn.001 } # Spawn fleets
+				country_event = { id = compound_fleet_orders.013 } # Give reshaper orders
+			}
+		}
+		delete_ship = this
+	}
+}
+
+# Preservation Sphere is bombarded
+planet_event = {
+	id = compound_fleet_orders.008
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_planet_class = pc_whc_star
+		has_planet_flag = compound_home_sphere
+		OR = { # cracked or bombarded to death
+			from = { is_same_value = root }
+			planet_devastation >= 80
+		}
+	}
+
+	immediate = {
+		from = { save_event_target_as = preservation_sphere_destroyer }
+		set_global_flag = bombardment_destroyed_sphere
+		planet_event = { id = compound_end.001 }
+	}
+}
+
+# Compound bombarding planets
+planet_event = {
+	id = compound_fleet_orders.015
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { is_country_type = compound_empire }
+		planet_devastation >= 40
+	}
+
+	immediate = {
+		save_event_target_as = compound_land_army
+		solar_system = {
+			random_fleet_in_system = {
+				limit = { has_fleet_flag = compound_ready_to_invade }
+				auto_move_to_planet = {
+					target = event_target:compound_land_army
+					clear_auto_move_on_arrival = no
+					destroy_on_arrival = yes
+				}
+			}
+		}
+
+		event_target:compound_country = { create_ehof_general = yes }
+		while = {
+			count = 20
+			create_army = {
+				name = random
+				owner = event_target:compound_country
+				species = event_target:compound_species
+				type = compound_assault
+				leader = event_target:compound_army_leader
+			}
+		}
+	}
+}
+
+# Compound occupied planets
+planet_event = {
+	id = compound_fleet_orders.016
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { fromfrom = { is_country_type = compound_empire } }
+
+	immediate = {
+		set_controller = event_target:compound_country
+		set_owner = event_target:compound_country
+		remove_planet_flag = ehof_been_bombarded
+		every_owned_pop = { limit = { is_pop_category = ruler } kill_pop = yes }
+		while = {
+			count = 20
+			create_army = {
+				name = random
+				owner = event_target:compound_country
+				species = event_target:compound_species
+				type = "compound_defense"
+			}
+		}
+
+		solar_system = {
+			random_fleet_in_system = {
+				limit = {
+					is_ship_class = shipclass_military
+					has_fleet_flag = compound_bombard
+					has_fleet_flag = compound_transport_following
+				}
+				save_event_target_as = compound_refollow
+			}
+		}
+
+		event_target:compound_country = {
+			create_ehof_general = yes
+			random_owned_fleet = {
+				limit = {
+					is_ship_class = shipclass_military
+					NOT = { has_fleet_flag = compound_transport_following }
+				}
+				set_fleet_flag = compound_transport_following
+				save_event_target_as = compound_transport_following
+			}
+			create_fleet = {
+				settings = {
+					uses_naval_capacity = no
+					spawn_debris = no
+				}
+				effect = {
+					set_owner = event_target:compound_country
+					while = {
+						count = 20
+						create_army_transport = {
+							graphical_culture = "ehof_01"
+							army_type = "compound_assault"
+						}
+					}
+					set_location = {
+						target = event_target:compound_refollow
+						distance = 35
+						angle = random
+					}
+					auto_follow_fleet = {
+						target = event_target:compound_refollow
+						attack_fleet = no
+					}
+				}
+			}
+			last_created_army =  { assign_leader = event_target:compound_army_leader }
+		}
+
+		solar_system = {
+			if = {
+				limit = {
+					any_system_planet = {
+						NOR = {
+							has_planet_flag = ehof_been_bombarded
+							is_controlled_by = event_target:compound_country
+						}
+						is_colony = yes
+					}
+				}
+				random_system_planet = {
+					limit = {
+						NOR = {
+							has_planet_flag = ehof_been_bombarded
+							is_controlled_by = event_target:compound_country
+						}
+						is_colony = yes
+					}
+					save_event_target_as = ehof_invade_planet
+					set_planet_flag = ehof_been_bombarded
+				}
+				random_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = { is_country_type = compound_empire }
+						is_ship_class = shipclass_military
+					}
+					set_fleet_flag = compound_bombard
+					clear_fleet_actions = this
+					clear_orders = yes
+					remove_auto_move_target = yes
+					auto_move_to_planet = {
+						target = event_target:ehof_invade_planet
+						clear_auto_move_on_arrival = no
+					}
+				}
+
+				if = {
+					limit = {
+						any_fleet_in_system = {
+							exists = owner
+							owner = { is_country_type = compound_empire }
+							is_ship_class = shipclass_transport
+							NOT = { has_fleet_flag = compound_ready_to_invade }
+						}
+					}
+					random_fleet_in_system = {
+						limit = {
+							exists = owner
+							owner = { is_country_type = compound_empire }
+							is_ship_class = shipclass_transport
+							NOT = { has_fleet_flag = compound_ready_to_invade }
+						}
+						set_fleet_flag = compound_ready_to_invade
+						clear_orders = yes
+						clear_fleet_actions = this
+						remove_auto_move_target = yes
+						auto_move_to_planet = {
+							target = event_target:ehof_invade_planet
+							clear_auto_move_on_arrival = no
+						}
+					}
+				}
+				else = {
+					closest_system = {
+						limit = {
+							any_fleet_in_system = {
+								exists = owner
+								owner = { is_country_type = compound_empire }
+								is_ship_class = shipclass_transport
+								NOT = { has_fleet_flag = compound_ready_to_invade }
+							}
+						}
+						random_fleet_in_system = {
+							limit = {
+								exists = owner
+								owner = { is_country_type = compound_empire }
+								is_ship_class = shipclass_transport
+								NOT = { has_fleet_flag = compound_ready_to_invade }
+							}
+							set_fleet_flag = compound_ready_to_invade
+							clear_orders = yes
+							clear_fleet_actions = this
+							remove_auto_move_target = yes
+							auto_move_to_planet = {
+								target = event_target:ehof_invade_planet
+								clear_auto_move_on_arrival = no
+							}
+						}
+					}
+				}
+			}
+			else = {
+				every_fleet_in_system = {
+					limit = { has_fleet_flag = compound_bombard }
+					remove_fleet_flag = compound_bombard
+					remove_auto_move_target = yes
+					clear_fleet_actions = this
+					clear_orders = yes
+				}
+			}
+		}
+	}
+}
+
+# Compound occupied planets
+planet_event = {
+	id = compound_fleet_orders.017
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { from = { is_country_type = compound_empire } }
+
+	immediate = {
+		set_controller = fromfrom
+		set_owner = fromfrom
+	}
+}
+
+############# [Compound] [on_building_starbase_ehof_05]
+ship_event = {
+	id = compound_fleet_orders.004
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { exists = solar_system }
+
+	immediate = {
+		solar_system = {
+			# Build military stations
+			if = {
+				limit = {
+					NOR = {
+						has_star_flag = ehof_compound_has_stations
+						any_fleet_in_system = { is_ship_class = shipclass_military_station }
+					}
+				}
+				set_timed_star_flag = { flag = ehof_compound_has_stations days = 360 }
+				create_compound_system_stations = yes
+			}
+
+			### Set system and planets flags that are eligible for reshaping
+			if = { limit = { NOT = { has_star_flag = ehof_compound_system } } set_star_flag = ehof_compound_system }
+			if = { limit = { has_star_flag = compound_expand } remove_star_flag = compound_expand }
+			if = { limit = { has_star_flag = compound_next_target } remove_star_flag = compound_next_target }
+			if = {
+				limit = {
+					NOR = {
+						ehof_compound_cluster = yes
+						has_star_flag = reshaper_target_system
+					}
+				}
+				set_star_flag = reshaper_target_system
+			}
+
+			every_system_planet = {
+				limit = {
+					NOR = {
+						has_planet_flag = reshaper_target_planet
+						has_planet_flag = reshaper_target_planet_current
+					}
+					reshaper_eligible = yes
+				}
+				set_planet_flag = reshaper_target_planet
+			}
+			
+			# Fleet orders
+			event_target:compound_country = {
+				change_variable = { which = compound_systems value = 1 }
+				country_event = { id = compound_fleet_spawn.001 } # Spawn fleets
+				country_event = { id = compound_fleet_orders.013 } # Give reshaper orders
+			}
+		}
+	}
+}
+
+# Remove system flags
+country_event = {
+	id = compound_fleet_orders.009
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { is_country_type = compound_empire }
+
+	immediate = {
+		subtract_variable = { which = compound_systems value = 1 }
+		from = {
+			remove_star_flag = ehof_compound_system
+			remove_star_flag = reshaper_target_system
+			remove_star_flag = compound_next_target
+
+			# Deduct compound darkmatter count
+			every_system_planet = {
+				limit = {
+					OR = {
+						has_deposit = d_dark_matter_deposit_1
+						has_deposit = d_dark_matter_deposit_2
+						has_deposit = d_dark_matter_deposit_3
+						has_deposit = d_dark_matter_deposit_4
+						has_deposit = d_dark_matter_deposit_5
+						has_deposit = d_dark_matter_deposit_6
+						has_deposit = d_dark_matter_deposit_7
+						has_deposit = d_dark_matter_deposit_8
+						has_deposit = d_dark_matter_deposit_9
+						has_deposit = d_dark_matter_deposit_10
+					}
+				}
+				if = { limit = { has_deposit = d_dark_matter_deposit_1  } root = { subtract_variable = { which = compound_dark_matter value = 1 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_2  } root = { subtract_variable = { which = compound_dark_matter value = 2 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_3  } root = { subtract_variable = { which = compound_dark_matter value = 3 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_4  } root = { subtract_variable = { which = compound_dark_matter value = 4 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_5  } root = { subtract_variable = { which = compound_dark_matter value = 5 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_6  } root = { subtract_variable = { which = compound_dark_matter value = 6 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_7  } root = { subtract_variable = { which = compound_dark_matter value = 7 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_8  } root = { subtract_variable = { which = compound_dark_matter value = 8 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_9  } root = { subtract_variable = { which = compound_dark_matter value = 9 } } }
+				if = { limit = { has_deposit = d_dark_matter_deposit_10 } root = { subtract_variable = { which = compound_dark_matter value = 10 } } }
+			}
+		}
+	}
+}
+
+# Compound Killed By
+country_event = {
+	id = compound_fleet_orders.010
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = { is_country_type = compound_empire }
+	
+	immediate = {
+
+		# Compound becomes vulnerable
+		if = {
+			limit = { NOT = { has_modifier = compound_invincible } }
+			if = {
+				limit = {
+					from = { is_country_type = creators }
+					event_target:discoverer_country = { NOT = { has_country_flag = compound_reacted_01 } }
+				}
+				event_target:discoverer_country = {
+					set_country_flag = compound_reacted_01
+					country_event = { id = compound_dialog.11 }
+				}
+			}
+			else_if = {
+				limit = { from = { NOT = { has_country_flag = compound_reacted_02 } } }
+				from = {
+					set_country_flag = compound_reacted_02
+					country_event = { id = compound_dialog.16 }
+				}
+			}
+
+			# Set to berserk
+			if = {
+				limit = { NOT = { has_global_flag = compound_vulnerable } }
+				set_crisis_sound = extradimensional_crisis_ambient_stage_final
+				set_crisis_stage_4 = yes
+				set_global_flag = compound_vulnerable
+				root = {
+					set_country_flag = compound_empire_berserk
+					every_owned_fleet = {
+						limit = { is_ship_size = architect }
+						set_event_locked = no
+					}
+				}
+			}
+		}
+
+		# Deduct from ship count
+		if = { limit = { fromfrom = { is_ship_size = envoy } }		subtract_variable = { which = compound_envoys		value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = stalker } }	subtract_variable = { which = compound_stalkers		value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = humiliator } }	subtract_variable = { which = compound_humiliators	value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = apex } }		subtract_variable = { which = compound_apex			value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = sovereign } }	subtract_variable = { which = compound_sovereigns	value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = reshaper } }	subtract_variable = { which = current_reshapers		value = 1 } }
+		if = { limit = { fromfrom = { is_ship_size = architect } }	subtract_variable = { which = current_architects	value = 1 } }
+
+		# Deduct event chain count
+		if = {
+			limit = { from = { has_event_chain = "compound_crisis_chain" } }
+			from = {
+				add_event_chain_counter = {
+					event_chain = "compound_crisis_chain"
+					counter = "compound_killed_by_us"
+					amount = 1
+				}
+			}
+		}
+		else_if = {
+			limit = { from = { is_country_type = creators } }
+			every_country = {
+				limit = { has_event_chain = "compound_crisis_chain" }
+				if = {
+					limit = { NOT = { has_global_flag = sa_recently_rewarded } }
+					set_timed_global_flag = { flag = sa_recently_rewarded days = @crisis_sa_reward_time }
+					annihilator_rewards = yes
+				}
+					add_event_chain_counter = {
+					event_chain = "compound_crisis_chain"
+					counter = "compound_killed_by_sa"
+					amount = 1
+				}
+			}
+		}
+		else = {
+			every_country = {
+				limit = { has_event_chain = "compound_crisis_chain" }
+				add_event_chain_counter = {
+					event_chain = "compound_crisis_chain"
+					counter = "compound_killed_by_others"
+					amount = 1
+				}
+			}
+		}
+	}
+}
+
+# Compound Killed
+country_event = {
+	id = compound_fleet_orders.011
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = { is_country_type = compound_empire }
+	
+	immediate = {
+		every_country = {
+			limit = { has_event_chain = "compound_crisis_chain" }
+				add_event_chain_counter = {
+				event_chain = "compound_crisis_chain"
+				counter = "compound_killed"
+				amount = 1
+			}
+		}
+	}
+}
+
+#################################################################################
+#############################		RESHAPER		#############################
+#################################################################################
+
+# Mark targets for reshaping
+country_event = {
+	id = compound_fleet_orders.012
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = compound_empire
+		NOT = { has_country_flag = compound_empire_dormant }
+	}
+
+	immediate = {
+		every_system_within_border = {
+			every_system_planet = {
+				if = {
+					limit = {
+						has_planet_flag = reshaper_target_planet
+						OR = {
+							has_planet_flag = reshaper_target_planet_current
+							reshaper_eligible = no
+						}
+					}
+					remove_planet_flag = reshaper_target_planet
+				}
+				else_if = {
+					limit = {
+						NOR = {
+							has_planet_flag = reshaper_target_planet
+							has_planet_flag = reshaper_target_planet_current
+						}
+						reshaper_eligible = yes
+					}
+					set_planet_flag = reshaper_target_planet
+				}
+			}
+			if = {
+				limit = {
+					has_star_flag = reshaper_target_system
+					NOT = { any_system_planet = { has_planet_flag = reshaper_target_planet } }
+				}
+				remove_star_flag = reshaper_target_system
+				prev = { country_event = { id = compound_fleet_spawn.001 } }
+			}
+		}
+	}
+}
+
+# Reshaper orders
+country_event = {
+	id = compound_fleet_orders.013
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = compound_empire
+		any_owned_fleet = {
+			is_ship_size = reshaper
+			NOT = { has_fleet_flag = compound_reshaper_has_orders }
+		}
+		exists = event_target:compound_invasion_entry
+		any_system = {
+			has_star_flag = reshaper_target_system
+			any_system_planet = { has_planet_flag = reshaper_target_planet }
+			has_star_flag = ehof_compound_system
+		}
+	}
+
+	immediate = {
+
+		# Check reshapers are actually doing something
+		if = {
+			limit = {
+				any_owned_fleet = {
+					has_fleet_flag = compound_reshaper_has_orders
+					is_fleet_idle = yes
+					is_ship_size = reshaper
+				}
+			}
+			every_owned_fleet = {
+				limit = {
+					has_fleet_flag = compound_reshaper_has_orders
+					is_fleet_idle = yes
+					is_ship_size = reshaper
+				}
+				remove_fleet_flag = compound_reshaper_has_orders
+			}
+		}
+
+		# Target a system/planet for reshaping
+		every_owned_fleet = {
+			limit = {
+				NOT = { has_fleet_flag = compound_reshaper_has_orders }
+				is_ship_size = reshaper
+			}
+			if = {
+				limit = {
+					solar_system = {
+						any_system_planet = {
+							has_planet_flag = reshaper_target_planet
+							NOT = { has_planet_flag = reshaper_target_planet_current }
+							reshaper_eligible = yes
+						}
+					}
+				}
+				queue_actions = {
+					find_closest_planet = {
+						trigger = {
+							id = compound_reshaping.1
+							has_planet_flag = reshaper_target_planet
+							NOT = { has_planet_flag = reshaper_target_planet_current }
+							reshaper_eligible = yes
+						}
+						found_planet = {
+							effect = {
+								id = compound_reshaping.2
+								set_planet_flag = reshaper_target_planet_current
+							}
+							destroy_planet = {
+								skip_rules = yes
+								target = this
+							}
+						}
+					}
+				}
+			}
+			else = {
+				queue_actions = {
+					find_closest_system = {
+						trigger = {
+							id = compound_reshaping.3
+							has_star_flag = reshaper_target_system
+							has_star_flag = ehof_compound_system
+							any_system_planet = {
+								has_planet_flag = reshaper_target_planet
+								NOT = { has_planet_flag = reshaper_target_planet_current }
+								reshaper_eligible = yes
+							}
+						}
+						found_system = {
+							move_to = this
+							find_closest_planet = {
+								trigger = {
+									id = compound_reshaping.4
+									has_planet_flag = reshaper_target_planet
+									NOT = { has_planet_flag = reshaper_target_planet_current }
+									reshaper_eligible = yes
+								}
+								found_planet = {
+									effect = {
+										id = compound_reshaping.5
+										set_planet_flag = reshaper_target_planet_current
+									}
+									destroy_planet = {
+										skip_rules = yes
+										target = this
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			set_fleet_flag = compound_reshaper_has_orders
+		}
+	}
+}
+
+############# [Compound] [on_destroy_planet_with_COMPOUND_HM_RESHAPER] Reshaping effect
+planet_event = {
+	id = compound_fleet_orders.014
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_global_flag = compound_count_darkmatter
+
+		# If planet is already reshaped or is being reshaped, remove flag
+		if = {
+			limit = {
+				has_planet_flag = reshaper_target_planet
+				OR = {
+					is_planet_class = pc_ehof_planet
+					is_planet_class = pc_ehof_black_hole
+					is_planet_class = pc_black_hole
+					has_planet_flag = reshaper_target_planet_current
+				}
+			}
+			remove_planet_flag = reshaper_target_planet
+			remove_planet_flag = reshaper_target_planet_current
+		}
+
+		if = {
+			limit = { solar_system = { NOT = { any_system_planet = { has_planet_flag = reshaper_target_planet } } } }
+			solar_system = { remove_star_flag = reshaper_target_system }
+			from.owner = { country_event = { id = compound_fleet_spawn.001 } }
+		}
+
+		# Change the planet into either a blackhole or darkmatter planet, add darkmatter and clear modifiers/colony
+		clear_planet_modifiers = yes
+		destroy_colony = yes
+		clear_deposits = yes
+		ehof_add_dark_matter_deposit = yes
+		if = { limit = { is_star = yes } change_pc = pc_black_hole }
+		else = { change_pc = pc_ehof_planet	}
+
+		# Add counter
+		every_country = {
+			limit = { has_event_chain = "compound_crisis_chain" }
+			add_event_chain_counter = {
+				event_chain = "compound_crisis_chain"
+				counter = "darkmatter_worlds"
+				amount = 1
+			}
+		}
+
+		# Clear reshapers orders, then assign new orders
+		from = {
+			remove_fleet_flag = compound_reshaper_has_orders
+			clear_fleet_actions = this
+			clear_orders = yes
+			owner = { country_event = { id = compound_fleet_orders.013 } }
+		}
+
+		remove_global_flag = compound_count_darkmatter
+	}
+}

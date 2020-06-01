@@ -1,0 +1,341 @@
+namespace = compound_fleet_spawn
+
+#############################################################################
+#############################	SPAWN FLEETS	#############################
+#############################################################################
+country_event = {
+    id = compound_fleet_spawn.001
+    hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = event_target:compound_invasion_entry
+		NOR = {
+			has_global_flag = compound_destroyed
+			has_country_flag = compound_empire_dormant
+		}
+		event_target:compound_home_sphere = {
+			has_orbital_bombardment = no
+			solar_system = { NOT = { any_fleet_in_system = { owner = { NOT = { is_country_type = compound_empire } } } } }
+		}
+	}
+
+    immediate = {
+		country_event = { id = compound_fleet_spawn.003 } # Spawn Reshapers
+		country_event = { id = compound_fleet_spawn.004 } # Spawn Architects
+
+		################################################# Reset variables
+		set_variable = { which = compound_counted_dark_matter value = compound_dark_matter }
+		set_variable = { which = compound_surplas_darkmatter value = 0 }
+		set_variable = { which = compound_alert value = 0 }
+		set_variable = { which = compound_modded_multiplier value = 0 }
+
+		# Calculate naval capacity
+		set_variable = { which = compound_military value = 0 }
+		set_variable = { which = count_envoys		value = compound_envoys }
+		set_variable = { which = count_stalkers		value = compound_stalkers }
+		set_variable = { which = count_humiliators	value = compound_humiliators }
+		set_variable = { which = count_apex			value = compound_apex }
+		set_variable = { which = count_sovereigns	value = compound_sovereigns }
+
+		multiply_variable = { which = count_envoys		value = 1 }
+		multiply_variable = { which = count_stalkers	value = 2 }
+		multiply_variable = { which = count_humiliators	value = 4 }
+		multiply_variable = { which = count_apex		value = 8 }
+		multiply_variable = { which = count_sovereigns	value = 16 }
+
+		change_variable = { which = compound_military value = count_envoys }
+		change_variable = { which = compound_military value = count_stalkers }
+		change_variable = { which = compound_military value = count_humiliators }
+		change_variable = { which = compound_military value = count_apex }
+		change_variable = { which = compound_military value = count_sovereigns }
+
+		# Change this to increase or decrease compound ship cap (0 being none)
+																	change_variable = { which = compound_modded_multiplier value = 1.0 }
+		if = { limit = { has_global_flag = gigastructures_enabled }	change_variable = { which = compound_modded_multiplier value = 0.2 } }
+		if = { limit = { has_global_flag = acot_activated }			change_variable = { which = compound_modded_multiplier value = 0.4 } }
+
+		# Modifiers
+		if = {
+			limit = {
+				NOR = {
+					has_global_flag = gigastructures_enabled
+					has_global_flag = acot_activated
+				}
+			}
+			add_modifier = { modifier = compound_vanilla days = -1 }
+		}
+		if = { limit = { has_global_flag = gigastructures_enabled	NOT = { has_modifier = compound_giga } } add_modifier = { modifier = compound_giga days = -1 } }
+		if = { limit = { has_global_flag = acot_activated			NOT = { has_modifier = compound_acot } } add_modifier = { modifier = compound_acot days = -1 } }
+		multiply_variable = { which = compound_counted_dark_matter value = compound_modded_multiplier }
+
+		set_variable = { which = compound_surplas_darkmatter value = compound_counted_dark_matter }
+		subtract_variable = { which = compound_surplas_darkmatter value = compound_military }
+
+		################################################# Check threat
+		if = {	# SA exists
+			limit = { exists = event_target:ehof_annihilator }
+			change_variable = { which = compound_alert value = 1 }
+		}
+		if = {	# SA is in a neighboring system
+			limit = {
+				any_system_within_border = {
+					any_neighbor_system = {
+						any_fleet_in_system = {
+							exists = owner
+							owner = { is_country_type = creators }
+						}
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 1 }
+		}
+		if = {	# Any other fleet is in a neighboring system
+			limit = {
+				any_system_within_border = {
+					any_neighbor_system = {
+						any_fleet_in_system = {
+							exists = owner
+							owner = {
+								NOR = {
+									is_country_type = compound_empire
+									is_country_type = creators
+								}
+							}
+						}
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 1 }
+		}
+		if = {	# SA is within borders
+			limit = {
+				any_system_within_border = {
+					any_fleet_in_system = {
+						exists = owner
+						owner = { is_country_type = creators }
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 2 }
+		}
+		if = {	# Any other fleet is within borders
+			limit = {
+				any_system_within_border = {
+					any_fleet_in_system = {
+						exists = owner
+						owner = {
+							NOR = {
+								is_country_type = compound_empire
+								is_country_type = creators
+							}
+						}
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 1 }
+		}
+		if = {	# SA is in compound cluster
+			limit = {
+				any_system_within_border = {
+					ehof_compound_cluster = yes
+					any_fleet_in_system = {
+						exists = owner
+						owner = { is_country_type = creators }
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 3 }
+		}
+		if = {	# Any other fleet is in compound cluster
+			limit = {
+				any_system_within_border = {
+					ehof_compound_cluster = yes
+					any_fleet_in_system = {
+						exists = owner
+						owner = {
+							NOR = {
+								is_country_type = compound_empire
+								is_country_type = creators
+							}
+						}
+					}
+				}
+			}
+			change_variable = { which = compound_alert value = 2 }
+		}
+
+		################################################# Begin Spawning
+		if = {
+			limit = { check_variable = { which = compound_surplas_darkmatter value > 100 } }
+			random_list = {
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value = 0 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+					}
+				}
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value = 1 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+						planet_event = { id = compound_fleet_spawn.002 days = 2 }
+					}
+				}
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value = 2 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+						planet_event = { id = compound_fleet_spawn.002 days = 2 }
+						planet_event = { id = compound_fleet_spawn.002 days = 3 }
+					}
+				}
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value = 3 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+						planet_event = { id = compound_fleet_spawn.002 days = 2 }
+						planet_event = { id = compound_fleet_spawn.002 days = 3 }
+						planet_event = { id = compound_fleet_spawn.002 days = 4 }
+					}
+				}
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value = 4 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+						planet_event = { id = compound_fleet_spawn.002 days = 2 }
+						planet_event = { id = compound_fleet_spawn.002 days = 3 }
+						planet_event = { id = compound_fleet_spawn.002 days = 4 }
+						planet_event = { id = compound_fleet_spawn.002 days = 5 }
+					}
+				}
+				1 = {
+					modifier = { factor = 0 NOT = { check_variable = { which = compound_alert value >= 5 } } }
+					event_target:compound_invasion_entry.star = {
+						planet_event = { id = compound_fleet_spawn.002 days = 1 }
+						planet_event = { id = compound_fleet_spawn.002 days = 2 }
+						planet_event = { id = compound_fleet_spawn.002 days = 3 }
+						planet_event = { id = compound_fleet_spawn.002 days = 4 }
+						planet_event = { id = compound_fleet_spawn.002 days = 5 }
+						planet_event = { id = compound_fleet_spawn.002 days = 6 }
+					}
+				}
+			}
+		}
+		set_variable = { which = count_envoys		value = 0 }
+		set_variable = { which = count_stalkers		value = 0 }
+		set_variable = { which = count_humiliators	value = 0 }
+		set_variable = { which = count_apex			value = 0 }
+		set_variable = { which = count_sovereigns	value = 0 }
+
+		# LOG
+		log = "(COMPOUND) Envoys: [this.compound_envoys]"
+		log = "(COMPOUND) Stalkers: [this.compound_stalkers]"
+		log = "(COMPOUND) Humiliators: [this.compound_humiliators]"
+		log = "(COMPOUND) Apex: [this.compound_apex]"
+		log = "(COMPOUND) Sovereigns: [this.compound_sovereigns]"
+		log = "(COMPOUND) Naval Capacity: [this.compound_military]"
+
+		log = "(COMPOUND) Dark Matter: [this.compound_counted_dark_matter]"
+		log = "(COMPOUND) Dark Matter Surplas: [this.compound_surplas_darkmatter]"
+		log = "(COMPOUND) Alert: [this.compound_alert]"
+	}
+}
+
+# ############# [Compound] Spawn new fleet
+planet_event = {
+    id = compound_fleet_spawn.002
+    hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		create_compound_fleet = yes
+		event_target:compound_country = {
+			if = {
+				limit = { count_armies = { limit = { army_type = compound_assault } count < 140 } }
+				create_compound_army = yes
+			}
+		}
+	}
+}
+
+############# [Compound] Spawn new Reshapers
+country_event = {
+	id = compound_fleet_spawn.003
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+
+		# Reset counters
+		set_variable = { which = desired_reshapers value = 0 }
+		set_variable = { which = needed_reshapers value = 0 }
+
+		# How many reshaper should compound have
+		if = { limit = { check_variable = { which = compound_systems value > 10 } } change_variable = { which = desired_reshapers value = 4 } }
+		if = { limit = { check_variable = { which = compound_systems value > 15 } } change_variable = { which = desired_reshapers value = 4 } }
+		if = { limit = { check_variable = { which = compound_systems value > 20 } } change_variable = { which = desired_reshapers value = 4 } }
+		if = { limit = { check_variable = { which = compound_systems value > 25 } } change_variable = { which = desired_reshapers value = 4 } }
+		if = { limit = { check_variable = { which = compound_systems value > 30 } } change_variable = { which = desired_reshapers value = 4 } }
+		if = { limit = { check_variable = { which = compound_systems value > 40 } } change_variable = { which = desired_reshapers value = 2 } }
+		if = { limit = { check_variable = { which = compound_systems value > 50 } } change_variable = { which = desired_reshapers value = 2 } }
+		if = { limit = { check_variable = { which = compound_systems value > 60 } } change_variable = { which = desired_reshapers value = 2 } }
+		if = { limit = { check_variable = { which = compound_systems value > 70 } } change_variable = { which = desired_reshapers value = 2 } }
+		if = { limit = { check_variable = { which = compound_systems value > 80 } } change_variable = { which = desired_reshapers value = 2 } }
+
+		# How many are needed
+		set_variable = { which = needed_reshapers value = desired_reshapers }
+		subtract_variable = { which = needed_reshapers value = current_reshapers }
+
+		# LOG
+		log = "(COMPOUND) desired reshapers: [this.desired_reshapers]"
+		log = "(COMPOUND) current reshapers: [this.current_reshapers]"
+		log = "(COMPOUND) needed reshapers: [this.needed_reshapers]"
+		log = "(COMPOUND) systems: [this.compound_systems]"
+
+		# Create amount of reshaper needed
+		while = {
+			limit = { check_variable = { which = needed_reshapers value > 0 } }
+			subtract_variable = { which = needed_reshapers value = 1 }
+			create_reshaper_compound_fleet = yes
+		}
+	}
+}
+
+############# [Compound] Spawn new Architects
+country_event = {
+	id = compound_fleet_spawn.004
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+
+		# Reset counters
+		set_variable = { which = desired_architects value = 0 }
+		set_variable = { which = needed_architects value = 0 }
+
+		# How many architect should compound have
+		if = { limit = { check_variable = { which = compound_systems value > 3  } } change_variable = { which = desired_architects value = 1 } }
+		if = { limit = { check_variable = { which = compound_systems value > 6  } } change_variable = { which = desired_architects value = 1 } }
+		if = { limit = { check_variable = { which = compound_systems value > 9  } } change_variable = { which = desired_architects value = 1 } }
+		if = { limit = { check_variable = { which = compound_systems value > 15 } } change_variable = { which = desired_architects value = 1 } }
+		if = { limit = { check_variable = { which = compound_systems value > 20 } } change_variable = { which = desired_architects value = 1 } }
+
+		# How many are needed
+		set_variable = { which = needed_architects value = desired_architects }
+		subtract_variable = { which = needed_architects value = current_architects }
+
+		# LOG
+		log = "(COMPOUND) desired architects: [this.desired_architects]"
+		log = "(COMPOUND) current architects: [this.current_architects]"
+		log = "(COMPOUND) needed architects: [this.needed_architects]"
+		log = "(COMPOUND) systems: [this.compound_systems]"
+
+		# Create amount of architect needed
+		while = {
+			limit = { check_variable = { which = needed_architects value > 0 } }
+			subtract_variable = { which = needed_architects value = 1 }
+			create_architect_compound_fleet = yes
+		}
+	}
+}

@@ -1,0 +1,433 @@
+namespace = ehof_ai
+
+# Make sure they are ready for firing
+country_event = {
+	id = ehof_ai.001
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = yes
+		NOR = {
+			has_country_flag = ehof_is_upgrading
+			has_country_flag = ehof_ai_spawning_cohesive
+		}
+		resource_income_compare = { resource = influence value > 1 }
+		resource_income_compare = { resource = minerals value > 10 }
+		resource_income_compare = { resource = alloys value > 10 }
+		OR = {
+			AND = {
+				NOT = { has_country_flag = ehof_ai_system_p1_cap }
+				check_variable = { which = ehof_phase value = 1 }
+				resource_income_compare = { resource = energy value >= 30 }
+			}
+			AND = {
+				NOT = { has_country_flag = ehof_ai_system_p2_cap }
+				check_variable = { which = ehof_phase value = 2 }
+				resource_income_compare = { resource = energy value >= 25 }
+			}
+			AND = {
+				NOT = { has_country_flag = ehof_ai_system_p3_cap }
+				check_variable = { which = ehof_phase value = 3 }
+				resource_income_compare = { resource = sr_dark_matter value >= 1 }
+			}
+			AND = {
+				NOT = { has_country_flag = ehof_ai_system_p4_cap }
+				check_variable = { which = ehof_phase value = 4 }
+				resource_income_compare = { resource = sr_dark_matter value >= 1 }
+			}
+		}
+	}
+
+	immediate = {
+		set_country_flag = ehof_ai_spawning_cohesive
+		every_system = {
+			limit = { has_star_flag = ehof_destination_system@root }
+			remove_star_flag = ehof_destination_system@root
+		}
+		if = {
+			limit = { count_owned_ship = { limit = { is_ship_class = shipclass_science_ship exists = solar_system solar_system = { ehof_cohesive_system = no } } count < 2 } }
+			create_fleet = { effect = { set_owner = root create_ship = { name = random random_existing_design = science } set_location = root.capital_scope } }
+			add_monthly_resource_mult = { resource = alloys value = -1 min = -100 max = -100 }
+		}
+		if = {
+			limit = { count_owned_ship = { limit = { is_ship_class = shipclass_constructor exists = solar_system solar_system = { ehof_cohesive_system = no } } count < 2 } }
+			create_fleet = { effect = { set_owner = root create_ship = { name = random random_existing_design = constructor } set_location = root.capital_scope } }
+			add_monthly_resource_mult = { resource = alloys value = -1 min = -100 max = -100 }
+		}
+
+		# Set EHOF destination for science/construction ships
+		random_system_within_border = {
+			limit = { has_star_flag = ehof_megastructure_system@root }
+			star = { save_event_target_as = ehof_ai_move_to_wormhole }
+		}
+
+		# Move science/construction ships to EHOF
+		set_variable = { which = ehof_ai_at_wormhole value = 0 }
+		random_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_constructor
+				exists = solar_system
+				solar_system = { ehof_cohesive_system = no }
+			}
+			fleet = {
+				clear_fleet_actions = this
+				clear_orders = yes
+				remove_auto_move_target = yes
+				set_fleet_flag = ehof_ai_moving_to_wormhole
+
+				auto_move_to_planet = {
+					target = event_target:ehof_ai_move_to_wormhole
+					clear_auto_move_on_arrival = no
+					arrival_effect = ehof_ai_at_wormhole
+				}
+			}
+		}
+
+		random_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_science_ship
+				exists = solar_system
+				solar_system = { ehof_cohesive_system = no }
+			}
+			fleet = {
+				clear_fleet_actions = this
+				clear_orders = yes
+				remove_auto_move_target = yes
+				set_fleet_flag = ehof_ai_moving_to_wormhole
+
+				auto_move_to_planet = {
+					target = event_target:ehof_ai_move_to_wormhole
+					clear_auto_move_on_arrival = no
+					arrival_effect = ehof_ai_at_wormhole
+				}
+			}
+		}
+	}
+}
+
+# Fire up the EHOF
+country_event = {
+	id = ehof_ai.002
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		# Pay the EHOF initiation cost
+		if = {
+			limit = { check_variable = { which = ehof_phase value = 1 } }
+			change_variable = { which = ehof_ai_system_cap value = 1 }
+			if = { limit = { check_variable = { which = ehof_ai_system_cap value >= 4 } } set_country_flag = ehof_ai_system_p1_cap }
+			add_monthly_resource_mult = { resource = energy value = -1 min = -3000 max = -3000 }
+		}
+		else_if = {
+			limit = { check_variable = { which = ehof_phase value = 2 } }
+			change_variable = { which = ehof_ai_system_cap value = 1 }
+			if = { limit = { check_variable = { which = ehof_ai_system_cap value >= 7 } } set_country_flag = ehof_ai_system_p2_cap }
+			add_monthly_resource_mult = { resource = energy value = -1 min = -2500 max = -2500 }
+		}
+		else_if = {
+			limit = { check_variable = { which = ehof_phase value = 3 } }
+			change_variable = { which = ehof_ai_system_cap value = 1 }
+			if = { limit = { check_variable = { which = ehof_ai_system_cap value >= 10 } } set_country_flag = ehof_ai_system_p3_cap }
+			add_monthly_resource_mult = { resource = sr_dark_matter value = -1 min = -300 max = -300 }
+		}
+		else_if = {
+			limit = { check_variable = { which = ehof_phase value = 4 } }
+			change_variable = { which = ehof_ai_system_cap value = 1 }
+			if = { limit = { check_variable = { which = ehof_ai_system_cap value >= 15 } } set_country_flag = ehof_ai_system_p4_cap }
+			add_monthly_resource_mult = { resource = sr_dark_matter value = -1 min = -250 max = -250 }
+		}
+
+		every_owned_fleet = {
+			limit = {
+				OR = {
+					has_fleet_flag = ehof_ai_moving_to_wormhole
+					has_fleet_flag = ehof_is_ai_at_destination
+				}
+				exists = solar_system
+				solar_system = { NOT = { has_star_flag = ehof_megastructure_system@root } }
+			}
+			remove_fleet_flag = ehof_ai_moving_to_wormhole
+			remove_fleet_flag = ehof_is_ai_at_destination
+		}
+
+		# Generate the system
+		if = { limit = { check_variable = { which = ehof_phase value >= 3 } } set_global_flag = ehof_can_roll_advanced }
+		if = { limit = { exists = event_target:ehof_system_creator } clear_global_event_target = ehof_system_creator }
+		save_global_event_target_as = ehof_system_creator
+		ehof_generate_system = yes
+		country_event = { id = ehof_ai.003 }
+	}
+}
+
+# Open Wormhole
+country_event = {
+	id = ehof_ai.003
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_system = {
+			limit = { has_star_flag = ehof_system_created_by_@root }
+			set_star_flag = ehof_destination_system@root
+			spawn_megastructure = {
+				type = "ehof_megastructure_wormhole_destination"
+				orbit_angle = @ehof_wormhole_angle
+				orbit_distance = @ehof_wormhole_distance
+				location = star
+				owner = root
+				init_effect = { set_megastructure_flag = ehof_wormhole_nexus }
+			}
+		}
+		country_event = { id = ehof_megastructure.203 days = 2 } # Set to Active (Will reset in 1 month if not used)
+		country_event = { id = ehof_ai.004 days = 4 }
+	}
+}
+
+# Send fleets
+country_event = {
+	id = ehof_ai.004
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		while = {
+			count = 2
+			random_owned_fleet = {
+				limit = {
+					has_fleet_flag = ehof_ai_moving_to_wormhole
+					NOT = { has_fleet_flag = ehof_is_ai_at_destination }
+				}
+				clear_fleet_actions = this
+				clear_orders = yes
+				set_fleet_flag = ehof_is_ai_at_destination
+				set_fleet_stance = passive
+				set_event_locked = no
+				remove_auto_move_target = yes
+				random_system = {
+					limit = { has_star_flag = ehof_destination_system@root }
+					star = { save_event_target_as = ehof_destination }
+				}
+				auto_move_to_planet = {
+					target = event_target:ehof_destination
+					clear_auto_move_on_arrival = no
+				}
+			}
+		}
+	}
+}
+
+# Close wormhole
+fleet_event = {
+	id = ehof_ai.005
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_ai = yes
+			NOT = { has_country_flag = ehof_ai_sent_fleet }
+		}
+	}
+
+	immediate = { owner = { country_event = { id = ehof_ai.006 days = 5 } } }
+}
+
+country_event = {
+	id = ehof_ai.006
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_timed_country_flag = { flag = ehof_ai_sent_fleet days = 30 }
+		every_owned_fleet = {
+			limit = {
+				OR = {
+					has_fleet_flag = ehof_is_ai_at_destination
+					has_fleet_flag = ehof_ai_moving_to_wormhole
+					AND = {
+						exists = solar_system
+						solar_system = { ehof_cohesive_system = yes }
+						OR = {
+							is_ship_class = shipclass_constructor
+							is_ship_class = shipclass_science_ship
+						}
+					}
+				}
+			}
+			if = { limit = { exists = leader } leader = { unassign_leader = this } }
+			delete_fleet = this
+		}
+		country_event = { id = ehof_megastructure.307 }
+	}
+}
+
+# Take system
+ship_event = {
+	id = ehof_ai.007
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		fromfrom = { is_ai = yes }
+		from = { ehof_cohesive_system = yes }
+	}
+
+	immediate = {
+		from = {
+			every_system_planet = { surveyed = { set_surveyed = yes surveyor = root.owner } }
+			create_starbase = { size = starbase_outpost owner = root.owner }
+		}
+		fromfrom = {
+			if = {		limit = { check_variable = { which = ehof_phase value = 1 } } add_monthly_resource_mult = { resource = influence value = -1 min = -150 max = -150 } }
+			else_if = {	limit = { check_variable = { which = ehof_phase value = 2 } } add_monthly_resource_mult = { resource = influence value = -1 min = -120 max = -120 } }
+			else_if = {	limit = { check_variable = { which = ehof_phase value = 3 } } add_monthly_resource_mult = { resource = influence value = -1 min = -90 max = -90 } }
+			else_if = {	limit = { check_variable = { which = ehof_phase value = 4 } } add_monthly_resource_mult = { resource = influence value = -1 min = -60 max = -60 } }
+			country_event = { id = ehof_ai.008 days = 7 }
+		}
+	}
+}
+
+# Populate the system
+country_event = {
+	id = ehof_ai.008
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		remove_country_flag = ehof_ai_spawning_cohesive
+		every_system_within_border = {
+			limit = { ehof_cohesive_system = yes }
+			# Create mining stations
+			every_system_planet = {
+				limit = {
+					has_deposit_for = shipclass_mining_station 
+					has_mining_station = no
+				}
+				create_mining_station = { owner = root }
+				root = { add_monthly_resource_mult = { resource = minerals value = -1 min = -100 max = -100 } }
+			}
+
+			# Create research stations
+			every_system_planet = {
+				limit = {
+					has_deposit_for = shipclass_research_station 
+					has_research_station = no
+				}
+				create_research_station = { owner = root }
+				root = { add_monthly_resource_mult = { resource = minerals value = -1 min = -100 max = -100 } }
+			}
+		}
+	}
+}
+
+country_event = {
+	id = ehof_ai.009
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_country_flag = ehof_ai_spawning_cohesive
+		OR = {
+			NOT = {
+				any_owned_fleet = {
+					has_fleet_flag = ehof_ai_moving_to_wormhole
+					is_ship_class = shipclass_constructor
+				}
+			}
+			NOT = {
+				any_owned_fleet = {
+					has_fleet_flag = ehof_ai_moving_to_wormhole
+					is_ship_class = shipclass_science_ship
+				}
+			}
+			any_owned_fleet = {
+				has_fleet_flag = ehof_ai_moving_to_wormhole
+				OR = {
+					is_ship_class = shipclass_science_ship
+					is_ship_class = shipclass_constructor
+				}
+				has_auto_move_target = no
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { count_owned_ship = { limit = { is_ship_class = shipclass_science_ship exists = solar_system solar_system = { ehof_cohesive_system = no } } count < 2 } }
+			create_fleet = { effect = { set_owner = root create_ship = { name = random random_existing_design = science } set_location = root.capital_scope } }
+			add_monthly_resource_mult = { resource = alloys value = -1 min = -100 max = -100 }
+		}
+		if = {
+			limit = { count_owned_ship = { limit = { is_ship_class = shipclass_constructor exists = solar_system solar_system = { ehof_cohesive_system = no } } count < 2 } }
+			create_fleet = { effect = { set_owner = root create_ship = { name = random random_existing_design = constructor } set_location = root.capital_scope } }
+			add_monthly_resource_mult = { resource = alloys value = -1 min = -100 max = -100 }
+		}
+
+		random_system_within_border = {
+			limit = { has_star_flag = ehof_megastructure_system@root }
+			star = { save_event_target_as = ehof_ai_move_to_wormhole }
+		}
+
+		if = {
+			limit = {
+				NOT = {
+					any_owned_fleet = {
+						has_fleet_flag = ehof_ai_moving_to_wormhole
+						is_ship_class = shipclass_science_ship
+					}
+				}
+			}
+			random_owned_ship = {
+				limit = {
+					is_ship_class = shipclass_science_ship
+					exists = solar_system
+					solar_system = { ehof_cohesive_system = no }
+				}
+				fleet = {
+					clear_fleet_actions = this
+					clear_orders = yes
+					remove_auto_move_target = yes
+					set_fleet_flag = ehof_ai_moving_to_wormhole
+
+					auto_move_to_planet = {
+						target = event_target:ehof_ai_move_to_wormhole
+						clear_auto_move_on_arrival = no
+						arrival_effect = ehof_ai_at_wormhole
+					}
+				}
+			}
+		}
+
+		if = {
+			limit = {
+				NOT = {
+					any_owned_fleet = {
+						has_fleet_flag = ehof_ai_moving_to_wormhole
+						is_ship_class = shipclass_constructor
+					}
+				}
+			}
+			random_owned_ship = {
+				limit = {
+					is_ship_class = shipclass_constructor
+					exists = solar_system
+					solar_system = { ehof_cohesive_system = no }
+				}
+				fleet = {
+					clear_fleet_actions = this
+					clear_orders = yes
+					remove_auto_move_target = yes
+					set_fleet_flag = ehof_ai_moving_to_wormhole
+
+					auto_move_to_planet = {
+						target = event_target:ehof_ai_move_to_wormhole
+						clear_auto_move_on_arrival = no
+						arrival_effect = ehof_ai_at_wormhole
+					}
+				}
+			}
+		}
+	}
+}
