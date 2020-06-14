@@ -7,7 +7,7 @@
 @tier1researchmin_half = 30
 @tier1researchmax_half = 150
 
-@tier1unityreward_half = 3
+@tier1unityreward_half = 50
 @tier1unitymin_half = 50
 @tier1unitymax_half = 500
 
@@ -28,6 +28,9 @@ ship_event = {
 		FROM = {
 			gpm_has_precursor_modifiers = yes
 			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = gpm_already_rolled_for_prec_dig_site }
+			NOT = { has_planet_flag = gpm_machine_system_moon }
+			NOT = { has_planet_flag = gpm_machine_system_machine_world }
 			NOR = {
 				gpm_is_planet_class_star = yes
 				gpm_is_planet_class_asteroid = yes
@@ -44,17 +47,22 @@ ship_event = {
 	}
 
 	immediate = {
-		FROM.planet ={
-			if = {
-				limit = {
-					gpm_is_planet_class_normal_uninhabitable = yes
-					has_deposit = no
-				}
+		# FROM.planet ={
+		# 	if = {
+		# 		limit = {
+		# 			gpm_is_planet_class_normal_uninhabitable = yes
+		# 			has_deposit = no
+		# 		}
+		# 	}
+		# }
+		locked_random_list = {
+			35 = {
+				FROM = { set_planet_flag = gpm_already_rolled_for_prec_dig_site }
+				modifier = { factor = 0 root.owner = { is_ai = yes } }
 			}
-		}
-		random_list = {
-			50 = { }
-			50 = { FROM = { create_archaeological_site = gpm_precursor_generic_digsite } }
+			65 = {
+				FROM = { create_archaeological_site = gpm_precursor_generic_digsite }
+			}
 		}
 	}
 }
@@ -107,95 +115,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -248,94 +261,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -388,94 +407,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = AMAZING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -528,94 +553,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}			
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -668,94 +699,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.INSPIRING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -808,94 +845,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.HORRIFYING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -948,94 +991,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1088,94 +1137,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.MASSIVE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1228,94 +1283,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1368,94 +1429,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}			
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1508,94 +1575,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}			
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1648,94 +1721,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = INTERESTING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1788,118 +1867,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = physics_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -1952,95 +2013,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
+	option = {
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
 	option = {
 		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+			root.owner = { has_authority = auth_corporate }
 		}
+
 		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2093,94 +2159,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}			
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2233,94 +2305,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = INTERESTING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2373,94 +2451,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2513,94 +2597,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.UNBELIEVABLE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2653,94 +2743,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = INTERESTING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2793,94 +2889,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.HORRIFYING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -2933,94 +3035,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = AMAZING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -3073,94 +3181,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = FASCINATING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -3213,94 +3327,100 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = AMAZING
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}			
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = society_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
@@ -3353,1628 +3473,101 @@ ship_event = {
 			}
 			save_event_target_as = precursor_planet
 		}
-	}
-	
-	option = {
-		name = gpm_survey.MASSIVE
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					locked_random_list = {
-						33 = { add_resource = { minor_artifacts = 3 } }
-						33 = { add_resource = { minor_artifacts = 4 } }
-						33 = { add_resource = { minor_artifacts = 5 } }
-					}
-				}
-				add_monthly_resource_mult = {
-					resource = unity
-					value = @tier1unityreward_half
-					min = @tier1unitymin_half
-					max = @tier1unitymax_half
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}				
-			}
+		root.leader = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				5 = {
+					add_trait = leader_trait_gpm_precursor_expert
+					modifier = { factor = 0 has_trait = leader_trait_gpm_precursor_expert }
+				}
+				95 = { }
 			}
 		}
 	}
+
+	# Base Reward Option
 	option = {
-		name = gpm_survey.MEGACORPSELL
-		trigger = {
-			root = { owner = { has_authority = auth_corporate } }
+		# trigger = {
+		# 	root.owner = { NOT = { has_authority = 000000000000000000 }
+		# }
+
+		name = FASCINATING
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		root.owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1unityreward_half
+				min = @tier1unitymin_half
+				max = @tier1unitymax_half
+			}
 		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
+			}
+		}
+	}
+	# Megacorp Reward Option
+	option = {
+		trigger = {
+			root.owner = { has_authority = auth_corporate }
+		}
+
+		name = gpm_survey.MEGACORPSELL
+		# leader experience
+		# random big experience, double if exploraction policy = slow explore
+		custom_tooltip = gpm_survey_reward_leader_xp
+		root.leader = { gpm_random_experience_big = yes }
+
+		# planet deposit:
 		FROM = {
 			if = {
 				limit = { NOT = { has_deposit = d_trade_value_6 } }
+				custom_tooltip = gpm_survey_reward_deposit
 				add_deposit = d_trade_value_6
-			}			
-		}
-		locked_random_list = {
-			11 = { owner = { add_resource = { energy = 200 } } }
-			22 = { owner = { add_resource = { energy = 300 } } }
-			33 = { owner = { add_resource = { energy = 350 } } }
-			44 = { owner = { add_resource = { energy = 400 } } }
-			33 = { owner = { add_resource = { energy = 450 } } }
-			22 = { owner = { add_resource = { energy = 500 } } }
-			11 = { owner = { add_resource = { energy = 600 } } }
-		}		
-		root = {
-			owner = {
-				if = {
-					limit = { has_ancrel = yes }
-					custom_tooltip = minor_artifacts_found
-					add_resource = { minor_artifacts = 1 } 
-				}
-				add_monthly_resource_mult = {
-					resource = engineering_research
-					value = @tier1researchreward_half
-					min = @tier1researchmin_half
-					max = @tier1researchmax_half
-				}
 			}
+		}
+		# resources
+		custom_tooltip = gpm_survey_reward_empire
+		custom_tooltip = gpm_survey_reward_energy_megacorp
+		root.owner = {
 			locked_random_list = {
-				25 = { leader = { add_experience = 25 } }
-				30 = { leader = { add_experience = 30 } }
-				35 = { leader = { add_experience = 35 } }
-				40 = { leader = { add_experience = 40 } }
-				45 = { leader = { add_experience = 45 } }
-				50 = { leader = { add_experience = 50 } }
-				45 = { leader = { add_experience = 55 } }
-				40 = { leader = { add_experience = 60 } }
-				35 = { leader = { add_experience = 65 } }
-				30 = { leader = { add_experience = 70 } }
-				25 = { leader = { add_experience = 75 } }
+				11 = { add_resource = { energy = 200 } }
+				22 = { add_resource = { energy = 300 } }
+				33 = { add_resource = { energy = 350 } }
+				44 = { add_resource = { energy = 400 } }
+				33 = { add_resource = { energy = 450 } }
+				22 = { add_resource = { energy = 500 } }
+				11 = { add_resource = { energy = 600 } }
+			}
+		}
+
+		# random reward from reward list
+		root.owner = {
+			gpm_random_reward_precursor_remnants = yes
+		}
+
+		# aditional reward from exploration policy
+		root.owner = {
+			if = {
+				limit = { has_policy_flag = gpm_more_discovery_rewards }
+				custom_tooltip = gpm_survey_reward_bonus
+				gpm_exploration_policy_extra_reward = yes
 			}
 		}
 	}
 }
-
-
-
-
-# # precursor discovery bonuses: remnants
-# ship_event = {
-	# id = gpm_survey.5999
-	# title = "gpm_survey.5.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_remnants
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_remnants_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_remnants_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_remnants_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_remnants_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_remnants_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_remnants_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_remnants_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_monthly_resource_mult = {
-					# resource = society_research
-					# value = @tier3researchreward
-					# min = @tier3researchmin
-					# max = @tier3researchmax
-				# }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_monthly_resource_mult = {
-					# resource = unity
-					# value = @tier2unityreward
-					# min = @tier2unitymin
-					# max = @tier2unitymax
-				# }
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_resource = { gpm_arcane_technology  = @arcanetechnology }
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-# }
-
-# # precursor discovery bonuses: energy grid
-# ship_event = {
-	# id = gpm_survey.6999
-	# title = "gpm_survey.6.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_energy_grid
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_energy_grid_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_energy_grid_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_energy_grid_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_energy_grid_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_energy_grid_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_energy_grid_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_energy_grid_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = society_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = energy
-				# value = @tier3materialreward
-				# min = @tier3materialmin
-				# max = @tier3materialmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" } }
-		# name =  INTERESTING
-		# owner = {
-			# give_technology = { tech = "tech_repeatable_improved_tile_energy_output" }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_5" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_5" }
-	# }
-# }
-
-# # precursor discovery bonuses: satelite grid
-# ship_event = {
-	# id = gpm_survey.7999
-	# title = "gpm_survey.7.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_satelite_grid
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_satellite_grid_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_satellite_grid_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_satellite_grid_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_satellite_grid_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_satellite_grid_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_satellite_grid_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_satellite_grid_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# # custom_tooltip = gpm_survey.randomdepositsTT
-		# FROMFROMFROM = {
-			# if = {
-				# limit = { gpm_is_planet_class_normal_habitable = yes }
-				# add_deposit = d_geothermal_vent
-				# add_deposit = d_mineral_fields
-				# add_deposit = d_rich_mountain
-			# }
-			# if = {
-				# limit = { 
-					# gpm_is_planet_class_normal_habitable = no
-					# has_global_flag = gpm_arcane_technology_disabled
-				# }
-				# clear_deposits = yes
-				# add_deposit = d_energy_10
-			# }
-			# if = {
-				# limit = { 
-					# gpm_is_planet_class_normal_habitable = no
-					# NOT = { has_global_flag = gpm_arcane_technology_disabled }
-				# }
-				# add_deposit = gpm_arcane_technology_deposit
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: city
-# ship_event = {
-	# id = gpm_survey.8999
-	# title = "gpm_survey.8.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_city
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_city_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_city_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_city_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_city_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_city_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_city_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_city_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# give_technology = { tech = "tech_repeatable_reduced_building_time" }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: shipyards
-# ship_event = {
-	# id = gpm_survey.9999
-	# title = "gpm_survey.9.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_shipyards
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_shipyards_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_shipyards_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_shipyards_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_shipyards_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_shipyards_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_shipyards_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_shipyards_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# if = {
-				# limit = {
-					# has_technology = "tech_corvettes" 
-					# NOT = { has_technology = "tech_destroyers" }
-				# }
-				# add_tech_progress = { tech = "tech_destroyers" progress = 0.15 }
-				# add_research_option = tech_destroyers
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_destroyers" 
-					# NOT = { has_technology = "tech_cruisers" }
-				# }
-				# add_tech_progress = { tech = "tech_cruisers" progress = 0.15 }
-				# add_research_option = tech_cruisers
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_cruisers" 
-					# NOT = { has_technology = "tech_battleships" }
-				# }
-				# add_tech_progress = { tech = "tech_battleships" progress = 0.15 }
-				# add_research_option = tech_battleships
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_battleships" 
-				# }
-				# give_technology = { tech = "tech_repeatable_improved_military_station_health" }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: planetary gun
-# ship_event = {
-	# id = gpm_survey.10999
-	# title = "gpm_survey.10.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_planetary_gun
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_planetary_gun_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_planetary_gun_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_planetary_gun_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_planetary_gun_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_planetary_gun_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_planetary_gun_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_planetary_gun_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" } }
-		# name =  INTERESTING
-		# owner = {
-			# locked_random_list = {
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_energy_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_energy_fire_rate" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_explosive_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_explosive_fire_rate" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_kinetic_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_kinetic_fire_rate" } }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_5" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_5" }
-	# }
-# }
-
-# # precursor discovery bonuses: bunker grid
-# ship_event = {
-	# id = gpm_survey.11999
-	# title = "gpm_survey.11.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_bunker_grid
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_bunker_grid_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_bunker_grid_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_bunker_grid_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_bunker_grid_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_bunker_grid_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_bunker_grid_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_bunker_grid_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# if = {
-				# limit = {
-					# has_technology = "tech_ship_armor_5" 
-				# }
-				# give_technology = { tech = "tech_repeatable_improved_armor_output" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_ship_armor_4" 
-					# NOT = { has_technology = "tech_ship_armor_5" }
-				# }
-				# give_technology = { tech = "tech_ship_armor_5" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_ship_armor_3" 
-					# NOT = { has_technology = "tech_ship_armor_4" }
-				# }
-				# give_technology = { tech = "tech_ship_armor_4" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_ship_armor_2" 
-					# NOT = { has_technology = "tech_ship_armor_3" }
-				# }
-				# give_technology = { tech = "tech_ship_armor_3" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_ship_armor_1" 
-					# NOT = { has_technology = "tech_ship_armor_2" }
-				# }
-				# give_technology = { tech = "tech_ship_armor_2" }
-			# }
-			# if = {
-				# limit = {
-					# NOT = { has_technology = "tech_ship_armor_1" }
-				# }
-				# give_technology = { tech = "tech_ship_armor_1" }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: mechs
-# ship_event = {
-	# id = gpm_survey.12999
-	# title = "gpm_survey.12.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_mechs
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_mechs_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_mechs_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_mechs_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_mechs_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_mechs_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_mechs_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_mechs_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# custom_tooltip = gpm_survey.mechsTT
-		# owner =  {
-			# create_fleet = {
-				# name = "NAME_Sentinel_Battle_Fleet"
-				# effect = {
-					# set_owner = root.owner
-					# create_army_transport = {
-						# ship_name = "Mechanicus X-1"
-						# graphical_culture = "fallen_empire_01"
-						# army_type = "gpm_precursor_mech_army"
-					# }
-					# create_army_transport = {
-						# ship_name = "Mechanicus X-2"
-						# graphical_culture = "fallen_empire_01"
-						# army_type = "gpm_precursor_mech_army"
-					# }
-					# set_location = {
-						# target = event_target:precursor_planet
-						# distance = 5
-						# angle = random 
-					# }
-				# }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: planetary shield
-# ship_event = {
-	# id = gpm_survey.13999
-	# title = "gpm_survey.13.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_planetary_shield
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_planetary_shield_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_planetary_shield_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_planetary_shield_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_planetary_shield_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_planetary_shield_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_planetary_shield_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_planetary_shield_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# if = {
-				# limit = {
-					# has_technology = "tech_shields_5" 
-				# }
-				# give_technology = { tech = "tech_repeatable_improved_shield_output" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_shields_4" 
-					# NOT = { has_technology = "tech_shields_5" }
-				# }
-				# give_technology = { tech = "tech_shields_5" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_shields_3" 
-					# NOT = { has_technology = "tech_shields_4" }
-				# }
-				# give_technology = { tech = "tech_shields_4" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_shields_2" 
-					# NOT = { has_technology = "tech_shields_3" }
-				# }
-				# give_technology = { tech = "tech_shields_3" }
-			# }
-			# if = {
-				# limit = {
-					# has_technology = "tech_shields_1" 
-					# NOT = { has_technology = "tech_shields_2" }
-				# }
-				# give_technology = { tech = "tech_shields_2" }
-			# }
-			# if = {
-				# limit = {
-					# NOT = { has_technology = "tech_shields_1" }
-				# }
-				# give_technology = { tech = "tech_shields_1" }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-# # precursor discovery bonuses: floating city
-# ship_event = {
-	# id = gpm_survey.14999
-	# title = "gpm_survey.14.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_floating_city
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_floating_city_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_floating_city_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_floating_city_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_floating_city_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_floating_city_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_floating_city_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_floating_city_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = engineering_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" } }
-		# name =  INTERESTING
-		# owner = { give_technology = { tech = "tech_repeatable_reduced_building_time" } }   # not happy with this tech reward
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_5" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_5" }
-	# }
-# }
-
-# # precursor discovery bonuses: capital complex
-# ship_event = {
-	# id = gpm_survey.15999
-	# title = "gpm_survey.15.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_capital_complex
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_capital_complex_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_capital_complex_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_capital_complex_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_capital_complex_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_capital_complex_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_capital_complex_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_capital_complex_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = society_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = unity
-				# value = @tier2unityreward
-				# min = @tier2unitymin
-				# max = @tier2unitymax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: communication hub
-# ship_event = {
-	# id = gpm_survey.16999
-	# title = "gpm_survey.16.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_communication_hub
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_communication_hub_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_communication_hub_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_communication_hub_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_communication_hub_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_communication_hub_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_communication_hub_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_communication_hub_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# custom_tooltip = gpm_survey.communicationTT
-		# owner = {
-			# random_country = {
-				# limit = {
-					# is_country_type = default
-					# NOT = { has_communications = root.owner }
-					# NOT = { is_country = root.owner }
-				# }
-				# save_event_target_as = gpm_communication_target
-			# }
-			# establish_communications = event_target:gpm_communication_target 
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: singularity drive
-# ship_event = {
-	# id = gpm_survey.17999
-	# title = "gpm_survey.17.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_singularity_drive
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_singularity_drive_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_singularity_drive_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_singularity_drive_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_singularity_drive_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_singularity_drive_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_singularity_drive_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_singularity_drive_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# locked_random_list = {
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_mineral_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_military_station_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_military_station_health" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_armor_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_explosive_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_kinetic_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_reduced_building_time" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_energy_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_shield_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_energy_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_reduced_building_cost" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_food_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_edict_length" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_army_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_army_health" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_command_limit" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_starbase_capacity" } }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }
-
-# # precursor discovery bonuses: Eternal Fortress
-# ship_event = {
-	# id = gpm_survey.37999
-	# title = "gpm_survey.37.name"
-	# desc = {
-		# trigger = {
-			# owner = { NOT = { has_authority = auth_machine_intelligence	} }
-		# }
-		# text = "gpm_survey.REWARD"
-	# }
-	# desc = {
-		# trigger = {	owner = { has_authority = auth_machine_intelligence } }
-		# text = "gpm_survey.REWARD.mach"
-	# }
-	# picture = GFX_evt_gpm_precursor_eternal_fortress
-	# show_sound = event_scanner
-	# location = ROOT
-
-	# is_triggered_only = yes
-	
-	# option = {	
-		# name =  INTERESTING
-		# owner = {
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_1" }
-				# add_modifier = { modifier = "gpm_precursor_eternal_fortress_discovery" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_1"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_2" }
-				# add_modifier = { modifier = "gpm_precursor_eternal_fortress_discovery_2" days = -1 }
-				# remove_country_flag = "gpm_discovery_reward_2"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_3" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_eternal_fortress_discovery" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_eternal_fortress_discovery
-				# remove_country_flag = "gpm_discovery_reward_3"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_4" }
-				# add_tech_progress = { tech = "tech_gpm_precursor_eternal_fortress_discovery_2" progress = 0.01 }
-				# add_research_option = tech_gpm_precursor_eternal_fortress_discovery_2
-				# remove_country_flag = "gpm_discovery_reward_4"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_5" }
-				
-				# remove_country_flag = "gpm_discovery_reward_5"
-			# }
-			# if = { limit = { has_country_flag = "gpm_discovery_reward_6" }
-				
-				# remove_country_flag = "gpm_discovery_reward_6"
-			# }
-		# }
-	# }
-
-	
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_1" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_modifier = { modifier = "gpm_precursor_singularity_drive_discovery" days = -1 }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_1" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_2" } }
-		# name =  INTERESTING
-		# owner = {
-			# add_monthly_resource_mult = {
-				# resource = physics_research
-				# value = @tier3researchreward
-				# min = @tier3researchmin
-				# max = @tier3researchmax
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_2" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_3" } }
-		# name =  INTERESTING
-		# owner = {
-			# locked_random_list = {
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_mineral_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_military_station_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_military_station_health" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_armor_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_explosive_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_kinetic_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_reduced_building_time" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_energy_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_shield_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_weapon_type_energy_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_reduced_building_cost" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_tile_food_output" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_edict_length" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_army_damage" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_army_health" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_command_limit" } }
-				# 10 = { give_technology = { tech = "tech_repeatable_improved_starbase_capacity" } }
-			# }
-		# }
-		# owner = { remove_country_flag = "gpm_discovery_reward_3" }
-	# }
-	# option = {
-		# trigger = { owner = { has_country_flag = "gpm_discovery_reward_4" }
-			# NOT = { has_global_flag = gpm_arcane_technology_disabled }	 # dont spawn crystals if arcane tech is disabled 
-		# }
-		# name =  INTERESTING
-		# owner = { add_resource = { gpm_arcane_technology  = @arcanetechnology } }
-		# owner = { remove_country_flag = "gpm_discovery_reward_4" }
-	# }
-# }

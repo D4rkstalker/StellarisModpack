@@ -97,11 +97,11 @@ country_event = {
 				save_event_target_as = candidate_gateway
 			}
 			# enable project
-			country_event = { id = distar.10905 }			
+			country_event = { id = distar.10905 }
 		}
 		else = {
 			# *THIS* looping check
-			country_event = { id = distar.10902 days = 60 }			
+			country_event = { id = distar.10902 days = 60 }
 		}
 	}
 }
@@ -129,7 +129,7 @@ country_event = {
 				id = distar.11000
 			}
 		}
-		### Set 1st L-Gate as Target 
+		### Set 1st L-Gate as Target
 		if = {
 			limit = {
 				NOT = {
@@ -245,7 +245,6 @@ country_event = {
 						factor = 0
 						has_global_flag = CmtFlagLgateForbidSilence
 						NAND = {
-							has_global_flag = CmtFlagLgateForbidSilence
 							has_global_flag = CmtFlagLgateForbidLdrake
 							has_global_flag = CmtFlagLgateForbidDessanu
 							has_global_flag = CmtFlagLgateForbidGraygoo
@@ -255,7 +254,16 @@ country_event = {
 				30 = {
 					modifier = {
 						factor = 0
-						has_global_flag = CmtFlagLgateForbidLdrake
+						# OR = {
+							has_global_flag = CmtFlagLgateForbidLdrake
+							# AND = { # remove outcome anyway?
+							# 	has_global_flag = CmtFlagLgateForbidSilence
+							# 	NAND = {
+							# 		has_global_flag = CmtFlagLgateForbidDessanu
+							# 		has_global_flag = CmtFlagLgateForbidGraygoo
+							# 	}
+							# }
+						# }
 					}
 					set_global_flag = dragon_season
 				}
@@ -274,6 +282,21 @@ country_event = {
 					set_global_flag = gray_goo_crisis_set
 					set_global_flag = active_gray_goo
 				}
+			}
+			## ADT: Always L-Drake
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = CmtFlagLgateForbidLdrake
+						has_global_flag = dragon_season
+					}
+					NAND = {
+						has_global_flag = CmtFlagLgateForbidDessanu
+						has_global_flag = CmtFlagLgateForbidGraygoo
+						has_global_flag = CmtFlagLgateForbidSilence
+					}
+				}
+				set_global_flag = dragon_season
 			}
 		}
 		### Activate L-Gate
@@ -323,11 +346,6 @@ country_event = {
 				id = graygoo.1
 				days = 1
 			}
-			# Make friendly
-			country_event = {
-				id = distar.13006
-				days = 1
-			}
 			country_event = {
 				id = a_deadly_tempest.137
 				days = 24
@@ -339,11 +357,6 @@ country_event = {
 			}
 			country_event = {
 				id = graygoo.100
-				days = 3
-			}
-			# Make friendly too?
-			country_event = {
-				id = distar.13006
 				days = 3
 			}
 			country_event = {
@@ -370,19 +383,23 @@ country_event = {
 		# Activate Terminal Egress L-Gate (if not already opened by other outcome)
 		event_target:lcluster1 = {
 			random_system_megastructure = {
-				limit = {
-					CmtTriggerIsClosedLgate = yes
-				}
+				limit = { CmtTriggerIsClosedLgate = yes }
 				CmtEffectOpenLgate = yes
 			}
 		}
 		# Activate originating L-Gate: Put AFTER distar.13000 (if not already opened by other outcome)
-		event_target:candidate_gateway = {
+		event_target:CmtTargetLgateOrininatingSystem = {
 			if = {
 				limit = {
-					CmtTriggerIsClosedLgate = yes
+					any_system_megastructure = {
+						CmtTriggerIsClosedLgate = yes
+					}
 				}
-				CmtEffectOpenLgate = yes
+				save_event_target_as = candidate_gateway # for desc only
+				random_system_megastructure = {
+					limit = { CmtTriggerIsClosedLgate = yes }
+					CmtEffectOpenLgate = yes
+				}
 			}
 		}
 		### Technology Control: Put AFTER graygoo.100
@@ -395,6 +412,8 @@ country_event = {
 				message = no
 			}
 		}
+		## Make dragons friendly (sometimes not working so call it twice)
+		country_event = { id = a_deadly_tempest.13006 days = 4 }
 	}
 }
 
@@ -536,41 +555,33 @@ country_event = {
 				}
 			}
 		}
-		while = {
+		# while = {	limit = { any_megastructure = { CmtTriggerIsClosedLgate = yes } }
+		every_system = {
 			limit = {
-				any_system = {
-					any_system_megastructure = {
-						CmtTriggerIsClosedLgate = yes
-					}
+				CmtTriggerIsGalaxyLgateSystem = yes # TODO may remove?
+				any_system_megastructure = {
+					CmtTriggerIsClosedLgate = yes
 				}
 			}
-			random_system = {
+			# flip L-Gates
+			random_system_megastructure = {
 				limit = {
-					CmtTriggerIsGalaxyLgateSystem = yes
-					any_system_megastructure = {
-						CmtTriggerIsClosedLgate = yes
-					}
+					CmtTriggerIsClosedLgate = yes
 				}
-				# flip L-Gates
-				random_system_megastructure = {
-					limit = {
-						CmtTriggerIsClosedLgate = yes
-					}
-					CmtEffectOpenLgate = yes
-				}
-				# set dragon spawning grounds
-				closest_system = {
-					min_steps = 3
-					limit = {
-						NOR = {
-							has_star_flag = dragon_point
-							any_system_planet = {
-								is_colony = yes
-							}
+				CmtEffectOpenLgate = yes
+			}
+			# set dragon spawning grounds
+			closest_system = {
+				min_steps = 3
+				limit = {
+					NOR = {
+						has_star_flag = dragon_point
+						any_system_planet = {
+							is_colony = yes
 						}
 					}
-					set_star_flag = dragon_point
 				}
+				set_star_flag = dragon_point
 			}
 		}
 		# notify those without l-gate systems
@@ -624,7 +635,7 @@ country_event = {
 								prevprev = {
 									exists = owner
 								}
-							}							
+							}
 							save_event_target_as = dragons_target
 							prevprev = {
 								save_event_target_as = dragons_current_system
@@ -685,57 +696,6 @@ country_event = {
 					create_ambient_object = {
 						location = this
 						type = horror_spawn_object
-					}
-				}
-			}
-		}
-	}
-}
-
-# goo_dragon_friendship
-country_event = {
-	id = distar.13006
-	hide_window = yes
-	is_triggered_only = yes
-	immediate = {
-		if = {
-			limit = {
-				NOT = {
-					exists = event_target:spawning_dragons
-				}
-			}
-			every_country = {
-				if = {
-					limit = {
-						is_country_type = ldragon_country
-					}
-					save_global_event_target_as = spawning_dragons
-				}
-				else = {
-					break = yes
-				}
-			}
-		}
-		event_target:spawning_dragons = {
-			random_country = {
-				limit = {
-					OR = {
-						is_country_type = gray_goo
-						is_country_type = gate_builders
-					}
-				}
-				set_faction_hostility = {
-					set_hostile = no
-					#set_neutral = no
-					set_friendly = yes
-					target = prev					# Dragons
-				}
-				prev = {
-					set_faction_hostility = {
-						set_hostile = no
-						#set_neutral = no
-						set_friendly = yes
-						target = prev						# Gray Tempest
 					}
 				}
 			}

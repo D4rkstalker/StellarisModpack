@@ -829,7 +829,7 @@ planet_event = {
 
 ##################################
 # Special System Events
-# Reserved 100 - 198
+# Reserved 100 - 199
 ##################################
 
 ### Citadel ###
@@ -1036,12 +1036,8 @@ ship_event = {
 	immediate = {
 		FROM = {
 			if = {
-				limit = { NOT = { is_planet_class = pc_broken } }
-				change_pc = pc_broken
-				clear_planet_modifiers = yes
-				reset_planet = yes
-				clear_planet_modifiers = yes
-				set_deposit = d_rare_crystals_3
+				limit = { NOT = { has_deposit = d_rare_crystals_3 } }
+				add_deposit = d_rare_crystals_3
 			}
 		}
 	}
@@ -1070,7 +1066,7 @@ ship_event = {
 	option = {
 		name = colonyexpanded.131.a
 		FROMFROM = {
-			hidden_effect = { clear_deposits = yes }
+			hidden_effect = { remove_deposit = d_rare_crystals_3}
 			add_deposit = d_society_10
 			add_deposit = d_society_5
 			add_deposit = d_engineering_10
@@ -1089,33 +1085,8 @@ ship_event = {
 
 ##################################
 # Deposit and Blocker Events
-# Reserved 199 - 298
+# Reserved 200 - 298
 ##################################
-
-# Deposit Tabola, five year intervals
-event = {
-	id = colonyexpanded.199
-	hide_window = yes
-	is_triggered_only = yes
-	
-	immediate = {
-		every_planet = {
-			limit = {
-				is_colony = yes
-				is_under_colonization = no
-				is_homeworld = no
-				is_capital = no
-				exists = owner
-				owner = { OR = {
-					is_country_type = default
-					is_country_type = ascended_empire
-					is_country_type = lost_empire
-				} }
-			}
-			planet_event = { id = colonyexpanded.200 days = 60 random = 1620 }
-		}
-	}
-}
 planet_event = {
 	id = colonyexpanded.200
 	hide_window = yes
@@ -1138,7 +1109,7 @@ planet_event = {
 	immediate = {
 		random_list = {
 			# total out of 500
-			314 = { }
+			295 = { }
 			# Curious Wildlife (dangerous wildlife)
 			17 = { planet_event = { id = colonyexpanded.201 days = 60 random = 1620 } }
 			# Volcanic earthquake reveals minerals (volcano)
@@ -1184,6 +1155,10 @@ planet_event = {
 					planet_event = { id = colonyexpanded.221 days = 60 random = 1620 }
 				}
 			}
+			# Miners Discover Crystal Caves
+			4 = { planet_event = { id = colonyexpanded.222 days = 60 random = 1620 } }
+			# Miners Discover Mineral Cave
+			15 = { planet_event = { id = colonyexpanded.223 days = 60 random = 1620 } }
 		}
 	}
 }
@@ -2068,7 +2043,7 @@ planet_event = {
 				name = random
 				class = "LITHOID"
 				portrait = random
-				traits = random
+				traits = random_traits
 				homeworld = ROOT
 				effect = {
 					save_global_event_target_as = petrified_lithoid_species
@@ -2083,7 +2058,7 @@ planet_event = {
 				portrait = random
 				traits = {
 					trait = "trait_hive_mind"
-					trait = random
+					trait = random_traits
 				}
 				homeworld = ROOT
 				effect = {
@@ -2116,55 +2091,110 @@ planet_event = {
 	}
 }
 
+# Miners Discover Crystal Caves
+planet_event = {
+	id = colonyexpanded.222
+	title = "colonyexpanded.222.name"
+	desc = "colonyexpanded.222.desc"
+	picture = GFX_evt_mining_operations
+	show_sound = event_drilling
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		owner = {
+			has_technology = tech_mining_1
+			NOT = { has_country_flag = found_crystal_cave }
+		}
+		OR = {
+			num_districts = { type = district_mining value > 2 }
+			num_districts = { type = district_mining_uncapped value > 2 }
+		}
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = found_crystal_cave
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+		add_deposit = d_crystalline_caverns
+	}
+}
+
+# Miners Discover Mineral Cave
+planet_event = {
+	id = colonyexpanded.223
+	title = "colonyexpanded.223.name"
+	desc = "colonyexpanded.223.desc"
+	picture = GFX_evt_mining_operations
+	show_sound = event_drilling
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		num_districts = { type = district_mining value > 2 }
+		NOT = { has_planet_flag = found_mineral_vein }
+	}
+	
+	immediate = {
+		set_planet_flag = found_mineral_vein
+	}
+	
+	option = {
+		name = EXCELLENT
+		add_deposit = d_ore_rich_caverns
+	}
+}
+
 ##################################
 # Various Colony Events
 # Reserved 299 - 399
 ##################################
 
 ### Randomly spawn planet modifier events ###
-event = {
+planet_event = {
 	id = colonyexpanded.299
 	hide_window = yes
 	is_triggered_only = yes
 	
-	immediate = {
-		every_country = {
-			random_list = {
-				40 = {
-					random_owned_planet = {
-						limit = {
-							OR = {
-								AND = {
-									has_modifier = "strong_magnetic_field"
-									NOT = { has_modifier = "magnetic_research_boost" }
-									NOT = { has_modifier = "magnetic_disruption" }
-								}
-								AND = {	
-									has_modifier = asteroid_impacts
-									NOT = { has_planet_flag = asteroid_defences_colony_flag }
-								}
-								AND = {
-									has_modifier = unstable_tectonics
-									NOT = { has_modifier = recent_quake }
-								}
-								AND = {
-									has_modifier = "asteroid_belt"
-									NOR = { 
-										has_modifier = "recent_comet" 
-										owner = { has_ethic = ethic_gestalt_consciousness }
-									}
-								}
-							}
-							is_under_colonization = no
-							colony_age > 10
-						}
-						planet_event = { id = colony_mod.161 days = 180 random = 720 }
-					}
-				}
-				60 = {
-					# nothing happens
+	trigger = {
+		OR = {
+			AND = {
+				has_modifier = "strong_magnetic_field"
+				NOT = { has_modifier = "magnetic_research_boost" }
+				NOT = { has_modifier = "magnetic_disruption" }
+			}
+			AND = {	
+				has_modifier = asteroid_impacts
+				NOT = { has_planet_flag = asteroid_defences_colony_flag }
+			}
+			AND = {
+				has_modifier = unstable_tectonics
+				NOT = { has_modifier = recent_quake }
+			}
+			AND = {
+				has_modifier = "asteroid_belt"
+				NOR = { 
+					has_modifier = "recent_comet" 
+					owner = { has_ethic = ethic_gestalt_consciousness }
 				}
 			}
+		}
+		is_under_colonization = no
+		colony_age > 10
+	}
+	
+	immediate = {
+		random_list = {
+			1 = { planet_event = { id = colony_mod.161 days = 180 random = 720 } }
+			9 = { }
 		}
 	}
 }
@@ -5931,43 +5961,34 @@ planet_event = {
 ############################
 
 # Hell Tabola
-event = {
+planet_event = {
 	id = colonyexpanded.570
 	hide_window = yes
 	is_triggered_only = yes
 	
+	trigger = {
+		has_planet_flag = dportal_hell
+		NOT = { has_planet_flag = dportal_closed }
+	}
+	
 	immediate = {
-		random_country = {
-			limit = {
-				any_owned_planet = {
-					has_planet_flag = dportal_hell
-					NOT = { has_planet_flag = dportal_closed }
-				}
+		random_list = {
+			# Hell Suicides
+			1 = {
+				planet_event = { id = colonyexpanded.571 days = 180 random = 2000 }
 			}
-			random_owned_planet = {
-				limit = {
-					has_planet_flag = dportal_hell
-					NOT = { has_planet_flag = dportal_closed }
-				}
-				random_list = {
-					# Hell Suicides
-					1 = {
-						planet_event = { id = colonyexpanded.571 days = 180 random = 2000 }
-					}
-					# Detect devils
-					1 = {
-						planet_event = { id = colonyexpanded.572 days = 180 random = 2000 }
-					}
-					# Portal getting bigger
-					1 = {
-						planet_event = { id = colonyexpanded.573 days = 180 random = 2000 }
-					}
-					# Portal corrupts researchers
-					# Portal cult (portal cultist job)
-					# Devil tries to escape
-					97 = { }
-				}
+			# Detect devils
+			1 = {
+				planet_event = { id = colonyexpanded.572 days = 180 random = 2000 }
 			}
+			# Portal getting bigger
+			1 = {
+				planet_event = { id = colonyexpanded.573 days = 180 random = 2000 }
+			}
+			# Portal corrupts researchers
+			# Portal cult (portal cultist job)
+			# Devil tries to escape
+			197 = { }
 		}
 	}
 }
@@ -6196,7 +6217,7 @@ event = {
 					NOT = { has_ethic = ethic_gestalt_consciousness }
 					OR = {
 						NOT = { resource_stockpile_compare = { resource = food value > 1 } }
-						has_policy_flag = has_edict = food_rationing
+						has_edict = food_rationing
 					}
 					any_owned_planet = {
 						exists = controller
@@ -6219,7 +6240,7 @@ event = {
 					NOT = { has_ethic = ethic_gestalt_consciousness }
 					OR = {
 						NOT = { resource_stockpile_compare = { resource = food value > 1 } }
-						has_policy_flag = has_edict = food_rationing
+						has_edict = food_rationing
 					}
 					any_owned_planet = {
 						exists = controller
@@ -6366,7 +6387,7 @@ planet_event = {
 	desc = {
 		text = colonyexpanded.601.desc.rationing
 		trigger = {
-			owner = { has_policy_flag = has_edict = food_rationing }
+			owner = { has_edict = food_rationing }
 		}
 	}
 	picture = GFX_evt_burning_settlement
@@ -6386,7 +6407,7 @@ planet_event = {
 			NOT = { has_ethic = ethic_gestalt_consciousness }
 			OR = {
 				NOT = { resource_stockpile_compare = { resource = food value > 1 } }
-				has_policy_flag = has_edict = food_rationing
+				has_edict = food_rationing
 				# other reasons from other events:
 			}
 		}

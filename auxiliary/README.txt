@@ -1,0 +1,1 @@
+This folder contains stuff not important to the mod itself. But Since I do things on several computers I have had problems that files related to my mods gets lost, or that I have different versions in different places. To simplify I have decided to simple package it with the mod in this way. This folder is totally irrelevant to the user (you can delete if you want).

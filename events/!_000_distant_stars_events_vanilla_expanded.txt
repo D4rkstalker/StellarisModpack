@@ -11,6 +11,172 @@ namespace = distar
 # root = ship scope
 # from = planet scope
 
+### Supply Wreckage ###
+ship_event = {
+	id = distar.1
+	title = "distar.1.name"
+	desc = "distar.1.desc"
+	picture = GFX_evt_space_debris
+	show_sound = event_ship_bridge
+	location = event_target:supply_wreckage_tar
+
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			any_neighbor_country = {
+				is_ai = yes
+				is_country_type = default
+				is_homicidal = no
+				has_communications = prev
+				NOR = {
+					is_at_war_with = prev
+					is_same_value = prev
+				}
+			}
+		}
+	}
+
+	immediate = {
+		create_ambient_object = {
+			type = "abandoned_ship_object"
+			location = from
+		}
+		last_created_ambient_object = {
+			save_event_target_as = supply_wreckage_tar
+			set_location = {
+				target = from
+				distance = 5
+				angle = 90
+			}
+		}
+		owner = {
+			random_neighbor_country = {
+				limit = {
+ 					is_country_type = default
+ 					is_homicidal = no
+					has_communications = prev
+					NOR = {
+						is_at_war_with = prev
+						is_country = prev
+					}
+					any_system = { has_access_fleet = prev }
+				}
+				save_event_target_as = wreckage_owner
+			}
+		}
+	}
+	option = {
+		name = "distar.1.a"
+		owner = { add_resource = { minerals = 300 } }
+		custom_tooltip = "distar.1.a.tooltip"
+		hidden_effect = { owner = { country_event = { id = distar.2 days = 180 } } }
+	}
+	option = {
+		name = "distar.1.a.alt"
+		trigger = {
+			owner = { NOT = { is_at_war_with = event_target:wreckage_owner } }
+			leader = { has_trait = leader_trait_expertise_statecraft }
+		}
+		owner = { add_resource = { minerals = 150 } }
+		hidden_effect = {
+			event_target:wreckage_owner = { add_resource = { minerals = 150 } }
+		}
+		custom_tooltip = "distar.1.a.tooltip.alt"
+		hidden_effect = { owner = { country_event = { id = distar.3 days = 180 } } }
+	}
+	option = {
+		trigger = {
+			owner = { NOT = { is_at_war_with = event_target:wreckage_owner } }
+		}
+		hidden_effect = {
+			event_target:wreckage_owner = { add_resource = { minerals = 300 } }
+		}
+		name = "distar.1.b"
+		custom_tooltip = "distar.1.b.tooltip"
+		hidden_effect = { owner = { country_event = { id = distar.3 days = 60 } } }
+	}
+}
+
+country_event = {
+	id = distar.2
+	title = "distar.2.name"
+	desc = {
+		trigger = {
+			NOT = { has_authority = auth_machine_intelligence }
+		}
+		text = "distar.2.desc"
+	}
+	desc = {
+		trigger = {
+			has_authority = auth_machine_intelligence
+		}
+		text = "distar.2.desc.machi"
+	}
+	location = event_target:wreckage_owner
+
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:wreckage_owner
+		planet_background = event_target:wreckage_owner
+		graphical_culture = event_target:wreckage_owner
+		city_level = event_target:wreckage_owner
+		room = event_target:wreckage_owner.ruler
+	}
+
+	option = {
+		trigger = { resource_stockpile_compare = { resource = minerals value >= 300 } }
+		name = distar.2.a
+		event_target:wreckage_owner = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_stole_supplies
+			}
+		}
+		hidden_effect = {
+			event_target:supply_wreckage_tar = {
+				destroy_ambient_object = this
+			}
+		}
+	}
+
+	option = {
+		trigger = {
+			resource_stockpile_compare = { resource = minerals value >= 300 }
+			NOT = { is_at_war_with = event_target:wreckage_owner }
+		}
+		name = distar.2.b
+		add_resource = { minerals = -300 }
+		hidden_effect = {
+			event_target:wreckage_owner = { add_resource = { minerals = 300 } }
+		}
+		hidden_effect = {
+			event_target:supply_wreckage_tar = {
+				destroy_ambient_object = this
+			}
+		}
+	}
+
+	option = {
+		trigger = { resource_stockpile_compare = { resource = minerals value < 300 } }
+		name = TOOPOOR
+		event_target:wreckage_owner = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_stole_supplies
+			}
+		}
+		hidden_effect = {
+			event_target:supply_wreckage_tar = {
+				destroy_ambient_object = this
+			}
+		}
+	}
+}
+
 ## Superflare Ancient Civ
 ship_event = {
 	id = distar.6
@@ -55,6 +221,181 @@ ship_event = {
 		name = INTERESTING
 		small_artifact_reward = yes
 		custom_tooltip = distar.25.b.tooltip
+	}
+}
+
+ ## Rudimentary Robots -> Rage Virus Chain
+planet_event = {
+	id = distar.26
+	title = "distar.26.name"
+	desc = "distar.26.desc"
+	picture = GFX_evt_organic_oppression
+	show_sound = event_scanner
+	location = root
+
+	is_triggered_only = yes
+
+	trigger = {
+		has_planet_flag = primitive_robot_planet
+		any_pop = {
+			species = {
+				has_species_flag = primitive_robots_flag
+			}
+		}
+		owner = {
+			is_country_type = default
+			NOT = { has_country_flag = cured_rage_virus }
+		}
+	}
+
+	immediate = {
+		planet_event = { id = distar.31 days = 1825 random = 730 }
+		set_planet_flag = colony_event
+	}
+
+	option = {
+		trigger = {
+			owner = {
+				NOR = {
+					has_policy_flag = ai_outlawed
+					has_ethic = ethic_gestalt_consciousness
+				}
+			}
+		}
+		name = "distar.26.a"
+		custom_tooltip = "distar.26.a.tooltip"
+		hidden_effect =  { planet_event = { id = distar.27 days = 90 random = 10 } }
+	}
+	option = {
+		trigger = {
+			owner = { NOT = { has_policy_flag = ai_outlawed } }
+		}
+		name = "distar.26.b"
+		owner = {
+			add_resource = { minerals = 100 }
+		}
+		root = {
+			every_owned_pop = {
+				limit = { species = { has_species_flag = primitive_robots_flag } }
+				kill_pop = yes
+			}
+		}
+	}
+	option = {
+		trigger = {
+			owner = { has_policy_flag = ai_outlawed }
+		}
+		name = "distar.26.c"
+		owner = {
+			add_resource = { minerals = 100 }
+		}
+		root = {
+			every_owned_pop = {
+				limit = { species = { has_species_flag = primitive_robots_flag } }
+				kill_pop = yes
+			}
+		}
+	}
+	option = {
+		trigger = {
+			owner = { has_authority = auth_machine_intelligence }
+		}
+		name = "distar.26.mach"
+		custom_tooltip = "distar.26.a.tooltip"
+		hidden_effect =  { planet_event = { id = distar.27 days = 90 random = 10 } }
+	}
+
+	after = {
+		hidden_effect = { remove_modifier = "primitive_robots" }
+	}
+}
+
+planet_event = { #Recursive, spreads every other month as long as have biopops left to spread to on planet
+	id = distar.32
+	title = "distar.32.name"
+	desc = "distar.32.desc"
+	picture = GFX_evt_burning_settlement
+	show_sound = event_planetary_riot
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { NOT = { has_country_flag = cured_rage_virus } }
+		any_owned_pop = {
+			NOR = {
+				has_trait = trait_mechanical
+				has_trait = trait_machine_unit
+				has_modifier = erratic_behavior
+			}
+		}
+	}
+
+	immediate = {
+		IF = {
+			limit = {
+				count_pops = {
+					limit = {
+						NOR = {
+							has_trait = trait_mechanical
+							has_trait = trait_machine_unit
+						}
+					}
+					count < 6
+				}
+			}
+			random_pop = {
+				limit = {
+					NOR = {
+						has_trait = trait_mechanical
+						has_trait = trait_machine_unit
+						has_modifier = erratic_behavior
+					}
+				}
+				add_modifier = { modifier = erratic_behavior days = -1 }
+			}
+		}
+		else = {
+			while = {
+				count = 2
+				random_pop = {
+					limit = {
+						NOR = {
+							has_trait = trait_mechanical
+							has_trait = trait_machine_unit
+							has_modifier = erratic_behavior
+						}
+					}
+					add_modifier = { modifier = erratic_behavior days = -1 }
+				}
+			}
+		}
+		planet_event = { id = distar.32 days = 60 }
+	}
+
+	option = {
+		name = WORRYING
+	}
+}
+
+planet_event = {
+	id = distar.35
+	title = "distar.35.name"
+	desc = "distar.35.desc"
+	picture = GFX_evt_interior_battle
+	show_sound = event_red_alert
+	location = from
+
+	is_triggered_only = yes
+	
+	immediate = {
+		add_modifier = { modifier = researcher_rage days = 365 }
+	}
+
+	option = {
+		name = "distar.35.a"
+		tooltip = { add_modifier = { modifier = researcher_rage days = 365 } }
 	}
 }
 
@@ -350,6 +691,10 @@ country_event = { #Adopted Amoeba Evolves
 
 	option = {
 		name = "distar.51.a"
+		allow = {
+			NOT = { has_ethic = ethic_fanatic_xenophobe }
+			is_homicidal = no
+		}
 		event_target:lost_amoeba_adult_fleet = {
 			set_name = "NAME_Bubbles"
 			hidden_effect = {
@@ -813,6 +1158,114 @@ ship_event = {
 	}
 }
 
+ship_event = { #Exofungus
+	id = distar.105
+	title = "distar.105.name"
+	desc = "distar.105.desc"
+	picture = GFX_evt_alien_nature
+	show_sound = event_alien_nature
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = WORRYING
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+	option = {
+		name = distar.105.b
+		trigger = {
+			leader = {
+				OR = {
+					has_trait = leader_trait_expertise_biology
+					has_trait = leader_trait_spark_of_genius
+					has_trait = leader_trait_maniacal
+				}
+			}
+		}
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+		custom_tooltip = distar.105.b.tooltip
+		hidden_effect = {
+			random_list = {
+				1 = {
+					ship_event = { id = anomalymod.38 } # fungicide fails
+				}
+				2 = { } # fungicide works
+			}
+			FROM = {
+				remove_deposit = d_exofungus_blocker
+				remove_deposit = d_exofungus_blocker
+			}
+		}
+	}
+}
+
+ship_event = { #Heavy Metal Frost
+	id = distar.115
+	title = "distar.115.name"
+	desc = "distar.115.desc"
+	picture = GFX_evt_toxic
+	show_sound = event_scanner
+	location = from
+
+	is_triggered_only = yes
+
+	immediate = {
+		from = {
+			if = {
+				limit = { has_deposit_for = shipclass_research_station }
+				clear_deposits = yes
+			}
+		}
+	}
+
+	option = {
+		name = INTERESTING
+		trigger = {
+			leader = {
+				NOR = {
+					has_trait = leader_trait_expertise_materials
+					has_trait = leader_trait_expertise_industry
+				}
+			}
+		}
+		from = {
+			add_deposit = d_minerals_2
+			add_deposit = d_alloys_2
+		}
+	}
+	option = {
+		name = INTERESTING
+		trigger = {
+			leader = {
+				OR = {
+					has_trait = leader_trait_expertise_materials
+					has_trait = leader_trait_expertise_industry
+				}
+			}
+		}
+		from = {
+			add_deposit = d_minerals_2
+			add_deposit = d_alloys_2
+			add_deposit = d_volatile_motes_1
+		}
+	}
+}
+
 ship_event = { #Watery Grave
 	id = distar.120
 	title = "distar.120.name"
@@ -825,6 +1278,16 @@ ship_event = { #Watery Grave
 
 	option = {
 		name = INTERESTING
+		trigger = { owner = { is_xenophile = no } }
+		small_artifact_reward = yes
+		from = {
+			add_modifier = { modifier = watery_grave days = -1 }
+			add_deposit = d_flooded_mounds
+		}
+	}
+	option = {
+		name = UNFORTUNATE
+		trigger = { owner = { is_xenophile = yes } }
 		small_artifact_reward = yes
 		from = {
 			add_modifier = { modifier = watery_grave days = -1 }
@@ -958,12 +1421,7 @@ ship_event = {
 				sapient = no
 			}
 			while = {
-				limit = {
-					count_pops = {
-						limit = { is_sapient = no }
-						count < 3
-					}
-				}
+				count = 3
 				create_pop = { species = last_created }
 			}
 		}
@@ -1053,13 +1511,13 @@ ship_event = {
 	option = {
 		trigger = {
 			owner = {
-				NOR = {
-					has_ethic = ethic_xenophobe
-					has_ethic = ethic_fanatic_xenophobe
-				}
+				is_xenophobe = no
 			}
 		}
 		name = "distar.172.a"
+		allow = {
+			is_homicidal = no
+		}
 		owner = {
 			while = {
 				count = 3
@@ -1131,8 +1589,7 @@ ship_event = {
 		trigger = {
 			hidden_trigger = {
 				owner = {
-					has_ethic = ethic_xenophobe
-					has_ethic = ethic_fanatic_xenophobe
+					is_xenophobe = yes
 					any_owned_pop = {
 						NOR = {
 							has_ethic = ethic_xenophobe
@@ -1143,6 +1600,9 @@ ship_event = {
 			}
 		}
 		name = "distar.172.a"
+		allow = {
+			is_homicidal = no
+		}
 		owner = {
 			while = {
 				count = 3
@@ -1187,6 +1647,129 @@ ship_event = {
 		name = "distar.172.b"
 		custom_tooltip = "distar.172.b.tooltip"
 		owner = { set_country_flag = brainslug_offer_rejected }
+	}
+}
+
+country_event = { #Cohabitants of Brainslugged pops generate initial Unrest
+	id = distar.175
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		IF = {
+			LIMIT = {
+				NOR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+			every_owned_planet = {
+				limit = {
+					OR = {
+						any_owned_pop = { has_trait = trait_brainslug }
+						leader = {
+							has_trait = leader_trait_governor_brainslug
+						}
+					}
+				}
+				add_modifier = { modifier = brainslug_woes days = 14600 }
+			}
+			every_owned_planet = {
+				limit = {
+					NOR = {
+						any_owned_pop = { has_trait = trait_brainslug }
+						leader = {
+							has_trait = leader_trait_governor_brainslug
+						}
+					}
+				}
+				add_modifier = { modifier = brainslug_woes days = 7300 }
+			}
+		}
+		ELSE_IF = { #Xenophobes result in higher unrest
+			LIMIT = { has_ethic = ethic_xenophobe }
+			every_owned_planet = {
+				limit = {
+					OR = {
+						any_owned_pop = { has_trait = trait_brainslug }
+						leader = {
+							has_trait = leader_trait_governor_brainslug
+						}
+					}
+				}
+				add_modifier = { modifier = brainslug_woes_phobe days = 14600 }
+			}
+			every_owned_planet = {
+				limit = {
+					NOR = {
+						any_owned_pop = { has_trait = trait_brainslug }
+						leader = {
+							has_trait = leader_trait_governor_brainslug
+						}
+					}
+				}
+				add_modifier = { modifier = brainslug_woes_phobe days = 7300 }
+			}
+		}
+		ELSE = { # Fanatic xenophobes even more so.
+			every_owned_planet = {
+				add_modifier = { modifier = brainslug_woes_phobe days = 15000 }
+			}
+		}
+	}
+}
+
+
+ship_event = { #Thirsty Rocks
+	id = distar.180
+	title = "distar.180.name"
+	desc = "distar.180.desc"
+	picture = GFX_evt_warm_barren
+	show_sound = event_scanner
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = INTERESTING
+		from = {
+			hidden_effect = {
+				if = {
+					limit = { has_deposit_for = shipclass_research_station }
+					clear_deposits = yes
+				}
+				add_modifier = { modifier = mineral_rich days = -1 }
+			}
+			add_deposit = d_minerals_5
+		}
+	}
+	option = {
+		name = distar.180.name.b
+		trigger = {
+			FROM = { can_be_terraforming_candidate = yes }
+			leader = {
+				OR = {
+					has_trait = leader_trait_expertise_new_worlds
+					has_trait = leader_trait_spark_of_genius
+					has_trait = leader_trait_maniacal
+				}
+			}
+		}
+		allow = {
+			owner = {
+				resource_stockpile_compare = { resource = energy value >= 1000 } 
+			}
+		}
+		custom_tooltip = distar.180.name.b.tooltip
+		owner = { add_resource = { energy = -1000 } }
+		FROM = {
+			enable_special_project = {
+				name = "THIRSTY_ROCK_PROJECT"
+				location = this
+				owner = root.owner
+			}
+		}
 	}
 }
 
@@ -1557,7 +2140,7 @@ ship_event = {
 			create_species = {
 				name = "NAME_Caretaker"
 				class = ROBOT
-				portrait = "mammaliansynth"
+				portrait = "sd_mam_robot"
 				namelist = "AI"
 				traits = {
 					trait = trait_machine_unit
@@ -1573,7 +2156,7 @@ ship_event = {
 			create_species = {
 				name = "NAME_Caretaker"
 				class = ROBOT
-				portrait = "2dsynth_01"
+				portrait = "default_robot"
 				namelist = "AI"
 				traits = random
 				effect = {
@@ -2114,6 +2697,15 @@ ship_event = {
 	}
 	option = {
 		name = distar.1040.b
+		trigger = {
+			leader = {
+				NOR = {
+					has_trait = leader_trait_expertise_computing
+					has_trait = leader_trait_custom_AI_assistant
+					has_trait = leader_trait_sapient_AI_assistant
+				}
+			}
+		}
 		custom_tooltip = distar.1040.b.tooltip
 		hidden_effect = {
 			owner = {
@@ -2132,10 +2724,39 @@ ship_event = {
 			}
 		}
 		owner = {
-			add_modifier = {
-				modifier = mega_computer
-				days = 3600
+			add_modifier = { modifier = mega_computer days = 3600 }
+		}
+	}
+	option = {
+		name = distar.1040.b
+		trigger = {
+			leader = {
+				OR = {
+					has_trait = leader_trait_expertise_computing
+					has_trait = leader_trait_custom_AI_assistant
+					has_trait = leader_trait_sapient_AI_assistant
+				}
 			}
+		}
+		custom_tooltip = distar.1040.b.tooltip.alt
+		hidden_effect = {
+			owner = {
+				set_country_flag = lcluster_clue_bunker_bot
+				pop_lcluster_event = yes
+				if = {
+					limit = {
+						has_distar = yes
+						NOT = { has_country_flag = encountered_first_lgate }
+					}
+					random_list = {
+						1 = { country_event = { id = anomalymod.80 days = 10 } }
+						2 = { }
+					}
+				}
+			}
+		}
+		owner = {
+			add_modifier = { modifier = mega_computer_alt days = -1 }
 		}
 	}
 	option = {
@@ -2692,6 +3313,47 @@ ship_event = {
 	}
 }
 
+##### STAR CRAZY ######
+country_event = {
+	id = distar.1072
+	title = "distar.1072.name"
+	desc = "distar.1072.desc"
+	picture = GFX_evt_ship_in_orbit_2
+
+	show_sound = event_alien_nature
+	location = From.From
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:anomalous_star = {
+			surveyed = {
+ 				set_surveyed = yes
+   				surveyor = root
+ 			}
+		}
+	}
+
+	option = {
+		name = distar.1072.a
+		from.leader = {
+			add_trait = leader_trait_meticulous
+			add_experience = 200
+		}
+		event_target:anomalous_star = {
+			if = {
+				limit = { has_deposit_for = shipclass_research_station }
+				clear_deposits = yes
+			}
+			add_deposit = d_energy_8
+			surveyed = {
+ 				set_surveyed = yes
+   				surveyor = root
+ 			}
+		}
+	}
+}
+
 ##### Harvesters #####
 ship_event = {
 	id = distar.1090
@@ -2832,6 +3494,54 @@ ship_event = {
 	}
 }
 
+##### SHATTERED WORLD #####
+ship_event = {
+	id = distar.2000
+	title = "distar.2000.name"
+	desc = "distar.2000.desc"
+	picture = GFX_evt_space_debris
+	show_sound = event_ghost_town
+	location = FROM
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { country_event = { id = story.5 days = 30 } }
+	}
+
+	option = {
+		name = FASCINATING
+		trigger = {
+			leader = {
+				NOR = {
+					has_trait = leader_trait_expertise_materials
+					has_trait = leader_trait_expertise_industry
+				}
+			}
+		}
+		From = {
+			add_deposit = d_minerals_3
+			add_deposit = d_alloys_1
+		}
+	}
+	option = {
+		name = FASCINATING
+		trigger = {
+			leader = {
+				OR = {
+					has_trait = leader_trait_expertise_materials
+					has_trait = leader_trait_expertise_industry
+				}
+			}
+		}
+		From = {
+			add_deposit = d_minerals_3
+			add_deposit = d_alloys_1
+			add_deposit = d_volatile_motes_1
+		}
+	}
+}
+
 ##### PRIMORDIAL SOUP #####
 ship_event = {
 	id = distar.2015
@@ -2869,6 +3579,55 @@ ship_event = {
 					}
 				}		
 			}
+		}
+	}
+}
+
+##### Artificial Moon #####
+ship_event = {
+	id = distar.2025
+	title = "distar.2025.name"
+	desc = "distar.2025.desc"
+	picture = GFX_evt_ship_in_orbit
+	show_sound = event_administrative_work
+	location = FROM
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { country_event = { id = story.5 days = 30 } }
+		from = {
+			clear_deposits = yes
+			solar_system = {
+				random_system_planet = {
+					limit = {
+						has_moon = yes
+						any_moon = {
+							is_same_value = from
+						}
+					}
+					save_event_target_as = artificial_moon_planet
+				}
+			}
+		}
+	}
+	option = {
+		name = FASCINATING
+		from = {
+			add_deposit = d_minerals_3
+			add_deposit = d_alloys_1
+		}
+	}
+	option = {
+		name = distar.2025.b
+		trigger = {
+			leader = {
+				has_trait = leader_trait_expertise_voidcraft
+			}
+		}
+		from = {
+			add_deposit = d_engineering_6
+			add_deposit = d_society_3
 		}
 	}
 }
@@ -4081,7 +4840,7 @@ ship_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		save_global_event_target_as = stranded_scientist_science_ship
+		save_event_target_as = stranded_scientist_science_ship
 
 		if = {
 			limit = { owner_species = { species_portrait = human } }
@@ -4152,7 +4911,7 @@ ship_event = {
 		}
 		last_created_leader = {
 			set_is_female = yes
-			save_global_event_target_as = stranded_scientist_leader
+			save_event_target_as = stranded_scientist_leader
 		}
 	}
 
@@ -4168,7 +4927,7 @@ ship_event = {
 					target = event_target:stranded_scientist_leader
 					class = scientist
 					effect = {
-						save_global_event_target_as = stranded_scientist_leader_clone
+						save_event_target_as = stranded_scientist_leader_clone
 					}
 				}
 			}
@@ -4573,7 +5332,7 @@ country_event = { # Alien Box opened
 						}
 					}
 				}
-				country_event = { id = anomalymod.39 days = 5 }
+				country_event = { id = anomalymod.89 days = 5 }
 			}
 		}
 	}
@@ -4703,13 +5462,193 @@ country_event = { # Alien Box researched
 						}
 					}
 				}
-				country_event = { id = anomalymod.39 days = 10 }
+				country_event = { id = anomalymod.89 days = 10 }
 			}
 		}
 	}
 }
 
 ##### THE ENIGMATIC CACHE ######
+
+event = {
+	id = distar.2050
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_distar = yes
+		NOT = {
+			any_system = {
+				has_star_flag = enigmatic_cache_system
+			}
+		}
+		any_playable_country = {
+			is_ai = no
+		}
+	}
+	immediate = {
+		# spawn tube by random gateway
+		random_system = {
+			limit = {
+				any_system_megastructure = {
+					OR = {
+						is_megastructure_type = gateway_ruined
+						is_megastructure_type = gateway_restored
+						is_megastructure_type = gateway_final
+						is_megastructure_type = lgate_base
+					}
+				}
+			}
+			star = {
+				planet_event = { id = distar.20501 }
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = distar.20501
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		# save spawn point
+		solar_system = {
+			if = {
+				limit = {
+					any_system_megastructure = {
+						OR = {
+							is_megastructure_type = gateway_ruined
+							is_megastructure_type = gateway_restored
+							is_megastructure_type = gateway_final
+							is_megastructure_type = lgate_base
+						}
+					}
+				}
+				random_system_megastructure = {
+					limit = {
+						OR = {
+							is_megastructure_type = gateway_ruined
+							is_megastructure_type = gateway_restored
+							is_megastructure_type = gateway_final
+							is_megastructure_type = lgate_base
+						}
+					}
+					save_event_target_as = spawning_gateway
+				}
+			}
+			# use root planet as spawn point if fired for debugging
+			else = {
+				root = {
+					save_event_target_as = spawning_gateway
+				}
+			}
+		}
+		# Finding a target planet to scan and spawning enigmatic cache system
+		if = {
+			limit = {
+				any_system = {
+					exists = owner
+					owner = {
+						is_country_type = default
+						is_at_war = no
+						any_owned_planet = {
+							is_colony = yes
+							NOT = { has_planet_flag = has_been_scanned }
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					any_system = {
+						exists = owner
+						owner = {
+							is_ai = no
+							is_country_type = default
+							is_at_war = no
+							any_owned_planet = {
+								is_colony = yes
+								NOT = { has_planet_flag = has_been_scanned }
+							}
+						}
+					}
+				}
+				closest_system = {
+					limit = {
+						exists = owner
+						owner = {
+							is_country_type = default
+							is_at_war = no
+							is_ai = no
+							any_owned_planet = {
+								is_colony = yes
+								NOT = { has_planet_flag = has_been_scanned }
+							}
+						}
+					}
+					random_system_planet = {
+						limit = { exists = owner }
+						#set_planet_flag = has_been_scanned
+						save_event_target_as = new_location
+						solar_system = { set_star_flag = enigmatic_cache_system }
+					}
+				}
+			}
+		}
+		else = {
+			closest_system = {
+				limit = {
+					exists = owner
+					owner = {
+						is_country_type = default
+						is_at_war = no
+						any_owned_planet = {
+							is_colony = yes
+							NOT = { has_planet_flag = has_been_scanned }
+						}
+					}
+				}
+				random_system_planet = {
+					limit = { exists = owner }
+					#set_planet_flag = has_been_scanned
+					save_event_target_as = new_location
+					solar_system = { set_star_flag = enigmatic_cache_system }
+				}
+			}
+		}
+		create_country = {
+			name = "NAME_enigmatic_cache"
+			type = enigmatic_cache
+			flag = {
+				icon = {
+					category = spherical
+					file = flag_spherical_4.dds
+				}
+				background = {
+					category = backgrounds
+					file = "00_solid.dds"
+				}
+				colors = {
+					"black"
+					"black"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				save_global_event_target_as = enigmatic_cache_country
+			}
+		}
+		event_target:enigmatic_cache_country = {
+			set_graphical_culture = guardian_01
+			create_enigmatic_cache_fleet = yes
+		}
+		every_country = {
+			establish_communications_no_message = event_target:enigmatic_cache_country
+		}
+	}
+}
+
 #Notification the first time the cache scans one of your planets
 planet_event = {
 	id = distar.5057
@@ -4918,9 +5857,10 @@ country_event = {
 					has_country_flag = lcluster_clue_junkyard
 					has_country_flag = lcluster_clue_battle
 					has_country_flag = lcluster_clue_graveyard
+					has_country_flag = lcluster_clue_mineral_processing
 				}
 			}
-			add_resource = { nanites = 200 }
+			add_resource = { nanites = 250 }
 		}
 	}
 }
@@ -4936,7 +5876,7 @@ country_event = {
 		if = {
 			limit = {
 				any_owned_megastructure = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				OR = {
 					is_ai = no
@@ -4946,7 +5886,7 @@ country_event = {
 			}
 			random_owned_megastructure = {
 				limit = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				save_event_target_as = candidate_gateway
 			}
@@ -4998,7 +5938,7 @@ country_event = {
 		if = {
 			limit = {
 				any_owned_megastructure = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				has_technology = tech_lgate_activation
 				OR = {
@@ -5009,7 +5949,7 @@ country_event = {
 			}
 			random_owned_megastructure = {
 				limit = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				save_event_target_as = candidate_gateway
 			}
