@@ -7,10 +7,11 @@ country_event = {
 	is_triggered_only = yes
 
 	trigger = {
+		has_global_flag = ehof_option_compound_on
 		NOT = { has_global_flag = compound_invasion_happened }
 		has_global_flag = galactic_crisis_happened
 		OR = {
-			is_difficulty = 5
+			has_global_flag = ehof_option_compound_vanilla_on
 			AND = {
 				has_global_flag = war_in_heaven_started
 				NOT = { has_global_flag = war_in_heaven_ongoing }
@@ -38,7 +39,7 @@ country_event = {
 		random_country = {
 			limit = { is_country_type = global_event }
 			random_list = {
-				50 = { modifier = { factor = 0 has_global_flag = ehof_cheating } }
+				120 = { modifier = { factor = 0 has_global_flag = ehof_cheating } }
 				10 = {
 					modifier = { factor = 2 check_variable = { which = counting_ehof_usage value >= 20 } }
 					modifier = { factor = 3 check_variable = { which = counting_ehof_usage value >= 30 } }
@@ -113,8 +114,8 @@ country_event = {
 				name = random
 				effect = { save_event_target_as = compound_ruler }
 			}
+			add_modifier = { modifier = compound_invincible days = -1 }
 			set_leader = event_target:compound_ruler
-			add_modifier = { modifier = compound_invincible } # Add Compound defensive buff
 			set_global_flag = compound_invasion_ongoing
 			set_graphical_culture = ehof_01
 			set_country_flag = day_0
@@ -201,13 +202,7 @@ country_event = {
 		}
 
 		every_country = {
-			limit = {
-				OR = {
-					is_country_type = default
-					is_country_type = fallen_empire
-					is_country_type = awakened_fallen_empire
-				}
-			}
+			limit = { ehof_default_country = yes }
 			establish_communications_no_message = event_target:compound_country
 		}
 
@@ -279,7 +274,7 @@ country_event = {
 		save_global_event_target_as = ehof_seized_country
 
 		every_country = {
-			limit = { is_country_type = default }
+			limit = { ehof_default_country = yes }
 
 			# Notify everyone of the compound arrival
 			country_event = { id = compound_dialog.1 }
@@ -341,14 +336,7 @@ country_event = {
 
 			# Spawn new EHOF
 			every_system_megastructure = {
-				limit = {
-					OR = {
-						has_megastructure_flag = ehof_phase_01
-						has_megastructure_flag = ehof_phase_02
-						has_megastructure_flag = ehof_phase_03
-						has_megastructure_flag = ehof_phase_04
-					}
-				}
+				limit = { is_an_ehof = yes }
 				delete_megastructure = this
 			}
 
@@ -361,25 +349,19 @@ country_event = {
 		# Mark planned expansion
 		every_system = {
 			limit = {
-				distance = {
-					source = event_target:compound_invasion_entry
-					min_jumps = 1
-					max_jumps = 6
+				OR = {
+					AND = { galaxy_size = tiny		distance = { source = event_target:compound_invasion_entry use_bypasses = no min_jumps = 1 max_jumps = 2 } }
+					AND = { galaxy_size = small		distance = { source = event_target:compound_invasion_entry use_bypasses = no min_jumps = 1 max_jumps = 3 } }
+					AND = { galaxy_size = medium	distance = { source = event_target:compound_invasion_entry use_bypasses = no min_jumps = 1 max_jumps = 4 } }
+					AND = { galaxy_size = large		distance = { source = event_target:compound_invasion_entry use_bypasses = no min_jumps = 1 max_jumps = 5 } }
+					AND = { galaxy_size = huge		distance = { source = event_target:compound_invasion_entry use_bypasses = no min_jumps = 1 max_jumps = 6 } }
 				}
 			}
+			every_system_planet = { set_planet_flag = cant_build_here set_planet_flag = cant_target_this_planet } # Prevents NDB & QSO
 			set_star_flag = compound_expand
 		}
 
-		# Remove previous owner flags
-		set_variable = { which = ehof_phase value = 0 }
-		if = { limit = { has_country_flag = ehof_is_upgrading }			remove_country_flag = ehof_is_upgrading }
-		if = { limit = { has_country_flag = ehof_travel_diplomacy }		remove_country_flag = ehof_travel_diplomacy }
-		if = { limit = { has_country_flag = ehof_can_activate }			remove_country_flag = ehof_can_activate }
-		if = { limit = { has_country_flag = ehof_activating }			remove_country_flag = ehof_activating }
-		if = { limit = { has_country_flag = ehof_activated }			remove_country_flag = ehof_activated }
-		if = { limit = { has_country_flag = ehof_on_cooldown }			remove_country_flag = ehof_on_cooldown }
-		if = { limit = { has_country_flag = ehof_malfunctioning }		remove_country_flag = ehof_malfunctioning }
-		if = { limit = { has_country_flag = ehof_ai_spawning_cohesive }	remove_country_flag = ehof_ai_spawning_cohesive }
+		ehof_remove_mega_flags = yes
 	}
 }
 
@@ -405,10 +387,7 @@ country_event = {
 				exists = event_target:compound_invasion_entry
 				from = {
 					is_country_type = compound_empire
-					NOR = {
-						has_country_flag = compound_empire_berserk
-						has_country_flag = compound_empire_dormant
-					}
+					NOT = { has_country_flag = compound_empire_berserk }
 				}
 			}
 			set_variable = { which = compound_greetings value = 0 }
@@ -425,19 +404,7 @@ country_event = {
 		if = {
 			limit = {
 				exists = event_target:compound_invasion_entry
-				from = {
-					has_country_flag = compound_empire_berserk
-					NOT = { has_country_flag = compound_empire_dormant }
-				}
-			}
-			country_event = { id = compound_dialog.7 }
-		}
-
-		# Compound dormant
-		if = {
-			limit = {
-				exists = event_target:compound_invasion_entry
-				from = { has_country_flag = compound_empire_dormant }
+				from = { has_country_flag = compound_empire_berserk }
 			}
 			country_event = { id = compound_dialog.7 }
 		}

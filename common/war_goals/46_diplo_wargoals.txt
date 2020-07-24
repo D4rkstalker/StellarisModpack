@@ -1,12 +1,13 @@
 # Mod by Terak_Lapis
 
 @Churl1 = -600
-@Churl2 = -800
+@Churl2 = -700
+@peke1 = -500
 
 wg_churl = {
 	casus_belli = cb_churl
 	set_defender_wargoal = wg_end_threat
-	total_war = yes
+	#total_war = yes
 	potential = {
 		THIS = {
 			has_origin = origin_churl
@@ -26,12 +27,19 @@ wg_churl = {
 		from = {
 			set_subject_of = {
 				who = root
-				subject_type = grump
-			}
-			hidden_effect = {
-				from = { copy_ethos_and_authority = root }
+				subject_type = grump 
 			}
 		}
+		hidden_effect = {
+			from = { copy_ethos_and_authority = root }
+		}
+		
+	}
+
+	allowed_peace_offers = {
+		surrender
+		demand_surrender
+
 	}
 
 	on_status_quo = {
@@ -56,9 +64,121 @@ wg_churl = {
 		weight = 100 # Mod by Terak_Lapis
 		modifier = {
 			weight = 0
-			NOT = {
-				has_origin = origin_churl
+			NOT = {	has_origin = origin_churl }
+		}
+	}
+
+}
+
+wg_peke = {
+	casus_belli = cb_peke_player
+	hide_if_no_cb = no 
+	release_occupied_systems_on_status_quo = yes
+	surrender_acceptance = @peke1
+	potential = {
+		has_total_war_cb = no
+		from = { is_brutal_empire = yes }
+		root = { has_ascension_perk = ap_guardian_techt }
+	}
+	possible = {
+		has_ascension_perk = ap_guardian_techt
+	}
+
+	allowed_peace_offers = {
+		surrender
+		demand_surrender
+		status_quo
+	}
+
+	on_status_quo = { # Temp from wg_force_ideology
+		if = {
+			limit = {
+				exists = last_created_country
+				last_created_country = {
+					has_country_flag = released_empire
+				}
 			}
+
+			last_created_country = { add_modifier = { modifier = recently_liberated days = 7300 } }
+
+			root = { add_opinion_modifier = { modifier = opinion_we_liberated who = last_created_country } }
+			last_created_country = { add_opinion_modifier = { modifier = opinion_liberated_us who = root } }
+
+			every_country = {
+				limit = {
+					OR = {
+						is_in_federation_with = root
+						AND = {
+							is_subject = yes
+							exists = overlord
+							overlord = { is_same_value = root }
+						}
+					}
+				}
+
+				add_opinion_modifier = { modifier = opinion_we_liberated who = last_created_country }
+				last_created_country = { add_opinion_modifier = { modifier = opinion_liberated_us who = prev } }
+			}
+			from = {
+				add_threat = {
+					who = root
+					amount = 0.10
+				}
+			}
+		}
+	}
+
+	on_accept = {
+		hidden_effect = {
+			from = { copy_ethos_and_authority = root }
+			from = { add_modifier = { modifier = recently_liberated days = 7300 } }
+			add_opinion_modifier = { modifier = opinion_we_liberated who = from }
+			from = { add_opinion_modifier = { modifier = opinion_liberated_us who = root } }
+			end_rivalry = from
+			from = { end_rivalry = root }
+			every_system_within_border = {
+				limit = {
+					from = { has_claim = prev }
+				}
+				remove_claims = { who = from }
+			}
+		}
+	}
+
+	ai_weight = { # Custom Weight Tree by Terak_Lapis
+		weight = 0
+		modifier = {
+			NOT = {
+				any_neighbor_country = {
+					has_communications = root
+					relative_power = {
+						who = THIS
+						value = superior
+					}
+				}
+			}
+			weight = 0
+		}
+		modifier = {
+			any_neighbor_country = {
+				is_neighbor_of = root 
+				has_communications = root 
+				NOT = {
+					has_rival = root 
+				}
+				NOT = {
+					has_closed_borders = root 
+				}
+				NOT = {
+					has_policy_flag = diplo_stance_supremacist
+					has_policy_flag = diplo_stance_belligerent
+				}
+			}
+			weight = 30
+		}
+		modifier = {
+			has_ascension_perk = ap_defender_of_the_galaxy
+			weight = 10
 		}
 	}
 }

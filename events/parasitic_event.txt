@@ -1,6 +1,6 @@
 namespace = parasitic
 
-#Purity government: purging pops yields unity
+#parasitic embryos new pops from purge
 planet_event = {
 	id = parasitic.1
 	hide_window = yes
@@ -44,7 +44,9 @@ planet_event = {
 	}
 }
 
-# Enclave Yearly Border Opinion
+
+
+# blood tributary gives pops per year
 event = {
 	id = parasitic.2
 	hide_window = yes
@@ -52,7 +54,8 @@ event = {
 
 	trigger = {
 	any_country = {
-		has_valid_civic = civic_hive_parasitic
+		has_policy_flag = blood_tributary_greedy
+		is_parasite = yes
 		is_overlord = yes
 		any_subject = {
 			is_subject_type = pop_tributary
@@ -64,7 +67,8 @@ event = {
 	immediate = {
 		every_country = {
 			limit = { 
-				has_valid_civic = civic_hive_parasitic
+				has_policy_flag = blood_tributary_greedy
+				is_parasite = yes
 				is_overlord = yes
 				any_subject = {
 						is_subject_type = pop_tributary
@@ -218,3 +222,86 @@ event = {
 	}
 }
 }
+
+# blood tributary: A pop has been added to the planet
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = parasitic.3
+	hide_window = yes
+	is_triggered_only = yes
+
+
+	trigger = {
+		From = { is_subject_type = pop_tributary }
+		From = { overlord = { not = { has_policy_flag = blood_tributary_greedy } } }	
+	}
+
+	immediate = {	
+	
+			## save scopes
+			FromFrom = { save_event_target_as = abduct_pop }
+			this = { save_event_target_as = fromPlanet }
+			From = { save_event_target_as = popOwner }
+			From = { overlord = { save_event_target_as = ownerOverlord } }		
+			
+		if = { 
+			limit = {
+				event_target:popOwner = {
+					is_subject_type = pop_tributary
+					NOT = { is_at_war_with = overlord }	
+				}
+				event_target:abduct_pop = { is_organic_species = yes }	
+			}
+			
+			## pick a planet to resettle the pop
+			event_target:ownerOverlord = {
+					if = {
+						limit = { any_owned_planet = { free_housing > 0 } }
+						random_owned_planet = {
+							limit = { 
+							free_housing >= 1 
+							is_under_colonization = no
+							is_controlled_by = owner
+							}								
+						## save event
+						save_event_target_as = targetPlanet
+						}
+					}
+					else = {
+						random_owned_planet = {
+							limit = {  
+								is_under_colonization = no
+								is_controlled_by = owner
+							}
+							save_event_target_as = targetPlanet
+						}
+					}
+			}
+			## 1 pop 50% magnanimous	
+			if = { limit = { From = { overlord = { has_policy_flag = blood_tributary_magnanimous } } }
+				random_list = {
+					50 = { 
+						resettle_pop = {
+							pop = event_target:abduct_pop
+							planet = event_target:targetPlanet
+						}
+					pop_tribute_message = yes
+					}
+					50 = { } 
+					}
+			}
+			## 1 pop 100% for balanced
+			else_if = { limit = { From = { overlord = { has_policy_flag = blood_tributary_balanced } } }
+					resettle_pop = {
+						pop = event_target:abduct_pop
+						planet = event_target:targetPlanet
+					}
+					pop_tribute_message = yes
+				}
+								
+				
+			}
+		}			
+	}

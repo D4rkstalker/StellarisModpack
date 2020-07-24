@@ -1,0 +1,585 @@
+namespace = opportunityManager
+
+## Can be called at any point during the progress tracker, will check for opporunity
+## Can put player back into the tracker when done
+## Can also reset the tracket etc.
+## Rolls for type of opportunity
+## Can be called when running any type of operation
+## When opporunity chosen, sends over to relevant opporunity file.
+## Adding new events should be as easy as adding them to a role table
+## handles both Alpha and Beta
+
+
+## AB GENRIC FLAG/TARGET GEN ##
+country_event = {
+	id = opportunityManager.0
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		save_event_target_as = spyOpportunityAttacker
+		if = {
+			limit = {
+				checkIfBetaOpportunity = yes
+			}
+			event_target:betaNetworkTarget_temp = {
+				save_event_target_as = spyOpportunityTarget
+			}
+			set_country_flag = betaF_OpportunityOngoing
+		}
+		else = {
+			event_target:alphaNetworkTarget_temp = {
+				save_event_target_as = spyOpportunityTarget
+			}
+			set_country_flag = alphaF_OpportunityOngoing
+		}
+		country_event = {
+			id = opportunityManager.1
+		}
+	} 		
+}
+
+
+## OPPORTUNITY INDEX - SENDS OUT TO INDIIVUAL OPPORTUNITY CATEGORY ROLL TABLES ##
+country_event = {
+	id = opportunityManager.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		# CHECK IF RUNNING SABREP OP
+		if = {
+			limit = {
+				checkIfBetaOpportunity = yes
+			}
+			if = {
+				limit = {
+					has_country_flag = saboRep2
+				}
+				country_event = { id = opportunityManager.10 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = studyTech2
+				}
+				country_event = { id = opportunityManager.11 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = fundCrime2
+				}
+				country_event = { id = opportunityManager.12 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = swingEthics2
+				}
+				country_event = { id = opportunityManager.13 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = sowUnrest2
+				}
+				country_event = { id = opportunityManager.14 }
+			}
+			else = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+			
+		}
+		else_if = {
+			limit = {
+				checkIfAlphaOpportunity = yes
+			}
+			if = {
+				limit = {
+					has_country_flag = saboRep
+				}
+				country_event = { id = opportunityManager.10 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = studyTech
+				}
+				country_event = { id = opportunityManager.11 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = fundCrime
+				}
+				country_event = { id = opportunityManager.12 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = swingEthics
+				}
+				country_event = { id = opportunityManager.13 }
+			}
+			else_if = {
+				limit = {
+					has_country_flag = sowUnrest
+				}
+				country_event = { id = opportunityManager.14 }
+			}
+			else = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+		}
+		else = {
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+
+
+#EVENT ENDERS = {
+	#1 - SEND BACK TO START OF PROGRESS CHAIN
+	#2 - SEND TO END OF PROGRESS CHAIN - SUCCESS
+	#3 - SEND TO END OF PROGRESS CHAIN - FAIL
+	#4 - SEND BACK INTO PROGRESS CHAIN
+#}
+## ENDS THE OPPORTUNITY EVENT ##
+country_event = {
+	id = opportunityManager.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = { # SEND BACK TO START OF PROGRESS CHAIN
+			limit = {
+				has_country_flag = opportunityEnd_1
+			}
+			remove_country_flag = opportunityEnd_1
+			if = { #is beta
+				limit = {
+					checkIfBetaOpportunity = yes
+				}
+				removeGlobalOpportunityFlagBeta = yes
+				removeGatherProgress_Beta_F = yes
+				remove_country_flag = betaF_OpportunityOngoing
+				country_event = { id = progressTrackerB.1 }
+			}
+			else = { #is alpha
+				removeGlobalOpportunityFlag = yes
+				removeGatherProgress_Alpha_F = yes
+				remove_country_flag = alphaF_OpportunityOngoing
+				country_event = { id = progressTrackerA.1 }
+			}
+		}
+
+		else_if = { # SEND TO END OF PROGRESS CHAIN - SUCCESS
+			limit = {
+				has_country_flag = opportunityEnd_2
+			}
+			remove_country_flag = opportunityEnd_2
+			if = { #is beta
+				limit = {
+					checkIfBetaOpportunity = yes
+				}
+				removeGlobalOpportunityFlagBeta = yes
+				remove_country_flag = betaF_OpportunityOngoing
+				country_event = { id = progressTrackerB.9 }
+			}
+			else = { #is alpha
+				removeGlobalOpportunityFlag = yes
+				remove_country_flag = alphaF_OpportunityOngoing
+				country_event = { id = progressTrackerA.9 }
+			}
+		}
+
+		else_if = { # SEND TO END OF PROGRESS CHAIN - FAIL
+			limit = {
+				has_country_flag = opportunityEnd_3
+			}
+			remove_country_flag = opportunityEnd_3
+			if = { #is beta
+				limit = {
+					checkIfBetaOpportunity = yes
+				}
+				removeGlobalOpportunityFlagBeta = yes
+				remove_country_flag = betaF_OpportunityOngoing
+				set_country_flag = failedBeta country_event = { id = spyFailEvt.0 }
+			}
+			else = { #is alpha
+				removeGlobalOpportunityFlag = yes
+				remove_country_flag = alphaF_OpportunityOngoing
+				country_event = { id = spyFailEvt.0 }
+			}
+		}
+
+		else_if = { # SEND BACK INTO PROGRESS CHAIN
+			limit = {
+				has_country_flag = opportunityEnd_4
+			}
+			remove_country_flag = opportunityEnd_4
+			if = { #is beta
+				limit = {
+					checkIfBetaOpportunity = yes
+				}
+				removeGlobalOpportunityFlagBeta = yes
+				remove_country_flag = betaF_OpportunityOngoing
+				set_country_flag = gatherProgress_3_2
+				country_event = { id = progressTrackerB.4 } 
+			}
+			else = { #is alpha
+				removeGlobalOpportunityFlag = yes
+				remove_country_flag = alphaF_OpportunityOngoing
+				set_country_flag = gatherProgress_3
+				country_event = { id = progressTrackerA.4 } 
+			}
+		}
+	}
+}
+
+
+#### ROLL TABLES #####
+## SABOREP OPPORTUNITY EVENT ROLL TABLE ##
+country_event = {
+	id = opportunityManager.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:spyOpportunityTarget = {
+			random_neighbor_country = {
+				limit = {
+					not = {
+						is_same_empire = event_target:spyOpportunityAttacker
+					}
+					checkCountryType = yes
+					has_communications = event_target:spyOpportunityTarget
+				}
+				save_event_target_as = bombDiplomatsTarget_1
+			}
+			random_neighbor_country = {
+				limit = {
+					nor = {
+						is_same_empire = event_target:spyOpportunityAttacker
+						is_same_empire = event_target:bombDiplomatsTarget_1
+					}
+					checkCountryType = yes
+					has_communications = event_target:spyOpportunityTarget
+				}
+				save_event_target_as = bombDiplomatsTarget_2
+			}
+		}
+		
+		random_list = {
+			# BLACKMAIL DIPLOMAT #
+			50 = {
+				modifier = { #MUST BE AT A CERTAIN RELATION THRESHOLD
+					factor = 0
+					or = {
+						is_at_war_with = event_target:spyOpportunityTarget
+						event_target:spyOpportunityTarget = {
+							opinion_level = {
+								who = event_target:spyOpportunityAttacker
+								level < neutral
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					event_target:spyOpportunityTarget = {
+						is_ai = no
+					}
+				}
+				set_timed_country_flag = { flag = opportunityCooldown days = @opportunityCooldown }
+				country_event = {
+					id = saborepOpportunity.1
+				}
+			}
+
+
+			# BOMB DIPLOMATS #
+			50 = {
+				modifier = {
+					factor = 0
+					nand = {
+						exists = event_target:bombDiplomatsTarget_1
+						exists = event_target:bombDiplomatsTarget_2
+					}
+				}
+				modifier = {
+					factor = 0
+					event_target:spyOpportunityTarget = {
+						is_ai = no
+					}
+				}
+				set_timed_country_flag = { flag = opportunityCooldown days = @opportunityCooldown }
+			 	country_event = {
+			 		id = saborepOpportunity.3
+			 	}
+			}
+
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+		}
+		if = {
+			limit = {
+				not = {
+					has_country_flag = opportunityCooldown
+				}
+			}
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+
+## STUDY TECH OPPORTUNITY EVENT ROLL TABLE ##
+country_event = {
+	id = opportunityManager.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_list = {
+			# INFECTED AGENTS EVENT #
+			50 = {
+				modifier = { #IF ALREADY HAVE THE TECH, DONT RUN
+					factor = 0
+					has_technology = tech_genome_mapping
+					has_technology = tech_vitality_boosters
+					has_technology = tech_frontier_hospital
+					has_technology = tech_alien_life_studies
+					has_technology = tech_society_3
+					has_technology = tech_society_2
+					has_technology = tech_society_1
+				}
+				modifier = { #IF TARGET DOESNT HAVE TECH, DONT RUN
+					factor = 0
+					event_target:spyOpportunityTarget = {
+						nor = {
+							has_technology = tech_genome_mapping
+							has_technology = tech_vitality_boosters
+							has_technology = tech_frontier_hospital
+							has_technology = tech_alien_life_studies
+							has_technology = tech_society_3
+							has_technology = tech_society_2
+							has_technology = tech_society_1
+						}
+					}
+				}
+				modifier = { #IF NO MATCHING TECH NEED DONT RUN
+					factor = 0
+					nor = {
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_genome_mapping
+								
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_genome_mapping
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_vitality_boosters
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_vitality_boosters
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_frontier_hospital
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_frontier_hospital
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_alien_life_studies
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_alien_life_studies
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_society_1
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_society_1
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_society_2
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_society_2
+								}
+							}
+						}
+						and = {
+							event_target:spyOpportunityTarget = {
+								has_technology = tech_society_3
+							}
+							event_target:spyOpportunityAttacker = {
+								not = {
+									has_technology = tech_society_3
+								}
+							}
+						}
+					}
+				}
+				modifier = { #IF AT WAR WITH TARGET, DONT RUN
+					factor = 0
+					is_at_war_with = event_target:spyOpportunityTarget
+				}
+				set_timed_country_flag = { flag = opportunityCooldown days = @opportunityCooldown }
+				country_event = {
+					id = studyTech_Opportunity.1
+				}
+			}
+
+			# SCIENTIST DEFECTION EVENT #
+			50 = {
+				modifier = {
+					factor = 0
+					has_country_flag = recentlyStoleScientist
+				}
+				modifier = {
+					factor = 0
+					event_target:spyOpportunityTarget = {
+						is_ai = no
+					}
+				}
+				set_timed_country_flag = { flag = recentlyStoleScientist days = 3650 }
+				set_timed_country_flag = { flag = opportunityCooldown days = @opportunityCooldown }
+				country_event = {
+					id = studyTech_Opportunity.3
+				}
+			}
+
+			# PROTOTYPE WEAPONS TEST #
+			50 = {
+				modifier = { #check for tech need
+					factor = 0 
+					checkWeaponsTech = no
+				}
+				set_timed_country_flag = { flag = opportunityCooldown days = @opportunityCooldown }
+				country_event = {
+					id = studyTech_Opportunity.20
+				}
+			}
+		}
+		if = {
+			limit = {
+				not = {
+					has_country_flag = opportunityCooldown
+				}
+			}
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+
+## FUND CRIME OPPORTUNITY EVENT ROLL TABLE ##
+country_event = {
+	id = opportunityManager.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_list = {
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+		}
+		if = {
+			limit = {
+				not = {
+					has_country_flag = opportunityCooldown
+				}
+			}
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+
+## SWING ETHICS OPPORTUNITY EVENT ROLL TABLE ##
+country_event = {
+	id = opportunityManager.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_list = {
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+		}
+		if = {
+			limit = {
+				not = {
+					has_country_flag = opportunityCooldown
+				}
+			}
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+
+## SOW UNREST OPPORTUNITY EVENT ROLL TABLE ##
+country_event = {
+	id = opportunityManager.14
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_list = {
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+			50 = {
+				set_country_flag = opportunityEnd_4
+				country_event = { id = opportunityManager.3 }
+			}
+		}
+		if = {
+			limit = {
+				not = {
+					has_country_flag = opportunityCooldown
+				}
+			}
+			set_country_flag = opportunityEnd_4
+			country_event = { id = opportunityManager.3 }
+		}
+	}
+}
+

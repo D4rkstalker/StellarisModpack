@@ -1,0 +1,952 @@
+namespace = agnAImenu
+
+country_event = {  ### MTTH for this event
+    id = agnAImenu.1 
+    is_triggered_only = yes
+    hide_window = yes
+    immediate = {
+        save_event_target_as = AIAgency
+
+        if = { #DO NOTHING IF A PLAYER SOMEHOW ENDS UP HERE
+            limit = {
+                is_ai = no
+            } break = yes
+        }
+
+        else_if = { #If already has espionage unlocked, do espionage
+            limit = {
+                has_country_flag = espionageAllowedAI
+                checkCountryType = yes
+                not = {
+                    has_country_flag = waitForAIEspionage
+                }
+            }
+            country_event = {
+                id = agnAImenu.2 days = @AISpyEventLength random = @AISpyEventLengthRandom_mod
+            }
+        }
+
+        else_if = { #Check if ai should have espionage, if should, do espionge
+            limit = {
+                checkCountryType = yes
+                nor = {
+                    has_country_flag = espionageAllowedAI
+                    has_country_flag = waitForAIEspionage
+                }
+            }
+            if = {
+                limit = {
+                    any_country = {
+                        checkCountryType = yes
+                        has_communications = event_target:AIAgency
+                    }
+                }
+                set_country_flag = espionageAllowedAI
+                country_event = {
+                    id = agnAImenu.2 days = @AISpyEventLength random = @AISpyEventLengthRandom_mod
+                }
+            }
+            else = {} #else do nothing
+        }  
+
+        else = {}  #else do nothing
+    }
+}
+
+
+
+## SETS A COOLDOWN FLAG TO STOP AI ACTING TOO SOON AFTER FIRST CONTACT ##
+country_event = {
+    id = agnAImenu.100
+    is_triggered_only = yes
+    hide_window = yes
+
+
+    immediate = {
+        if = {
+            limit = {
+                this = {
+                    is_ai = no
+                }
+            } break = yes
+        }
+        if = {
+            limit = {
+                this = {
+                    has_country_flag = hadStartingEspionageCooldown
+                }
+            } break = yes
+        }
+        else = {
+            this = {
+                set_country_flag = hadStartingEspionageCooldown
+                set_timed_country_flag = {
+                    flag = waitForAIEspionage
+                    days = @waitForAIEspionage
+                }
+            } 
+        } 
+    }
+}
+
+## SETS A COOLDOWN RELATION FLAG BETWEEN COMMUNICATIONS ESTABLISHED EMPIRES TO STOP AI ACTING TOO SOON AFTER FIRST CONTACT ##
+country_event = {
+    id = agnAImenu.200
+    is_triggered_only = yes
+    hide_window = yes
+ 
+    immediate = {
+        this = {
+            set_country_flag = hadStartingEspionageCooldown
+            set_timed_relation_flag = {
+                who = from
+                flag = establishCommEspionageCooldown
+                days = @waitForestablishCommEspionageCooldown
+            }
+        }  
+    }
+}
+
+
+
+########### AI AGENCY PRIORITY TARGET LIST - GET COUNTRIES #################
+country_event = {  ### MTTH for this event
+    id = agnAImenu.2
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = {  #### POLL NEIGHBOR COUNTRIES
+        remove_country_flag = AI_Defence_Single #TAKES THE AI AGENCY OUT OF DOMESTIC
+        remove_country_flag = AI_Defence_Double #TAKES THE AI AGENCY OUT OF DOMESTIC
+        save_event_target_as = AIAgency
+
+        random_list = { #Small chance the AI will just go defensive
+            80 = {
+                # IF AT WAR, PICK COUNTRY AT WAR WITH
+                if = {
+                    limit = {
+                        is_at_war = yes   
+                    }
+                    random_country = {
+                        limit = {
+                            checkCountryType = yes
+                            has_communications = event_target:AIAgency
+                            is_at_war_with = event_target:AIAgency
+                            nor = {
+                                has_country_flag = playerTargetCoolDown
+                                has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = spy_banned
+                                }
+                                reverse_has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = establishCommEspionageCooldown
+                                }
+                            }
+                        }
+                        save_event_target_as = AIAgency_Defender_Final
+                    }
+                    if = {
+                        limit = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        country_event = { 
+                            id = agnAImenu.22 #CHOOSE OPERATION TYPE
+                        }
+                    }
+                }
+
+                #ELSE, PICK RANDOM RIVAL COUNTRY
+                if = {
+                    limit = {
+                        not = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        any_country = {
+                            is_rival = event_target:AIAgency
+                        }
+                    }
+                    random_country = { 
+                        limit = {
+                            checkCountryType = yes
+                            has_communications = event_target:AIAgency
+                            is_rival = event_target:AIAgency
+                            nor = {
+                                has_country_flag = playerTargetCoolDown
+                                has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = spy_banned
+                                }
+                                reverse_has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = establishCommEspionageCooldown
+                                }
+                            }
+                        }
+                        save_event_target_as = AIAgency_Defender_Final
+                    } 
+                    if = {
+                        limit = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        country_event = { 
+                            id = agnAImenu.22 #CHOOSE OPERATION TYPE
+                        }
+                    }
+                }
+
+                #ELSE, PICK RANDOM HOSTILE COUNTRY
+                if = {
+                    limit = {
+                        not = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        any_country = {
+                            is_hostile = event_target:AIAgency
+                        }
+                    }
+                    random_country = {
+                        limit = {
+                            nand = {
+                                is_in_federation_with = event_target:AIAgency
+                                federation = {
+                                    has_federation_law = spy_regulated_espionage
+                                }
+                            }
+                            checkCountryType = yes
+                            has_communications = event_target:AIAgency
+                            is_hostile = event_target:AIAgency
+                            nor = {
+                                has_country_flag = playerTargetCoolDown
+                                has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = spy_banned
+                                }
+                                reverse_has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = establishCommEspionageCooldown
+                                }
+                            }
+                        }
+                        save_event_target_as = AIAgency_Defender_Final
+                    } 
+                    if = {
+                        limit = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        country_event = { 
+                            id = agnAImenu.22 #CHOOSE OPERATION TYPE
+                        }
+                    }
+                }
+
+                #ELSE, PICK RANDOM UNFRIENDLY COUNTRY
+                if = {
+                    limit = {
+                        not = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        any_country = {
+                            is_unfriendly_to = event_target:AIAgency
+                        }
+                    }
+                    random_country = {
+                        limit = {
+                            nand = {
+                                is_in_federation_with = event_target:AIAgency
+                                federation = {
+                                    has_federation_law = spy_regulated_espionage
+                                }
+                            }
+                            checkCountryType = yes
+                            has_communications = event_target:AIAgency
+                            is_unfriendly_to = event_target:AIAgency
+                            nor = {
+                                has_country_flag = playerTargetCoolDown
+                                has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = spy_banned
+                                }
+                                reverse_has_relation_flag = {
+                                    who = event_target:AIAgency
+                                    flag = establishCommEspionageCooldown
+                                }
+                            }
+                        }
+                        save_event_target_as = AIAgency_Defender_Final
+                    } 
+                    if = {
+                        limit = {
+                            exists = event_target:AIAgency_Defender_Final
+                        }
+                        country_event = { 
+                            id = agnAImenu.22 #CHOOSE OPERATION TYPE
+                        }
+                    }
+                }
+
+                else = {
+                    random_list = {
+                        40 = { #Just pick any empire
+                            random_country = {
+                                limit = {
+                                    nand = {
+                                        is_in_federation_with = event_target:AIAgency
+                                        federation = {
+                                            has_federation_law = spy_regulated_espionage
+                                        }
+                                    }
+                                    checkCountryType = yes
+                                    has_communications = event_target:AIAgency
+                                    nor = {
+                                        has_country_flag = playerTargetCoolDown
+                                        has_relation_flag = {
+                                            who = event_target:AIAgency
+                                            flag = spy_banned
+                                        }
+                                        reverse_has_relation_flag = {
+                                            who = event_target:AIAgency
+                                            flag = establishCommEspionageCooldown
+                                        }
+                                    }
+                                }
+                                save_event_target_as = AIAgency_Defender_Final
+                            } 
+                            if = {
+                                limit = {
+                                    exists = event_target:AIAgency_Defender_Final
+                                }
+                                country_event = { 
+                                    id = agnAImenu.22 #CHOOSE OPERATION TYPE
+                                }
+                            }
+                        }
+
+                        60 = { #go domestic
+                            random_list = {
+                                50 = { #HIGH COUNTERINTELLIGENCE (SIMS BOTH AGENCY ON DOMESTIC)
+                                    set_country_flag = AI_Defence_Double #IF NO TARGET, GO DOMESTIC
+                                    country_event = {
+                                        id = aiDomestic.1
+                                    }
+                                }
+                                50 = { #MED COUNTERINTELLIGENCE (SIMS ONE AGENCY ON DOMESTIC)
+                                    set_country_flag = AI_Defence_Single #IF NO TARGET, GO DOMESTIC
+                                    country_event = {
+                                        id = aiDomestic.1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            20 = {
+                random_list = {
+                    50 = { #HIGH COUNTERINTELLIGENCE (SIMS BOTH AGENCY ON DOMESTIC)
+                        set_country_flag = AI_Defence_Double #IF NO TARGET, GO DOMESTIC
+                        country_event = {
+                            id = aiDomestic.1
+                        }
+                    }
+                    50 = { #MED COUNTERINTELLIGENCE (SIMS ONE AGENCY ON DOMESTIC)
+                        set_country_flag = AI_Defence_Single #IF NO TARGET, GO DOMESTIC
+                        country_event = {
+                            id = aiDomestic.1
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+### CHOOSE OPERATION ###
+country_event = {  
+    id = agnAImenu.22
+    is_triggered_only = yes
+    hide_window = yes
+    immediate = {
+        random_list = { #RANDOM CHOOSE OPERATION TYPE
+            20 = {
+                country_event = { 
+                    id = agnAImenu.3 #SAB REP
+                }
+            }
+            20 = {
+                modifier = {
+                    factor = 0.5
+                    has_monthly_income = {
+                        resource = energy
+                        value >= 60 
+                    }
+                }
+                country_event = { 
+                    id = agnAImenu.4 #FUND CRIME
+                }
+            }
+            30 = {
+                modifier = {
+                    factor = 0
+                    or = {
+                        not = {
+                            has_technology = tech_spy_industrial
+                        }
+                        event_target:AIAgency_Defender_Final = {
+                            has_ascension_perk = ap_enigmatic_engineering
+                        }
+                    }
+                }
+                modifier = {
+                    factor = 1.2
+                    has_technology = tech_spy_industrial
+                }
+                modifier = {
+                    factor = 1.5
+                    has_technology = tech_spy_industrial 
+                    event_target:AIAgency_Defender_Final = {
+                        relative_power = {
+                            who = event_target:AIAgency
+                            category = technology
+                            value > equivalent
+                        }
+                    }
+                }
+                country_event = { 
+                    id = agnAImenu.5 #TECH STEAL
+                }
+            }
+            20 = {
+                modifier = {
+                    factor = 0
+                    not = {
+                        has_technology = tech_spy_socialPropaganda
+                    }
+                }
+                modifier = {
+                    factor = 2
+                    or = {
+                        has_ai_personality = evangelising_zealots
+                        has_ai_personality = democratic_crusaders
+                    }
+                }
+                country_event = { 
+                    id = agnAImenu.6 #SWING ETHICS  
+                }
+            }
+            20 = {
+                modifier = {
+                    factor = 0
+                    not = {
+                        has_technology = tech_spy_socialPropaganda
+                    }
+                }
+                country_event = { 
+                    id = agnAImenu.7 #SOW UNREST
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+### SABOTAGE REP ###
+country_event = { 
+    id = agnAImenu.3
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = { #CAlCULATE IF OPERATION SUCCESSFULL
+        if = {
+            limit = { event_target:AIAgency_Defender_Final = { has_country_flag = playerTargetCoolDown }
+            } break = yes
+        }
+        else = {
+            if = {
+                limit = { event_target:AIAgency_Defender_Final = { is_ai = no } }
+                event_target:AIAgency_Defender_Final = {
+                    set_timed_country_flag = { flag = playerTargetCoolDown days = @playerTargetCoolDown }
+                }
+            }
+
+            getCounterIntelLevelTargetAI = yes
+            # VERY HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAI value >= 4 }
+                }
+                random_list = {
+                    #FAIL
+                    50 = { }
+                    #CRIT FAIL
+                    80 = { save_event_target_as = triedSabRep country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    60 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIsabrep.1 } }
+                    #FAIL
+                    40 = { }
+                    #CRIT FAIL
+                    70 = { set_country_flag = triedSabRep    country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # MEDIUM COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    70 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIsabrep.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    50 = { set_country_flag = triedSabRep  country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # LOW COUNTERINTEL
+            if = {
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value <= 1 }
+                }
+                random_list = {
+                    #SUCCEED
+                    80 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIsabrep.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    0 = { set_country_flag = triedSabRep country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+        }
+    }
+}
+
+
+
+
+### FUND CRIME ###
+country_event = { 
+    id = agnAImenu.4
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = { #CAlCULATE IF OPERATION SUCCESSFULL
+        if = {
+            limit = { event_target:AIAgency_Defender_Final = { has_country_flag = playerTargetCoolDown }
+            } break = yes
+        }
+        else = {
+            if = {
+                limit = { event_target:AIAgency_Defender_Final = { is_ai = no } }
+                event_target:AIAgency_Defender_Final = {
+                    set_timed_country_flag = { flag = playerTargetCoolDown days = @playerTargetCoolDown }
+                }
+            }
+
+            getCounterIntelLevelTargetAI = yes
+            # VERY HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAI value >= 4 }
+                }
+                random_list = {
+                    #FAIL
+                    50 = { }
+                    #CRIT FAIL
+                    80 = { save_event_target_as = triedFundCrime country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    60 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = aifundCrime.1 } }
+                    #FAIL
+                    40 = { }
+                    #CRIT FAIL
+                    70 = { set_country_flag = triedFundCrime  country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # MEDIUM COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    70 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = aifundCrime.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    50 = { set_country_flag = triedFundCrime country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # LOW COUNTERINTEL
+            if = {
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value <= 1 }
+                }
+                random_list = {
+                    #SUCCEED
+                    80 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = aifundCrime.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    0 = { set_country_flag = triedFundCrime country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+        }
+    }
+}
+
+
+
+
+### STEAL TECH ###
+country_event = { 
+    id = agnAImenu.5
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = { #CAlCULATE IF OPERATION SUCCESSFULL
+        if = {
+            limit = { event_target:AIAgency_Defender_Final = { has_country_flag = playerTargetCoolDown }
+            } break = yes
+        }
+        else = {
+            if = {
+                limit = { event_target:AIAgency_Defender_Final = { is_ai = no } }
+                event_target:AIAgency_Defender_Final = {
+                    set_timed_country_flag = { flag = playerTargetCoolDown days = @playerTargetCoolDown }
+                }
+            }
+
+            getCounterIntelLevelTargetAI = yes
+            # VERY HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAI value >= 4 }
+                }
+                random_list = {
+                    #FAIL
+                    50 = { }
+                    #CRIT FAIL
+                    80 = { save_event_target_as = triedStealTech country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    60 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIstealTech.1 } }
+                    #FAIL
+                    40 = { }
+                    #CRIT FAIL
+                    70 = { set_country_flag = triedStealTech country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # MEDIUM COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    70 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIstealTech.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    50 = { set_country_flag = triedStealTech country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # LOW COUNTERINTEL
+            if = {
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value <= 1 }
+                }
+                random_list = {
+                    #SUCCEED
+                    80 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIstealTech.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    0 = { set_country_flag = triedStealTech country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+        }
+    }
+}
+
+
+
+
+### SWING ETHICS ###
+country_event = { 
+    id = agnAImenu.6
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = { #CAlCULATE IF OPERATION SUCCESSFULL
+        if = {
+            limit = { event_target:AIAgency_Defender_Final = { has_country_flag = playerTargetCoolDown }
+            } break = yes
+        }
+        else = {
+            if = {
+                limit = { event_target:AIAgency_Defender_Final = { is_ai = no } }
+                event_target:AIAgency_Defender_Final = {
+                    set_timed_country_flag = { flag = playerTargetCoolDown days = @playerTargetCoolDown }
+                }
+            }
+
+            getCounterIntelLevelTargetAI = yes
+            # VERY HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAI value >= 4 }
+                }
+                random_list = {
+                    #FAIL
+                    50 = { }
+                    #CRIT FAIL
+                    80 = { save_event_target_as = triedSwingEthics country_event = { id = spyFailEvt.0 }
+                        
+                    }
+                } break = yes
+            }
+
+            # HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    60 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIswingEthics.1 } }
+                    #FAIL
+                    40 = { }
+                    #CRIT FAIL
+                    70 = { set_country_flag = triedSwingEthics country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # MEDIUM COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    70 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIswingEthics.1 } }
+                    #FAIL 
+                    20 = { }
+                    #CRIT FAIL
+                    50 = { set_country_flag = triedSwingEthics country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # LOW COUNTERINTEL
+            if = {
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value <= 1 }
+                }
+                random_list = {
+                    #SUCCEED
+                    80 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        country_event = { id = agnAIswingEthics.1 } }
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    0 = { set_country_flag = triedSwingEthics country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+        }
+    }
+}
+
+
+
+
+### SOW UNREST ###
+country_event = { 
+    id = agnAImenu.7
+    is_triggered_only = yes
+    hide_window = yes
+
+    immediate = { #CAlCULATE IF OPERATION SUCCESSFULL
+        if = {
+            limit = { event_target:AIAgency_Defender_Final = { has_country_flag = playerTargetCoolDown }
+            } break = yes
+        }
+        else = {
+            if = {
+                limit = { event_target:AIAgency_Defender_Final = { is_ai = no } }
+                event_target:AIAgency_Defender_Final = {
+                    set_timed_country_flag = { flag = playerTargetCoolDown days = @playerTargetCoolDown }
+                }
+            }
+
+            getCounterIntelLevelTargetAI = yes
+            # VERY HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAI value >= 4 }
+                }
+                random_list = {
+                    #FAIL
+                    50 = { }
+                    #CRIT FAIL
+                    80 = { save_event_target_as = triedSowUnrest country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # HIGH COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    60 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        random_list = {
+                            50 = { country_event = { id = AISowUnrest.1 } } 
+                            50 = { country_event = { id = AISowUnrest.3 } } 
+                        }
+                    }  
+                    #FAIL
+                    40 = { }
+                    #CRIT FAIL
+                    70 = { set_country_flag = triedSowUnrest country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # MEDIUM COUNTERINTEL
+            if = { 
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value = 2 }
+                }
+                random_list = {
+                    #SUCCEED
+                    70 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        random_list = {
+                            50 = { country_event = { id = AISowUnrest.1 } } 
+                            50 = { country_event = { id = AISowUnrest.3 } } 
+                        }
+                    }   
+                    #FAIL 
+                    20 = { }
+                    #CRIT FAIL
+                    50 = { set_country_flag = triedSowUnrest country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+
+            # LOW COUNTERINTEL
+            if = {
+                limit = {
+                    check_variable = { which = defenceLevelVarAlpha value <= 1 }
+                }
+                random_list = {
+                    #SUCCEED
+                    80 = { 
+                        modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus } 
+                        modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+                        random_list = {
+                            50 = { country_event = { id = AISowUnrest.1 } } 
+                            50 = { country_event = { id = AISowUnrest.3 } } 
+                        }
+                    }     
+                    #FAIL
+                    20 = { }
+                    #CRIT FAIL
+                    0 = { set_country_flag = triedSowUnrest country_event = { id = spyFailEvt.0 } }
+                } break = yes
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+

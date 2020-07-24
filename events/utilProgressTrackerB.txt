@@ -1,0 +1,483 @@
+namespace = progressTrackerB
+
+##### BEGIN EVENT - SUBTRACT PAYMENT #####
+country_event = { 
+	id = progressTrackerB.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		if = {
+			limit = {
+				hasGatherProgress_Beta_F = yes
+			}
+			removeGatherProgress_Beta_F = yes
+			if = {
+				limit = {
+					NOT = {
+						has_country_flag = gatherIntelBeta
+					}
+				}
+				set_country_flag = cancelOngoingBeta
+			}
+			if = {
+				limit = {
+					has_country_flag = gatherIntelBeta
+				}
+				set_country_flag = gatherProgress_1_2
+				country_event = { id = progressTrackerB.2 days = @gatherProgStageOne }  #SHOULD ALWAYS BE ONE LONGER THAN OTHER STAGES TO ALLOW FOR CANCELLATION
+			}
+			else = {
+				operationCostCalBetaF = yes
+				set_country_flag = gatherProgress_1_2
+				country_event = { id = progressTrackerB.2 days = @gatherProgStageOne }  #SHOULD ALWAYS BE ONE LONGER THAN OTHER STAGES TO ALLOW FOR CANCELLATION
+			}
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			set_country_flag = gatherProgress_1_2
+			country_event = { id = progressTrackerB.2 days = @gatherProgStageOne }  #SHOULD ALWAYS BE ONE LONGER THAN OTHER STAGES TO ALLOW FOR CANCELLATION
+		}
+		else = {
+			operationCostCalBetaF = yes
+			set_country_flag = gatherProgress_1_2
+			country_event = { id = progressTrackerB.2 days = @gatherProgStageOne }  #SHOULD ALWAYS BE ONE LONGER THAN OTHER STAGES TO ALLOW FOR CANCELLATION
+		}	
+	}
+}
+
+
+country_event = {     #BEGIN LONGTERM OPERATION - STAGE TWO
+	id = progressTrackerB.2
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		if = {
+			limit = {
+				or = {
+					has_country_flag = gatherProgress_2_2
+					has_country_flag = gatherProgress_3_2
+					has_country_flag = gatherProgress_4_2
+					has_country_flag = gatherProgress_5_2
+					has_country_flag = gatherProgress_6_2
+				}
+			}
+			break=yes
+		}
+		else_if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+				has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			# country_event = {
+			# 	id = progressTrackerB.7
+			# }
+		  	set_country_flag = gatherProgress_2_2
+		  	country_event = { id = progressTrackerB.3 days = @gatherProgGenericStage } 
+		}
+		else = {
+			set_country_flag = gatherProgress_2_2
+			country_event = { id = progressTrackerB.3 days = @gatherProgGenericStage }
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### STAGE THREE CHECKS FOR OPPORUNITY / COMPLICATION ####
+country_event = {     #STAGE THREE
+	id = progressTrackerB.3 
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+
+		if = { #ERROR CHECK
+			limit = {
+				or = {
+					has_country_flag = gatherProgress_3_2
+					has_country_flag = gatherProgress_4_2
+					has_country_flag = gatherProgress_5_2
+					has_country_flag = gatherProgress_6_2
+				}
+			}
+			break=yes
+		}
+
+		else_if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+				has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+
+		else_if = { #IF GATHERING INTEL, CONTINUE
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			set_country_flag = gatherProgress_3_2
+			country_event = { id = progressTrackerB.4 days = @gatherProgGenericStage } 
+		}
+
+		else = { #IF ON OPERATION, ROLL FOR OPPORTUNITY CHECK
+			if = {
+				limit = {
+					nor = {
+						checkIfAlphaOpportunity = yes
+						checkIfBetaOpportunity = yes
+						has_country_flag = opportunityCooldown
+					}
+				}
+				random_list = {
+					50 = {
+						modifier = {
+							factor = @opportunityCheckFactor
+						}
+						# CHECKS FOR OPPORTUNITY #
+						if = {
+							limit = { #if not on opportunity cooldown, check for opportunity
+								nor = {
+									checkIfAlphaOpportunity = yes
+									checkIfBetaOpportunity = yes
+									has_country_flag = opportunityCooldown
+								}
+							}
+							assignGlobalOpportunityFlagBeta = yes
+							country_event = { id = opportunityManager.0 }
+						}
+						# CONTINUE AS NORMAL #
+						else = {
+							set_country_flag = gatherProgress_3_2
+							country_event = { id = progressTrackerB.4 days = @gatherProgGenericStage } 
+						}
+					}
+					20 = {
+						# CONTINUE AS NORMAL #
+						set_country_flag = gatherProgress_3_2
+						country_event = { id = progressTrackerB.4 days = @gatherProgGenericStage } 
+					}
+				}
+			}
+			else = {
+				set_country_flag = gatherProgress_3_2
+				country_event = { id = progressTrackerB.4 days = @gatherProgGenericStage } 
+			}
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+country_event = {     #STAGE FOUR
+	id = progressTrackerB.4
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				or = {
+					has_country_flag = gatherProgress_4_2
+					has_country_flag = gatherProgress_5_2
+					has_country_flag = gatherProgress_6_2
+				}
+			}
+			break=yes
+		}
+		else_if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+				has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			# country_event = {
+			# 	id = progressTrackerB.7
+			# }
+		  	set_country_flag = gatherProgress_4_2
+		  	country_event = { id = progressTrackerB.5 days = @gatherProgGenericStage } 
+		}
+		else = {
+			set_country_flag = gatherProgress_4_2
+			country_event = { id = progressTrackerB.5 days = @gatherProgGenericStage } 
+		}
+	}	
+}
+
+country_event = {     #STAGE FIVE
+	id = progressTrackerB.5
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				or = {
+					has_country_flag = gatherProgress_5_2
+					has_country_flag = gatherProgress_6_2
+				}
+			}
+			break=yes
+		}
+		else_if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+					has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			# country_event = {
+			# 	id = progressTrackerB.7
+			# }
+		  	set_country_flag = gatherProgress_5_2
+		  	country_event = { id = progressTrackerB.55 days = @gatherProgGenericStage } 
+		}
+		else = {
+			set_country_flag = gatherProgress_5_2
+			country_event = { id = progressTrackerB.55 days = @gatherProgGenericStage } 
+		}
+	}
+}
+
+
+country_event = {     #STAGE SIX
+	id = progressTrackerB.55
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				has_country_flag = gatherProgress_6_2
+				
+			}
+			break=yes
+		}
+		else_if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+					has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			# country_event = {
+			# 	id = progressTrackerA.7
+			# }
+		  	set_country_flag = gatherProgress_6_2
+		  	country_event = { id = progressTrackerB.6 days = @gatherProgGenericStage } 
+		}
+		else = {
+			set_country_flag = gatherProgress_6_2
+			country_event = { id = progressTrackerB.6 days = @gatherProgGenericStage } 
+		}
+	}
+}
+
+country_event = {     #STAGE SEVEN
+	id = progressTrackerB.6
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = { #STOPS CHAIN IF CANCEL OP HAS BEEN USED
+			limit = {
+				has_country_flag = cancelOngoingBeta
+			}
+			remove_country_flag = cancelOngoingBeta
+		}
+		else_if = {
+			limit = {
+				has_country_flag = gatherIntelBeta
+			}
+			country_event = {
+				id = progressTrackerB.7
+			}
+		  	country_event = { id = progressTrackerB.1 days = 1 } 
+		}
+		else = {
+			country_event = {
+				id = progressTrackerB.8
+			}
+		}
+	}
+}
+
+
+
+
+# GIVES POINTS DEPENDING ON TARGET DEFENCE LEVEL
+country_event = { 
+	id = progressTrackerB.7
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		getCounterIntelLevelTargetBeta = yes
+		# VERY HIGH COUNTERINTEL
+		if = { 
+			limit = { check_variable = { which = defenceLevelVarBeta value >= 4 } }
+			add_resource = { sr_beta_points = @pointsVeryHighDefence }
+		}
+		# HIGH COUNTERINTEL
+		else_if = { 
+			limit = { check_variable = { which = defenceLevelVarBeta value = 3 } }
+			add_resource = { sr_beta_points = @pointsHighDefence }
+		}
+		# MEDIUM COUNTERINTEL
+		else_if = { 
+			limit = { check_variable = { which = defenceLevelVarBeta value = 2 } }
+			add_resource = { sr_beta_points = @pointsMediumDefence }	
+		}
+		# LOW COUNTERINTEL
+		else = { 
+			add_resource = { sr_beta_points = @pointsLowDefence }
+		}
+	}
+}
+
+
+
+
+country_event = { #RANDOM SUCCESS OR FAIL CALCULATE
+	id = progressTrackerB.8
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		getCounterIntelLevelTargetBeta = yes
+		# VERY HIGH COUNTERINTEL
+		if = { 
+			limit = {
+				check_variable = { which = defenceLevelVarBeta value >= 4 }
+			}
+			random_list = {
+				# SUCCESS
+				10 = { 
+					modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus }
+					modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+					country_event = { id = progressTrackerB.9 } 
+				}
+				# CRIT FAIL
+				60 = { set_country_flag = failedBeta country_event = { id = spyFailEvt.0 }  }
+			} break = yes
+		}
+		# HIGH COUNTERINTEL
+		else_if = { 
+			limit = {
+				check_variable = { which = defenceLevelVarBeta value = 3 }
+			}
+			random_list = {
+				# SUCCESS
+				100 = { 
+					modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus }
+					modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+					country_event = { id = progressTrackerB.9 } 
+				}
+				# CRIT FAIL 
+				40 = { set_country_flag = failedBeta country_event = { id = spyFailEvt.0 } }
+			} break = yes
+		}
+		# MEDIUM COUNTERINTEL
+		else_if = { 
+			limit = {
+				check_variable = { which = defenceLevelVarBeta value = 2 }
+			}
+			random_list = {
+				# SUCCESS
+				100 = { 
+					modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus }
+					modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+					country_event = { id = progressTrackerB.9 } 
+				}
+				# CRIT FAIL
+				15 = { set_country_flag = failedBeta country_event = { id = spyFailEvt.0 } }
+			} break = yes
+		}
+		# LOW COUNTERINTEL
+		else = {
+			random_list = {
+				# SUCCESS
+				80 = { 
+					modifier = { factor = @offensiveFocusPolModifier has_policy_flag = spy_offensive_focus }
+					modifier = { factor = @defensiveFocusPolModifier has_policy_flag = spy_defensive_focus } 
+					country_event = { id = progressTrackerB.9 } 
+				}
+				# CRIT FAIL
+				0 = { set_country_flag = failedBeta country_event = { id = spyFailEvt.0 } }
+			}
+		}
+	}
+}
+
+
+
+
+# SEND TO SUCCESS
+country_event = { 
+	id = progressTrackerB.9
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		#FILTER FOR OPERATION TYPE
+		if = {
+			limit = { has_country_flag = saboRep2 }
+			country_event = { id = saboRepB.1 days = @gatherProgRandomDays random = @gatherProgRandomRandom }
+		}
+		else_if = {
+			limit = { has_country_flag = studyTech2 }
+			country_event = { id = studyTechBeta.1 days = @gatherProgRandomDays random = @gatherProgRandomRandom }
+		}
+		else_if = {
+			limit = { has_country_flag = fundCrime2 }
+			country_event = { id = fundCrimeBeta.1 days = @gatherProgRandomDays random = @gatherProgRandomRandom }
+		}
+		else_if = {
+			limit = { has_country_flag = swingEthics2 }
+			country_event = { id = swingEthicsBeta.1 days = @gatherProgRandomDays random = @gatherProgRandomRandom }
+		}
+		else_if = {
+			limit = { has_country_flag = sowUnrest2 }
+			country_event = { id = spySowUnrestB.1 days = @gatherProgRandomDays random = @gatherProgRandomRandom }
+		}
+	}
+}
