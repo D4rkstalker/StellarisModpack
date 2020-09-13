@@ -7,9 +7,27 @@ event = {
 	fire_only_once = yes
 	
 	trigger = { NOT = { has_global_flag = SMCO_enabled } }
+
 	immediate = {
 		set_global_flag = SMCO_enabled
 		log = "Slightly More Celestial Objects (SMCO) enabled!"
+		set_global_flag = SMCO_nebula_default
+		set_global_flag = smco_rogue_planet_spawn_default
+	}
+}
+
+country_event = {
+	id = SMCO_game_start.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	pre_triggers = { is_ai = no }
+
+	trigger = { NOT = { has_global_flag = SMCO_menu_now_give } }
+
+	immediate = {
+		set_global_flag = SMCO_menu_now_give
+		set_country_flag = SMCO_menu_now_give_host
 	}
 }
 
@@ -37,21 +55,37 @@ event = {
 	is_triggered_only = yes
 
 	immediate = {
+		set_global_flag = smco_black_hole_fixed
 		every_system = {
 			# Void Cloud system
 			if = {
 				limit = {
 					has_star_flag = hostile_system
 					has_star_flag = void3_system
-					star = { NOT = { has_modifier = SMCO_reissner_black_hole_modifier } }
+					star = {
+						NOR = {
+							has_modifier = SMCO_reissner_black_hole_modifier
+							has_modifier = SMCO_kerr_newman_black_hole_modifier
+						}
+					}
 				}
 
 				every_system_planet = {
 					limit = { is_planet_class = pc_black_hole }
 
-					add_modifier = {
-						modifier = SMCO_reissner_black_hole_modifier
-						days = -1
+					random_list = {
+						30 = {
+							add_modifier = {
+								modifier = SMCO_reissner_black_hole_modifier
+								days = -1
+							}
+						}
+						70 = {
+							add_modifier = {
+								modifier = SMCO_kerr_newman_black_hole_modifier
+								days = -1
+							}
+						}
 					}
 				}
 			}
@@ -64,24 +98,45 @@ event = {
 						is_ship_size = space_cloud
 						owner = { NOT = { is_country_type = vluur } }
 					}
-					star = { NOT = { has_modifier = SMCO_reissner_black_hole_modifier } }
+					star = {
+						NOR = {
+							has_modifier = SMCO_reissner_black_hole_modifier
+							has_modifier = SMCO_kerr_newman_black_hole_modifier
+						}
+					}
 					NOT = { has_star_flag = void3_system }
 				}
 
 				every_system_planet = {
 					if = {
 						limit = { is_planet_class = pc_black_hole }
-	
-						add_modifier = {
-							modifier = SMCO_reissner_black_hole_modifier
-							days = -1
+
+						random_list = {
+							30 = {
+								add_modifier = {
+									modifier = SMCO_reissner_black_hole_modifier
+									days = -1
+								}
+							}
+							70 = {
+								add_modifier = {
+									modifier = SMCO_kerr_newman_black_hole_modifier
+									days = -1
+								}
+							}
 						}
 					}
 				}
 			}
+
+			#On the other black holes
+			every_system_planet = {
+				limit = { is_planet_class = pc_black_hole }
+
+				SMCO_black_hole_planet_entities = yes
+			}
 		}
 
-		every_system = { SMCO_black_hole_entities = yes }
 		random_country = {
 			limit = { is_ai = no }
 			country_event = {
@@ -107,6 +162,7 @@ country_event = {
 					NOT = { has_modifier = SMCO_reissner_black_hole_modifier }
 					NOT = { has_modifier = SMCO_kerr_black_hole_modifier }
 					NOT = { has_modifier = SMCO_schwarzschild_black_hole_modifier }
+					NOT = { has_modifier = SMCO_kerr_newman_black_hole_modifier }
 				}
 				if = {
 					limit = { has_planet_class = pc_black_hole }
@@ -116,356 +172,14 @@ country_event = {
 							NOT = { has_modifier = SMCO_reissner_black_hole_modifier }
 							NOT = { has_modifier = SMCO_kerr_black_hole_modifier }
 							NOT = { has_modifier = SMCO_schwarzschild_black_hole_modifier }
+							NOT = { has_modifier = SMCO_kerr_newman_black_hole_modifier }
 						}
 	
-						add_modifier = {
-							modifier = SMCO_schwarzschild_black_hole_modifier
-							days = -1
-						}
-						set_planet_entity = { entity = SMCO_schwarzschild_black_hole_01_entity }
+						SMCO_black_hole_planet_entities = yes
 					}
 				}
 			}
 		}
-	}
-}
-
-# Spawn rogue planet 'systems'
-event = {
-	id = SMCO_game_start.6
-	hide_window = yes
-	is_triggered_only = yes
-
-	immediate = {
-		set_spawn_system_batch = begin
-		no_scope = {
-			# Tiny galaxy
-			if = {
-				limit = { galaxy_size = tiny }
-
-				while = {
-					count = @galaxysmall_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-			
-			# Small galaxy
-			if = {
-				limit = { galaxy_size = small }
-
-				while = {
-					count = @galaxysmall_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-
-			# Medium galaxy
-			if = {
-				limit = { galaxy_size = medium }
-
-				while = {
-					count = @galaxysmall_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-
-			# Large galaxy
-			if = {
-				limit = { galaxy_size = large }
-
-				while = {
-					count = @galaxysmall_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-
-			# Huge galaxy
-			if = {
-				limit = { galaxy_size = huge }
-
-				while = {
-					count = @galaxysmall_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-
-			# In case people use larger galaxies than the default
-			if = {
-				limit = {
-					NOR = {
-						galaxy_size = tiny
-						galaxy_size = small
-						galaxy_size = medium
-						galaxy_size = large
-						galaxy_size = huge
-					}
-				}
-
-				while = {
-					count = @galaxymisc_rogue_system
-					random_system = {
-
-						SMCO_rogue_planet_system_spawn = yes
-						if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_1 }
-							
-							event_target:SMCO_rogue_planet_system_1 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_1
-						}
-						else_if = {
-							limit = { exists = event_target:SMCO_rogue_planet_system_2 }
-							
-							event_target:SMCO_rogue_planet_system_2 = {
-								every_system_planet = {
-									if = {
-										limit = { is_planet_class = pc_SMCO_small_rogue_planet }
-						
-										SMCO_rogue_planet_modifiers = yes
-									}
-									if = {
-										limit = { NOT = { is_planet_class = pc_SMCO_void_star } }
-	
-										SMCO_rogue_planet_deposits = yes
-									}
-								}
-								isolate_system = yes
-							}
-							clear_global_event_target = SMCO_rogue_planet_system_2
-						}
-					}
-				}
-			}
-		}
-		set_spawn_system_batch = end
 	}
 }
 
@@ -486,7 +200,12 @@ event = {
 					}
 				}
 
-				spawn_system = { initializer = "SMCO_rogue_planet_event_system" }
+				spawn_system = {
+					min_distance >= 5
+					max_distance <= 10
+					initializer = "SMCO_rogue_planet_event_system"
+					hyperlane = no
+				}
 				if = {
 					limit = { exists = event_target:SMCO_rogue_event_system }
 	
@@ -509,7 +228,6 @@ event = {
 								SMCO_rogue_planet_deposits = yes
 							}
 						}
-						isolate_system = yes
 					}
 				}
 			}

@@ -1,0 +1,445 @@
+namespace = changingtimes
+
+event = {
+	id = changingtimes.1
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		# District fixing
+		if = {
+			limit = { not = { has_global_flag = gf_fixed_districts4 }}
+			set_global_flag = gf_fixed_districts4
+			
+			every_planet = {
+				limit = {
+					or = {
+						is_planet_class = pc_frozen_habitable
+						is_planet_class = pc_molten_habitable
+						is_planet_class = pc_toxic_habitable
+						is_planet_class = pc_barren_habitable
+						is_planet_class = pc_asteroid_habitable
+						is_planet_class = pc_ice_asteroid_habitable
+						is_planet_class = pc_gas_giant_habitable
+					}
+				}
+				set_planet_flag = pf_hide_city
+				set_planet_flag = pf_hide_generator
+				set_planet_flag = pf_hide_farming
+				if = {
+					limit = { is_planet_class = pc_frozen_habitable }
+					set_planet_flag = pf_retain_frozen_refinery
+				}
+				if = {
+					limit = { is_planet_class = pc_molten_habitable }
+					set_planet_flag = pf_retain_molten_refinery
+				}
+				if = {
+					limit = { is_planet_class = pc_toxic_habitable }
+					set_planet_flag = pf_retain_toxic_refinery
+				}
+				if = {
+					limit = { good_for_mining = yes }
+					remove_planet_flag = pf_hide_mining	
+				}
+				else = { remove_planet_flag = pf_hide_heavy_industries }					
+			}
+			
+			every_planet = {
+				limit = {
+					is_normal_planet_class = yes
+					is_colony = yes
+				}
+				remove_planet_flag = pf_hide_city
+				remove_planet_flag = pf_hide_generator
+				remove_planet_flag = pf_hide_farming
+				remove_planet_flag = pf_hide_mining			
+			}
+			every_planet = {
+				limit = { is_planet_class = pc_habitat }
+				remove_planet_flag = pf_hide_heavy_industries	
+			}
+		}
+		
+		# Planet modifier fixing
+		if = {
+			limit = { not = { has_global_flag = done_new_resources_hs }}
+			set_global_flag = done_new_resources_hs	
+			
+			every_planet = {
+				limit = { 
+					is_homeworld = yes
+					habitable_structure = yes
+				}
+				add_deposit = d_fuels_cache	
+				add_deposit = d_biovault			
+			}
+		}
+		if = {
+			limit = { not = { has_global_flag = done_new_resources }}
+			set_global_flag = done_new_resources
+			
+			every_planet = {
+				limit = { 
+					is_homeworld = yes
+					habitable_structure = no
+					exists = owner
+					owner = { is_primitive = no }
+				}
+				add_modifier = {
+					modifier = rich_actinides
+					days = -1
+				}
+				add_modifier = {
+					modifier = rich_natural_fuels
+					days = -1
+				}				
+			}
+			
+			every_planet = {
+				limit = { 
+					habitable_planet = yes
+					is_homeworld = no
+					habitable_structure = no
+					NOT = { is_planet_class = pc_machine }
+					NOT = { is_planet_class = pc_hive }
+					NOT = { is_planet_class = pc_city }
+				}
+				if = {
+					limit = { is_planet_class = pc_nuked }
+					random_list = {
+						75 = {}
+						25 = {
+							add_modifier = {
+								modifier = rich_actinides
+								days = -1
+							}				
+						}				
+					}
+				}
+				else_if = {
+					limit = { is_planet_class = pc_gaia }
+					add_modifier = {
+						modifier = rich_natural_fuels
+						days = -1
+					}
+					random_list = {
+						50 = {
+							add_modifier = {
+								modifier = rich_precious_stones
+								days = -1
+							}				
+						}
+						50 = {
+							add_modifier = {
+								modifier = rich_rare_metals
+								days = -1
+							}				
+						}				
+					}				
+				}
+				else = {
+					random_list = {
+						75 = {}
+						10 = {
+							add_modifier = {
+								modifier = rich_natural_fuels
+								days = -1
+							}
+						}
+						5 = {
+							add_modifier = {
+								modifier = rich_precious_stones
+								days = -1
+							}				
+						}
+						5 = {
+							add_modifier = {
+								modifier = rich_rare_metals
+								days = -1
+							}				
+						}
+						5 = {
+							add_modifier = {
+								modifier = rich_actinides
+								days = -1
+							}				
+						}
+					}
+				}
+			}
+		}
+		
+		if = {
+			limit = { not = { has_global_flag = done_actinides_deposits }}
+			set_global_flag = done_actinides_deposits
+			every_planet = {
+				limit = { 
+					has_modifier = rich_actinides
+					habitable_structure = no
+				}
+				add_deposit = d_actinides_field				
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = changingtimes.200
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				solar_system = {
+					exists = space_owner
+					space_owner = {
+						is_ai = yes
+					}
+				}
+				OR = {
+					is_planet_class = pc_frozen_habitable
+					is_planet_class = pc_molten_habitable
+					is_planet_class = pc_toxic_habitable
+					is_planet_class = pc_barren_habitable
+					is_planet_class = pc_asteroid_habitable
+					is_planet_class = pc_ice_asteroid_habitable
+					is_planet_class = pc_gas_giant_habitable
+				}
+			}
+			space_owner = {
+				set_country_flag = cf_stop_hostile_terraforming
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = changingtimes.7
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_planet_flag = pf_post_terraformed
+		if = {
+			limit = {
+				has_modifier = terraforming_candidate
+			}
+			remove_modifier = terraforming_candidate
+		}
+		
+		if = {
+			limit = { is_normal_planet_class = yes }
+			remove_planet_flag = pf_hide_city
+			remove_planet_flag = pf_hide_generator
+			remove_planet_flag = pf_hide_farming
+			remove_planet_flag = pf_hide_mining
+		}
+		
+		if = {
+			limit = { has_planet_flag = pf_retain_frozen_refinery }
+			add_modifier = {
+				modifier = post_terraforming_recovery
+				days = 3600
+			}
+		}
+		if = {
+			limit = { has_planet_flag = pf_retain_molten_refinery }
+			add_modifier = {
+				modifier = post_terraforming_recovery
+				days = 3600
+			}
+		}
+		if = {
+			limit = { has_planet_flag = pf_retain_toxic_refinery }
+			add_modifier = {
+				modifier = post_terraforming_recovery
+				days = 3600
+			}
+		}
+		
+		if = {
+			limit = { is_planet_class = pc_frozen_habitable }
+			set_planet_flag = pf_retain_frozen_refinery
+		}
+		if = {
+			limit = { is_planet_class = pc_molten_habitable }
+			set_planet_flag = pf_retain_molten_refinery
+		}
+		if = {
+			limit = { is_planet_class = pc_toxic_habitable }
+			set_planet_flag = pf_retain_toxic_refinery
+		}
+		
+		if = {
+			limit = {
+				OR = {
+					is_planet_class = pc_frozen_habitable
+					is_planet_class = pc_molten_habitable
+					is_planet_class = pc_toxic_habitable
+					is_planet_class = pc_barren_habitable
+					is_planet_class = pc_asteroid_habitable
+					is_planet_class = pc_ice_asteroid_habitable
+					is_planet_class = pc_gas_giant_habitable
+				}
+			}
+			set_planet_flag = pf_hide_city
+			set_planet_flag = pf_hide_generator
+			set_planet_flag = pf_hide_farming
+			
+			solar_system = {
+				if = {
+					limit = {
+						exists = space_owner
+						space_owner = { is_ai = yes }
+					}				
+					space_owner = {
+						set_country_flag = cf_stop_hostile_terraforming
+					}
+				}
+			}
+			
+			if = {
+				limit = {
+					not = { is_planet_class = pc_gas_giant_habitable }
+					good_for_mining = yes
+				}
+				add_deposit = d_ore_rich_caverns
+			}
+			
+			if = {
+				limit = {
+					or = {
+						is_planet_class = pc_asteroid_habitable
+						is_planet_class = pc_ice_asteroid_habitable
+					}
+				}
+				random_list = {
+					20 = { change_planet_size = 1 }
+					20 = { change_planet_size = 2 }
+					20 = { change_planet_size = -1 }
+					40 = {}
+				}
+			}
+			
+			if = {
+				limit = {
+					is_planet_class = pc_gas_giant_habitable
+					planet_size > 18
+				}
+				while = {
+					limit = { planet_size > 18 }
+					change_planet_size = -1
+				}
+			}
+			
+			if = {
+				limit = {
+					planet_size > 14
+					not = { is_planet_class = pc_gas_giant_habitable }
+				}
+				change_planet_size = -3
+			}
+			
+			if = {
+				limit = {
+					planet_size > 10
+					not = { is_planet_class = pc_gas_giant_habitable }
+				}
+				random_list = {
+					20 = { change_planet_size = -3 }
+					20 = { change_planet_size = -2 }
+					20 = { change_planet_size = -1 }
+					40 = {}
+				}
+			}
+			
+			if = {
+				limit = {
+					or = {
+						is_planet_class = pc_frozen_habitable
+						is_planet_class = pc_ice_asteroid_habitable
+					}
+				}
+				roll_freezing_habitable_features = yes
+			}
+			
+			if = {
+				limit = { is_planet_class = pc_molten_habitable }
+				roll_molten_habitable_features = yes
+			}
+			
+			if = {
+				limit = { is_planet_class = pc_toxic_habitable }
+				roll_toxic_habitable_features = yes
+			}
+
+			if = {
+				limit = { is_planet_class = pc_gas_giant_habitable }
+				roll_gasgiant_habitable_features = yes
+			}
+
+			if = {
+				limit = {
+					or = {
+						is_planet_class = pc_barren_habitable
+						is_planet_class = pc_asteroid_habitable
+					}
+					good_for_mining = yes
+				}
+				roll_barren_mining_features = yes
+			}
+			else_if = {
+				limit = {
+					or = {
+						is_planet_class = pc_barren_habitable
+						is_planet_class = pc_asteroid_habitable
+					}
+					good_for_mining = no
+				}
+				roll_barren_habitable_features = yes			
+			}			
+		}
+	}
+}
+
+planet_event = {
+	id = changingtimes.205
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		remove_modifier = pm_cv_ice_to_crystals
+		remove_modifier = pm_cv_actinides_to_motes
+		remove_modifier = pm_cv_fuels_to_gases
+		remove_modifier = auto_resettling
+		remove_modifier = health_checking
+		remove_modifier = post_terraforming_recovery
+		remove_modifier = resolve_amenities_crisis
+		remove_modifier = resolve_stability_crisis
+		remove_modifier = resolve_employment_crisis
+		remove_modifier = luxury_benefits_low
+		remove_modifier = luxury_benefits_medium
+		remove_modifier = luxury_benefits_high
+		remove_modifier = loyalty_rewards
+		remove_modifier = pioneer_benefits
+		remove_modifier = immigrant_benefits
+		remove_modifier = education_programs
+		remove_modifier = plm_privatise_generators
+		remove_modifier = plm_preserving_actinides
+		remove_modifier = plm_preserving_biomass
+		remove_modifier = plm_preserving_fuels
+		remove_modifier = plm_preserving_ice
+		remove_modifier = planet_cloning_boost
+		remove_modifier = planet_robotbuilding_boost
+		remove_modifier = aggressive_biomass_sourcing
+		remove_modifier = renewable_biomass_sourcing
+		remove_modifier = aggressive_fuels_sourcing 
+		remove_modifier = renewable_fuels_sourcing
+		remove_modifier = microfusion_generators
+		remove_modifier = construction_force
+		remove_modifier = shuttle_service
+	}
+}

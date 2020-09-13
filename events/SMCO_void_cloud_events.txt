@@ -42,6 +42,7 @@ country_event = {
 	}
 }
 
+#Spawning feeding Void Clouds
 event = {
 	id = SMCO_void_cloud.2
 	hide_window = yes
@@ -51,7 +52,12 @@ event = {
 		random_system = {
 			limit = {
 				has_planet_class = pc_black_hole
-				star = { has_modifier = SMCO_reissner_black_hole_modifier }
+				star = {
+					OR = {
+						has_modifier = SMCO_reissner_black_hole_modifier
+						has_modifier = SMCO_kerr_newman_black_hole_modifier
+					}
+				}
 				OR = {
 					AND = {
 						has_owner = yes
@@ -72,7 +78,10 @@ event = {
 			random_system_planet = {
 				limit = {
 					is_star = yes
-					has_modifier = SMCO_reissner_black_hole_modifier
+					OR = {
+						has_modifier = SMCO_reissner_black_hole_modifier
+						has_modifier = SMCO_kerr_newman_black_hole_modifier
+					}
 				}
 
 				log = "Creating country..."
@@ -98,14 +107,50 @@ event = {
 				}
 			}
 
-			owner = {
-				if = {
-					limit = { NOT = { has_modifier = SMCO_void_cloud_camo } }
+			if = {
+				limit = { has_owner = yes }
 
-					set_country_flag = SMCO_void_feeding_encountered
-					country_event = {
-						id = SMCO_void_cloud.3
-						days = -1
+				owner = {
+					if = {
+						limit = { NOT = { has_country_flag = cloud_encountered } }
+
+						log = "Running SMCO_void_cloud.4"
+						set_country_flag = SMCO_void_feeding_encountered
+						country_event = {
+							id = SMCO_void_cloud.4
+							days = -1
+						}
+					}
+					every_country = {
+						if = {
+							limit = {
+								is_country_type = cloud
+								NOT = { has_communications = prev }
+							}
+	
+							prev = {
+								set_country_flag = SMCO_void_feeding_encountered
+								country_event = {
+									id = SMCO_void_cloud.5
+									days = -1
+								}
+							}
+						}
+						else_if = {
+							limit = {
+								is_country_type = cloud
+								has_communications = prev
+								prev = { NOT = { has_modifier = SMCO_void_cloud_camo } }
+							}
+	
+							prev = {
+								set_country_flag = SMCO_void_feeding_encountered
+								country_event = {
+									id = SMCO_void_cloud.3
+									days = -1
+								}
+							}
+						}
 					}
 				}
 			}
@@ -113,6 +158,7 @@ event = {
 	}
 }
 
+#Void Clouds return (have encountered Void Clouds before)
 country_event = {
 	id = SMCO_void_cloud.3
 	title = "SMCO_void_cloud.3.title"
@@ -142,22 +188,75 @@ country_event = {
 	}
 }
 
+#SMCO version of Void Cloud first encounter
 country_event = {
 	id = SMCO_void_cloud.4
-	hide_window = yes
+	title = "SMCO_void_cloud.4.title"
+	desc = "SMCO_void_cloud.4.desc"
+	picture = GFX_evt_star_chart
 	is_triggered_only = yes
+	location = event_target:SMCO_void_cloud_return
+	trackable = yes
 
-	trigger = { has_modifier = cloud_hunting_buff }
+	trigger = {
+		is_country_type = default
+		is_ai = no
+		NOT = { has_country_flag = cloud_encountered }
+	}
 
 	immediate = {
-		remove_modifier = cloud_hunting_buff
-		add_modifier = {
-			modifier = SMCO_cloud_hunting_buff
-			days = -1
+		set_country_flag = cloud_encountered
+		capital_scope = { save_event_target_as = pc_home }
+		enable_special_project = {
+			name = "SMCO_INVESTIGATE_SPACE_CLOUDS"
+			location = event_target:pc_home
+			owner = ROOT
+		}
+	}
+
+	option = {
+		name = "action.10.a"
+		tooltip = {
+			enable_special_project = {
+				name = "SMCO_INVESTIGATE_SPACE_CLOUDS"
+				location = event_target:pc_home
+				owner = ROOT
+			}
 		}
 	}
 }
 
+#Void Clouds return (have not yet encountered Void Clouds)
+country_event = {
+	id = SMCO_void_cloud.5
+	title = "SMCO_void_cloud.5.title"
+	desc = "SMCO_void_cloud.5.desc"
+	picture = GFX_evt_star_chart
+	is_triggered_only = yes
+	location = event_target:SMCO_void_cloud_return
+
+	option = {
+		trigger = {
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+		name = "SMCO_void_cloud.3.a"
+	}
+
+	option = {
+		trigger = {
+			NOR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+		name = "SMCO_void_cloud.3.b"
+	}
+}
+
+#Not used for now
 country_event = {
 	id = SMCO_void_cloud.6
 	hide_window = yes
@@ -174,6 +273,7 @@ country_event = {
 	}
 }
 
+#Start of SMCO Void Cloud event extension
 country_event = {
 	id = SMCO_void_cloud.7
 
@@ -240,6 +340,7 @@ country_event = {
 	}
 }
 
+#Better Void Cloud hunting
 country_event = {
 	id = SMCO_void_cloud.8
 	title = "SMCO_void_cloud.8"
@@ -271,6 +372,24 @@ country_event = {
 	}
 }
 
+#Every month, check and replace vanilla Void Cloud hunting with SMCO's Void Cloud hunting (same stats)
+country_event = {
+	id = SMCO_void_cloud.9
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { has_modifier = cloud_hunting_buff }
+
+	immediate = {
+		remove_modifier = cloud_hunting_buff
+		add_modifier = {
+			modifier = SMCO_cloud_hunting_buff
+			days = -1
+		}
+	}
+}
+
+#Void Cloud camo
 country_event = {
 	id = SMCO_void_cloud.10
 	title = "SMCO_void_cloud.10"
@@ -383,6 +502,7 @@ country_event = {
 	}
 }
 
+#Void Clouds finish feeding (not yet implemented)
 event = {
 	id = SMCO_void_cloud.11
 	hide_window = yes
@@ -392,10 +512,14 @@ event = {
 		random_system = {
 			limit = {
 				has_planet_class = pc_black_hole
-				planet = { has_modifier = SMCO_reissner_black_hole_modifier }
+				star = {
+					OR = {
+						has_modifier = SMCO_reissner_black_hole_modifier
+						has_modifier = SMCO_kerr_newman_black_hole_modifier
+					}
+				}
 				has_owner = yes
 				owner = { is_ai = no }
-				fleet = { has_fleet_flag = SMCO_void_cloud_feeding }
 			}
 
 			random_fleet_in_system = {

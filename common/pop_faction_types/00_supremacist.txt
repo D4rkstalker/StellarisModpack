@@ -17,15 +17,11 @@ supremacist = {
 	}
 
 	is_potential = {
+		NOT = { has_country_flag = cf_vanfac_supremacist_died }
 		years_passed > 10
 		has_encountered_other_species = yes
 		NOT = { has_ethic = ethic_gestalt_consciousness }
-		count_owned_pops = {
-			count >= 5
-			limit = {
-				has_ethic = ethic_xenophobe
-			}
-		}		
+		NOT = { has_modifier = banned_xenophobe2 }
 	}
 	
 	parameters = {
@@ -43,7 +39,9 @@ supremacist = {
 	}
 
 	can_join_faction = {
+		is_enslaved = no
 		is_shackled_robot = no
+		is_being_purged = no
 		has_culture_shock = no
 		NOT = { has_trait = trait_nerve_stapled }
 		OR = {
@@ -57,10 +55,18 @@ supremacist = {
 			}
 		}
 		is_same_species = owner_species
-	}	
+	}
 	
 	attraction = {
 		base = 100
+		
+		modifier = {
+			factor = 0
+			exists = from
+			from = {
+				has_modifier = banned_faction
+			}
+		}
 		
 		modifier = {
 			factor = 1.25
@@ -105,7 +111,7 @@ supremacist = {
 			is_event_leader = yes
 		}			
 	}
-	
+
 	demand = {
 		title = "FACTION_OUTRAGED_GC"
 		unfulfilled_title = "FACTION_OUTRAGED_GC"
@@ -126,8 +132,7 @@ supremacist = {
 				has_country_flag = faction_xenophobe_supremacist_outraged_gc
 			}
 		}
-	}	
-	
+	}
 	
 	demand = {
 		title = "SUPREMACIST_RULER_SAME_SPECIES"
@@ -360,7 +365,6 @@ supremacist = {
 			}
 		}
 	}
-
 	demand = {
 		title = "SUPREMACIST_PROCLAIM_SUPREMACY"
 		unfulfilled_title = "SUPREMACIST_NO_PROCLAIM_SUPREMACY"
@@ -464,6 +468,10 @@ supremacist = {
 	}
 
 	on_destroy = {
+		set_timed_country_flag = {
+			flag = cf_vanfac_supremacist_died
+			days = 3600
+		}
 		if = {
 			limit = {
 				has_modifier = promoted_xenophobe
@@ -493,6 +501,11 @@ supremacist = {
 					OR = {
 						is_subject = no
 						NOT = { is_subject_type = dominion }
+					}
+				}
+				parameter:empire = {
+					NOT = {
+						has_modifier = suppressed_xenophobe
 					}
 				}
 			}
@@ -661,6 +674,7 @@ supremacist = {
 			potential = {
 				exists = owner
 				parameter:empire = { has_modifier = suppressed_xenophobe }
+				not = { has_modifier = banned_faction }
 			}
 
 			effect = {
@@ -673,6 +687,77 @@ supremacist = {
 							remove_modifier = suppressed_faction
 						}
 					}
+				}
+			}
+			
+			ai_weight = {
+				base = 0
+			}
+		}
+		ban_faction = {
+			title = "BAN_FACTION"
+			description = "BAN_FACTION_DESC"
+			
+			potential = {
+				exists = owner
+				parameter:empire = { 
+					has_modifier = suppressed_xenophobe
+					not = { has_ethic = ethic_xenophobe }
+					not = { has_ethic = ethic_fanatic_xenophobe }
+				}
+				not = { has_modifier = banned_faction }
+			}
+
+			effect = {
+				hidden_effect = {
+					save_event_target_as = MyFaction
+					parameter:empire = {
+						every_owned_pop = {
+							limit = {
+								member_of_faction = event_target:MyFaction
+							}
+							random_list = {
+								10 = {
+									add_modifier = { modifier = pop_faction_banned days = 360 }							
+								}
+								85 = {
+									add_modifier = { modifier = pop_faction_banned days = 720 }
+								}
+								5 = {
+									add_modifier = { modifier = pop_faction_banned days = 1800 }
+								}
+							}
+						}
+					}
+				}
+				add_modifier = { modifier = banned_faction days = 1800 }
+				parameter:empire = {
+					if = {
+						limit = {
+							not = { has_modifier = banned_xenophobe2 }
+						}
+						add_modifier = { modifier = banned_xenophobe2 days = -1 }
+					}
+				}
+			}
+			
+			ai_weight = {
+				base = 0
+			}
+		}
+		cancel_ban_faction = {
+			title = "CANCEL_BAN_FACTION"
+			description = "CANCEL_BAN_FACTION_DESC"
+			
+			potential = {
+				exists = owner
+				has_modifier = banned_faction
+			}
+
+			effect = {
+				remove_modifier = banned_faction
+				parameter:empire = {
+					remove_modifier = banned_xenophobe2
 				}
 			}
 			

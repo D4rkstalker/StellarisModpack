@@ -1,0 +1,240 @@
+# This = country
+can_build_branch_offices = {
+	custom_tooltip = {
+		fail_text = BRANCH_OFFICE_NOT_MEGACORP
+		or = {
+			has_authority = auth_corporate
+			has_valid_civic = civic_criminal_heritage
+		}
+	}
+}
+
+# This = country
+can_support_branch_offices = {
+	custom_tooltip = {
+		fail_text = BRANCH_OFFICE_NOT_FALLEN_EMPIRES
+		NOR = {
+			is_country_type = fallen_empire
+			is_country_type = awakened_fallen_empire
+		}
+	}
+	is_regular_empire = yes
+	# NOT = { has_authority = auth_corporate }
+}
+
+# This = planet
+# Root = country
+can_build_branch_office_on_planet = {
+	custom_tooltip = {
+		fail_text = requires_owner_not_root
+		exists = owner
+		not = { owner = { is_same_value = root }}
+	}
+	custom_tooltip = {
+		fail_text = requires_recipient_not_fanatic_purifiers
+		exists = owner
+		owner = {
+			OR = {
+				is_same_species = root
+				NOT = { has_civic = civic_fanatic_purifiers }
+			}
+		}
+	}
+	custom_tooltip = {
+		fail_text = BRANCH_OFFICE_NOT_COMMERCIAL_PACT
+		exists = owner
+		OR = {
+			root = { has_valid_civic = civic_criminal_heritage }
+			owner = { has_commercial_pact = root }
+			owner = { is_in_federation_with = root }
+			and = {
+				root = {
+					has_authority = auth_corporate
+					has_diplo_migration_treaty = owner
+				
+				}
+				owner = {
+					has_authority = auth_corporate
+					has_diplo_migration_treaty = root
+				}
+			}
+
+			# allow branch offices in subsidiaries and vice versa
+			root = {
+				is_subject = yes
+				is_subject_type = subsidiary
+				overlord = { is_same_value = owner }
+			}
+			owner = {
+				is_subject = yes
+				is_subject_type = subsidiary
+				overlord = { is_same_value = root }
+			}
+		}
+	}
+	custom_tooltip = {
+		fail_text = BRANCH_OFFICE_CRIMINAL_HERITAGE_HAS_TRUCE
+		exists = owner
+		OR = {
+			root = { not = { has_valid_civic = civic_criminal_heritage }}
+			owner = {
+				NOR = {
+					has_truce = root
+					is_at_war_with = root
+				}
+			}
+		}
+	}
+	custom_tooltip = {
+		fail_text = BRANCH_OFFICE_CRIMINAL_COOLDOWN
+		exists = owner
+		OR = {
+			root = { not = { has_valid_civic = civic_criminal_heritage }}
+			AND = {
+				root = { has_valid_civic = civic_criminal_heritage }
+				NOT = { has_planet_flag = criminal_branch_closed_cooldown_planet@root }
+			}
+		}
+	}
+}
+
+# This = country
+# Checked by is_criminal_syndicate trigger
+is_criminal_syndicate_rule = {
+	# has_authority = auth_corporate
+	has_valid_civic = civic_criminal_heritage
+}
+
+# Disable AI gene modding. It just keeps doing it.
+can_modify_species = {
+	and = {
+		root.owner = {
+			not = { 
+				has_country_flag = recent_gene_project_complete 
+			}
+			or = {
+				is_ai = no
+				and = {
+					has_ascension_perk = ap_engineered_evolution
+					has_origin = origin_genepurists
+				}
+			}
+		}
+		OR = {
+			NOT = { has_trait = trait_self_modified }
+			is_same_species = root
+		}
+	}
+}
+
+can_resettle_pop = {
+	IF = {
+		limit = { is_shackled_robot = yes }
+		is_shackled_robot = yes
+		owner = {
+			or = {
+				is_ai = no
+				and = {
+					has_monthly_income = { resource = energy value > 25 }
+					resource_stockpile_compare = { resource = energy value > 2500 }
+				}
+			}
+		}
+	}
+	ELSE_IF = {
+		limit = {
+			planet = {
+				OR = {
+					has_modifier = doomsday_1
+					has_modifier = doomsday_2
+					has_modifier = doomsday_3
+					has_modifier = doomsday_4
+					has_modifier = doomsday_5
+				}
+			}
+		}
+		planet = {
+			OR = {
+				has_modifier = doomsday_1
+				has_modifier = doomsday_2
+				has_modifier = doomsday_3
+				has_modifier = doomsday_4
+				has_modifier = doomsday_5
+			}
+		}
+	}
+	ELSE = {
+		owner = {
+			or = {
+				is_ai = no
+				and = {
+					has_monthly_income = { resource = energy value > 25 }
+					resource_stockpile_compare = { resource = energy value > 2500 }
+				}
+			}
+			OR = {
+				has_policy_flag = resettlement_allowed
+				is_gestalt = yes
+			}
+		}
+	}
+}
+
+# Stop the AI using the market all the time
+can_use_galactic_market = {
+	or = {
+		and = {
+			is_ai = no
+			and = {
+				is_country_type = default
+				NOR = {
+					has_civic = civic_fanatic_purifiers
+					has_civic = civic_hive_devouring_swarm
+					has_civic = civic_machine_terminator
+				}	
+			}
+		}
+		and = {
+			is_ai = yes
+			and = {
+				is_country_type = default
+				NOR = {
+					has_civic = civic_fanatic_purifiers
+					has_civic = civic_hive_devouring_swarm
+					has_civic = civic_machine_terminator
+				}	
+			}
+			or = {
+				resource_stockpile_compare = { resource = energy value > 10000 }
+				resource_stockpile_compare = { resource = energy value < 500 }
+				resource_stockpile_compare = { resource = minerals value < 1 }
+				resource_stockpile_compare = { resource = minerals value > 15000 }
+				resource_stockpile_compare = { resource = alloys value < 1 }
+			}
+		}
+	}
+}
+
+# Disable AI selling slaves completely. It has no idea when to.
+can_be_sold_on_slave_market = {
+	OR = {
+		is_enslaved = yes
+		is_non_sapient_robot = yes
+		is_shackled_robot = yes
+	}
+	ROOT = { is_ai = no }
+}
+
+can_force_decline_on_planet = {
+	exists = owner
+	owner = { NOT = { has_policy_flag = population_controls_not_allowed } }
+	custom_tooltip = {
+		fail_text = FORCED_DECLINE_ALREADY_PURGING
+		NOT = {
+			any_owned_pop = {
+				has_citizenship_type = { type = citizenship_purge }
+				NOT = { has_purge_type = { country = from type = purge_neutering } }
+			}
+		}
+	}
+}

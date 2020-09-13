@@ -17,15 +17,11 @@ technologist = {
 	}
 
 	is_potential = {
+		NOT = { has_country_flag = cf_vanfac_technologist_died }
 		years_passed > 10
 		has_encountered_other_species = yes
 		NOT = { has_ethic = ethic_gestalt_consciousness }
-		count_owned_pops = {
-			count >= 5
-			limit = {
-				has_ethic = ethic_materialist
-			}
-		}		
+		NOT = { has_modifier = banned_materialist }
 	}
 	
 	parameters = {
@@ -36,12 +32,11 @@ technologist = {
 			}
 		}
 	}
-	
 	can_join_pre_triggers = {
 		is_enslaved = no
 		is_being_purged = no
 	}
-
+	
 	can_join_faction = {
 		is_shackled_robot = no
 		has_culture_shock = no
@@ -55,10 +50,18 @@ technologist = {
 			has_ethic = ethic_fanatic_materialist
 			is_robot_pop = yes
 		}
-	}	
+	}
 	
 	attraction = {
 		base = 150
+		
+		modifier = {
+			factor = 0
+			exists = from
+			from = {
+				has_modifier = banned_faction
+			}
+		}
 		
 		modifier = {
 			factor = 1.25
@@ -91,75 +94,6 @@ technologist = {
 			is_event_leader = yes
 		}
 	}
-	
-	demand = {
-		title = "FACTION_OUTRAGED_GC"
-		unfulfilled_title = "FACTION_OUTRAGED_GC"
-		desc = "FACTION_OUTRAGED_GC_DESC"
-
-		fulfilled_effect = -20
-		unfulfilled_effect = -0.001
-
-		potential = {
-			exists = owner
-			owner = {
-				has_country_flag = faction_materialist_outraged_gc
-			}
-		}
-
-		trigger = {
-			owner = {
-				has_country_flag = faction_materialist_outraged_gc
-			}
-		}
-	}	
-	
-	
-	demand = {
-		title = "ACADEMIC_PRIVILEGES"
-		unfulfilled_title = "ACADEMIC_PRIVILEGES"
-		desc = "ACADEMIC_PRIVILEGES_DESC"
-
-		fulfilled_effect = 10
-
-		potential = { 
-			exists = owner
-			owner = { has_valid_civic = civic_science_directorate }
-		}
-
-		trigger = {
-			owner = {
-				OR = {
-					any_owned_pop = {
-						has_living_standard = { type = living_standard_academic_privilege }
-					}					
-				}
-			}
-		}
-	}	
-	
-	
-	demand = {
-		title = "GENETIC_SUPERIORITY"
-		unfulfilled_title = "NO_GENETIC_SUPERIORITY"
-		desc = "GENETIC_SUPERIORITY_DESC"
-
-		fulfilled_effect = 15
-		unfulfilled_effect = -2
-
-		potential = {
-			exists = owner
-			owner = {  has_valid_civic = civic_symbiotic_race  }
-		}
-
-		trigger = {
-			owner = {
-					has_ascension_perk = ap_engineered_evolution
-			}
-		}
-	}		
-
-	
 
 	demand = {
 		title = "TECHNOLOGIST_ROBOTS_ALLOWED"
@@ -179,6 +113,28 @@ technologist = {
 					has_policy_flag = robots_outlawed
 					has_policy_flag = ai_outlawed
 				}
+			}
+		}
+	}
+
+	demand = {
+		title = "FACTION_OUTRAGED_GC"
+		unfulfilled_title = "FACTION_OUTRAGED_GC"
+		desc = "FACTION_OUTRAGED_GC_DESC"
+
+		fulfilled_effect = -20
+		unfulfilled_effect = -0.001
+
+		potential = {
+			exists = owner
+			owner = {
+				has_country_flag = faction_materialist_outraged_gc
+			}
+		}
+
+		trigger = {
+			owner = {
+				has_country_flag = faction_materialist_outraged_gc
 			}
 		}
 	}
@@ -259,7 +215,7 @@ technologist = {
 			}
 		}
 	}
-
+	
 	demand = {
 		title = "TECHNOLOGIST_NO_SYNTH_ENVY"
 		unfulfilled_title = "TECHNOLOGIST_SYNTH_ENVY"
@@ -295,8 +251,6 @@ technologist = {
 			}
 		}
 	}
-	
-	
 
 	on_create = {
 		pop_faction_event = { id = factions.1 }
@@ -329,7 +283,7 @@ technologist = {
 			}
 		}
 	}
-	
+
 	demand = {
 		title = "TECHNOLOGIST_ARCANA"
 		unfulfilled_title = "TECHNOLOGIST_NO_ARCANA"
@@ -379,7 +333,7 @@ technologist = {
 				}
 			}
 		}
-
+		
 		trigger = {
 			owner = {
 				OR = {
@@ -416,9 +370,13 @@ technologist = {
 				has_policy_flag = diplo_stance_cooperative
 			}
 		}
-	}	
+	}
 
 	on_destroy = {
+		set_timed_country_flag = {
+			flag = cf_vanfac_technologist_died
+			days = 3600
+		}
 		if = {
 			limit = {
 				has_modifier = promoted_materialist
@@ -605,6 +563,7 @@ technologist = {
 				parameter:empire = { 
 					has_modifier = suppressed_materialist
 				}
+				not = { has_modifier = banned_faction }
 			}
 
 			effect = {
@@ -617,6 +576,77 @@ technologist = {
 			ai_weight = {
 				base = 0
 			}
-		}	
+		}
+		ban_faction = {
+			title = "BAN_FACTION"
+			description = "BAN_FACTION_DESC"
+			
+			potential = {
+				exists = owner
+				parameter:empire = { 
+					has_modifier = suppressed_materialist
+					not = { has_ethic = ethic_materialist }
+					not = { has_ethic = ethic_fanatic_materialist }
+				}
+				not = { has_modifier = banned_faction }
+			}
+
+			effect = {
+				hidden_effect = {
+					save_event_target_as = MyFaction
+					parameter:empire = {
+						every_owned_pop = {
+							limit = {
+								member_of_faction = event_target:MyFaction
+							}
+							random_list = {
+								10 = {
+									add_modifier = { modifier = pop_faction_banned days = 360 }							
+								}
+								85 = {
+									add_modifier = { modifier = pop_faction_banned days = 720 }
+								}
+								5 = {
+									add_modifier = { modifier = pop_faction_banned days = 1800 }
+								}
+							}
+						}
+					}
+				}
+				add_modifier = { modifier = banned_faction days = 1800 }
+				parameter:empire = {
+					if = {
+						limit = {
+							not = { has_modifier = banned_materialist }
+						}
+						add_modifier = { modifier = banned_materialist days = -1 }
+					}
+				}
+			}
+			
+			ai_weight = {
+				base = 0
+			}
+		}
+		cancel_ban_faction = {
+			title = "CANCEL_BAN_FACTION"
+			description = "CANCEL_BAN_FACTION_DESC"
+			
+			potential = {
+				exists = owner
+				has_modifier = banned_faction
+			}
+
+			effect = {
+				remove_modifier = banned_faction
+				parameter:empire = {
+					remove_modifier = banned_materialist
+				}
+			}
+			
+			ai_weight = {
+				base = 0
+			}
+		}		
 	}
 }

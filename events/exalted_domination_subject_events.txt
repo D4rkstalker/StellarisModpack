@@ -1,0 +1,1965 @@
+namespace = exalted_subjects
+@NumPopsShiftedSome = 5
+@NumPopsShiftedMany = 10
+@BeneficiaryDefectionMin = 180
+@BeneficiaryDefectionVariance = 2880
+@BeneficiaryArrivalMin = 1
+@BeneficiaryArrivalVariance = 4
+@AutomatedAssemblerDeliveryVariance = 90
+@MachineCuratorArtifactsMin = 30
+@MachineCuratorArtifactsMax = 300
+@SymbioticBondsMin = 100
+@SymbioticBondsVariance = 3500
+
+# 0 Country made vassal; called by on_becoming_subject
+country_event = {
+	id = exalted_subjects.0
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = vassal
+		exists = FROM
+		FROM = { is_country_type = default }
+	}
+
+	immediate = {
+		log = "exalted_subjects.0: [This.GetName] has been subjugated by [From.GetName]"
+		set_country_flag = exalted_advanced_vassal_offered
+		if = {
+			limit = {
+				is_gestalt = no
+				is_megacorp = no
+			}
+
+			FROM = {
+				country_event = { id = exalted_subjects.5 }
+			}
+		}
+		else_if = {
+			limit = {
+				is_gestalt = yes
+				is_machine_empire = yes
+			}
+
+			FROM = {
+				country_event = { id = exalted_subjects.7 }
+			}
+		}
+		else_if = {
+			limit = {
+				is_gestalt = yes
+				is_hive_empire = yes
+			}
+
+			FROM = {
+				country_event = { id = exalted_subjects.8 }
+			}
+		}
+	}
+}
+
+# 1 Country made tributary; called by on_becoming_subject
+country_event = {
+	id = exalted_subjects.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = tributary
+		exists = FROM
+		FROM = { is_country_type = default }
+	}
+
+	immediate = {
+		log = "exalted_subjects.1: [This.GetName] has been subjugated by [From.GetName]"
+		set_country_flag = exalted_advanced_tributary_offered
+		FROM = {
+			country_event = { id = exalted_subjects.6 }
+		}
+	}
+}
+
+# 2 Monthly check for with vanilla vassals; called by on_monthly_pulse_country
+# This is necessary because there are no actions for protectorates becoming vassals
+country_event = {
+	id = exalted_subjects.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = exalted_advanced_vassal_offered }
+		is_subject_type = vassal
+		exists = overlord
+		overlord = { is_country_type = default }
+	}
+
+	immediate = {
+		log = "exalted_subjects.2: [This.GetName] is a vanilla vassal; offer chance to change"
+		set_country_flag = exalted_advanced_vassal_offered
+		if = {
+			limit = {
+				is_gestalt = no
+				is_megacorp = no
+			}
+
+			OVERLORD = {
+				country_event = { id = exalted_subjects.5 }
+			}
+		}
+		else_if = {
+			limit = {
+				is_gestalt = yes
+				is_machine_empire = yes
+			}
+
+			OVERLORD = {
+				country_event = { id = exalted_subjects.7 }
+			}
+		}
+		else_if = {
+			limit = {
+				is_gestalt = yes
+				is_hive_empire = yes
+			}
+
+			OVERLORD = {
+				country_event = { id = exalted_subjects.8 }
+			}
+		}
+	}
+}
+
+# 3 Country made vassal; called by on_becoming_subject
+country_event = {
+	id = exalted_subjects.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = FROM
+		FROM = { is_country_type = default }
+	}
+
+	immediate = {
+		save_event_target_as = exalted_domination_new_subject
+		overlord = {
+			every_subject = {
+				limit = {
+					NOT = { is_same_value = event_target:exalted_domination_new_subject }
+				}
+
+				set_closed_borders = {
+					who = event_target:exalted_domination_new_subject
+					status = no
+				}
+
+				log = "exalted_subjects.3: [This.GetName] forced to open borders with [event_target:exalted_domination_new_subject.GetName]"
+
+				event_target:exalted_domination_new_subject = {
+					set_closed_borders = {
+						who = prev
+						status = no
+					}
+
+					log = "exalted_subjects.3: [event_target:exalted_domination_new_subject.GetName] forced to open borders with [prev.GetName]"
+				}
+			}
+		}
+	}
+}
+
+# 5 Overlord chooses type of new vassal
+country_event = {
+	id = exalted_subjects.5
+	title = exalted_subjects.5.name
+	desc = exalted_subjects.5.desc
+	picture = GFX_evt_arguing_senate
+	show_sound = event_conversation
+	location = from
+
+	is_triggered_only = yes
+
+	# Transform into Beneficiary
+	option = {
+		name = SUBJECT_exalted_subject_beneficiary
+		custom_tooltip = choice_exalted_subject_beneficiary_tooltip
+		trigger = {
+			FROM = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_egalitarian
+				has_ethic = ethic_fanatic_egalitarian
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.5: Setting [Root.GetName] to Beneficiary"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_beneficiary
+				}
+
+				country_event = { id = exalted_subjects.10 }
+			}
+		}
+	}
+
+	# Transform into Dominion
+	option = {
+		name = SUBJECT_exalted_subject_dominion
+		custom_tooltip = choice_exalted_subject_dominion_tooltip
+		trigger = {
+			FROM = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_ethic = ethic_authoritarian
+				has_ethic = ethic_fanatic_authoritarian
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.5: Setting [Root.GetName] to Dominion"
+			FROM = {
+				set_subject_of = {
+					who = root
+					subject_type = exalted_subject_dominion
+				}
+
+				country_event = { id = exalted_subjects.11 }
+			}
+		}
+	}
+
+	# Transform into Special Administrative Region
+	option = {
+		name = SUBJECT_exalted_subject_special_administrative_region
+		custom_tooltip = choice_exalted_subject_special_administrative_region_tooltip
+		trigger = {
+			FROM = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.5: Setting [Root.GetName] to Special Administrative Region"
+			FROM = {
+				set_subject_of = {
+					who = root
+					subject_type = exalted_subject_special_administrative_region
+				}
+
+				country_event = { id = exalted_subjects.12 }
+			}
+		}
+	}
+	
+	# Transform into Warden
+	option = {
+		name = SUBJECT_exalted_subject_warden
+		custom_tooltip = choice_exalted_subject_warden_tooltip
+		trigger = {
+			FROM = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.5: Setting [Root.GetName] to Warden"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_warden
+				}
+
+				country_event = { id = exalted_subjects.13 }
+			}
+		}
+	}
+
+	# Leave as vanilla Vassal
+	option = {
+		name = choice_exalted_subject_vassal
+		custom_tooltip = choice_exalted_subject_vassal_tooltip
+
+		hidden_effect = {
+			log = "exalted_subjects.5: Leaving [Root.GetName] as Vassal"
+		}
+	}
+}
+
+# 6 Overlord chooses type of new tributary
+country_event = {
+	id = exalted_subjects.6
+	title = exalted_subjects.6.name
+	desc = exalted_subjects.6.desc
+	picture = GFX_evt_arguing_senate
+	show_sound = event_conversation
+	location = from
+
+	is_triggered_only = yes
+
+	# Transform into Prefecture
+	option = {
+		name = SUBJECT_exalted_subject_prefecture
+		custom_tooltip = choice_exalted_subject_prefecture_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.6: Setting [Root.GetName] to Prefecture"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_prefecture
+				}
+			}
+		}
+	}
+	
+	# Transform into Satellite
+	option = {
+		name = SUBJECT_exalted_subject_satellite
+		custom_tooltip = choice_exalted_subject_satellite_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.6: Setting [Root.GetName] to Satellite"
+			FROM = {
+				set_subject_of = {
+					who = root
+					subject_type = exalted_subject_satellite
+				}
+			}
+		}
+	}
+
+	# Transform into Signatory
+	option = {
+		name = SUBJECT_exalted_subject_signatory
+		custom_tooltip = choice_exalted_subject_signatory_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_ethic = ethic_egalitarian
+				has_ethic = ethic_fanatic_egalitarian
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.6: Setting [Root.GetName] to Signatory"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_signatory
+				}
+			}
+		}
+	}
+
+	# Transform into Thrall
+	option = {
+		name = SUBJECT_exalted_subject_thrall
+		custom_tooltip = choice_exalted_subject_thrall_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_authoritarian
+				has_ethic = ethic_fanatic_authoritarian
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.6: Setting [Root.GetName] to Thrall"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_thrall
+				}
+			}
+		}
+	}
+
+	# Leave as vanilla tributary
+	option = {
+		name = choice_exalted_subject_tributary
+		custom_tooltip = choice_exalted_subject_tributary_desc
+
+		hidden_effect = {
+			log = "exalted_subjects.6: Leaving [Root.GetName] as Tributary"
+		}
+	}
+}
+
+# 7 Overlord chooses type of new machine empire vassal
+country_event = {
+	id = exalted_subjects.7
+	title = exalted_subjects.5.name
+	desc = exalted_subjects.5.desc
+	picture = GFX_evt_arguing_senate
+	show_sound = event_conversation
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_gestalt = yes
+			is_machine_empire = yes
+		}
+	}
+
+	# Transform into Automated Assembler
+	option = {
+		name = SUBJECT_exalted_subject_automated_assembler
+		custom_tooltip = choice_exalted_subject_automated_assembler_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_authoritarian
+				has_ethic = ethic_fanatic_authoritarian
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.7: Setting [Root.GetName] to Automated Assembler"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_automated_assembler
+				}
+
+				country_event = { id = exalted_subjects.14 }
+			}
+		}
+	}
+
+	# Transform into Remote Archive
+	option = {
+		name = SUBJECT_exalted_subject_remote_archive
+		custom_tooltip = choice_exalted_subject_remote_archive_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_ethic = ethic_egalitarian
+				has_ethic = ethic_fanatic_egalitarian
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.7: Setting [Root.GetName] to Remote Archive"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_remote_archive
+				}
+
+				country_event = { id = exalted_subjects.15 }
+			}
+		}
+	}
+
+	# Leave as vanilla Vassal
+	option = {
+		name = choice_exalted_subject_vassal
+		custom_tooltip = choice_exalted_subject_vassal_tooltip
+
+		hidden_effect = {
+			log = "exalted_subjects.7: Leaving [Root.GetName] as Vassal"
+		}
+	}
+}
+
+# 8 Overlord chooses type of new hive-mind empire vassal
+country_event = {
+	id = exalted_subjects.8
+	title = exalted_subjects.5.name
+	desc = exalted_subjects.5.desc
+	picture = GFX_evt_arguing_senate
+	show_sound = event_conversation
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_gestalt = yes
+			is_hive_empire = yes
+		}
+	}
+
+	# Transform into Pet
+	option = {
+		name = SUBJECT_exalted_subject_pet
+		custom_tooltip = choice_exalted_subject_pet_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_authoritarian
+				has_ethic = ethic_fanatic_authoritarian
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.8: Setting [Root.GetName] to Pet"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_pet
+				}
+
+				country_event = { id = exalted_subjects.17 }
+			}
+		}
+	}
+
+	# Transform into Symbiont
+	option = {
+		name = SUBJECT_exalted_subject_symbiont
+		custom_tooltip = choice_exalted_subject_symbiont_tooltip
+		trigger = {
+			OR = {
+				has_ascension_perk = ap_shared_destiny
+				has_authority = auth_hive_mind
+				has_ethic = ethic_egalitarian
+				has_ethic = ethic_fanatic_egalitarian
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+		hidden_effect = {
+			log = "exalted_subjects.8: Setting [Root.GetName] to Symbiont"
+			FROM = {
+				set_subject_of = {
+					who = ROOT
+					subject_type = exalted_subject_symbiont
+				}
+
+				country_event = { id = exalted_subjects.16 }
+			}
+		}
+	}
+
+	# Leave as vanilla Vassal
+	option = {
+		name = choice_exalted_subject_vassal
+		custom_tooltip = choice_exalted_subject_vassal_tooltip
+
+		hidden_effect = {
+			log = "exalted_subjects.8: Leaving [Root.GetName] as Vassal"
+		}
+	}
+}
+
+# 9 Remove edicts if expired or country is no longer subject; called by on_monthly_pulse_country
+country_event = {
+	id = exalted_subjects.9
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			has_country_flag = exalted_advanced_vassal_offered
+			has_country_flag = exalted_advanced_tributary_offered
+			has_country_flag = exalted_benevolent_intervention_isactive
+			has_country_flag = exalted_developing_civilization_outreach_isactive
+			has_country_flag = exalted_military_aid_packages_isactive
+		}
+	}
+
+	immediate = {
+		# If country has been freed, allow vassal type selection in future
+		if = {
+			limit = {
+				is_subject = no
+				has_country_flag = exalted_advanced_vassal_offered
+			}
+
+			remove_country_flag = exalted_advanced_vassal_offered
+		}
+
+		# If country has been freed, allow tributary type selection in future
+		if = {
+			limit = {
+				is_subject = no
+				has_country_flag = exalted_advanced_tributary_offered
+			}
+
+			remove_country_flag = exalted_advanced_tributary_offered
+		}
+
+		# Check for removal of Benevolent Intervention
+		if = {
+			limit = {
+				has_country_flag = exalted_benevolent_intervention_isactive
+
+				NAND = {
+					exists = overlord
+					overlord = {
+						has_edict = exalted_benevolent_intervention
+					}
+				}
+			}
+
+			remove_country_flag = exalted_benevolent_intervention_isactive
+			remove_modifier = modifier_exalted_benevolent_intervention
+		}
+
+		# Check for removal of Developing Civilization Outreach
+		if = {
+			limit = {
+				has_country_flag = exalted_developing_civilization_outreach_isactive
+
+				NAND = {
+					exists = overlord
+					overlord = {
+						has_edict = exalted_developing_civilization_outreach
+					}
+				}
+			}
+
+			remove_country_flag = exalted_developing_civilization_outreach_isactive
+			remove_modifier = modifier_exalted_developing_civilization_outreach
+		}
+
+		# Check for removal of Military Aid Packages
+		if = {
+			limit = {
+				has_country_flag = exalted_military_aid_packages_isactive
+
+				NAND = {
+					exists = overlord
+					overlord = {
+						has_edict = exalted_military_aid_packages
+					}
+				}
+			}
+
+			remove_country_flag = exalted_military_aid_packages_isactive
+			remove_modifier = modifier_exalted_military_aid_package
+		}
+	}
+}
+
+# 10 Becoming Beneficiary
+country_event = {
+	id = exalted_subjects.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.10: [This.GetName] is becoming Beneficiary of [From.GetName]"
+		if = {
+			limit = {
+				is_gestalt = no
+			}
+
+			# Set some pops to Xenophile
+			while = {
+				count = @NumPopsShiftedMany
+				random_owned_pop = {
+					limit = {
+						NOT = {
+							has_ethic = ethic_xenophile
+						}
+					}
+
+					pop_force_add_ethic = ethic_xenophile
+				}
+			}
+
+			# Make country Xenophile
+			if = {
+				limit = {
+					NOR = {
+						has_ethic = ethic_fanatic_xenophile
+						has_ethic = ethic_xenophile
+					}
+				}
+				log = "exalted_subjects.10: [This.GetName] made xenophile"
+				country_add_ethic = ethic_xenophile
+			}
+		}
+	}
+}
+
+# 11 Becoming Dominion
+country_event = {
+	id = exalted_subjects.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.11: [This.GetName] is becoming Dominion to [From.GetName]"
+
+		if = {
+			limit = {
+				is_gestalt = no
+			}
+
+			# Set some pops to Authoritarian
+			while = {
+				count = @NumPopsShiftedSome
+				random_owned_pop = {
+					limit = {
+						NOR = {
+							has_ethic = ethic_authoritarian
+							has_ethic = ethic_spiritualist
+						}
+					}
+
+					pop_force_add_ethic = ethic_authoritarian
+				}
+			}
+
+			# Set some pops to Spiritualist
+			while = {
+				count = @NumPopsShiftedSome
+				random_owned_pop = {
+					limit = {
+						NOR = {
+							has_ethic = ethic_authoritarian
+							has_ethic = ethic_spiritualist
+						}
+					}
+
+					pop_force_add_ethic = ethic_spiritualist
+				}
+			}
+
+			# Hard Remove Egalitarian
+			if = {
+				limit = {
+					has_ethic = ethic_fanatic_egalitarian
+				}
+				
+				country_remove_ethic = ethic_fanatic_egalitarian
+				log = "exalted_subjects.11: [This.GetName] no longer fanatic egalitarian"
+			}
+			else_if = {
+				limit = {
+					has_ethic = ethic_egalitarian
+				 }
+
+				country_remove_ethic = ethic_egalitarian
+				log = "exalted_subjects.11: [This.GetName] no longer egalitarian"
+			}
+
+			# Make country Authoritarian
+			if = {
+				limit = {
+					NOR = {
+						has_ethic = ethic_fanatic_authoritarian
+						has_ethic = ethic_authoritarian
+					}
+				}
+				log = "exalted_subjects.11: [This.GetName] set to authoritarian"
+				country_add_ethic = ethic_authoritarian
+			}
+
+			# Hard Remove Materialist
+			if = {
+				limit = {
+					has_ethic = ethic_fanatic_materialist
+				}
+				
+				country_remove_ethic = ethic_fanatic_materialist
+				log = "exalted_subjects.11: [This.GetName] no longer fanatic materialist"
+			}
+			else_if = {
+				limit = {
+					has_ethic = ethic_materialist
+				 }
+
+				country_remove_ethic = ethic_materialist
+				log = "exalted_subjects.11: [This.GetName] no longer materialist"
+			}
+
+			# Make country Spiritualist
+			if = {
+				limit = {
+					NOR = {
+						has_ethic = ethic_fanatic_spiritualist
+						has_ethic = ethic_spiritualist
+					}
+				}
+				country_add_ethic = ethic_spiritualist
+				log = "exalted_subjects.11: [This.GetName] set to spiritualist"
+			}
+
+			if = {
+				limit = {
+					num_ethics <= 2
+				}
+				country_add_ethic = ethic_fanatic_spiritualist
+				log = "exalted_subjects.11: [This.GetName] set to fanatic spiritualist"
+			}
+
+			change_government = {
+				authority = auth_imperial
+				civics = {
+					civic = civic_byzantine_bureaucracy
+					civic = civic_imperial_cult
+				}
+			}
+
+			# Note Ruler/Heir
+			overlord = {
+				if = {
+					limit = {
+						exists = ruler
+					}
+					ruler = {
+						save_event_target_as = exalted_domination_overlord_ruler
+					}
+				}
+			}
+
+			# Execute subject's ruler
+			country_event = { id = exalted_subjects.110 days = 1 }
+		}
+	}
+}
+
+# 12 Becoming Special Administrative Region
+country_event = {
+	id = exalted_subjects.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.12: [This.GetName] is becoming Special Administrative Region of [From.GetName]"
+		if = {
+			limit = {
+				is_gestalt = no
+			}
+
+			# Set some pops to Pacifists
+			while = {
+				count = @NumPopsShiftedMany
+				random_owned_pop = {
+					limit = {
+						NOT = {
+							has_ethic = ethic_pacifist
+						}
+					}
+
+					pop_force_add_ethic = ethic_pacifist
+				}
+			}
+
+			# Make country Pacifist
+			if = {
+				limit = {
+					NOR = {
+						has_ethic = ethic_fanatic_pacifist
+						has_ethic = ethic_pacifist
+					}
+				}
+				log = "exalted_subjects.12: [This.GetName] made pacifist"
+				country_add_ethic = ethic_pacifist
+			}
+
+			# Vassal is now Mostly Harmless
+			change_government = {
+				civics = {
+					civic = civic_environmentalist
+					civic = civic_mostly_harmless
+				}
+			}
+		}
+	}
+}
+
+# 13 Becoming Warden
+country_event = {
+	id = exalted_subjects.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.13: [This.GetName] is becoming Warden of [From.GetName]"
+		if = {
+			limit = {
+				is_gestalt = no
+			}
+
+			# Set some pops to Militarist
+			while = {
+				count = @NumPopsShiftedMany
+				random_owned_pop = {
+					limit = {
+						NOT = {
+							has_ethic = ethic_militarist
+						}
+					}
+
+					pop_force_add_ethic = ethic_militarist
+				}
+			}
+
+			# Make country Militarist
+			if = {
+				limit = {
+					NOR = {
+						has_ethic = ethic_fanatic_militarist
+						has_ethic = ethic_militarist
+					}
+				}
+				log = "exalted_subjects.13: [This.GetName] made militarist"
+				country_add_ethic = ethic_militarist
+			}
+
+			# Vassal is now Stellar Guardian
+			change_government = {
+				civics = {
+					civic = civic_distinguished_admiralty
+					civic = civic_stellar_guardian
+				}
+			}
+		}
+	}
+}
+
+# 14 Becoming Automated Assembler
+country_event = {
+	id = exalted_subjects.14
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.14: [This.GetName] is becoming Automated Assembler for [From.GetName]"
+		if = {
+			limit = {
+				has_authority = auth_machine_intelligence
+				has_ethic = ethic_gestalt_consciousness
+			}
+
+			if = {
+				limit = {
+					overlord = {
+						has_authority = auth_machine_intelligence
+						has_ethic = ethic_gestalt_consciousness
+					}
+				}
+
+				modify_species = {
+					species = THIS
+					change_scoped_species = no
+				}
+			}
+			else = {
+				modify_species = {
+					species = THIS
+					remove_trait = trait_machine_unit
+					add_trait = trait_mechanical
+				}
+			}
+
+			last_created_species = {
+				save_global_event_target_as = "exalted_subjects_automated_assembler_@from"
+			}
+
+			log = "exalted_subjects.14: Created species as [event_target:exalted_subjects_automated_assembler_@from.GetName]"
+		}
+	}
+}
+
+# 15 Becoming Remote Archive
+country_event = {
+	id = exalted_subjects.15
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.15: [This.GetName] is becoming Remote Archive for [From.GetName]"
+	}
+}
+
+# 16 Becoming Symbiont
+country_event = {
+	id = exalted_subjects.16
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.16: [This.GetName] is becoming Symbiont for [From.GetName]"
+	}
+}
+
+# 17 Becoming Pet
+country_event = {
+	id = exalted_subjects.17
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			is_country_type = default
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.17: [This.GetName] is becoming Pet for [From.GetName]"
+		if = {
+			limit = {
+				has_authority = auth_hive_mind
+				has_ethic = ethic_gestalt_consciousness
+			}
+
+			modify_species = {
+				species = THIS
+				add_traits_at_start_of_list = yes
+				remove_trait = trait_hive_mind
+				remove_trait = trait_self_modified
+				remove_trait = trait_communal
+				remove_trait = trait_erudite
+				remove_trait = trait_intelligent
+				remove_trait = trait_natural_engineers
+				remove_trait = trait_natural_physicists
+				remove_trait = trait_natural_sociologists
+				remove_trait = trait_talented
+				add_trait = trait_nerve_stapled
+				change_scoped_species = no
+				ideal_planet_class = pc_continental
+			}
+
+			last_created_species = {
+				save_global_event_target_as = "exalted_subjects_pet_@from"
+			}
+
+			log = "exalted_subjects.17: Created species as [event_target:exalted_subjects_pet_@from.GetName]"
+		}
+	}
+}
+
+# 100 Beneficiary - Once a decade a leader will flee to greener pasture; called by on_decade_pulse_country
+country_event = {
+	id = exalted_subjects.100
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		exists = overlord
+		is_subject_type = exalted_subject_beneficiary
+		is_gestalt = no
+	}
+
+	immediate = {
+		log = "exalted_subjects.100: [This.GetName] is going to have a leader defect..."
+		
+		save_event_target_as = exalted_domination_fleeing_leader_home
+		overlord = {
+			save_event_target_as = exalted_domination_fleeing_leader_destination
+		}
+
+		random_owned_leader = {
+			limit = {
+				NOT = {
+					leader_class = ruler
+				}
+			}
+
+			save_event_target_as = exalted_domination_fleeing_leader
+
+			if = {
+				limit = {
+					leader_class = scientist
+				}
+
+				FROM = {
+					country_event = { id = exalted_subjects.101 days = @BeneficiaryDefectionMin random = @BeneficiaryDefectionVariance }
+				}
+			}
+			else_if = {
+				limit = {
+					leader_class = admiral
+				}
+
+				FROM = {
+					country_event = { id = exalted_subjects.103 days = @BeneficiaryDefectionMin random = @BeneficiaryDefectionVariance }
+				}
+			}
+			else_if = {
+				limit = {
+					leader_class = governor
+				}
+
+				FROM = {
+					country_event = { id = exalted_subjects.105 days = @BeneficiaryDefectionMin random = @BeneficiaryDefectionVariance }
+				}
+			}
+			else_if = {
+				limit = {
+					leader_class = general
+				}
+
+				FROM = {
+					country_event = { id = exalted_subjects.107 days = @BeneficiaryDefectionMin random = @BeneficiaryDefectionVariance }
+				}
+			}
+		}
+	}
+}
+
+# 101 Beneficiary - Scientist Defected
+country_event = {
+	id = exalted_subjects.101
+	is_triggered_only = yes
+
+	title = exalted_subjects.100a.name
+	desc = exalted_subjects.101.desc
+	picture = GFX_evt_unidentified_monster
+
+	trigger = {
+		is_gestalt = no
+		exists = overlord
+		has_overlord = event_target:exalted_domination_fleeing_leader_destination
+		is_subject_type = exalted_subject_beneficiary
+	}
+
+	immediate = {
+		log = "exalted_subjects.101: Scientist [event_target:exalted_domination_fleeing_leader.GetName] fleeing to [event_target:exalted_domination_fleeing_leader_destination.GetName]"
+		event_target:exalted_domination_fleeing_leader = {
+			exile_leader_as = exalted_domination_fled_leader
+		}
+		overlord = { country_event = { id = exalted_subjects.102 days = @BeneficiaryArrivalMin random = @BeneficiaryArrivalVariance } }
+	}
+
+	option = {
+		name = exalted_subjects.100a.choice
+	}
+}
+
+# 102 Beneficiary - Scientist Arrived at Overlord
+country_event = {
+	id = exalted_subjects.102
+	is_triggered_only = yes
+
+	title = exalted_subjects.100b.name
+	desc = exalted_subjects.102.desc
+	picture = GFX_evt_board_meeting
+
+	trigger = {
+		is_overlord_to = event_target:exalted_domination_fleeing_leader_home
+		event_target:exalted_domination_fleeing_leader_home = {
+			is_subject_type = exalted_subject_beneficiary
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.102: Scientist [event_target:exalted_domination_fleeing_leader] has fleed to [This.GetName]"
+		
+		clone_leader = {
+			target = event_target:exalted_domination_fleeing_leader
+			class = scientist
+		}
+	}
+
+	option = {
+		name = exalted_subjects.100b.choice
+	}
+}
+
+# 103 Beneficiary - Admiral Defected
+country_event = {
+	id = exalted_subjects.103
+	is_triggered_only = yes
+
+	title = exalted_subjects.100a.name
+	desc = exalted_subjects.103.desc
+	picture = GFX_evt_unidentified_monster
+
+	trigger = {
+		is_gestalt = no
+		exists = overlord
+		has_overlord = event_target:exalted_domination_fleeing_leader_destination
+		is_subject_type = exalted_subject_beneficiary
+	}
+
+	immediate = {
+		log = "exalted_subjects.101: Admiral [event_target:exalted_domination_fleeing_leader.GetName] fleeing to [event_target:exalted_domination_fleeing_leader_destination.GetName]"
+		event_target:exalted_domination_fleeing_leader = {
+			exile_leader_as = exalted_domination_fled_leader
+		}
+		overlord = { country_event = { id = exalted_subjects.104 days = @BeneficiaryArrivalMin random = @BeneficiaryArrivalVariance } }
+	}
+
+	option = {
+		name = exalted_subjects.100a.choice
+	}
+}
+
+# 104 Beneficiary - Admiral Arrived at Overlord
+country_event = {
+	id = exalted_subjects.104
+	is_triggered_only = yes
+
+	title = exalted_subjects.100b.name
+	desc = exalted_subjects.104.desc
+	picture = GFX_evt_board_meeting
+
+	trigger = {
+		is_overlord_to = event_target:exalted_domination_fleeing_leader_home
+		event_target:exalted_domination_fleeing_leader_home = {
+			is_subject_type = exalted_subject_beneficiary
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.104: Admiral [event_target:exalted_domination_fleeing_leader] has fleed to [This.GetName]"
+		
+		clone_leader = {
+			target = event_target:exalted_domination_fleeing_leader
+			class = admiral
+		}
+	}
+
+	option = {
+		name = exalted_subjects.100b.choice
+	}
+}
+
+# 105 Beneficiary - Governor Defected
+country_event = {
+	id = exalted_subjects.105
+	is_triggered_only = yes
+
+	title = exalted_subjects.100a.name
+	desc = exalted_subjects.105.desc
+	picture = GFX_evt_unidentified_monster
+
+	trigger = {
+		is_gestalt = no
+		exists = overlord
+		has_overlord = event_target:exalted_domination_fleeing_leader_destination
+		is_subject_type = exalted_subject_beneficiary
+	}
+
+	immediate = {
+		log = "exalted_subjects.101: Governor [event_target:exalted_domination_fleeing_leader.GetName] fleeing to [event_target:exalted_domination_fleeing_leader_destination.GetName]"
+		event_target:exalted_domination_fleeing_leader = {
+			exile_leader_as = exalted_domination_fled_leader
+		}
+		overlord = { country_event = { id = exalted_subjects.106 days = @BeneficiaryArrivalMin random = @BeneficiaryArrivalVariance } }
+	}
+
+	option = {
+		name = exalted_subjects.100a.choice
+	}
+}
+
+# 106 Beneficiary - Governor Arrived at Overlord
+country_event = {
+	id = exalted_subjects.106
+	is_triggered_only = yes
+
+	title = exalted_subjects.100b.name
+	desc = exalted_subjects.106.desc
+	picture = GFX_evt_board_meeting
+
+	trigger = {
+		is_overlord_to = event_target:exalted_domination_fleeing_leader_home
+		event_target:exalted_domination_fleeing_leader_home = {
+			is_subject_type = exalted_subject_beneficiary
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.106: Governor [event_target:exalted_domination_fleeing_leader] has fleed to [This.GetName]"
+		
+		clone_leader = {
+			target = event_target:exalted_domination_fleeing_leader
+			class = governor
+		}
+	}
+
+	option = {
+		name = exalted_subjects.100b.choice
+	}
+}
+
+# 107 Beneficiary - General Defected
+country_event = {
+	id = exalted_subjects.107
+	is_triggered_only = yes
+
+	title = exalted_subjects.100a.name
+	desc = exalted_subjects.107.desc
+	picture = GFX_evt_unidentified_monster
+
+	trigger = {
+		is_gestalt = no
+		exists = overlord
+		has_overlord = event_target:exalted_domination_fleeing_leader_destination
+		is_subject_type = exalted_subject_beneficiary
+	}
+
+	immediate = {
+		log = "exalted_subjects.101: General [event_target:exalted_domination_fleeing_leader.GetName] fleeing to [event_target:exalted_domination_fleeing_leader_destination.GetName]"
+		event_target:exalted_domination_fleeing_leader = {
+			exile_leader_as = exalted_domination_fled_leader
+		}
+		overlord = { country_event = { id = exalted_subjects.108 days = @BeneficiaryArrivalMin random = @BeneficiaryArrivalVariance } }
+	}
+
+	option = {
+		name = exalted_subjects.100a.choice
+	}
+}
+
+# 108 Beneficiary - General Arrived at Overlord
+country_event = {
+	id = exalted_subjects.108
+	is_triggered_only = yes
+
+	title = exalted_subjects.100b.name
+	desc = exalted_subjects.108.desc
+	picture = GFX_evt_board_meeting
+
+	trigger = {
+		is_overlord_to = event_target:exalted_domination_fleeing_leader_home
+		event_target:exalted_domination_fleeing_leader_home = {
+			is_subject_type = exalted_subject_beneficiary
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.108: General [event_target:exalted_domination_fleeing_leader] has fleed to [This.GetName]"
+		
+		clone_leader = {
+			target = event_target:exalted_domination_fleeing_leader
+			class = general
+		}
+	}
+
+	option = {
+		name = exalted_subjects.100b.choice
+	}
+}
+
+# 110 Dominion - Just vassalized, set this Dominion's ruler to same as Overlord
+country_event = {
+	id = exalted_subjects.110
+	title = exalted_subjects.110.name
+	desc = exalted_subjects.110.desc
+	picture = GFX_evt_signing
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = exalted_subject_dominion
+	}
+
+	immediate = {
+		log = "exalted_subjects.110: This [This.GetName] From [From.GetName] Ruler [event_target:exalted_domination_overlord_ruler.GetName]"
+		if = {
+			limit = {
+				exists = ruler
+			}
+			ruler = {
+				kill_leader = { show_notification = yes }
+			}
+		}
+
+		clone_leader = {
+			target = event_target:exalted_domination_overlord_ruler
+			class = ruler
+			leader_age_max = 1000
+		}
+
+		assign_leader = last_created_leader
+	}
+
+	option = {
+		name = exalted_subjects.110.choice
+	}
+}
+
+# 111 Dominion - Overlord's leader changed, reset all dominions' ruler
+country_event = {
+	id = exalted_subjects.111
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_overlord = yes
+		any_subject = {
+			is_subject_type = exalted_subject_dominion
+		}
+		exists = ruler
+	}
+
+	immediate = {
+		ruler = {
+			save_event_target_as = exalted_domination_overlord_ruler
+		}
+		
+		log = "exalted_subjects.111: [event_target:exalted_domination_overlord_ruler.GetName] is now ruler of [This.GetName]"
+		
+		every_subject = {
+			limit = {
+				is_subject_type = exalted_subject_dominion
+			}
+
+			if = {
+				limit = {
+					exists = ruler
+				}
+				log = "exalted_subjects.111: Removing Ruler [From.GetName] of [This.GetName]"
+				ruler = {
+					kill_leader = { show_notification = no }
+				}
+			}
+
+			log = "exalted_subjects.111: Replacing Ruler [From.GetName] of [This.GetName]"
+			clone_leader = {
+				target = event_target:exalted_domination_overlord_ruler
+				class = ruler
+				leader_age_max = 1000
+			}
+	
+			assign_leader = last_created_leader
+		}
+	}
+}
+
+# 112 Dominion - Overlord's ruler died/removed
+country_event = {
+	id = exalted_subjects.112
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_overlord = yes
+		any_subject = {
+			is_subject_type = exalted_subject_dominion
+		}
+		exists = FROM
+		FROM = {
+			leader_class = ruler
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.112: [From.GetName] of [This.GetName] no longer rules"
+
+		every_subject = {
+			limit = {
+				is_subject_type = exalted_subject_dominion
+			}
+
+			if = {
+				limit = {
+					exists = ruler
+				}
+				log = "exalted_subjects.112: Removing Ruler [From.GetName] of [This.GetName]"
+				ruler = {
+					kill_leader = { show_notification = no }
+				}
+			}
+		}
+	}
+}
+
+# 140 Automated Assembler - Pops produced for Overlord every 5 years early game
+country_event = {
+	id = exalted_subjects.140
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		mid_game_years_passed < 0
+		is_overlord = yes
+		any_subject = {
+			is_subject_type = exalted_subject_automated_assembler
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.140: [This.GetName] demands robot servants"
+
+		capital_scope = {
+			save_event_target_as = exalted_domination_overlord_capital
+		}
+
+		every_subject = {
+			limit = {
+				is_subject_type = exalted_subject_automated_assembler
+			}
+
+			country_event = { id = exalted_subjects.143 days = 1 random = @AutomatedAssemblerDeliveryVariance }
+		}
+	}
+}
+
+# 141 Automated Assembler - Pops produced for Overlord every 2 years mid game
+country_event = {
+	id = exalted_subjects.141
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		mid_game_years_passed >= 0
+		end_game_years_passed < 0
+		is_overlord = yes
+		any_subject = {
+			is_subject_type = exalted_subject_automated_assembler
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.141: [This.GetName] demands robot servants"
+
+		capital_scope = {
+			save_event_target_as = exalted_domination_overlord_capital
+		}
+
+		every_subject = {
+			limit = {
+				is_subject_type = exalted_subject_automated_assembler
+			}
+
+			country_event = { id = exalted_subjects.143 days = 1 random = @AutomatedAssemblerDeliveryVariance }
+		}
+	}
+}
+
+# 142 Automated Assembler - Pops produced for Overlord every year late game
+country_event = {
+	id = exalted_subjects.142
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		end_game_years_passed >= 0
+		is_overlord = yes
+		any_subject = {
+			is_subject_type = exalted_subject_automated_assembler
+		}
+	}
+
+	immediate = {
+		log = "exalted_subjects.142: [This.GetName] demands robot servants"
+
+		capital_scope = {
+			save_event_target_as = exalted_domination_overlord_capital
+		}
+
+		every_subject = {
+			limit = {
+				is_subject_type = exalted_subject_automated_assembler
+			}
+
+			country_event = { id = exalted_subjects.143 days = 1 random = @AutomatedAssemblerDeliveryVariance }
+		}
+	}
+}
+
+# 143 Automated Assembler - Pops/armies arrived
+country_event = {
+	id = exalted_subjects.143
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = exalted_subject_automated_assembler
+	}
+
+	immediate = {
+		log = "exalted_subjects.143: [This.GetName] has sent robot servants"
+
+		random_owned_pop = {
+			limit = {
+				is_being_purged = no
+			}
+
+			resettle_pop = {
+				pop = THIS
+				planet = event_target:exalted_domination_overlord_capital
+			}
+
+			change_species = event_target:exalted_subjects_automated_assembler_@from
+		}
+
+		if = {
+			limit = {
+				has_technology = "tech_biomechanics"
+			}
+
+			overlord = {
+				create_fleet = {
+					effect = {
+						set_owner = FROM
+						while = {
+							count = 2
+							create_army_transport = {
+								army_type = "machine_assault_3"
+							}
+						}
+					}
+				}
+
+				create_message = {
+					type = ARMY_RECRUITMENT
+					localization = MESSAGE_ROBOTIC_SERVANTS_ARRIVED
+					days = 30
+					target = THIS.capital_scope
+
+					variable = {
+						type = name
+						localization = SUBJECT
+						scope = PREV
+					}
+
+					variable = {
+						type = name
+						localization = LOCATION
+						scope = THIS.capital_scope
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = { 
+				has_technology = "tech_adaptive_combat_algorithms"
+			}
+
+			overlord = {
+				create_fleet = {
+					effect = {
+						set_owner = FROM
+						while = {
+							count = 2
+							create_army_transport = {
+								army_type = "machine_assault_2"
+							}
+						}
+					}
+				}
+
+				create_message = {
+					type = ARMY_RECRUITMENT
+					localization = MESSAGE_ROBOTIC_SERVANTS_ARRIVED
+					days = 30
+					target = THIS.capital_scope
+
+					variable = {
+						type = name
+						localization = SUBJECT
+						scope = PREV
+					}
+
+					variable = {
+						type = name
+						localization = LOCATION
+						scope = THIS.capital_scope
+					}
+				}
+			}
+		}
+		else = {
+			overlord = {
+				create_fleet = {
+					effect = {
+						set_owner = FROM
+						while = {
+							count = 2
+							create_army_transport = {
+								army_type = "machine_assault_1"
+							}
+						}
+					}
+				}
+
+				create_message = {
+					type = ARMY_RECRUITMENT
+					localization = MESSAGE_ROBOTIC_SERVANTS_ARRIVED
+					days = 30
+					target = THIS.capital_scope
+
+					variable = {
+						type = name
+						localization = SUBJECT
+						scope = PREV
+					}
+
+					variable = {
+						type = name
+						localization = LOCATION
+						scope = THIS.capital_scope
+					}
+				}
+			}
+		}
+	}
+}
+
+# 150 Remote Archive - Minor artifacts being sent to overlord
+country_event = {
+	id = exalted_subjects.150
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		host_has_dlc = "Ancient Relics Story Pack"
+		is_subject_type = exalted_subject_remote_archive
+	}
+
+	immediate = {
+		log = "exalted_subjects.150: [This.GetName] is sending minor artifacts"
+		country_event = { id = exalted_subjects.151 days = @MachineCuratorArtifactsMin random = @MachineCuratorArtifactsMax }
+	}
+}
+
+# 151 Remote Archive - Minor artifacts have arrived at overlord
+country_event = {
+	id = exalted_subjects.151
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = exalted_subject_remote_archive
+	}
+
+	immediate = {
+		overlord = {
+			log = "exalted_subjects.151: [This.GetName] received minor artifacts from [From.GetName]"
+
+			random_list = {
+				60 = {
+					add_resource = {
+						minor_artifacts = 1
+					}
+				}
+
+				30 = {
+					add_resource = {
+						minor_artifacts = 2
+					}
+				}
+
+				10 = {
+					add_resource = {
+						minor_artifacts = 3
+					}
+				}
+			}
+
+			create_message = {
+				type = DIPLO_ACTION_OFFER_TRADE_DEAL
+				localization = MESSAGE_MINOR_ARTIFACTS_OFFERING
+				days = 30
+
+				variable = {
+					type = name
+					localization = SUBJECT
+					scope = PREV
+				}
+			}
+		}
+	}
+}
+
+# 160 Symbiont - Considering a new Symbiotic Bond
+country_event = {
+	id = exalted_subjects.160
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = exalted_subject_symbiont
+	}
+
+	immediate = {
+		log = "exalted_subjects.160: [This.GetName] is considering a new symbioic bond"
+		country_event = { id = exalted_subjects.161 days = @SymbioticBondsMin random = @SymbioticBondsVariance }
+	}
+}
+
+# 161 Symbiont - Leader gains Symbiotic Bond trait
+country_event = {
+	id = exalted_subjects.161
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_subject_type = exalted_subject_symbiont
+	}
+
+	immediate = {
+		overlord = {
+			log = "exalted_subjects.161: [From.GetName] is ready to bond with a leader"
+
+			random_owned_leader = {
+				limit = {
+					NOR = {
+						has_trait = leader_trait_admiral_symbiotic_bond
+						has_trait = leader_trait_general_symbiotic_bond
+						has_trait = leader_trait_governor_symbiotic_bond
+						has_trait = leader_trait_scientist_symbiotic_bond
+						
+						has_trait = leader_trait_admiral_synthetic
+						has_trait = leader_trait_general_synthetic
+						has_trait = leader_trait_governor_synthetic
+						has_trait = leader_trait_scientist_synthetic
+					}
+				}
+
+				if = {
+					limit = {
+						leader_class = admiral
+					}
+
+					add_trait = leader_trait_admiral_symbiotic_bond
+				}
+				else_if = {
+					limit = {
+						leader_class = general
+					}
+
+					add_trait = leader_trait_general_symbiotic_bond
+				}
+				else_if = {
+					limit = {
+						leader_class = governor
+					}
+
+					add_trait = leader_trait_governor_symbiotic_bond
+				}
+				else_if = {
+					limit = {
+						leader_class = scientist
+					}
+
+					add_trait = leader_trait_scientist_symbiotic_bond
+				}
+
+				log = "exalted_subjects.161: [From.GetName] bonded with [This.GetName]"
+				create_message = {
+					type = LEADER_LEVEL_UP
+					localization = MESSAGE_BONDED_WITH_LEADER
+					days = 30
+					target = this
+	
+					variable = {
+						type = name
+						localization = SUBJECT
+						scope = FROM
+					}
+
+					variable = {
+						type = name
+						localization = LEADER
+						scope = THIS
+					}
+				}
+			}
+		}
+	}
+}

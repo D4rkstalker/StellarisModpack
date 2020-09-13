@@ -1,0 +1,391 @@
+#--	
+#--		--------------------------- --------------------------- --------------------------- ---------------------------
+#--		Fallen Empire Expanded - Psionic Storm Crisis Events
+#--		--------------------------- --------------------------- --------------------------- ---------------------------
+#--	
+#--		PREFACE
+#--		•	This file handles the events for the Psionic Storm mini-crisis.
+#--		•	Without this file, the Psionic Storm Crisis is flavour only.
+#--
+#--		EVENTS
+#--     •	FEE_crisis.1			Psionic Storm Progression counter.			
+#--     •	FEE_crisis.2			Psionic Pops are killed off.			
+#--     •	FEE_crisis.3			Proc Pop Death.		
+#--     •	FEE_crisis.4			Psionic Leaders go mad.
+#--     •	FEE_crisis.5			Psionic Storm Intensifies event descriptor.
+#--     •	FEE_crisis.6			Psionic Storm reaches apex event descriptor.
+#--     •	FEE_crisis.7			Psionic Aberration Initialiser.
+#--	
+#--		--------------------------- --------------------------- --------------------------- ---------------------------
+#--	
+
+namespace = FEE_crisis
+
+country_event = {
+	id = FEE_crisis.1
+	title = OK
+	desc = OK
+	
+	hide_window = yes
+	
+	trigger = {
+		is_fallen_empire_ascended_spiritualist = yes
+		AND = {
+			exists = event_target:FEE_spiritualist_ascended_empire
+			has_global_flag = FEE_psionic_storm
+			NOR = {
+				has_global_flag = FEE_psionic_storm_level_one
+				has_global_flag = FEE_psionic_storm_level_two
+				has_global_flag = FEE_psionic_storm_level_three
+			}
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				has_global_flag = FEE_psionic_storm
+				NOT = { has_global_flag = FEE_psionic_storm_level_three }
+				check_variable = {
+					which = "FEE_psionic_storm_progression"
+					value < 1
+				}
+			}
+			change_variable = {
+				which = "FEE_psionic_storm_progression"
+				value = 1
+			}
+			set_timed_global_flag = {
+				flag = FEE_psionic_storm_level_two
+				years = 30
+			}
+			
+			# Notify
+			every_country = {
+				limit = {
+					is_ai = no
+				}
+				country_event = { id = FEE_crisis.5 }
+			}	
+			break = yes
+		}
+		
+		if = {
+			limit = {
+				has_global_flag = FEE_psionic_storm
+				NOT = { has_global_flag = FEE_psionic_storm_level_three }
+				check_variable = {
+					which = "FEE_psionic_storm_progression"
+					value > 1
+				}
+			}
+			change_variable = {
+				which = "FEE_psionic_storm_progression"
+				value = 1
+			}
+			set_global_flag = FEE_psionic_storm_level_three
+			
+			# Notify
+			every_country = {
+				limit = {
+					is_ai = no
+				}
+				country_event = { id = FEE_crisis.6 }
+			}		
+		}
+	}
+}
+
+country_event = {
+	id = FEE_crisis.2
+	title = OK
+	desc = OK
+	
+	hide_window = yes
+	
+	trigger = {
+		is_fallen_empire_ascended_spiritualist = yes
+		has_global_flag = FEE_psionic_storm
+		NOT = { has_global_flag = FEE_psionic_pop_kill_cooldown }
+		
+		any_country = {
+			NOT = { 
+				has_country_flag = FEE_spiritualist_ascended
+			}
+			OR = {
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+			}
+			any_owned_planet = {
+				num_pops > 1
+				any_owned_pop = {
+					OR = {
+						has_trait = trait_psionic
+						has_trait = trait_latent_psionic
+					}
+#					is_growing = no
+				}
+			}
+			num_pops > 10
+			any_owned_leader = {
+				OR = {
+					has_trait = leader_trait_admiral_psionic
+					has_trait = leader_trait_admiral_chosen
+					has_trait = leader_trait_general_psionic
+					has_trait = leader_trait_general_chosen
+					has_trait = leader_trait_governor_psionic
+					has_trait = leader_trait_governor_chosen
+					has_trait = leader_trait_ruler_psionic
+					has_trait = leader_trait_ruler_chosen
+					has_trait = leader_trait_scientist_psionic
+					has_trait = leader_trait_scientist_chosen
+				}
+			}
+		}
+	}
+	
+	mean_time_to_happen = {
+		days = 120
+		modifier = {
+			factor = 10.0
+			has_global_flag = FEE_psionic_storm_level_one
+		}
+		modifier = {
+			factor = 0.5
+			has_global_flag = FEE_psionic_storm_level_three
+		}
+    }
+	
+	immediate = {
+		set_timed_global_flag = {
+			flag = FEE_psionic_pop_kill_cooldown
+			days = 120
+		}
+		
+		random_country = {
+			limit = {
+				NOT = { 
+					has_country_flag = FEE_spiritualist_ascended
+				}
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				num_pops > 10
+			}
+			save_event_target_as = FEEPsionicTargetCountry
+			random_owned_leader = {
+				limit = {
+					OR = {
+						has_trait = leader_trait_admiral_psionic
+						has_trait = leader_trait_admiral_chosen
+						has_trait = leader_trait_general_psionic
+						has_trait = leader_trait_general_chosen
+						has_trait = leader_trait_governor_psionic
+						has_trait = leader_trait_governor_chosen
+						has_trait = leader_trait_ruler_psionic
+						has_trait = leader_trait_ruler_chosen
+						has_trait = leader_trait_scientist_psionic
+						has_trait = leader_trait_scientist_chosen
+					}
+				}
+				save_event_target_as = FEEPsionicLeaderDeath
+			}		
+			random_owned_planet = {
+				limit = {
+					num_pops > 1
+					any_pop = {
+						OR = {
+							has_trait = trait_psionic
+							has_trait = trait_latent_psionic
+						}
+#						is_growing = no
+					}
+				}
+				save_event_target_as = FEEPsionicPopDeathPlanet
+			}
+			random_list = {
+				50 = { country_event = { id = FEE_crisis.3 } } # Pop is killed.
+				50 = { country_event = { id = FEE_crisis.4 } } # Leader is killed.
+			}
+		}
+	}
+}
+
+
+country_event = {
+	id = FEE_crisis.3
+	title = FEE_crisis.3.title
+	desc = FEE_crisis.3.desc
+	picture = GFX_evt_psionics
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:FEEPsionicPopDeathPlanet = {
+			random_pop = {
+				limit = {
+					OR = {
+						has_trait = trait_psionic
+						has_trait = trait_latent_psionic
+					}
+#					is_growing = no
+				}
+				kill_pop = yes
+			}
+		}
+	}
+	
+	option = {
+		name = FEE_crisis.3.a
+		custom_tooltip = FEE_crisis.3.a.tooltip
+	}
+}
+
+country_event = {
+	id = FEE_crisis.4
+	title = FEE_crisis.4.title
+	desc = FEE_crisis.4.desc
+	picture = GFX_evt_psionics
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:FEEPsionicLeaderDeath = {
+			kill_leader = {
+				show_notification = no
+			}
+		}
+	}
+	
+	option = {
+		name = FEE_crisis.4.a
+		custom_tooltip = FEE_crisis.4.a.tooltip
+	}
+}
+
+country_event = {
+	id = FEE_crisis.5
+	title = FEE_crisis.5.title
+	desc = FEE_crisis.5.desc
+	picture = GFX_evt_psionics
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = FEE_crisis.5.a
+	}
+}
+
+country_event = {
+	id = FEE_crisis.6
+	title = FEE_crisis.6.title
+	desc = FEE_crisis.6.desc
+	picture = GFX_evt_psionics
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = FEE_crisis.6.a
+	}
+}
+
+country_event = { # Psionic Storm ends
+	id = FEE_crisis.7
+	title = OK
+	desc = OK
+	
+	hide_window = yes
+	
+	trigger = {
+		has_global_flag = FEE_psionic_storm
+		NOT = {
+			any_country = {
+				is_fallen_empire_ascended_spiritualist = yes
+			}
+		}
+	}
+	
+	mean_time_to_happen = {
+		days = 7
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_global_flag = FEE_psionic_storm_ended }
+			}
+			remove_global_flag = FEE_psionic_storm
+			remove_global_flag = FEE_psionic_storm_level_one
+			remove_global_flag = FEE_psionic_storm_level_two
+			remove_global_flag = FEE_psionic_storm_level_three
+			set_global_flag = FEE_psionic_storm_ended
+			
+            every_country = {
+				limit = {
+					is_ai = no
+				}
+				country_event = { id = FEE_crisis.8 }
+			}
+		}
+	}
+}
+
+country_event = {
+	id = FEE_crisis.8
+	title = FEE_crisis.8.title
+	desc = FEE_crisis.8.desc
+	picture = GFX_evt_psionics
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = FEE_crisis.8.a
+	}
+}
+			
+#country_event = {
+#	id = FEE_crisis.
+#	title = OK
+#	desc = OK
+#	
+#	hide_window	= yes
+#	
+#	
+#	
+#	
+#	immediate = {
+#		create_country = {
+#		
+		
+		
+		
+		
+#########################################
+#### SAVE THE GALAXY OR BE HARVESTED ####
+#########################################
+
+# Covenant triggered, materialist saves the day?
+
+# Event trigger
+# 20 years MTTH
+# 1.25 for materialist = 25 years base
+# 0.75 for xenophile = 15 years base
+# 0.5 for awakened = 7.5 for awakened xenophile, 12.5 for awakened materialist
+# 2.0 for asleep = 50 years for asleep materialist, 30 years for asleep xenophile
+
+# Dampener system spawn
+
+# Dampener event activation
+# Time taken depends on ethics
+# Spiritualist = 2 years, Fanatic is 1 year.
+# Materialist = 3 years, fanatic is 6.
+# Everything else takes 5 years.
+
+# Applies successful reckoning deactivation and feedback event. Grants buff to empires involved.
+	
