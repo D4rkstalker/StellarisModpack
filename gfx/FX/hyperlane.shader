@@ -6,9 +6,9 @@ Includes = {
 
 PixelShader =
 {
-	Samplers = 
-	{		
-		TerraIncognitaTexture = 
+	Samplers =
+	{
+		TerraIncognitaTexture =
 		{
 			Index = 0;
 			MagFilter = "Linear";
@@ -36,7 +36,7 @@ DepthStencilState DepthStencilState
 VertexStruct VS_INPUT
 {
 	float3 vPosition  		: POSITION;
-	float4 vPrimaryColor	: TEXCOORD0;
+	float4 vPrimaryColor		: TEXCOORD0;
 	float4 vSecondaryColor 	: TEXCOORD1;
 };
 
@@ -56,29 +56,28 @@ VertexShader =
 		ConstantBuffers = { Common }
 	[[
 		VS_OUTPUT main(const VS_INPUT v )
-		{ 
+		{
 			VS_OUTPUT Out;
 			Out.vPos = v.vPosition.xz;
 			Out.vPosition  	= mul( ViewProjectionMatrix, float4( v.vPosition, 1.0 ) );
-			Out.vPrimaryColor = v.vPrimaryColor.rgb;
+			Out.vPrimaryColor = float3(0.1, 0.1, 1.0);
 			Out.vSecondaryColor = v.vSecondaryColor.rgb;
 			Out.vPrimaryColorFactor = v.vPrimaryColor.a;
 			Out.vSecondaryColorFactor = v.vSecondaryColor.a;
 			return Out;
 		}
-		
+
 	]]
 }
 
 PixelShader =
-{	
+{
 	MainCode PixelShader
 	[[
 		float4 main( VS_OUTPUT v ) : PDX_COLOR
 		{
-			float fMinAlpha = 0.01f;
-			float fAlpha = 0.042f;
-
+			float fMinAlpha = 0.05f;
+				float fAlpha = clamp (0.33f - abs( v.vPos.x / 2900.f) - abs( v.vPos.y / 2900.f), 0.05f, 0.33f); // 'clamp' sets the min value to 0.05 and max to 0.33, 'abs' gets rid of the minus, 'info' command shows coordinates in the game. 
 			float4 vPrimColor = float4( v.vPrimaryColor, fAlpha );
 			float4 vSecColor = float4( v.vSecondaryColor, fAlpha );
 			float4 vColor = lerp( vSecColor, vPrimColor, saturate( pow( v.vPrimaryColorFactor, 15 ) ) );
@@ -86,7 +85,7 @@ PixelShader =
 			vColor.a = lerp( fMinAlpha * saturate( pow( v.vSecondaryColorFactor, 8 ) ), fAlpha, CalcTerraIncognitaValue( v.vPos, TerraIncognitaTexture ) );
 			return vColor;
 		}
-		
+
 	]]
 }
 
