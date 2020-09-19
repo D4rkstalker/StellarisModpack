@@ -60,7 +60,7 @@ VertexShader =
 			VS_OUTPUT Out;
 			Out.vPos = v.vPosition.xz;
 			Out.vPosition  	= mul( ViewProjectionMatrix, float4( v.vPosition, 1.0 ) );
-			Out.vPrimaryColor = float3(0.1, 0.1, 1.0);
+			Out.vPrimaryColor = float3(0.1, 1.0, 0.1);
 			Out.vSecondaryColor = v.vSecondaryColor.rgb;
 			Out.vPrimaryColorFactor = v.vPrimaryColor.a;
 			Out.vSecondaryColorFactor = v.vSecondaryColor.a;
