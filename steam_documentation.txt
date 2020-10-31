@@ -1,0 +1,149 @@
+AI framework documentation (modders)
+
+Aggressive Crisis Engine AI can be applied to any empire if a modder desires to. It is [b]highly preferable[/b] to disable vanilla AI first, otherwise fleet commands will most likely be overridden by vanilla AI.
+
+Currently the only way to disable AI is to edit country type file and set [b]enabled = no[/b] in the [b]ai = { }[/b] block as there is no disable AI effect on country/fleet/ship scope. You might want to try to disable individual components and modules but I received mixed results. Feel free to experiment and tell me the outcome, please.
+
+You can always view the source code online at:
+[list]
+[*] https://github.com/Fiiral/Improved-Crisis or
+[*] https://github.com/OldEnt/stellaris-aggressive-crisis-engine
+[/list]
+Effects are listed in /events/acemod_fleet_events.txt (always up to date) and in the post below (might be out of date).
+
+---
+
+[h1]List of effects:[/h1]
+[code]# Note 1: In order to disable vanilla crisis AI this mod overwrites following keys in 00_country_types.txt:
+# swarm
+# extradimensional
+# extradimensional_2
+# extradimensional_3
+# ai_empire[/code]
+[code]
+# Note 2: Vanilla crisis countries are piloted by default. See instructions on how to exclude countries, including vanilla crisis countries.[/code]
+[code]# Instructions:
+# 
+# set_global_flag = acemod_activated									global			Activates ACEMOD fleet AI.
+# set_country_flag = acemod_assisted_ai									country			Only countries with this flag will have their fleets piloted by ACEMOD.
+# acemod_set_fleet_piloted_exclusion_on = yes							fleet ship		Prevents ACEMOD from piloting marked fleets.
+# acemod_set_fleet_piloted_exclusion_off = yes							fleet ship		Resumes default operation.
+# acemod_set_country_piloted_exclusion_on = yes							country			Prevents ACEMOD from piloting fleets of given country. Use this if you don't want vanilla crisis country to be piloted. See acemod_fleet.9 event.
+# acemod_set_country_piloted_exclusion_off = yes						country			Removes exclusion *and* enables ACEMOD for given country. Does not activate global ACEMOD fleet AI (acemod_activated flag) if you had it off.[/code]
+[code]# set_country_flag = acemod_country_flag_custom_starbase_outpost		country			ACEMOD AI constructors will spawn normal starbases (outpost) using empire's graphical culture.
+# set_country_flag = acemod_country_flag_custom_starbase_citadel		country			ACEMOD AI constructors will spawn normal starbases (citadel) using empire's graphical culture.
+[/code][code]
+# set_country_flag = acemod_country_flag_disabled_military_ai			country			Disables ACEMOD AI for military fleets.
+# set_country_flag = acemod_country_flag_disabled_constructor_ai		country			Disables ACEMOD AI for constructor fleets.
+# set_country_flag = acemod_country_flag_disabled_army_ai				country			Disables ACEMOD AI for army fleets.
+# set_country_flag = acemod_country_flag_disabled_colonizer_ai			country			Disables ACEMOD AI for colonizer fleets.[/code]
+[code]# set_country_flag = acemod_constructor_reinforcements					country			Enables constructor reinforcements for given country. Vanilla crisis countries receive them by default. Requires acemod_assisted_ai country flag.
+# acemod_set_country_constructor_reinforcements_exclusion_on = yes		country			Prevents ACEMOD from issuing constructor reinforcements.
+# acemod_set_country_constructor_reinforcements_exclusion_off = yes		country			Resumes default operation.
+# set_star_flag = acemod_star_flag_is_constructor_reinforcements_system solar_system	Designates system to spawn constructor in.
+# set_fleet_flag = acemod_fleet_flag_is_constructor_reinforcements_fleet	fleet		Designates fleet to spawn constructor on.[/code]
+[code]# set_country_flag = acemod_defensive_jumpdrive_protocol				country			Enables defensive jumpdrive protocol for given country. Contingency has it by default. Requires acemod_assisted_ai country flag.
+# acemod_set_country_acemod_defensive_jumpdrive_protocol_exclusion_on = yes			country			Prevents ACEMOD from issuing defensive jumpdrive protocol.
+# acemod_set_country_acemod_defensive_jumpdrive_protocol_exclusion_off = yes		country			Resumes default operation.
+# set_star_flag = acemod_star_flag_is_defensive_jumpdrive_protocol_system	fleet planet	Designates defensive jumpdrive protocol protected system.
+# set_ambient_object_flag = acemod_ambient_object_flag_defensive_jumpdrive_protocol_target			ambient_object			Designates ambient object to move fleet to.
+# set_global_flag = acemod_defensive_jumpdrive_protocol_disabled		global			Disables defensive jumpdrive protocol for all countries.[/code]
+[code]# set_global_flag = acemod_technology_disabled							global			Prevents ACEMOD technologies from rolling (potential).
+# set_country_flag = acemod_country_flag_technology_allowed				country			Enables rolling of ACEMOD technologies for non-default empires (potential). Does not overrride ACEMOD technology disable global flag.
+# acemod_set_country_technology_exclusion_on = yes						country			Prevents ACEMOD technologies from rolling for given country (weight_modifier = 0). Overrides country technology_allowed flag.
+# acemod_set_country_technology_exclusion_off = yes						country			Resumes default operation.
+# set_global_flag = acemod_crisis_debuff_disabled						global			Disable applying anti-crisis damage debuffs. Does not remove the ones in place.
+# set_global_flag = acemod_fallen_awakened_empire_debuff_disabled		global			Disable applying anti-relics damage debuffs. Does not remove the ones in place.[/code]
+[code]# set_megastructure_flag = acemod_megastructure_flag_is_active_bypass	megastructure	Marks megastructure as being an accessible bypass (custom modded wormhole, custom modded gateway etc). Used in pathfinding. See acemod_is_active_bypass scripted trigger.
+# set_star_flag = acemod_star_flag_is_active_bypass						solar_system	Marks star system as being an accessible bypass (custom modded wormhole, custom modded gateway etc). Used in pathfinding. See acemod_is_active_bypass scripted trigger.[/code]
+
+---
+
+[h1]List of overwrites[/h1]
+[b]CRITICAL:[/b]
+
+[b]00_country_types.txt (keys):[/b]
+swarm
+extradimensional
+extradimensional_2
+extradimensional_3
+ai_empire
+
+[b]OPTIONAL:[/b]
+
+[b]global_ship_designs.txt (keys):[/b]
+NAME_Unbidden_Anchor
+NAME_Vehement_Anchor
+NAME_Aberrant_Anchor
+
+[b]00_starbases.txt (keys):[/b]
+starbase_exd
+
+[b]00_starbase_levels.txt (keys)[/b]
+starbase_level_exd
+
+---
+
+[h1]Fleet logic structure:[/h1]
+Fleet logic is separated into chains of events (modules), one chain for each fleet (ship) type:
+shipclass_military
+shipclass_constructor
+shipclass_transport
+shipclass_colonizer
+
+Chains are similar between the classes, but vary, depending on the specific requirements for the class.
+
+[h2]Main event[/h2]
+Main fleet type event will trigger (monthly) only when ACEMOD AI is globally on. Effects on executing include iterating through every ACEMOD assisted country which is not specifically excluded from having given fleet type assisted. It will then fire fleet events for given class of fleets, but only if those fleets weren't specifically excluded and are idle (have no queued commands).
+
+[h2]System event[/h2]
+Fleets proceed to seek valid target within the system. This might include:
+- a valid target to be bombarded (shipclass_military)
+- primary star to construct starbase on in a system without owner (shipclass_constructor)
+- valid invasion target (shipclass_transport)
+- valid colonisation target in a system owned by fleet owner
+
+[h2]Bypass event[/h2]
+Fleet without valid target in the system might attempt to cross bypass (wormhole, gateway) if one exists in it.
+
+[h2]Target seeking event[/h2]
+Fleets which did not find valid target in the system and did not cross bypass will proceed to seek accessible (i.e. not behind FTL inhibitor)  target on a galactic map.
+- shipclass_military: nearest system owned by a hostile,
+- shipclass_constructor: nearest unowned system without hostiles,
+- shipclass_transport: nearest system with a planet which is a valid invasion target,
+- shipclass_colonizer: nearest owned system with valid colonisation target, and without hostiles.
+
+---
+
+[h1]Implementation into other mods[/h1]
+
+ACEMOD sets up a global flag [b]acemod_installed[/b] which in itself does nothing but other mods can check against it to see if the mod is present.
+
+[h2]Applying AI to a country[/h2]
+Global flag [b]acemod_activated[/b] gates off entirety of ACEMOD fleet logic. Without it no fleet movements are made. It is not present on default (ACEMOD AI is OFF) and only switches on when crisis arrives. Modder has to manually set it up if he intends to use ACEMOD AI with custom country.
+
+To enable ACEMOD AI for your country simply apply country flag [b]acemod_assisted_ai[/b] (and the global flag above). Please note that vanilla AI should be disabled. See initial notes on editing country types.
+
+Please keep in mind that disabling AI by setting [b]enabled = no[/b] in the [b]ai = { }[/b] section will disable ALL of the AI, this includes economy AI (planet management, leaders, diplomacy etc). Crisis countries do not have economy so they remain unaffected. Use of ACEMOD AI with countries which have economy [b]*is not supported*[/b].
+
+Aggressive Crisis Engine AI is a crisis AI (it's in the name), not a default empire AI. Applying it to a typical empire will result in a tactical and strategic disaster.
+
+[h2]Tweaking fleet logic[/h2]
+Modder can flip ACEMOD AI exclusion on a fleet/ship/country scope if they want to stop ACEMOD from issuing commands to a given scope. See country_piloted_exclusion effects in the effects list. From a technical standpoint a variable of value 1 is applied which is checked against before executing any command. See acemod_scripted_effects.txt.
+
+Example use:
+1. Modder finds desired fleet and executes [b]acemod_set_fleet_piloted_exclusion_on = yes[/b] effect on it.
+2. Modder uses fleet as seen fit, as ACEMOD AI won't touch excluded fleet.
+3. Modder applies [b]acemod_set_fleet_piloted_exclusion_off = yes[/b] effect to remove exclusion. Fleet will proceed as normal.
+
+[h2]Disabling individual modules[/h2]
+Given fleet types can also be excluded from control by ACEMOD AI. For example [b]acemod_country_flag_disabled_constructor_ai[/b] will stop ACEMOD from issuing commands to constructors on a country scope. Modder will have to take care of these excluded fleet types in one way or another.
+
+[h2]Overwriting ACEMOD[/h2]
+Any overwrites of ACEMOD files or individual components might affect mods which use ACEMOD AI framework. Please be considerate to other mod authors and mod users and disclose any overwrites on your mod page, preferably with technical details.
+
+Using exclusion effects for a ship/fleet/country scope should provide a lot of flexibility so always consider if these would do instead of an overwrite. Feel free to copy and modify fleet logic code. A clone of an ACEMOD fleet event combined with exclusion effect can save on overwrite.
+
+If there is a feature you think cannot be implemented with exclusion effects and without overwrite just ask, I might be able to accomodate or find a solution.
+
+If you *really* have to do overwrite: remember that you can overwrite individual events instead of the whole file.

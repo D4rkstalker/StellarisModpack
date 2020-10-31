@@ -1,0 +1,2514 @@
+namespace = acemod_fleet
+#
+# Note 1: In order to disable vanilla crisis AI this mod overwrites following keys in 00_country_types.txt:
+# swarm
+# extradimensional
+# extradimensional_2
+# extradimensional_3
+# ai_empire
+# 
+# Note 2: Vanilla crisis countries are piloted by default. See instructions on how to exclude countries, including vanilla crisis countries.
+#
+# Instructions:
+# 
+# set_global_flag = acemod_activated											global				Activates ACEMOD fleet AI.
+# set_country_flag = acemod_assisted_ai											country				Only countries with this flag will have their fleets piloted by ACEMOD.
+# acemod_set_fleet_piloted_exclusion_on = yes									fleet ship			Prevents ACEMOD from piloting marked fleets.
+# acemod_set_fleet_piloted_exclusion_off = yes									fleet ship			Resumes default operation.
+# acemod_set_country_piloted_exclusion_on = yes									country				Prevents ACEMOD from piloting fleets of given country. Use this if you don't want vanilla crisis country to be piloted. See acemod_fleet.10 event.
+# acemod_set_country_piloted_exclusion_off = yes								country				Removes exclusion *and* enables ACEMOD for given country. Does not activate global ACEMOD fleet AI (acemod_activated flag) if you had it off.
+#
+# set_country_flag = acemod_country_flag_disabled_military_ai					country				Disables ACEMOD AI for military fleets.
+# set_country_flag = acemod_country_flag_disabled_constructor_ai				country				Disables ACEMOD AI for constructor fleets.
+# set_country_flag = acemod_country_flag_disabled_army_ai						country				Disables ACEMOD AI for army fleets.
+# set_country_flag = acemod_country_flag_disabled_colonizer_ai					country				Disables ACEMOD AI for colonizer fleets.
+#
+# set_country_flag = acemod_constructor_reinforcements							country				Enables constructor reinforcements for given country. Vanilla crisis countries receive them by default. Requires acemod_assisted_ai country flag.
+# acemod_set_country_constructor_reinforcements_exclusion_on = yes				country				Prevents ACEMOD from issuing constructor reinforcements.
+# acemod_set_country_constructor_reinforcements_exclusion_off = yes				country				Resumes default operation.
+# set_star_flag = acemod_star_flag_is_constructor_reinforcements_system			solar_system		Designates system to spawn constructor in.
+# set_fleet_flag = acemod_fleet_flag_is_constructor_reinforcements_fleet		fleet				Designates fleet to spawn constructor on.
+#
+# set_country_flag = acemod_country_flag_custom_starbase_outpost				country				ACEMOD AI constructors will spawn normal starbases (outpost) using empire's graphical culture.
+# set_country_flag = acemod_country_flag_custom_starbase_citadel				country				ACEMOD AI constructors will spawn normal starbases (citadel) using empire's graphical culture.
+#
+# set_country_flag = acemod_defensive_jumpdrive_protocol						country				Enables defensive jumpdrive protocol for given country. Contingency has it by default. Requires acemod_assisted_ai country flag.
+# acemod_set_country_acemod_defensive_jumpdrive_protocol_exclusion_on = yes		country				Prevents ACEMOD from issuing defensive jumpdrive protocol.
+# acemod_set_country_acemod_defensive_jumpdrive_protocol_exclusion_off = yes	country				Resumes default operation.
+# set_star_flag = acemod_star_flag_is_defensive_jumpdrive_protocol_system		fleet planet		Designates defensive jumpdrive protocol protected system.
+# set_ambient_object_flag = acemod_ambient_object_flag_defensive_jumpdrive_protocol_target			ambient_object			Designates ambient object to move fleet to.
+# set_global_flag = acemod_defensive_jumpdrive_protocol_disabled				global				Disables defensive jumpdrive protocol for all countries.
+#
+# set_global_flag = acemod_technology_disabled									global				Prevents ACEMOD technologies from rolling (potential).
+# set_country_flag = acemod_country_flag_technology_allowed						country				Enables rolling of ACEMOD technologies for non-default empires (potential). Does not overrride ACEMOD technology disable global flag.
+# acemod_set_country_technology_exclusion_on = yes								country				Prevents ACEMOD technologies from rolling for given country (weight_modifier = 0). Overrides country technology_allowed flag.
+# acemod_set_country_technology_exclusion_off = yes								country				Resumes default operation.
+#
+# set_global_flag = acemod_crisis_debuff_disabled								global				Disable applying anti-crisis damage debuffs. Does not remove the ones in place.
+# set_global_flag = acemod_fallen_awakened_empire_debuff_disabled				global				Disable applying anti-relics damage debuffs. Does not remove the ones in place.
+#
+# set_megastructure_flag = acemod_megastructure_flag_is_active_bypass			megastructure		Marks megastructure as being an accessible bypass (custom modded wormhole, custom modded gateway etc). Used in pathfinding. See acemod_is_active_bypass scripted trigger.
+# set_star_flag = acemod_star_flag_is_active_bypass								solar_system		Marks star system as being an accessible bypass (custom modded wormhole, custom modded gateway etc). Used in pathfinding. See acemod_is_active_bypass scripted trigger.
+#
+# ACEMOD AI activation. Required to avoid crisis events overwrites.
+event = {
+	id = acemod_fleet.10
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		# Some mods (crisis managers?) remove galactic_crisis_happened flag once invasion is defeated, making it an unreliable way to check if crisis is active.
+		# OR = {
+		# 	has_global_flag = galactic_crisis_happened
+		# 	has_global_flag = ai_invasion_ongoing			# Contingency crisis_events_3.txt does not set galactic_crisis_happened global flag! Naturally spawning Contingency will set flag via crisis_trigger_events.txt . Manually or by a mod spawned Contingency might lack this global flag.
+		# }
+		OR = {
+			has_global_flag = prethoryn_arrival
+			has_global_flag = prethoryn_main_invasion
+			has_global_flag = ai_invasion_ongoing
+			has_global_flag = extradimensional_invasion_happened
+			has_global_flag = extradimensional_second_portal
+			has_global_flag = extradimensional_third_portal
+		}
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = swarm
+					is_country_type = extradimensional
+					is_country_type = extradimensional_2
+					is_country_type = extradimensional_3
+					is_country_type = ai_empire
+				}
+				NOT = {
+					has_country_flag = acemod_assisted_ai
+				}
+				NOT = {
+					check_variable = {
+						which = acemod_var_country_piloted_exclusion
+						value = 1
+					}
+				}
+				# is_country_type = gray
+				# is_country_type = gray_goo				# A Deadly Tempest mod.
+			}
+			set_global_flag = acemod_activated
+			set_country_flag = acemod_assisted_ai
+		}
+	}
+}
+
+# # Prethoryn Vanguard ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.12
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = prethoryn_arrival
+# 		is_country_type = swarm
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+# # Prethoryn Main Invasion ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.13
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = prethoryn_main_invasion
+# 		is_country_type = swarm
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+# # Contingency ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.14
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = ai_invasion_ongoing
+# 		is_country_type = ai_empire
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+# # Unbidden ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.15
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = extradimensional_invasion_happened
+# 		is_country_type = extradimensional
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+# # Aberrant ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.16
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = extradimensional_second_portal
+# 		is_country_type = extradimensional_2
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+# # Vehement ACEMOD AI activation
+# country_event = {
+# 	id = acemod_fleet.17
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = extradimensional_third_portal
+# 		is_country_type = extradimensional_3
+# 	}
+# 	immediate = {
+# 		set_global_flag = acemod_activated
+# 		set_country_flag = acemod_assisted_ai
+# 	}
+# }
+#
+# Orders idle crisis fleets to seek target systems and move to them.
+event = {
+	id = acemod_fleet.100
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai				# Only countries with this flag will have their fleets piloted by ACEMOD.
+				NOT = {
+					has_country_flag = acemod_country_flag_disabled_military_ai
+				}
+				# OR = {
+				# 	is_country_type = swarm
+				# 	is_country_type = extradimensional
+				# 	is_country_type = extradimensional_2
+				# 	is_country_type = extradimensional_3
+				# 	is_country_type = ai_empire
+				# 	is_country_type = gray
+				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
+				# }
+			}
+			every_owned_fleet = {
+				limit = {
+					NOT = {
+						check_variable = {
+							which = acemod_var_fleet_piloted_exclusion
+							value = 1
+						}
+					}
+					is_fleet_idle = yes
+					is_ship_class = shipclass_military
+				}
+				fleet_event = {
+					id = acemod_fleet.105
+					days = 2
+					random = 5
+				}
+			}
+		}
+	}
+}
+
+# Seeks valid target to bombard, skips if not found.
+fleet_event = {
+	id = acemod_fleet.105
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				solar_system = {
+					exists = owner
+					any_system_planet = {
+						has_orbital_bombardment = yes
+						any_fleet_in_orbit = {
+							is_same_value = root
+						}
+					}
+				}
+			}
+			break = yes
+		}
+		if = {
+			limit = {
+				solar_system = {
+					exists = owner
+					any_system_planet = {
+						OR = {
+							is_colony = yes
+							is_under_colonization = yes
+						}
+						NOR = {
+							has_planet_flag = acemod_planet_flag_bombardment_target
+							has_orbital_bombardment = yes
+						}
+						NOT = {
+							is_owned_by = root.owner
+						}
+					}
+				}
+			}
+			queue_actions = {
+				find_closest_planet = {
+					trigger = {
+						id = "acemod.105.t1"
+						OR = {
+							is_colony = yes
+							is_under_colonization = yes
+						}
+						NOT = {
+							has_planet_flag = acemod_planet_flag_bombardment_target
+						}
+						NOT = {
+							is_owned_by = root.owner
+						}
+						# is_same_value = event_target:acemod_event_target_invader_bombardment_target
+					}
+					found_planet = {
+						effect = {
+							id = "acemod.105.e1"
+							save_event_target_as = acemod_event_target_invader_bombardment_target
+							set_timed_planet_flag = {
+								flag = acemod_planet_flag_bombardment_target
+								days = 120
+							}
+						}
+						move_to = this
+						wait = 5
+						orbit_planet = this
+					}
+					failed = {
+						effect = {
+							id = "acemod.105.e2"
+							root = {
+								fleet_event = {
+									id = acemod_fleet.110
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.110
+			}
+		}
+	}
+}
+
+# Finds connected and accessible bypass system.
+fleet_event = {
+	id = acemod_fleet.110
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				solar_system = {
+					OR = {
+						has_natural_wormhole = yes
+						any_system_megastructure = {
+							is_megastructure_type = gateway_final
+							is_megastructure_type = gateway_restored
+							is_megastructure_type = lgate_base
+						}
+						acemod_is_active_bypass = yes
+					}
+				}
+			}
+			random_list = {
+				100 = {
+					queue_actions = {
+						find_random_system = {
+							trigger = {
+								id = "acemod.110.t1"
+								distance = {
+									source = root
+									#	max_distance <= 1000
+									#	min_distance >= 1
+									#	type = hyperlane
+									#	uses_bypass = yes
+									bypass_empire = root.owner
+									min_jumps = 1
+									max_jumps = 1
+								}
+								OR = {
+									has_natural_wormhole = yes
+									any_system_megastructure = {
+										is_megastructure_type = gateway_final
+										is_megastructure_type = gateway_restored
+										is_megastructure_type = lgate_base
+									}
+									acemod_is_active_bypass = yes
+								}
+								has_access_fleet = root.owner
+								exists = owner
+								owner = {
+									NOR = {
+										is_same_value = root.owner
+										is_country_type = fallen_empire
+									}
+								}
+							}
+							found_system = {
+								move_to = this
+								# effect = {
+								# 	id = "acemod.110.e1"
+								# 	log = "ACEMOD_log: acemod.110.e1 Military fleet entered bypass system and found bypass system via bypass script."
+								# }
+							}
+							failed = {
+								effect = {
+									id = "acemod.110.e2"
+									# log = "ACEMOD_log: acemod.110.e2 Military fleet entered bypass system and failed to find bypass system via bypass script."
+									root = {
+										fleet_event = {
+											id = acemod_fleet.111
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				0 = {
+					# hidden_effect = {
+					# 	log = "ACEMOD_log: acemod_fleet.110 Military fleet entered bypass system but rolled via bypass script to proceeded with standard script."
+					# }
+					fleet_event = {
+						id = acemod_fleet.111
+					}
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.111
+			}
+		}
+	}
+}
+
+# Main fleet hunter-seeker event.
+fleet_event = {
+	id = acemod_fleet.111
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		solar_system = {
+			closest_system = {
+				min_steps = 1
+				max_steps = 20
+				limit = {
+					has_access_fleet = root.owner
+					NOR = {
+						has_star_flag = acemod_star_flag_solar_system_target
+						has_star_flag = extradimensional_origin_system
+					}
+					exists = owner
+					owner = {
+						NOR = {
+							is_same_value = root.owner
+							is_country_type = fallen_empire
+						}
+					}
+				}
+				save_event_target_as = acemod_event_target_invader_target
+				set_timed_star_flag = {
+					flag = acemod_star_flag_solar_system_target
+					days = 120
+				}
+			}
+		}
+		save_event_target_as = acemod_event_target_invader_fleet
+		set_fleet_stance = aggressive
+		set_fleet_bombardment_stance = indiscriminate		# Vanilla has selective on default
+		set_aggro_range_measure_from = self
+		set_aggro_range = 800		# Longer aggro range, same as for pirate systems (default 500)
+		queue_actions = {
+			find_closest_system = {
+				trigger = {
+					id = "acemod.111.t1"
+					is_same_value = event_target:acemod_event_target_invader_target
+				}
+				found_system = {
+					move_to = this
+					# effect = {
+					# 	id = "acemod.111.e1"
+					# 	if = {
+					# 		limit = {
+					# 			OR = {
+					# 				has_natural_wormhole = yes
+					# 				any_system_megastructure = {
+					# 					is_megastructure_type = gateway_final
+					# 					is_megastructure_type = gateway_restored
+					# 					is_megastructure_type = lgate_base
+					# 				}
+					# 				acemod_is_active_bypass = yes
+					# 			}
+					# 		}
+					# 		log = "ACEMOD_log: acemod.111.e1 Military fleet found bypass system via standard script."
+					# 	}
+					# }
+				}
+			}
+			effect = {
+				id = acemod.111.e2
+				root = {
+					if = {
+						limit = {
+							is_fleet_idle = yes
+						}
+						# log = "ACEMOD_log: acemod.111.e2 Military fleet failed to find system via standard script and executed fallback script."
+						fleet_event = {
+							id = acemod_fleet.112
+							days = 5
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Seeks any viable target if primary contitions are not met. This is a fallback event.
+fleet_event = {
+	id = acemod_fleet.112
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		solar_system = {
+			closest_system = {
+				min_steps = 1
+				max_steps = 40				#	Increased search range.
+				limit = {
+					has_access_fleet = root.owner
+					NOR = {
+						has_star_flag = acemod_star_flag_solar_system_target
+						has_star_flag = extradimensional_origin_system
+					}
+					exists = owner
+					owner = {
+						NOT = {
+							is_same_value = root.owner							# Removed exclusion for Fallen Empires.
+						}
+					}
+				}
+				save_event_target_as = acemod_event_target_invader_target
+				change_variable = {
+					which = acemod_var_star_fallback_target_countdown					# Initiates countdown to marking system as a valid target. Gives other fleets time to clear inhibitors in other systems first.
+					value = 1
+				}
+			}
+		}
+		save_event_target_as = acemod_event_target_invader_fleet
+		set_fleet_stance = aggressive
+		set_fleet_bombardment_stance = indiscriminate		# Vanilla has selective on default
+		set_aggro_range_measure_from = self
+		set_aggro_range = 800		# Longer aggro range, same as for pirate systems (default 500)
+		queue_actions = {
+			find_closest_system = {
+				trigger = {
+					id = "acemod.112.t1"
+					is_same_value = event_target:acemod_event_target_invader_target
+					check_variable = {
+						which = acemod_var_star_fallback_target_countdown
+						value >= 50
+					}
+				}
+				found_system = {
+					move_to = this
+					# effect = {
+					# 	id = "acemod.112.e1"
+					# 	if = {
+					# 		limit = {
+					# 			OR = {
+					# 				has_natural_wormhole = yes
+					# 				any_system_megastructure = {
+					# 					is_megastructure_type = gateway_final
+					# 					is_megastructure_type = gateway_restored
+					# 					is_megastructure_type = lgate_base
+					# 				}
+					# 				acemod_is_active_bypass = yes
+					# 			}
+					# 		}
+					# 		log = "ACEMOD_log: acemod.112.e1 Military fleet found bypass system via fallback script."
+					# 	}
+					# }
+				}
+				# failed = {
+				# 	effect = {
+				# 		id = "acemod.112.e2"
+				# 		log = "ACEMOD_log: acemod.112.e2 Military fleet failed to find system via fallback script."
+				# 	}
+				# }
+			}
+		}
+	}
+}
+
+# Destroys all colonies when crisis fleet enters the system. This is a debug event and should be disabled in the release version.
+# fleet_event = {
+# 	id = acemod_fleet.120
+# 	hide_window = yes
+# 	is_triggered_only = yes
+# 	trigger = {
+# 		has_global_flag = acemod_activated
+# 		owner = {
+# 			OR = {
+# 				is_country_type = swarm
+# 				is_country_type = extradimensional
+# 				is_country_type = extradimensional_2
+# 				is_country_type = extradimensional_3
+# 				is_country_type = ai_empire
+# 				is_country_type = gray
+# 				is_country_type = gray_goo				# A Deadly Tempest mod
+# 			}
+# 		}
+# 		is_ship_class = shipclass_military
+# 	}
+# 	immediate = {
+# 		solar_system = {
+# 			# for testing purposes
+# 			every_system_planet = {
+# 				limit = {
+# 					is_colony = yes
+# 				}
+# 				destroy_colony = yes
+# 			}
+# 		}
+# 	}
+# }
+# Main starbase constructor event.
+event = {
+	id = acemod_fleet.300
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai				# Only countries with this flag will have their fleets piloted by ACEMOD.
+				NOT = {
+					has_country_flag = acemod_country_flag_disabled_constructor_ai
+				}
+				# OR = {
+				# 	is_country_type = swarm
+				# 	is_country_type = extradimensional
+				# 	is_country_type = extradimensional_2
+				# 	is_country_type = extradimensional_3
+				# 	is_country_type = ai_empire
+				# 	is_country_type = gray
+				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
+				# }
+			}
+			every_owned_fleet = {
+				limit = {
+					NOT = {
+						check_variable = {
+							which = acemod_var_fleet_piloted_exclusion
+							value = 1
+						}
+					}
+					is_fleet_idle = yes
+					is_ship_class = shipclass_constructor
+				}
+				fleet_event = {
+					id = acemod_fleet.305
+					days = 2
+					random = 10
+				}
+			}
+		}
+	}
+}
+
+# Checks if starbase (owner) is present or under construction and orders building it if not.
+fleet_event = {
+	id = acemod_fleet.305
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+			}
+			break = yes
+		}
+		else_if = {
+			limit = {
+				solar_system = {
+					NOR = {
+						exists = owner
+						has_star_flag = acemod_star_flag_starbase_construction_system
+					}
+					NOT = {
+						any_fleet_in_system = {
+							OR = {
+								is_constructing = starbase
+								has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+							}
+							owner = {
+								is_same_value = root.owner
+							}
+						}
+					}
+				}
+			}
+			queue_actions = {
+				find_closest_planet = {
+					trigger = {
+						id = "acemod.305.t1"
+						is_primary_star = yes
+					}
+					found_planet = {
+						move_to = this
+						wait = 5
+						orbit_planet = this
+						effect = {
+							id = "acemod.305.e1"
+							solar_system = {
+								set_timed_star_flag = {
+									flag = acemod_star_flag_starbase_construction_system
+									days = 100
+								}
+							}
+							root = {
+								set_timed_fleet_flag = {
+									flag = acemod_planet_flag_starbase_construction_fleet
+									days = 100
+								}
+								fleet_event = {
+									id = acemod_fleet.306
+									days = 100
+								}
+							}
+						}
+					}
+					failed = {
+						effect = {
+							id = "acemod.305.e2"
+							root = {
+								fleet_event = {
+									id = acemod_fleet.310
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.310
+			}
+		}
+	}
+}
+
+# Checks if starbase (owner) is present or under construction and orders building it if not.
+fleet_event = {
+	id = acemod_fleet.306
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# Vanilla empire types are listed below.
+		if = {
+			limit = {
+				is_in_combat = no
+				NOT = {
+					has_fleet_order = evade_hostiles_order
+				}
+				owner = {
+					NOR = {
+						has_country_flag = acemod_country_flag_custom_starbase_outpost
+						has_country_flag = acemod_country_flag_custom_starbase_citadel
+					}
+				}
+			}
+			# Including default and rebel for future-proofing.
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							is_country_type = default
+							is_country_type = rebel
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_outpost
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						is_country_type = ai_empire
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_ai
+						owner = root.owner
+					}
+					random_fleet_in_system = {
+						limit = {
+							is_ship_size = starbase_ai
+						}
+						random_owned_ship = {
+							limit = {
+								is_ship_size = starbase_ai
+							}
+							ship_event = {
+								id = crisis.2600								# Spawn System Effect
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							is_country_type = extradimensional
+							is_country_type = extradimensional_2
+							is_country_type = extradimensional_3
+						}
+					}
+				}
+				random_list = {
+					75 = {
+						solar_system = {
+							create_starbase = {
+								size = starbase_exd_0
+								owner = root.owner
+							}
+							random_fleet_in_system = {
+								limit = {
+									is_ship_size = starbase_exd_0
+								}
+								random_owned_ship = {
+									limit = {
+										is_ship_size = starbase_exd_0
+									}
+									ship_event = {
+										id = crisis.1310										# Spawn System Effect
+									}
+								}
+							}
+						}
+					}
+					25 = {
+						solar_system = {
+							create_starbase = {
+								size = starbase_exd
+								owner = root.owner
+							}
+							# Make sure anchors are accounted for and affect invincibility of portal for each Unbidden faction.
+							random_fleet_in_system = {
+								limit = {
+									is_ship_size = starbase_exd
+								}
+								random_owned_ship = {
+									limit = {
+										is_ship_size = starbase_exd
+									}
+									ship_event = {
+										id = crisis.1267										# Reinforcements Arrive After Building Anchor (HIDDEN)
+									}
+									ship_event = {
+										id = crisis.1280										# Anchor Built (HIDDEN)
+									}
+									ship_event = {
+										id = crisis.1310										# Spawn System Effect
+									}
+								}
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						is_country_type = swarm
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_swarm
+						owner = root.owner
+					}
+					random_fleet_in_system = {
+						limit = {
+							is_ship_size = starbase_swarm
+						}
+						random_owned_ship = {
+							limit = {
+								is_ship_size = starbase_swarm
+							}
+							ship_event = {
+								id = crisis.260								# Spawn System Effect
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							is_country_type = awakened_marauders
+							is_country_type = dormant_marauders
+							is_country_type = pirate
+							is_country_type = ruined_marauders
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_marauder
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							is_country_type = fallen_empire
+							is_country_type = awakened_fallen_empire
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_fe_outpost
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							is_country_type = gate_builders
+							is_country_type = gray
+							is_country_type = gray_goo
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_gatebuilders
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			else = {
+				break = yes
+			}
+		}
+		# Below for non-vanilla use. Apply one of custom_starbase country flags if you are using custom country type or empire. Untested, please report any bugs.
+		else_if = {
+			limit = {
+				is_in_combat = no
+				NOT = {
+					has_fleet_order = evade_hostiles_order
+				}
+				owner = {
+					OR = {
+						has_country_flag = acemod_country_flag_custom_starbase_outpost
+						has_country_flag = acemod_country_flag_custom_starbase_citadel
+					}
+				}
+			}
+			if = {
+				limit = {
+					owner = {
+						has_country_flag = acemod_country_flag_custom_starbase_outpost
+						NOT = {
+							has_country_flag = acemod_country_flag_custom_starbase_citadel
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_outpost
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					owner = {
+						has_country_flag = acemod_country_flag_custom_starbase_citadel
+						NOT = {
+							has_country_flag = acemod_country_flag_custom_starbase_outpost
+						}
+					}
+				}
+				solar_system = {
+					create_starbase = {
+						size = starbase_citadel
+						owner = root.owner
+					}
+				}
+				break = yes
+			}
+			else = {
+				break = yes
+			}
+		}
+		else = {
+			break = yes
+		}
+	}
+}
+
+# Finds connected and accessible bypass system.
+fleet_event = {
+	id = acemod_fleet.310
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+			}
+			break = yes
+		}
+		if = {
+			limit = {
+				solar_system = {
+					OR = {
+						has_natural_wormhole = yes
+						any_system_megastructure = {
+							is_megastructure_type = gateway_final
+							is_megastructure_type = gateway_restored
+							is_megastructure_type = lgate_base
+						}
+						acemod_is_active_bypass = yes
+					}
+				}
+			}
+			random_list = {
+				50 = {
+					queue_actions = {
+						find_random_system = {
+							trigger = {
+								id = "acemod.310.t1"
+								distance = {
+									source = root
+									#	max_distance <= 1000
+									#	min_distance >= 1
+									# 	type = hyperlane
+									#	uses_bypass = yes
+									bypass_empire = root.owner
+									min_jumps = 1
+									max_jumps = 1
+								}
+								OR = {
+									has_natural_wormhole = yes
+									any_system_megastructure = {
+										is_megastructure_type = gateway_final
+										is_megastructure_type = gateway_restored
+										is_megastructure_type = lgate_base
+									}
+									acemod_is_active_bypass = yes
+								}
+								has_access_fleet = root.owner
+								NOT = {
+									has_star_flag = acemod_star_flag_starbase_construction_system
+								}
+								NOT = {
+									exists = owner
+								}
+								NOR = {
+									# any_ship_in_system = {
+									any_fleet_in_system = {
+										OR = {
+											is_constructing = starbase
+											has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+										}
+										owner = {
+											is_same_value = root.owner
+										}
+									}
+									any_fleet_in_system = {
+										owner = {
+											is_hostile = root.owner
+										}
+										fleet_power > 0
+									}
+								}
+							}
+							found_system = {
+								move_to = this
+								# effect = {
+								# 	id = "acemod.310.e1"
+								# 	log = "ACEMOD_log: acemod.310.e1 Constructor entered bypass system and found bypass system via bypass script."
+								# }
+							}
+							failed = {
+								effect = {
+									id = "acemod.310.e2"
+									# log = "ACEMOD_log: acemod.310.e2 Constructor entered bypass system and failed to find bypass system via bypass script."
+									root = {
+										fleet_event = {
+											id = acemod_fleet.311
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				50 = {
+					# hidden_effect = {
+					# 	log = "ACEMOD_log: acemod_fleet.310 Constructor entered bypass system but rolled via bypass script to proceeded with standard script."
+					# }
+					fleet_event = {
+						id = acemod_fleet.311
+					}
+				}
+			}
+			break = yes
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.311
+			}
+		}
+	}
+}
+
+# Seeks valid solar system to build starbase in.
+fleet_event = {
+	id = acemod_fleet.311
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		solar_system = {
+			closest_system = {
+				min_steps = 1
+				max_steps = 20
+				limit = {
+					has_access_fleet = root.owner
+					NOR = {
+						has_star_flag = acemod_star_flag_solar_system_constructor_target
+						has_star_flag = acemod_star_flag_starbase_construction_system
+					}
+					NOT = {
+						exists = owner
+					}
+					NOR = {
+						any_fleet_in_system = {
+							exists = this
+							OR = {
+								AND = {
+									owner = {
+										is_hostile = root.owner
+									}
+									fleet_power > 0
+								}
+								AND = {
+									OR = {
+										is_constructing = starbase
+										has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+									}
+									owner = {
+										is_same_value = root.owner
+									}
+								}
+							}
+						}
+					}
+				}
+				save_event_target_as = acemod_star_flag_solar_system_constructor_target
+				set_timed_star_flag = {
+					flag = acemod_star_flag_solar_system_constructor_target
+					days = 120
+				}
+			}
+		}
+		save_event_target_as = acemod_event_target_constructor_fleet
+		set_fleet_stance = evasive
+		if = {
+			limit = {
+				exists = event_target:acemod_star_flag_solar_system_constructor_target
+			}
+			queue_actions = {
+				find_closest_system = {
+					trigger = {
+						id = "acemod.311.t1"
+						is_same_value = event_target:acemod_star_flag_solar_system_constructor_target
+					}
+					found_system = {
+						move_to = this
+					}
+					# TO DO: set up event to move to nearby allied fleet if no target found.
+					# failed = {
+					# 	effect = {
+					# 		id = acemod.311.e2
+					# 		root = {
+					# 			fleet_event = {
+					# 				id = acemod_fleet.101
+					# 				days = 5
+					# 			}
+					# 		}
+					# 	}
+					# }
+				}
+			}
+			break = yes
+		}
+	}
+}
+
+# Constructor reinforcements.
+country_event = {
+	id = acemod_fleet.350
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+		has_country_flag = acemod_assisted_ai
+		OR = {
+			is_country_type = swarm
+			is_country_type = extradimensional
+			is_country_type = extradimensional_2
+			is_country_type = extradimensional_3
+			is_country_type = ai_empire
+			has_country_flag = acemod_constructor_reinforcements
+		}
+		NOT = {
+			check_variable = {
+				which = acemod_var_country_constructor_reinforcements_exclusion
+				value = 1
+			}
+		}
+	}
+	immediate = {
+		if = {
+			limit = {
+				is_country_type = swarm
+				count_owned_ship = {
+					limit = {
+						is_ship_size = construction_ship_swarm
+					}
+					count < 20
+				}
+			}
+			if = {
+				limit = {
+					NOT = {
+						exists = event_target:acemod_prethoryn
+					}
+				}
+				save_event_target_as = acemod_prethoryn
+			}
+			while = {
+				count = 5
+				random_owned_ship = {
+					save_event_target_as = acemod_constructor_respawn_system
+				}
+				create_fleet = {
+					name = "NAME_Prethoryn_Constructor"
+					effect = {
+						set_owner = event_target:acemod_prethoryn
+						create_ship = {
+							name = random
+							design = "NAME_Swarm_Constructor"
+							graphical_culture = "swarm_01"
+						}
+						set_location = {
+							target = event_target:acemod_constructor_respawn_system
+							distance = 5
+							angle = random
+						}
+					}
+				}
+			}
+			break = yes
+		}
+		if = {
+			limit = {
+				is_country_type = ai_empire
+			}
+			if = {
+				limit = {
+					NOT = {
+						exists = event_target:acemod_AI_crisis
+					}
+				}
+				save_event_target_as = acemod_AI_crisis
+			}
+			every_owned_planet = {
+				limit = {
+					is_planet_class = pc_ai
+					NOT = {
+						has_planet_flag = machine_lair
+					}
+				}
+				planet_event = {
+					id = acemod_fleet.351
+				}
+			}
+			break = yes
+		}
+		if = {
+			limit = {
+				OR = {
+					is_country_type = extradimensional
+					is_country_type = extradimensional_2
+					is_country_type = extradimensional_3
+				}
+				count_owned_ship = {
+					limit = {
+						is_ship_size = construction_ship_ed
+					}
+					count < 20
+				}
+			}
+			if = {
+				limit = {
+					is_country_type = extradimensional
+				}
+				random_system = {
+					limit = {
+						has_star_flag = extradimensional_origin_system
+					}
+					every_fleet_in_system = {
+						random_owned_ship = {
+							limit = {
+								has_ship_flag = unbidden_portal
+							}
+							save_event_target_as = acemod_unbidden_portal
+						}
+					}
+					while = {
+						count = 5
+						create_fleet = {
+							effect = {
+								set_owner = ROOT
+								create_ship = {
+									name = random
+									design = "NAME_Void_Shaper"
+									graphical_culture = "extra_dimensional_01"
+								}
+								set_location = {
+									target = event_target:acemod_unbidden_portal
+									distance = 5
+									angle = random
+								}
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					is_country_type = extradimensional_2
+				}
+				random_system = {
+					limit = {
+						has_star_flag = extradimensional_second_portal_system
+					}
+					every_fleet_in_system = {
+						random_owned_ship = {
+							limit = {
+								has_ship_flag = aberrant_portal
+							}
+							save_event_target_as = acemod_aberrant_portal
+						}
+					}
+					while = {
+						count = 5
+						create_fleet = {
+							effect = {
+								set_owner = ROOT
+								create_ship = {
+									name = random
+									design = "NAME_Void_Former"
+									graphical_culture = "extra_dimensional_02"
+								}
+								set_location = {
+									target = event_target:acemod_aberrant_portal
+									distance = 5
+									angle = random
+								}
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			if = {
+				limit = {
+					is_country_type = extradimensional_3
+				}
+				random_system = {
+					limit = {
+						has_star_flag = extradimensional_third_portal_system
+					}
+					every_fleet_in_system = {
+						random_owned_ship = {
+							limit = {
+								has_ship_flag = vehement_portal
+							}
+							save_event_target_as = acemod_vehement_portal
+						}
+					}
+					while = {
+						count = 5
+						create_fleet = {
+							effect = {
+								set_owner = ROOT
+								create_ship = {
+									name = random
+									design = "NAME_Void_Weaver"
+									graphical_culture = "extra_dimensional_03"
+								}
+								set_location = {
+									target = event_target:acemod_vehement_portal
+									distance = 5
+									angle = random
+								}
+							}
+						}
+					}
+				}
+				break = yes
+			}
+			break = yes
+		}
+		if = {
+			limit = {
+				has_country_flag = acemod_constructor_reinforcements
+			}
+			random_system_within_border = {
+				limit = {
+					has_star_flag = acemod_star_flag_is_constructor_reinforcements_system
+				}
+				random_fleet_in_system = {
+					limit = {
+						has_fleet_flag = acemod_fleet_flag_is_constructor_reinforcements_fleet
+					}
+					create_fleet = {
+						effect = {
+							set_owner = ROOT
+							create_ship = {
+								name = random
+								random_existing_design = constructor
+								graphical_culture = root
+								prefix = no
+							}
+							set_location = {
+								target = prev
+								distance = 5
+								angle = random
+							}
+						}
+					}
+				}
+			}
+			break = yes
+		}
+	}
+}
+
+# Constructor reinforcements spawn in AI hub systems.
+planet_event = {
+	id = acemod_fleet.351
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				event_target:acemod_AI_crisis = {
+					count_owned_ship = {
+						limit = {
+							is_ship_size = construction_ship_ai
+						}
+						count < 20
+					}
+				}
+			}
+			while = {
+				count = 2
+				create_fleet = {
+					effect = {
+						set_owner = event_target:acemod_AI_crisis
+						create_ship = {
+							name = random
+							design = "NAME_AI_Constructor"
+							graphical_culture = "ai_01"
+						}
+						set_location = {
+							target = root
+							distance = 45
+							angle = random
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Main army hunter-seeker event.
+event = {
+	id = acemod_fleet.400
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai				# Only countries with this flag will have their fleets piloted by ACEMOD.
+				NOT = {
+					has_country_flag = acemod_country_flag_disabled_army_ai
+				}
+				# OR = {
+				# 	is_country_type = swarm
+				# 	is_country_type = extradimensional
+				# 	is_country_type = extradimensional_2
+				# 	is_country_type = extradimensional_3
+				# 	is_country_type = ai_empire
+				# 	is_country_type = gray
+				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
+				# }
+			}
+			every_owned_fleet = {
+				limit = {
+					NOT = {
+						check_variable = {
+							which = acemod_var_fleet_piloted_exclusion
+							value = 1
+						}
+					}
+					is_fleet_idle = yes
+					is_ship_class = shipclass_transport
+				}
+				fleet_event = {
+					id = acemod_fleet.405
+					days = 2
+					random = 10
+				}
+			}
+		}
+	}
+}
+
+# Seeks valid target to invade, skips if not found.
+fleet_event = {
+	id = acemod_fleet.405
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# TO DO: Ignore fleet if invasion is taking place.
+		# if = {
+		# 	limit = {
+		# 		solar_system = {
+		# 			exists = owner
+		# 			any_system_planet = {
+		# 				is_colony = yes
+		# 				owner = {
+		# 					NOT = {
+		# 						is_same_value = root.owner
+		# 					}
+		# 				}
+		# 				NOT = {
+		# 					is_controlled_by = root.owner
+		# 				}
+		# 				# is_under_colonization =  yes	#	Cannot be invaded.
+		# 			}
+		# 		}
+		# 	}
+		# 	break = yes
+		# }
+		if = {
+			limit = {
+				solar_system = {
+					exists = owner
+					any_system_planet = {
+						is_colony = yes
+						owner = {
+							NOT = {
+								is_same_value = root.owner
+							}
+						}
+						NOT = {
+							is_controlled_by = root.owner
+						}
+						# is_under_colonization =  yes	#	Cannot be invaded.
+						# Crisis worlds cannot (legally) and shouldn't (to avoid the bug) be invaded.
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+					}
+				}
+			}
+			save_event_target_as = acemod_event_target_invader_army
+			queue_actions = {
+				find_closest_planet = {
+					trigger = {
+						id = "acemod.405.t1"
+						is_colony = yes
+						# is_under_colonization =  yes	#	Cannot be invaded.
+						NOT = {
+							has_planet_flag = acemod_planet_flag_army_target
+						}
+						NOT = {
+							is_owned_by = root.owner
+						}
+						NOT = {
+							is_controlled_by = root.owner
+						}
+						# Crisis worlds cannot (legally) and shouldn't (to avoid the bug) be invaded.
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+					}
+					found_planet = {
+						effect = {
+							id = "acemod.405.e1"
+							save_event_target_as = acemod_event_target_invader_army_target
+							set_timed_planet_flag = {
+								flag = acemod_planet_flag_army_target
+								days = 120
+							}
+						}
+						move_to = this
+						wait = 5
+						orbit_planet = this
+						effect = {
+							id = "acemod.405.e2"
+							root = {
+								# fleet = {
+								# 	leader = {
+								# 		save_event_target_as = acemod_event_target_invader_army_leader
+								# 		unassign_leader = this
+								# 	}
+								# }
+								if = {
+									limit = {
+										owner = {
+											is_country_type = swarm
+										}
+									}
+									owner = {
+										save_event_target_as = invader_owner
+										owner_species = {
+											save_event_target_as = prethoryn_species
+										}
+									}
+									every_owned_ship = {
+										prevprev = {
+											create_army = {
+												name = "NAME_Prethoryn_Invaders"
+												owner = root.owner
+												type = "swarm_army"
+												species = event_target:prethoryn_species
+											}
+										}
+									}
+									# Does not work.
+									# prev = {
+									# 	random_planet_army = {
+									# 		limit = {
+									# 			is_owned_by = event_target:invader_owner
+									# 		}
+									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+									# 	}
+									# }
+									delete_fleet = {
+										target = this
+										kill_leader = no
+										destroy_template = no
+									}
+									break = yes
+								}
+								if = {
+									limit = {
+										owner = {
+											is_country_type = ai_empire
+										}
+									}
+									owner = {
+										owner_species = {
+											save_event_target_as = custodian_bot
+										}
+									}
+									every_owned_ship = {
+										prevprev = {
+											create_army = {
+												name = "NAME_Contingency"
+												owner = root.owner
+												type = "robotic_army"
+												species = event_target:custodian_bot
+											}
+										}
+									}
+									# Does not work.
+									# prev = {
+									# 	random_planet_army = {
+									# 		limit = {
+									# 			is_owned_by = event_target:invader_owner
+									# 		}
+									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+									# 	}
+									# }
+									delete_fleet = {
+										target = this
+										kill_leader = no
+										destroy_template = no
+									}
+									break = yes
+								}
+								else = {
+									owner = {
+										owner_species = {
+											save_event_target_as = invader_species
+										}
+									}
+									every_owned_ship = {
+										prevprev = {
+											create_army = {
+												name = "%O% Expeditionary Force"
+												owner = root.owner
+												type = "assault_army"
+												species = event_target:invader_species
+											}
+										}
+									}
+									# Does not work.
+									# prev = {
+									# 	random_planet_army = {
+									# 		limit = {
+									# 			is_owned_by = event_target:invader_owner
+									# 		}
+									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+									# 	}
+									# }
+									delete_fleet = {
+										target = this
+										kill_leader = no
+										destroy_template = no
+									}
+									break = yes
+								}
+							}
+						}
+					}
+					failed = {
+						effect = {
+							id = "acemod.405.e3"
+							root = {
+								fleet_event = {
+									id = acemod_fleet.410
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.410
+			}
+		}
+	}
+}
+
+# Finds connected and accessible bypass system.
+fleet_event = {
+	id = acemod_fleet.410
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				solar_system = {
+					# TO DO: Ignore fleet if invasion is taking place.
+					# if = {
+					# 	limit = {
+					# 		solar_system = {
+					# 			exists = owner
+					# 			any_system_planet = {
+					# 				is_colony = yes
+					# 				owner = {
+					# 					NOT = {
+					# 						is_same_value = root.owner
+					# 					}
+					# 				}
+					# 				NOT = {
+					# 					is_controlled_by = root.owner
+					# 				}
+					# 				# is_under_colonization =  yes	#	Cannot be invaded.
+					# 			}
+					# 		}
+					# 	}
+					# 	break = yes
+					# }
+					OR = {
+						has_natural_wormhole = yes
+						any_system_megastructure = {
+							is_megastructure_type = gateway_final
+							is_megastructure_type = gateway_restored
+							is_megastructure_type = lgate_base
+						}
+						acemod_is_active_bypass = yes
+					}
+				}
+			}
+			random_list = {
+				50 = {
+					queue_actions = {
+						find_random_system = {
+							trigger = {
+								id = "acemod.410.t1"
+								distance = {
+									source = root
+									#	max_distance <= 1000
+									#	min_distance >= 1
+									# 	type = hyperlane
+									#	uses_bypass = yes
+									bypass_empire = root.owner
+									min_jumps = 1
+									max_jumps = 1
+								}
+								OR = {
+									has_natural_wormhole = yes
+									any_system_megastructure = {
+										is_megastructure_type = gateway_final
+										is_megastructure_type = gateway_restored
+										is_megastructure_type = lgate_base
+									}
+									acemod_is_active_bypass = yes
+								}
+								has_access_fleet = root.owner
+								# Disabled check to make armies more aggresive and follow military fleets closely.
+								# NOT = {
+								# 	any_fleet_in_system = {
+								# 		owner = {
+								# 			is_hostile = root.owner
+								# 		}
+								# 		fleet_power > 0
+								# 	}
+								# }
+							}
+							found_system = {
+								move_to = this
+								# effect = {
+								# 	id = "acemod.410.e1"
+								# 	log = "ACEMOD_log: acemod.410.e1 Army fleet entered bypass system and found bypass system via bypass script."
+								# }
+							}
+							failed = {
+								effect = {
+									id = "acemod.410.e2"
+									log = "ACEMOD_log: acemod.410.e2 Army fleet entered bypass system and failed to find bypass system via bypass script."
+									root = {
+										fleet_event = {
+											id = acemod_fleet.411
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				50 = {
+					# hidden_effect = {
+					# 	log = "ACEMOD_log: acemod_fleet.410 Army fleet found bypass system but rolled via bypass script to proceeded with standard script."
+					# }
+					fleet_event = {
+						id = acemod_fleet.411
+					}
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.411
+			}
+		}
+	}
+}
+
+# Seeks solar system with a valid invasion target
+fleet_event = {
+	id = acemod_fleet.411
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		solar_system = {
+			closest_system = {
+				min_steps = 1
+				max_steps = 20
+				limit = {
+					has_access_fleet = root.owner
+					NOT = {
+						has_star_flag = acemod_star_flag_solar_system_army_target
+					}
+					any_system_planet = {
+						exists = owner
+						OR = {
+							AND = {
+								is_colony = yes
+								owner = {
+									NOT = {
+										is_same_value = root.owner
+									}
+								}
+								NOT = {
+									is_controlled_by = root.owner
+								}
+							}
+							owner = {
+								is_primitive = yes
+							}
+						}
+						# is_under_colonization =  yes	#	Cannot be invaded.
+					}
+					# Disabled check to make armies more aggresive and follow military fleets closely.
+					# NOT = {
+					# 	any_fleet_in_system = {
+					# 		owner = {
+					# 			is_hostile = root.owner
+					# 		}
+					# 		fleet_power > 0
+					# 	}
+					# }
+				}
+				save_event_target_as = acemod_event_target_invader_army_target
+				set_timed_star_flag = {
+					flag = acemod_star_flag_solar_system_army_target
+					days = 120
+				}
+			}
+		}
+		save_event_target_as = acemod_event_target_invader_army
+		set_fleet_stance = evasive
+		if = {
+			limit = {
+				exists = event_target:acemod_event_target_invader_army_target
+			}
+			queue_actions = {
+				find_closest_system = {
+					trigger = {
+						id = "acemod.411.t1"
+						is_same_value = event_target:acemod_event_target_invader_army_target
+					}
+					found_system = {
+						move_to = this
+						# effect = {
+						# 	id = acemod.411.e1
+						# 	root = {
+						# 		fleet_event = {
+						# 			id = acemod_fleet.101
+						# 			days = 5
+						# 		}
+						# 	}
+						# }
+					}
+					# Maybe increase seek range on failed.
+					# TO DO: set up event to move to nearby allied fleet if no target found.
+					# failed = {
+					# 	effect = {
+					# 		id = acemod.411.e2
+					# 		root = {
+					# 			fleet_event = {
+					# 				id = acemod_fleet.101
+					# 				days = 5
+					# 			}
+					# 		}
+					# 	}
+					# }
+				}
+			}
+			break = yes
+		}
+	}
+}
+
+# Main colonizer event.
+event = {
+	id = acemod_fleet.500
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai				# Only countries with this flag will have their fleets piloted by ACEMOD.
+				NOT = {
+					has_country_flag = acemod_country_flag_disabled_colonizer_ai
+				}
+				# OR = {
+				# 	is_country_type = swarm
+				# 	is_country_type = extradimensional
+				# 	is_country_type = extradimensional_2
+				# 	is_country_type = extradimensional_3
+				# 	is_country_type = ai_empire
+				# 	is_country_type = gray
+				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
+				# }
+			}
+			every_owned_fleet = {
+				limit = {
+					NOT = {
+						check_variable = {
+							which = acemod_var_fleet_piloted_exclusion
+							value = 1
+						}
+					}
+					is_fleet_idle = yes
+					is_ship_class = shipclass_colonizer
+				}
+				fleet_event = {
+					id = acemod_fleet.505
+					days = 2
+					random = 10
+				}
+			}
+		}
+	}
+}
+
+# Seeks valid target to colonize, skips if not found.
+fleet_event = {
+	id = acemod_fleet.505
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# TO DO: Ignore fleet if invasion is taking place.
+		# if = {
+		# 	limit = {
+		# 		solar_system = {
+		# 			exists = owner
+		# 			any_system_planet = {
+		# 				is_colony = yes
+		# 				owner = {
+		# 					NOT = {
+		# 						is_same_value = root.owner
+		# 					}
+		# 				}
+		# 				NOT = {
+		# 					is_controlled_by = root.owner
+		# 				}
+		# 				# is_under_colonization =  yes	#	Cannot be invaded.
+		# 			}
+		# 		}
+		# 	}
+		# 	break = yes
+		# }
+		# TO DO: Efficiency clean up and event target save instead of double seek.
+		if = {
+			limit = {
+				solar_system = {
+					exists = owner
+					owner = {
+						is_same_value = root.owner
+					}
+					any_system_planet = {
+						habitable_planet = yes
+						is_colony = no
+						is_under_colonization = no
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						NOT = {
+							has_planet_flag = acemod_planet_flag_colonizer_target
+						}
+					}
+				}
+			}
+			queue_actions = {
+				find_closest_planet = {
+					trigger = {
+						id = "acemod.505.t1"
+						distance = {
+							source = THIS
+							type = hyperlane
+							max_jumps = 1
+							use_bypasses = yes
+						}
+						habitable_planet = yes
+						is_colony = no
+						is_under_colonization = no
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						# is_under_colonization =  yes	#	Cannot be invaded.
+						NOT = {
+							has_planet_flag = acemod_planet_flag_colonizer_target
+						}
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+					}
+					found_planet = {
+						effect = {
+							id = "acemod.505.e1"
+							save_event_target_as = acemod_star_flag_solar_system_colonizer_target
+							set_timed_planet_flag = {
+								flag = acemod_planet_flag_colonizer_target
+								days = 360
+							}
+							solar_system = {
+								set_timed_star_flag = {
+									flag = acemod_star_flag_solar_system_colonizer_target
+									days = 360
+								}
+							}
+						}
+						move_to = this
+						wait = 5
+						orbit_planet = this
+						effect = {
+							id = "acemod.505.e2"
+							if = {
+								limit = {
+									root = {
+										owner = {
+											is_country_type = swarm
+										}
+									}
+								}
+								root.owner = {
+									owner_species = {
+										save_event_target_as = prethoryn_species
+									}
+								}
+								start_colony = {
+									owner = root.owner
+									species = event_target:prethoryn_species
+								}
+								root = {
+									delete_fleet = this
+								}
+							}
+							else = {
+								root.owner = {
+									owner_species = {
+										save_event_target_as = colonizing_species
+									}
+								}
+								start_colony = {
+									owner = root.owner
+									species = event_target:colonizing_species
+								}
+								root = {
+									delete_fleet = this
+								}
+							}
+						}
+					}
+					failed = {
+						effect = {
+							id = "acemod.505.e3"
+							root = {
+								fleet_event = {
+									id = acemod_fleet.510
+								}
+							}
+						}
+					}
+				}
+			}
+			else = {
+				fleet_event = {
+					id = acemod_fleet.510
+				}
+			}
+		}
+		else = {
+			fleet_event = {
+				id = acemod_fleet.510
+			}
+		}
+	}
+}
+
+# Finds connected and accessible bypass system. Skipping for now to see if it is needed at all.
+fleet_event = {
+	id = acemod_fleet.510
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		fleet_event = {
+			id = acemod_fleet.511
+		}
+	}
+}
+
+# Seeks solar system with a valid colonization target
+fleet_event = {
+	id = acemod_fleet.511
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		solar_system = {
+			closest_system = {
+				min_steps = 1
+				max_steps = 20
+				limit = {
+					has_access_fleet = root.owner
+					NOT = {
+						has_star_flag = acemod_star_flag_solar_system_colonizer_target
+					}
+					exists = owner
+					owner = {
+						is_same_value = root.owner
+					}
+					any_system_planet = {
+						habitable_planet = yes
+						is_colony = no
+						is_under_colonization = no
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						NOT = {
+							has_planet_flag = acemod_planet_flag_colonizer_target
+						}
+					}
+					NOT = {
+						any_fleet_in_system = {
+							owner = {
+								is_hostile = root.owner
+							}
+							fleet_power > 0
+						}
+					}
+				}
+				save_event_target_as = acemod_event_target_invader_colonizer_target
+				set_timed_star_flag = {
+					flag = acemod_star_flag_solar_system_colonizer_target
+					days = 360					# Colonizers are slow
+				}
+			}
+		}
+		save_event_target_as = acemod_event_target_invader_colonizer
+		set_fleet_stance = evasive
+		if = {
+			limit = {
+				exists = event_target:acemod_event_target_invader_colonizer_target
+			}
+			queue_actions = {
+				find_closest_system = {
+					trigger = {
+						id = "acemod.511.t1"
+						is_same_value = event_target:acemod_event_target_invader_colonizer_target
+					}
+					found_system = {
+						move_to = this
+					}
+					# To DO: Move to allied fleet or (base?) if no target found.
+					# Maybe increase seek range on failed.
+					# failed = {
+					# 	effect = {
+					# 		id = acemod.411.e2
+					# 		root = {
+					# 			fleet_event = {
+					# 				id = acemod_fleet.101
+					# 				days = 5
+					# 			}
+					# 		}
+					# 	}
+					# }
+				}
+			}
+			break = yes
+		}
+	}
+}
+
+# Jumps to the capital scope. This is a debug event.
+fleet_event = {
+	id = acemod_fleet.600
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		set_location = {
+			target = owner.capital_scope
+			distance = 5
+			angle = random
+			direction = in_system
+		}
+		clear_orders = yes
+	}
+}
+
+# Spawns wormhole station for Contingency worlds.
+event = {
+	id = acemod_fleet.605
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = ai_invasion_ongoing
+		has_global_flag = acemod_activated
+		NOR = {
+			has_global_flag = acemod_defensive_jumpdrive_protocol_disabled
+			has_global_flag = acemod_all_wormhole_station_spawned
+		}
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				is_country_type = ai_empire
+				has_country_flag = acemod_assisted_ai
+				NOT = {
+					check_variable = {
+						which = acemod_var_country_defensive_jumpdrive_protocol_exclusion
+						value = 1
+					}
+				}
+			}
+			every_system_within_border = {
+				limit = {
+					OR = {
+						has_star_flag = AI_hub
+						has_star_flag = AI_lair
+					}
+					NOT = {
+						has_star_flag = acemod_star_flag_wormhole_station_spawned
+					}
+				}
+				every_system_planet = {
+					limit = {
+						is_planet_class = pc_ai
+					}
+					owner = {
+						set_country_flag = acemod_defensive_jumpdrive_protocol
+						change_variable = {
+							which = acemod_var_num_wormhole_station_spawned
+							value = 1
+						}
+						if = {
+							limit = {
+								check_variable = {
+									which = acemod_var_num_wormhole_station_spawned
+									value >= 4
+								}
+							}
+							set_global_flag = acemod_all_wormhole_station_spawned
+						}
+					}
+					# save_event_target_as = acemod_pc_ai_scale
+					create_ambient_object = {
+						type = abandoned_wormhole_station
+						scale = 2
+						location = this
+						entity_offset = {
+							min = 20
+							max = 30
+						}
+						entity_offset_height = {
+							min = 20
+							max = 10
+						}
+					}
+					last_created_ambient_object = {
+						set_ambient_object_flag = acemod_ambient_object_flag_defensive_jumpdrive_protocol_target
+					}
+				}
+				set_star_flag = acemod_star_flag_wormhole_station_spawned
+				set_star_flag = acemod_star_flag_is_defensive_jumpdrive_protocol_system
+			}
+		}
+	}
+}
+
+# TO DO: Fleet power comparison
+# TO DO: Distance check
+# Activates defensive jumpdrive protocol if protected system is under attack.
+fleet_event = {
+	id = acemod_fleet.610
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		solar_system = {
+			has_star_flag = acemod_star_flag_is_defensive_jumpdrive_protocol_system
+			NOT = {
+				has_star_flag = acemod_star_flag_defensive_jumpdrive_protocol_cooldown
+			}
+			owner = {
+				NOT = {
+					check_variable = {
+						which = acemod_var_country_defensive_jumpdrive_protocol_exclusion
+						value = 1
+					}
+				}
+			}
+		}
+		NOT = {
+			has_global_flag = acemod_defensive_jumpdrive_protocol_disabled
+		}
+	}
+	immediate = {
+		if = {
+			limit = {
+				fleet_power > 0
+				owner = {
+					is_hostile = from.owner
+				}
+			}
+			solar_system = {
+				if = {
+					limit = {
+						owner = {
+							has_country_flag = acemod_defensive_jumpdrive_protocol
+						}
+					}
+					random_system_ambient_object = {
+						limit = {
+							has_ambient_object_flag = acemod_ambient_object_flag_defensive_jumpdrive_protocol_target
+						}
+						solar_system = {
+							set_timed_star_flag = {
+								flag = acemod_star_flag_defensive_jumpdrive_protocol_cooldown
+								days = 200
+							}
+							owner = {
+								random_owned_fleet = {
+									limit = {
+										is_ship_class = shipclass_military
+										is_in_combat = no
+										NOR = {
+											check_variable = {
+												which = acemod_var_fleet_piloted_exclusion
+												value = 1
+											}
+											has_fleet_flag = acemod_fleet_flag_defensive_jumpdrive_protocol_cooldown
+										}
+										# Does not work.
+										# solar_system = {
+										# 	closest_system = {
+										# 		min_steps = 1
+										# 		max_steps = 20
+										#		has_star_flag = AI_lair
+										# 		has_star_flag = AI_hub
+										# 	}
+										# }
+									}
+									fleet_event = {
+										id = acemod_fleet.611
+										days = 14
+									}
+									# set_location = {
+									# 	target = prevprevprev
+									# 	distance = 10
+									# 	angle = random
+									# }
+									# set_timed_fleet_flag = {
+									# 	flag = acemod_fleet_flag_defensive_jumpdrive_protocol_cooldown
+									# 	days = 200
+									# }
+									# add_modifier = {
+									# 	modifier = acemod_defensive_jumpdrive_protocol_cooldown_modifier
+									# 	days = 200
+									# }
+									# clear_orders = yes
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Delayed effect to jump the fleet. Simulates jump windup.
+fleet_event = {
+	id = acemod_fleet.611
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		owner = {
+			random_system_within_border = {
+				limit = {
+					has_star_flag = acemod_star_flag_defensive_jumpdrive_protocol_cooldown
+					NOT = {
+						any_fleet_in_system = {
+							has_fleet_flag = acemod_fleet_flag_defensive_jumpdrive_protocol_cooldown
+							owner = {
+								is_same_value = root.owner
+							}
+						}
+					}
+				}
+				random_system_ambient_object = {
+					limit = {
+						has_ambient_object_flag = acemod_ambient_object_flag_defensive_jumpdrive_protocol_target
+					}
+					save_event_target_as = acemod_solar_system_defensive_jumpdrive_protocol_target
+				}
+			}
+		}
+		set_location = {
+			target = event_target:acemod_solar_system_defensive_jumpdrive_protocol_target
+			distance = 10
+			angle = random
+		}
+		set_timed_fleet_flag = {
+			flag = acemod_fleet_flag_defensive_jumpdrive_protocol_cooldown
+			days = 200
+		}
+		add_modifier = {
+			modifier = acemod_defensive_jumpdrive_protocol_cooldown_modifier
+			days = 200
+		}
+		clear_orders = yes
+	}
+}
