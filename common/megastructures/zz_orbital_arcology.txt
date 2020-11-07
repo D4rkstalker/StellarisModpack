@@ -38,6 +38,15 @@ orbital_arcology_0 = {
 	}
 
 	placement_rules = {
+		planet_possible = {
+			custom_tooltip = { fail_text = "requires_surveyed_planet"				is_surveyed = { who = prev.from status = yes } }
+			custom_tooltip = { fail_text = "requires_no_anomaly"					has_anomaly = no }
+			custom_tooltip = { fail_text = "requires_not_asteroid"					is_asteroid = no }
+			custom_tooltip = { fail_text = "must_build_around_habitable_planet"		is_colony = yes }
+			custom_tooltip = { fail_text = "requires_not_star"						is_star = no }
+			custom_tooltip = { fail_text = "requires_non_giga_habitable_structure"	giga_habitable_structure = no }
+			custom_tooltip = { fail_text = "requires_no_orbital_arcology"			NOT = { has_planet_flag = orbital_arcology } }
+		}
 	}
 
 	ai_weight = {
@@ -74,19 +83,20 @@ orbital_arcology_0 = {
 		# Do we lean towards this from federation/ethic/civic?
 
 		# How many of this megastructure can the AI build?
+		modifier = { factor = 0.00 from = { has_country_flag = has_recently_built_orbital_arcology } }
 	}
 
 	on_build_complete = {
 		save_event_target_as = giga_system
-		fromfrom.planet = { save_event_target_as = giga_planet }
+		fromfrom.planet = {
+			save_event_target_as = giga_planet
+			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
+			set_planet_flag = orbital_arcology
+		}
 		from = {
+			set_timed_country_flag = { flag = has_recently_built_orbital_arcology years = 20 }
 			country_event = { id = giga_dialog.901 }	# Notification
 			change_variable = { which = giga_current_orbital_arcologies value = 1 }
-		}
-		fromfrom.planet = {
-			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
-			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
-			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
 		}
 	}
 }
@@ -101,9 +111,12 @@ orbital_arcology_1 = {
 	build_time = 900
 	resources = {
 		category = megastructures
-		cost = { trigger = { planet = { planet_size < 13 } }					alloys = 4000 }
-		cost = { trigger = { planet = { planet_size >= 13 planet_size <= 21 } }	alloys = 5000 }
-		cost = { trigger = { planet = { planet_size > 21 } }					alloys = 6000 }
+		cost = {	trigger = { planet = { planet_size < 13 } }						alloys = 4000 }
+		cost = {	trigger = { planet = { planet_size >= 13 planet_size <= 21 } }	alloys = 5000 }
+		cost = {	trigger = { planet = { planet_size > 21 } }						alloys = 6000 }
+		upkeep = {	trigger = { planet = { planet_size < 13 } }						alloys = 4	energy = 10 }
+		upkeep = {	trigger = { planet = { planet_size >= 13 planet_size <= 21 } }	alloys = 5	energy = 15 }
+		upkeep = {	trigger = { planet = { planet_size > 21 } }						alloys = 6	energy = 20 }
 	}
 
 	potential = { NOT = { has_global_flag = orbital_arcologies_disabled } }
@@ -131,6 +144,5 @@ orbital_arcology_1 = {
 				create_ambient_object = { type = "giga_size_25_ring" use_3d_location = yes location = this }
 			}
 		}
-		remove_megastructure = fromfrom
 	}
 }

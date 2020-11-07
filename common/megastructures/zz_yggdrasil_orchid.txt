@@ -99,6 +99,7 @@ yggdrasil_orchid_0 = {
 		modifier = { factor = 0		from = { is_lithoid_empire = yes } }
 
 		# How many of this megastructure can the AI build?
+		modifier = { factor = 0.00 from = { has_country_flag = has_recently_built_yggdrasil_orchid } }
 		modifier = { factor = 0.00 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = yggdrasil_orchid_3 is_megastructure_type = yggdrasil_orchid_restored } } count > 1 } } }
 		modifier = { factor = 0.50 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = yggdrasil_orchid_3 is_megastructure_type = yggdrasil_orchid_restored } } count = 1 } } }
 		modifier = {
@@ -116,15 +117,16 @@ yggdrasil_orchid_0 = {
 
 	on_build_complete = {
 		save_event_target_as = giga_system
-		fromfrom.planet = { save_event_target_as = giga_planet }
-		from = {
-			country_event = { id = giga_dialog.2001 }	# Notification
-			change_variable = { which = giga_current_orchid value = 1 }
-		}
 		fromfrom.planet = {
+			save_event_target_as = giga_planet
 			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
 			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
 			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
+		}
+		from = {
+			set_timed_country_flag = { flag = has_recently_built_yggdrasil_orchid years = 20 }
+			country_event = { id = giga_dialog.2001 }	# Notification
+			change_variable = { which = giga_current_orchid value = 1 }
 		}
 	}
 }
@@ -216,7 +218,10 @@ yggdrasil_orchid_3 = {
 		save_event_target_as = giga_system
 		fromfrom.planet = { save_event_target_as = giga_planet }
 		from = {
-			country_event = { id = giga_dialog.2004 }				# Notification
+			if = {
+				limit = { NOT = { has_country_flag = giga_repaired_mega_no_dialog } }
+				country_event = { id = giga_dialog.2004 }				# Notification
+			}
 			set_country_flag = has_built_or_repaired_megastructure	# Triggers Galactic Wonders
 		}
 		fromfrom.planet = { change_pc = pc_food_giant }
@@ -254,12 +259,14 @@ yggdrasil_orchid_restored = {
 			physics_research = 300
 			society_research = 500
 			food = 650
-			sr_biomass = 650
 		}
 	}
 
 	potential = { NOT = { has_global_flag = orchid_disabled } }
-	possible = { from = { has_technology = giga_tech_yggdrasil_orchid } }
+	possible = {
+		exists = from
+		from = { has_technology = giga_tech_yggdrasil_orchid }
+	}
 
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
@@ -269,7 +276,7 @@ yggdrasil_orchid_restored = {
 			country_event = { id = giga_dialog.2006 }				# Notification
 			set_country_flag = has_built_or_repaired_megastructure	# Triggers Galactic Wonders
 		}
-		every_system_ambient_object = { destroy_ambient_object = this }
+		giga_remove_system_debris = yes
 		fromfrom.planet = { change_pc = pc_food_giant }
 		spawn_megastructure = { type = "yggdrasil_orchid_3" location = fromfrom.planet owner = from }
 		remove_megastructure = fromfrom

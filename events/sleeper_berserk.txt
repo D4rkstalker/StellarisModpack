@@ -1,0 +1,1898 @@
+namespace = sleeper_berserk
+
+#any events that happen during the berserk phase go here
+
+#berserker awakening gatekeeper: aggro over 999, berserker/true awakening has not happened already, still has all its core worlds (if core worlds were lost, awakening is handled differently
+#also check for Tonys warning
+country_event = {
+	id = sleeper_berserk.1
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+	#if the war in heaven is going on, there is only a chance the bereserker awakes. otherwise, it will not happen ever
+		if = {
+			limit = {
+				NOR = { 
+					has_global_flag = sleeper_berserker_happened 
+					has_global_flag = sleeper_true_awakening_happened
+				}
+				#this gatekeeper will sometimes be called with a delay, so check if the sleeper even exists still
+				exists = event_target:the_sleeper
+				check_variable = { which = sleeper_aggro value > 999 }
+				NOT = {
+					any_country = {
+						is_sleeper = no
+						any_owned_planet = {
+							has_planet_flag = sleeper_core_world
+						}
+					}
+				}
+				OR = {
+					has_global_flag = war_in_heaven_started
+					has_global_flag = war_in_heaven_ongoing
+				}
+			}
+			random_list = {
+				67 = {
+					set_global_flag = sleeper_berserker_happened
+				}#nothing, disable berserker
+				33 = {
+					country_event = { id = sleeper_berserk.4 }
+				}#berserk
+			}
+		}
+		else_if = {
+			limit = {
+				NOR = { 
+					has_global_flag = sleeper_berserker_happened 
+					has_global_flag = sleeper_true_awakening_happened
+				}
+				#this gatekeeper will sometimes be called with a delay, so check if the sleeper even exists still
+				exists = event_target:the_sleeper
+				check_variable = { which = sleeper_aggro value > 999 }
+				NOT = {
+					any_country = {
+						is_sleeper = no
+						any_owned_planet = {
+							has_planet_flag = sleeper_core_world
+						}
+					}
+				}
+			}
+			country_event = { id = sleeper_berserk.3 }
+			#berserker event, if the conditions for a normal FE awakening are met, this may also trigger the true awakening
+			random_list = {
+				80 = {
+					country_event = { id = sleeper_berserk.4 }
+				}
+				20 = {
+					country_event = { id = sleeper_awake.1 }
+					modifier = {
+						factor = 0
+						NAND = {
+							any_owned_planet = { has_planet_flag = sleeper_core_world }
+							NOT = { has_global_flag = sleepers_awake_happened }
+							NOT = { has_global_flag = guardians_of_the_galaxy_happened }			
+							end_game_years_passed >= 0
+							fleet_power > 60000
+							# Wake up if regular empire is growing too strong or has started to conquer other fallen empires
+							any_country = {
+								is_country_type = default
+								OR = {
+									fleet_power > 70000
+									AND = {
+										has_federation = yes
+										federation = {
+											fleet_power > 90000
+										}
+									}
+									any_owned_planet = {
+										has_planet_flag = fallen_empire_world
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else = {
+		}
+	#check for TN-3s warning
+		country_event = { id = sleeper_dormant.5 }
+	}
+}
+#unconditional awakening
+country_event = {
+	id = sleeper_berserk.2
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger ={
+		#this gatekeeper will sometimes be called with a delay, so check if the sleeper even exists anymore
+		exists = event_target:the_sleeper
+	}
+
+	immediate = {
+		set_country_flag = sleeper_warning_happened
+		country_event = { id = sleeper_berserk.3 }
+		country_event = { id = sleeper_berserk.4 }
+	}
+}
+#announcement and enclave handler, checks if TN-3 is still alive or not and sends message to all players accordingly. Will also check if TN-3 will join anyone.
+country_event = {
+	id = sleeper_berserk.3
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				any_country = { is_country_type = hive_researcher_enclave }
+			}
+			every_country = {
+				limit = { is_ai = no }
+				country_event = { id = sleeper_berserk.11 }
+			}
+		}
+		else = {
+			every_country = {
+				limit = { is_ai = no }
+				country_event = { id = sleeper_berserk.12 }
+			}
+		}
+	#roll for everybody who has enough points with Tony.
+		every_country = {
+			limit = {
+				event_target:tony = {
+					trust = { 
+						who = PREV
+						value >= 80
+					}
+				}
+			}
+			set_country_flag = tony_likes
+		}
+		country_event = { id = sleeper_tony.1 }
+	}
+}
+#berserker awakening event
+country_event = {
+	id = sleeper_berserk.4
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_global_flag = sleeper_berserker_happened
+		set_global_flag = sleeper_berserker_ongoing
+		set_country_type = berserker_awoken_hive
+		change_government = {
+			authority = auth_hive_mind
+			civics = { 
+				civic = civic_berserker
+				civic = civic_scrambled_drones 
+			} 
+		}
+	#set policys and rights
+		set_policy = {
+			policy = robot_pop_policy
+			option = robot_pops_outlawed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = slavery
+			option = slavery_allowed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = purge
+			option = purge_allowed
+			cooldown = yes
+		}
+		sleeper_reset_rights = yes
+	#all main fleets currently in the possesion of the sleeper will be moved to a specially created country with disabled AI. This way they will not particpate in the attack and I can better gauge fleetpower to other countries
+		create_country = {
+			name = "NAME_berserker_sleeper_corefleets"
+			type = berserker_awoken_hive_fleets
+			ignore_initial_colony_error = yes
+			authority = auth_hive_mind
+			origin = origin_the_sleeper
+			ethos = {
+				ethic = ethic_gestalt_consciousness
+			}
+			civics = {
+				civic = civic_berserker
+			}
+			species = event_target:the_sleeper.species
+			flag = {
+				icon= {
+					category = "zoological"
+					file = "flag_zoological_5.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "sinus.dds"
+				}
+				colors={
+					"green"
+					"green"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				set_graphical_culture = event_target:the_sleeper
+				save_global_event_target_as = the_sleeper_home_fleets
+				add_modifier = { modifier = sleeper_core_fleets_buff days = -1 } #a buff to the core fleets so they don't get wrecked by FEs immediatly (hopefully the AI will recognic ethe added power and leve the systems alone. If only i could restrict systems for the AI....)
+				add_resource = { energy = 50000 }
+				add_resource = { alloys = 50000 }
+				set_faction_hostility = {
+					target = event_target:the_sleeper
+					set_hostile = no
+					set_neutral = no
+					set_friendly = yes
+				}
+			}
+		}
+	#spawn something so the country does not disapear immediatly
+		random_owned_planet = {
+			create_fleet = {
+				effect = {
+					set_owner = event_target:the_sleeper_home_fleets
+					while = {
+						count = 50
+						sleeper_spawn_large_ship = yes
+					}
+					while = {
+						count = 50
+						sleeper_spawn_small_ship = yes
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random 
+					}
+					set_fleet_flag = temp_fleet
+					set_event_locked = yes
+				}
+				settings = {
+					spawn_debris = no
+					can_disband = no
+				}
+			}
+		}
+		#spawn armies
+		while = { 
+			count = 10
+			random_owned_planet = {
+				while = {
+					count = 15
+					create_army = {
+						name = random
+						owner = event_target:the_sleeper
+						species = event_target:the_sleeper.species
+						type = "xenomorph_army"
+					}
+				}
+			}
+		}
+		#spawn construction ships
+		random_owned_planet = {
+			while = {
+				count = 6
+				sleeper_spawn_construction_ship = yes
+			}
+		}
+		#a lot of the faction stuff has to happen delayed from each other
+		country_event = { id = sleeper_berserk.5 days = 1 }
+		#go back to sleep after 10 - 14 years
+		country_event = { id = sleeper_berserk.18 days = 3600 random = 1410 }
+		#remove senate stuff and aggression markers from everyone
+		every_playable_country = {
+			remove_modifier = sleeper_aggressor_marker
+			remove_modifier = sleeper_aggressor_reward
+			remove_modifier = sleeper_aggressor_sanctions
+		}
+	}
+}
+
+country_event = {
+	id = sleeper_berserk.5
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:the_sleeper_home_fleets = {
+			set_faction_hostility = {
+				target = event_target:the_sleeper
+				set_hostile = no
+				set_neutral = no
+				set_friendly = yes
+			}
+			set_subject_of = {
+				who = event_target:the_sleeper
+				subject_type = vassal
+			}
+		}
+	#establish comms with everybody
+		every_country = {
+			limit = {
+				NOT = { has_communications = event_target:the_sleeper }
+				is_country_type = default
+			}
+			establish_communications_no_message = event_target:the_sleeper
+		}
+		every_country = {
+			limit = { is_country_type = default }
+			establish_communications_no_message = event_target:the_sleeper_home_fleets
+		}
+	#set FEs to neutral. I my testgames they wrecked the feral sleeper most of the time. Most will become hostile once the sleeper takes enough planets however.
+	#handled by  ai_should_restrict_system gamerule instead
+		#every_country = {
+		#	limit = {
+		#		is_country_type = fallen_empire
+		#	}
+		#	save_event_target_as = fallen
+		#	event_target:the_sleeper = {
+		#		set_faction_hostility = {
+		#			target = event_target:fallen
+		#			set_hostile = no
+		#			set_neutral = yes
+		#			set_friendly = no
+		#		}
+		#	}
+		#	set_faction_hostility = {
+		#		target = event_target:the_sleeper
+		#		set_hostile = no
+		#		set_neutral = yes
+		#		set_friendly = no
+		#	}
+		#}
+		country_event = { id = sleeper_berserk.6 days = 1 }
+	}
+}
+#hand over core fleets
+country_event = {
+	id = sleeper_berserk.6
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		every_owned_fleet = {
+			limit = { has_fleet_flag = sleeper_core_fleet }
+			set_owner = event_target:the_sleeper_home_fleets
+		}
+		set_faction_hostility = {
+			target = event_target:hive_enclave_country
+			set_hostile = yes
+			set_neutral = no
+			set_friendly = no
+		}
+		country_event = { id = sleeper_berserk.7 days = 5 }
+		event_target:the_sleeper_home_fleets = {
+			every_owned_fleet = {
+				limit = {
+					has_fleet_flag = temp_fleet
+				}
+				destroy_fleet = this
+			}
+		}
+	}
+}
+#looping event for reinforcing the berserker gauged by the most powerful normal country in the galaxy (2.5x more powerful). Does not work with a while loop, since the relative_power condition needs to update first.
+country_event = {
+	id = sleeper_berserk.7
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		sleeper_spawn_random_lowtech_fleet = yes
+		change_variable = { which = first_wave_fleet_amount value = 1 }
+		if = {
+			limit = {
+				any_country = { 
+					is_country_type = default
+					OR = {
+						relative_power = {
+							who = event_target:the_sleeper
+							category = fleet
+							value >= equivalent
+						}
+						AND = {
+							has_federation = yes
+							federation = {
+								relative_power = {
+									who = event_target:the_sleeper
+									category = fleet
+									value >= equivalent
+								}
+							}
+						}
+					}
+				}
+			}
+			country_event = { id = sleeper_berserk.7 days = 1 }
+		}
+	#once fleets are done, spawn the same amount again, as well as some more. start the reinforcement cycle and calculate variables
+		else = {
+			#if the war in heaven is active spawn even MORE fleets
+			if = {
+				limit = {
+					OR = {
+						has_global_flag = war_in_heaven_ongoing
+						has_global_flag = war_in_heaven_started
+					}
+				}
+				change_variable = { which = first_wave_fleet_fourth value = 20 }
+				while = {
+					count = 20
+					sleeper_spawn_random_lowtech_fleet = yes
+				}
+			}
+			change_variable = { which = first_wave_fleet_fourth value = first_wave_fleet_amount }
+			divide_variable = { which = first_wave_fleet_fourth value = 4 }
+			while = {
+				count = first_wave_fleet_amount
+				sleeper_spawn_random_lowtech_fleet = yes
+			}
+			while = {
+				count = first_wave_fleet_fourth
+				sleeper_spawn_random_lowtech_fleet = yes
+			}
+			while = {
+				count = first_wave_fleet_fourth
+				sleeper_spawn_random_lowtech_fleet = yes
+			}
+		#Spawn a minimum amount of fleets
+			if = {
+				limit = { check_variable = { which = first_wave_fleet_fourth value < 2 } }
+				set_variable = { which = first_wave_fleet_fourth value = 1 }
+			}
+			country_event = { id = sleeper_berserk.8 days = 1800 }
+			random_owned_planet = {
+				limit = { 
+					OR = {
+						has_planet_flag = sleeper_core_world
+						has_planet_flag = sleeper_border_planet
+					}
+				}
+				spawn_sleeper_lowtech_fleet_mothership = yes
+				spawn_sleeper_lowtech_fleet_mothership = yes
+				spawn_sleeper_lowtech_fleet_20 = yes
+				spawn_sleeper_lowtech_fleet_15 = yes
+				spawn_sleeper_lowtech_fleet_10 = yes
+			}
+		}
+	}
+}
+#reinforcement cycle, triggeres every year based on the amount of fleets that were spawned during the first wave. The variable is not very accurate since the spawned fleets power varies, but I am not going for accuarcy here.
+#also resets species rights, in case the AI changes it along the way
+country_event = {
+	id = sleeper_berserk.8
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		sleeper_reset_rights = yes
+		if = {
+			limit ={ 
+				is_country_type = berserker_awoken_hive
+			}
+			country_event = { id = sleeper_berserk.8 days = 365 }
+			while = {
+				count = first_wave_fleet_fourth
+				sleeper_spawn_random_lowtech_fleet = yes
+			}
+		#add a default of another 3 fleets
+			while = {
+				count = 3
+				sleeper_spawn_random_lowtech_fleet = yes
+			}
+		#if a FE is somwhere in its systems, it will spawn an additional 10 fleets
+			if = {
+				limit = {
+					any_system = {
+						is_within_borders_of = ROOT
+						any_fleet_in_system = {
+							owner = {
+								OR = {
+									is_country_type = awakened_fallen_empire
+									is_country_type = fallen_empire
+								}
+							}
+						}
+					}
+				}
+				while = {
+					count = 10
+					sleeper_spawn_random_lowtech_fleet = yes
+				}
+			}
+		}
+		while = { 
+			count = 3
+			random_owned_planet = {
+				while = {
+					count = 10
+					create_army = {
+						name = random
+						owner = event_target:the_sleeper
+						species = event_target:the_sleeper.species
+						type = "xenomorph_army"
+					}
+				}
+			}
+		}
+	}
+}
+#event when the hive takes a planet in any state. Some pops get converted to drones, while the rest gets purged or turned into livestock, depending on its current country type. 
+#Pops that were part of a hive before are put to work instantly. Robots are broken down. The original owner gets a country flag for the liberation event.
+# Root = Planet
+# From = Planet Owner
+# FromFrom = Planet Controller (the one occupying)
+planet_event = {
+	id = sleeper_berserk.9
+	hide_window = yes
+	
+	trigger = {
+		FROMFROM = {
+			is_sleeper = yes
+		}
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		add_threat = { who = FROMFROM amount = 2 }
+		save_event_target_as = conquered_planet
+		FROM = {
+			country_event = { id = sleeper_berserk.10 }
+			set_country_flag = former_owner@ROOT
+		}
+		set_owner = FROMFROM
+		FROMFROM = {
+			change_variable = { which = num_taken_planets value = 1 }
+		}
+	#turn non xenophobe FEs hostile if the sleeper got to big (8 planets)
+		#if = {
+		#	limit = {
+		#		check_variable = { which = num_taken_planets value = 8 }
+		#	}
+		#	every_country = {
+		#		limit = {
+		#			is_country_type = fallen_empire
+		#			NOT = { is_xenophobe = yes }
+		#		}
+		#		save_event_target_as = fallen
+		#		event_target:the_sleeper = {
+		#			set_faction_hostility = {
+		#				target = event_target:fallen
+		#				set_hostile = yes
+		#				set_neutral = no
+		#				set_friendly = no
+		#			}
+		#		}
+		#		set_faction_hostility = {
+		#			target = event_target:the_sleeper
+		#			set_hostile = yes
+		#			set_neutral = no
+		#			set_friendly = no
+		#		}
+		#	}
+		#}
+	#add a claim to the system for the original owner
+		solar_system = {
+			add_claims = {
+				who = FROM
+				num_of_claims = 1
+				show_notification = no
+			}
+		}
+	#find out the rough amount of pops on the planet through a shit ton of if statements. Why can't I just turn this into a variable? Like this: set_variable = { which = pop_modifier_amount value = num_pops }. It would make things so easy!  Why, paradox? WHY?
+		if = {
+			limit = { num_pops <= 5 }
+			change_variable = {  which = pop_modifier_amount value = 5 }
+		}
+	#code generated through C# script, so the braces are a bit off.
+		if = {
+			limit = {
+				num_pops >= 10
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 20
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 30
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 40
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 50
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 60
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 70
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 80
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 90
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 100
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 110
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 120
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 130
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 140
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 150
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 160
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 170
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 180
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 190
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 200
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 210
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 220
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 230
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 240
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 250
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 260
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 270
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 280
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 290
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 300
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 310
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 320
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 330
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 340
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 350
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 360
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 370
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 380
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 390
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+		if = {
+			limit = {
+				num_pops >= 400
+		}
+			change_variable = { which = pop_modifier_amount value = 10 }
+		}
+	#purge about a tenth of all pops and subtract it from the total amount. Only if there are more than 20 pops. Also uses pop_to_assimilate to safe some digits.
+		if = {
+			limit = {
+				num_pops > 19
+			}
+			set_variable = { which = pop_to_assimilate value = pop_modifier_amount }
+			divide_variable = { which = pop_to_assimilate value = 10 }
+		#round the variable to full numbers
+			multiply_variable = { which = pop_to_assimilate value = 100000 }
+			divide_variable = { which = pop_to_assimilate value = 100000 }
+			subtract_variable = { which = pop_modifier_amount value = pop_to_assimilate }
+			while = {
+				count = pop_to_assimilate
+				random_owned_pop = {
+					kill_pop = yes
+				}
+			}
+		}
+	#calculate one third or half of total pops
+		set_variable = { which = pop_to_assimilate value = pop_modifier_amount }
+		if = {
+			limit = { 
+				FROMFROM = {
+					NOT = { is_country_type = awakened_sleeper }
+				}
+			}
+			divide_variable = { which = pop_to_assimilate value = 3 }
+		}
+		else = {
+			divide_variable = { which = pop_to_assimilate value = 2 }
+		}
+		multiply_variable = { which = pop_to_assimilate value = 100000 }
+		divide_variable = { which = pop_to_assimilate value = 100000 }
+	#add hive minded trait to roughly one third of all (organic) pops. If the sleeper is awoken, then add it to half of them. For planets with less than five only one gets hiveminded
+		if = {
+			limit = {
+				num_pops < 6
+				FROM = {
+					NOT = { has_ethic = ethic_gestalt_consciousness }
+				}
+			}
+			random_owned_pop = {
+				limit = {
+					species = {
+						NOR = {
+							has_trait = trait_mechanical
+							has_trait = trait_machine_unit
+							has_trait = trait_hive_mind
+						}
+					}
+				}
+				modify_species = {
+					species = this
+					add_trait = trait_hive_mind
+					add_traits_at_start_of_list = yes
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				num_pops > 5
+				FROM = {
+					NOT = { has_ethic = ethic_gestalt_consciousness }
+				}
+			}
+			if = {
+				limit = {
+					FROMFROM = {
+						NOT = { is_country_type = awakened_sleeper }
+					}
+				}
+				while = {
+					count = pop_to_assimilate
+					random_owned_pop = {
+						limit = {
+							species = {
+								NOR = {
+									has_trait = trait_mechanical
+									has_trait = trait_machine_unit
+									has_trait = trait_hive_mind
+								}
+							}
+						}
+						modify_species = {
+							species = this
+							add_trait = trait_hive_mind
+							add_traits_at_start_of_list = yes
+						}
+					}
+				}
+			}
+			else = {
+				while = {
+					count = pop_to_assimilate
+					random_owned_pop = {
+						limit = {
+							species = {
+								NOR = {
+									has_trait = trait_mechanical
+									has_trait = trait_machine_unit
+									has_trait = trait_hive_mind
+								}
+							}
+						}
+						modify_species = {
+							species = this
+							add_trait = trait_hive_mind
+							add_traits_at_start_of_list = yes
+						}
+					}
+				}
+			}
+		}
+	#ME planets will gain 2 sleeper pops as garrison
+		else_if = {
+			limit = {
+				OR = {
+					has_authority = auth_machine_intelligence
+					has_authority = auth_ancient_machine_intelligence
+				}
+			}
+			while = {
+				count = 2
+				create_pop = {
+					species = event_target:the_sleeper.species
+				}
+			}
+		}
+	#make sure every species gets the right rights
+		event_target:the_sleeper = {
+			sleeper_reset_rights = yes
+		}
+	#one livestock pop will be resettled to the farms, if they still are in the sleeper possesion
+		if = {
+			limit = {
+				FROMFROM = {
+					any_owned_planet = {
+						has_planet_flag = sleeper_farms
+					}
+				}
+				any_owned_pop = {
+					species = {
+						has_citizenship_type = {
+							country = event_target:the_sleeper
+							type = citizenship_slavery
+						}
+					}
+				}
+			}
+			FROMFROM = {
+				event_target:conquered_planet = {
+					random_pop = {
+						limit = {
+							species = {
+								has_citizenship_type = {
+									country = event_target:the_sleeper
+									type = citizenship_slavery
+								}
+							}
+						}
+						save_event_target_as = new_food
+					}
+				}
+				random_owned_planet = {
+					limit = { has_planet_flag = sleeper_farms }
+					resettle_pop = {
+						pop = event_target:new_food
+						planet = THIS
+					}
+				}
+			}
+		}
+	#Create Defense Armies
+		while = {
+			count = 4
+			create_army = {
+				owner = event_target:the_sleeper
+				species = event_target:the_sleeper.species
+				type = "defense_army"
+			}
+		}
+	#set all variables to zero again to (hopefully) safe some digits and prepare for further invasions. Not sure if there even is a way of deleting variables in this engine lol (or if it even matters)
+		set_variable = { which = pop_modifier_amount value = 0 }
+		set_variable = { which = pop_to_assimilate value = 0 }
+	}
+}
+#diplomatic event for original owner afterwards
+country_event = {
+	id = sleeper_berserk.10
+	title = sleeper_berserk.10.title
+	desc = {
+		trigger = {
+			has_authority = auth_hive_mind
+		}	
+		text = sleeper_berserk.10.desc.hi
+	}
+	desc = {
+		trigger = {
+			has_authority = auth_machine_intelligence
+		}	
+		text = sleeper_berserk.10.desc.ma
+	}
+	desc = {	
+		trigger = {
+			NOR = {
+				has_authority = auth_hive_mind
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = sleeper_berserk.10.desc.no
+	}
+	picture = GFX_evt_victorious_army
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = sleeper_berserk.10.a
+	}
+}
+#TN-3 announces the hives awakening, gets interrupted by the hive
+country_event = {
+	id = sleeper_berserk.11
+	diplomatic = yes 
+	picture_event_data = { 
+		portrait = event_target:contact_empire 
+		planet_background = event_target:contact_empire 
+		graphical_culture = event_target:contact_empire 
+		city_level = event_target:contact_empire 
+		room = event_target:contact_empire.ruler 
+	}
+	title = sleeper.transmission
+	desc = sleeper_berserk.11.desc
+
+	is_triggered_only = yes
+	
+	immediate = {
+		random_country = {
+			limit = { is_country_type = hive_researcher_enclave }
+			save_event_target_as = contact_empire
+		}
+	}
+	
+	option = {
+		name = sleeper_berserk.11.a
+		hidden_effect = {
+			country_event = { id = sleeper_berserk.12 }
+		}
+	}
+}
+country_event = {
+	id = sleeper_berserk.12
+	title = sleeper.transmission
+	desc = sleeper_berserk.12.desc
+	diplomatic = yes 
+	picture_event_data = { 
+		portrait = event_target:contact_empire 
+		planet_background = event_target:contact_empire 
+		graphical_culture = event_target:contact_empire 
+		city_level = event_target:contact_empire 
+		room = event_target:contact_empire.ruler 
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		random_country = {
+			limit = { is_country_type = berserker_awoken_hive }
+			save_event_target_as = contact_empire
+		}
+	}
+	
+	option = {
+		name = sleeper_berserk.12.a
+	}
+}
+#events for taking sleeper planets back. modified kahn events
+#Sleeper Planet Liberated (HIDDEN)
+# This = country, leader attacker
+# From = country, planet owner
+# FromFrom = planet
+country_event = {
+	id = sleeper_berserk.13
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = { 
+			OR = {
+				is_country_type = the_sleeper_fallen
+				is_country_type = berserker_awoken_hive
+			}
+		}
+		fromfrom = {
+			NOR = {
+				has_planet_flag = sleeper_border_planet
+				has_planet_flag = sleeper_core_world
+			}
+		}
+		NOT = { has_country_flag = sleeper_rebels }
+	}
+
+	immediate = {
+		event_target:the_sleeper = {
+			subtract_variable = { which = num_taken_planets value = 1 }
+			add_threat = { who = THIS amount = -2 }
+		}
+		random_country = {
+			limit = { has_country_flag = former_owner@fromfrom }
+			save_event_target_as = planet_former_owner
+		}
+		fromfrom = { save_event_target_as = liberated_planet }
+		if = { # Planet belonged to liberator
+			limit = {
+				event_target:planet_former_owner = { is_same_value = root }
+			}
+			country_event = { id = sleeper_berserk.14 }
+			break = yes
+		}
+		if = { # Planet belonged to someone else
+			limit = {
+				event_target:planet_former_owner = { 
+					NOT = { is_same_value = root } 
+				}
+			}
+			country_event = { id = sleeper_berserk.15 }
+			break = yes
+		}
+		if = { # Planet's former owner no longer exists
+			limit = {
+				NOT = { exists = event_target:planet_former_owner }
+			}
+			country_event = { id = sleeper_berserk.16 }
+		}
+	}
+}
+# Liberated Own Planet
+country_event = {
+	id = sleeper_berserk.14
+	title = sleeper_berserk.liberate.name
+	desc = sleeper_berserk.14.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+	location = event_target:liberated_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.14.a
+		event_target:liberated_planet = {
+			set_owner = root
+		}
+	}	
+}
+# Liberated Someone Else's Planet
+country_event = {
+	id = sleeper_berserk.15
+	title = sleeper_berserk.liberate.name
+	desc = sleeper_berserk.15.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+
+	is_triggered_only = yes
+
+	option = { # Keep planet
+		name = sleeper_berserk.15.a
+		custom_tooltip = sleeper_berserk.15.a.tooltip
+		event_target:planet_former_owner = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_kept_sleeper_planet
+			}
+		}
+		event_target:liberated_planet = {
+			set_owner = root
+		}
+	}
+	option = { # Return to former owner
+		name = sleeper_berserk.15.b
+		custom_tooltip = sleeper_berserk.15.b.tooltip
+		event_target:liberated_planet = {
+			set_owner = event_target:planet_former_owner
+		}
+		event_target:planet_former_owner = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_returned_sleeper_planet
+			}
+		}
+		hidden_effect = {
+			event_target:planet_former_owner = {
+				country_event = { id = sleeper_berserk.17 }
+			}
+		}
+	}	
+}
+# Liberated Dead Country's Planet
+country_event = {
+	id = sleeper_berserk.16
+	title = sleeper_berserk.liberate.name
+	desc = sleeper_berserk.16.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_ground_battle
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.16.a
+		event_target:liberated_planet = {
+			set_owner = root
+		}
+	}	
+}
+# Liberated Returned to Our Control
+country_event = {
+	id = sleeper_berserk.17
+	title = sleeper_berserk.17.name
+	desc = sleeper_berserk.17.desc
+	picture = GFX_evt_ground_combat
+	show_sound = event_ground_battle
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.17.a
+	}	
+}
+#the berserker goes back to sleep
+#at the moment, this is simply randomly timed. other triggers or influences may come, but I am not sure if that is even needed.
+country_event = {
+	id = sleeper_berserk.18
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { is_country_type = the_sleeper_fallen }
+	}
+	
+	immediate = {
+		remove_global_flag = sleeper_berserker_ongoing
+		add_threat = { who = event_target:the_sleeper amount = -20 }
+	#change the country back again 
+		set_country_type = the_sleeper_fallen
+		change_government = {
+			authority = auth_hive_mind
+			civics = { 
+				civic = civic_sleeper
+				civic = civic_scrambled_drones
+			}
+		}
+	#redo rights and policies, just in case
+		set_policy = {
+			policy = robot_pop_policy
+			option = robot_pops_outlawed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = slavery
+			option = slavery_allowed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = purge
+			option = purge_allowed
+			cooldown = yes
+		}
+		sleeper_reset_rights = yes
+	#take back all their fleets
+		random_country = {
+			limit = { is_country_type = berserker_awoken_hive_fleets }
+			every_owned_fleet = {
+				set_owner = event_target:the_sleeper
+			}
+			destroy_country = yes
+		}
+	#clear fleetorders. does not affect armies sadly
+		every_owned_fleet = {
+			clear_orders = yes
+			set_fleet_stance = passive
+		}
+	#calculate how many times a rebellion rolls will happen and trigger the event
+		divide_variable = { which = num_taken_planets value = 2 }
+		divide_variable = { which = num_taken_planets value = 100000 }
+		multiply_variable = { which = num_taken_planets value = 100000 }
+		country_event = { id = sleeper_berserk.21 days = 365 random = 365 }
+	#anouncement
+		every_country = {
+			limit = { is_ai = no }
+			country_event = { id = sleeper_berserk.19 }
+		}
+	}
+}
+country_event = {
+	id = sleeper_berserk.19
+	title = sleeper_berserk.19.title
+	desc = sleeper_berserk.19.desc
+	picture = GFX_evt_city_ruins
+	show_sound = event_radio_chatter
+	
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.19.a
+	}
+}
+#berserker comms
+# This = target country (player)
+# From = source country
+country_event = {
+	id = sleeper_berserk.20
+	title = sleeper_berserk.20.title 
+	desc = {
+		text = sleeper_berserk.20.desc.a
+	}
+	desc = {
+		text = sleeper_berserk.20.desc.b
+	}
+	desc = {
+		text = sleeper_berserk.20.desc.c
+	}
+	desc = {
+		text = sleeper_berserk.20.desc.d
+	}
+	desc = {
+		text = sleeper_berserk.20.desc.e
+	}
+	diplomatic = yes 
+	picture_event_data = { 
+		portrait = event_target:contact_empire
+		planet_background = event_target:contact_empire 
+		graphical_culture = event_target:contact_empire
+		city_level = event_target:contact_empire
+		room = event_target:contact_empire.ruler
+	}
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			is_country_type = berserker_awoken_hive
+		}
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = berserker_awoken_hive
+			}
+			save_event_target_as = contact_empire
+		}
+	}
+
+#goodbye
+	option = {
+		name = sleeper_berserk.20.a
+	}
+#debug: put it back to sleep
+	option = {
+		name = sleeper_berserk.20.b
+		trigger = {
+			from = {
+				has_country_flag = sleeper_debug_mode_active
+			}
+		}
+		event_target:the_sleeper = {
+			country_event = { id = sleeper_berserk.18 }
+		}
+	}
+}
+#after the berserker is done, the planets it took may rebel and either return to their fromer country or form a new empire.
+#the amount of times this is rolled happens is based on the amount of planets the sleeper has taken
+#most code is copied and altered from vanilla unrest events
+country_event = {
+	id = sleeper_berserk.21
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		subtract_variable = { which = num_taken_planets value = 1 }
+		if = {
+			limit = {
+				check_variable = { which = num_taken_planets value > 0 }
+				is_country_type = the_sleeper_fallen
+			}
+			country_event = { id = sleeper_berserk.21 days = 720 random = 1200 }
+		}
+		random_list = {
+			40 = {
+			} #nothing
+			60 = {
+				country_event = { id = sleeper_berserk.25 }
+			} #rebell and join their fromer country or create a new one if former is dead
+		}
+	}
+}
+country_event = {
+	id = sleeper_berserk.25
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_planet = {
+			limit = {
+				NOR = {
+					num_pops < 6
+					has_planet_flag = sleeper_border_planet
+					has_planet_flag = sleeper_core_world
+					has_ground_combat = yes
+					has_orbital_bombardment = yes
+					has_planet_flag = revolt_in_progress
+				}
+			}
+			save_event_target_as = rebel_planet
+			set_planet_flag = revolt_in_progress
+			set_timed_planet_flag = { flag = recent_unrest_event days = 720 }
+			set_variable = { which = rebel_armies_var value = 0 }
+			every_owned_pop = {
+				limit = {
+					NOT = { has_trait = trait_hive_mind }
+				}
+				planet = {
+					change_variable = { which = rebel_armies_var value = 1 }
+				}
+			}
+			multiply_variable = {
+				which = rebel_armies_var
+				value = 0.75
+			}
+		#check if fatherland country still exists
+			random_country = {
+				limit = { has_country_flag = former_owner@PREV }
+				save_event_target_as = fatherland
+			}
+			if = {
+				limit = {
+					exists = event_target:fatherland
+					event_target:fatherland = {
+						#no rebels for gestalt fatherlands
+						is_gestalt = no
+					}
+				}
+				create_rebels = {
+					name = random
+					ethos = event_target:fatherland
+					authority = event_target:fatherland
+					civics = random
+					origin = origin_rebelled_from_sleeper
+					species = event_target:fatherland
+					flag = random
+					effect = {
+						set_country_flag = sleeper_rebels
+						save_event_target_as = nationalist_rebels
+						establish_communications_no_message = event_target:the_sleeper
+						establish_communications_no_message = event_target:fatherland
+						event_target:fatherland = {
+							every_relation = {
+								establish_communications_no_message = event_target:nationalist_rebels
+							}
+						}
+					}
+				}
+				while = {
+					limit = {
+						check_variable = {
+							which = rebel_armies_var
+							value > 0
+						}
+					}
+					create_army = {
+						owner = event_target:nationalist_rebels
+						species = event_target:fatherland
+						type = "assault_army"
+					}
+					change_variable = {
+						which = rebel_armies_var
+						value = -1
+					}
+				}
+				event_target:fatherland = {
+					country_event = { id = sleeper_berserk.23 }
+				}
+			}
+			else_if = {
+		#no fatherland anymore. Create new rebels instead, but only if there are any non gestalt pops on the planet (governemnet based an a random non gestalt country as reference)
+				limit = {
+					any_owned_pop = { NOT = { has_trait = trait_hive_mind } }
+				}
+				random_owned_pop = {
+					limit = {
+						NOT = { has_trait = trait_hive_mind }
+					}
+					species = { save_event_target_as = rebel_species }
+				}
+				random_country = {
+					limit = {
+						is_country_type = default
+						NOR = {
+							has_authority = auth_hive_mind
+							has_authority = auth_machine_intelligence
+						}
+					}
+					save_event_target_as = blueprint_country
+				}
+				create_rebels = {
+					name = random
+					ethos = event_target:blueprint_country
+					authority = event_target:blueprint_country
+					civics = random
+					origin = origin_rebelled_from_sleeper
+					species = event_target:rebel_species
+					flag = random
+					effect = {
+						set_country_flag = sleeper_rebels
+						save_event_target_as = nationalist_rebels
+						establish_communications_no_message = event_target:the_sleeper
+					}
+				}
+				while = {
+					limit = {
+						check_variable = {
+							which = rebel_armies_var
+							value > 0
+						}
+					}
+					create_army = {
+						owner = event_target:nationalist_rebels
+						species = event_target:rebel_species
+						type = "assault_army"
+					}
+					change_variable = {
+						which = rebel_armies_var
+						value = -1
+					}
+				}
+			}
+			else = {
+			}
+		}
+	}
+}
+# rebels win
+# Triggers country_event for the attacker upon victory
+# (Before controller is switched)
+# This = country, leader attacker
+# From = country, planet owner
+# FromFrom = planet
+country_event = {
+	id = sleeper_berserk.22
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = { has_country_flag = sleeper_rebels }
+
+	immediate = {
+		FROMFROM = {
+			save_event_target_as = rebel_planet
+		}
+	#destroy the newly created rebel country and replace it with a new one, since they will otherwise inherit the sleepers techs.
+		save_event_target_as = rebels
+		random_country = {
+			limit = {
+				has_country_flag = former_owner@event_target:rebel_planet
+			}
+			save_event_target_as = fatherland
+			save_event_target_as = reference_country
+			this.species = {
+				save_event_target_as = rebel_species
+			}
+		}
+	#if there is no fatherland, then use a random one as reference
+		if = {
+			limit = {
+				NOT = { exists = event_target:fatherland }
+			}
+			random_country = {
+				limit = {
+					is_country_type = default
+					NOR = {
+						has_authority = auth_hive_mind
+						has_authority = auth_machine_intelligence
+					}
+				}
+				save_event_target_as = reference_country
+			}
+			event_target:rebel_planet = {
+				random_owned_pop = {
+					limit = {
+						NOT = { has_trait = trait_hive_mind }
+					}
+					species = { save_event_target_as = rebel_species }
+				}
+			}
+		}
+		create_country = {
+			name = event_target:rebels
+			type = default
+			species = event_target:rebel_species
+			ignore_initial_colony_error = yes
+			day_zero_contact = no
+			ethos = random
+			authority = event_target:rebels
+			origin = origin_rebelled_from_sleeper
+			civics = random
+			flag = random
+			effect = {
+				save_event_target_as = new_rebels
+				event_target:rebel_planet = { 
+					remove_planet_flag = revolt_in_progress
+					set_owner = event_target:new_rebels
+					set_capital = yes
+					solar_system = {
+						every_fleet_in_system = {
+							limit = {
+								owner = { is_same_value = event_target:the_sleeper }
+							}
+							set_owner = event_target:new_rebels
+						}
+						starbase = {
+							set_owner = event_target:new_rebels
+						}
+					}
+				}
+				create_leader = {
+					class = ruler
+					species = event_target:rebel_species
+					name = random
+					skill = 2
+					traits = {}
+				}
+				assign_leader = last_created_leader
+				ruler = {
+					add_random_leader_trait = yes
+				}
+				add_resource = {
+					minerals = 5000
+					energy = 5000
+					influence = 500
+					alloys = 5000
+				}
+				add_100_unity_per_year_passed = yes
+				#purge all hiveminded pops
+				every_owned_pop = {
+					limit = { has_trait = trait_hive_mind }
+					kill_pop = yes
+				}
+				#remove armies, because they spawn with fallen empire tech
+				every_owned_army = {
+					remove_army = yes
+				}
+				copy_techs_from = {
+					target = event_target:reference_country
+					except = {
+						# Horizon Signal
+						tech_akx_worm_1
+						tech_akx_worm_2
+						tech_akx_worm_3
+					}
+				}
+				# establish comms
+				every_country = {
+					limit = {
+						has_communications = event_target:the_sleeper
+					}
+					establish_communications_no_message = event_target:new_rebels
+				}
+				#only do if fatherland exists
+				if = {
+					limit = {
+						exists = event_target:fatherland
+					}
+					#clear new contact opinion modifier
+					if = {
+						limit = {
+							has_opinion_modifier = {
+								who = event_target:fatherland
+								modifier = opinion_new_contact
+							}
+						}
+						remove_opinion_modifier = {
+							who = event_target:fatherland
+							modifier = opinion_new_contact
+						}
+					}
+					every_planet = {
+						limit = {
+							is_surveyed = {
+								who = event_target:fatherland
+								status = yes
+							}
+						}
+						surveyed = {
+							set_surveyed = yes
+							surveyor = root
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				exists = event_target:fatherland
+			}
+			event_target:fatherland = {
+				#roll if they want to rejoin, maybe modify chances based on ethics. 
+				random_list = {
+					75 = {
+						country_event = { id = sleeper_berserk.24 days = 5 }
+					} #request to rejoin
+					25 = {
+						country_event = { id = sleeper_berserk.26 days = 5 }
+					} #succession
+				}
+			}
+		}
+		set_country_flag = silence_destroy_event
+		destroy_country = yes
+	}
+}
+#notification that the rebellion is taking place
+country_event = {
+	id = sleeper_berserk.23
+	title = sleeper_berserk.23.name
+	desc = sleeper_berserk.23.desc
+	picture = GFX_evt_surrender
+	show_sound = event_ground_battle
+	location = event_target:rebel_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.23.a
+	}
+}
+#ask to rejoin
+country_event = {
+	id = sleeper_berserk.24
+	title = sleeper.communciations
+	desc = sleeper_berserk.24.desc
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:new_rebels
+		planet_background = event_target:rebel_planet
+		city_level = event_target:rebel_planet
+		room = event_target:new_rebels.ruler
+	}
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.24.b
+		ai_chance = {
+			factor = 80
+		}
+		hidden_effect = {
+			event_target:rebel_planet = {
+				solar_system = {
+					starbase = {
+						set_owner = event_target:fatherland
+					}
+				}
+				set_owner = event_target:fatherland
+			}
+			event_target:new_rebels = {
+				set_country_flag = silence_destroy_event
+				destroy_country = yes
+			}
+		}
+	}
+
+	option = {
+		name = sleeper_berserk.24.a
+		trigger = {
+			is_subject = no
+		}
+		ai_chance = {
+			factor = 0
+		}
+		event_target:new_rebels = {
+			set_subject_of = {
+				who = event_target:fatherland
+				subject_type = vassal
+			}
+		}
+		hidden_effect = {
+			event_target:new_rebels = {
+				add_opinion_modifier = {
+					who = event_target:fatherland
+					modifier = opinion_sleeper_fatherland_loyalties
+				}
+			}
+		}
+	}
+
+	option = {
+		name = sleeper_berserk.24.c
+		hidden_effect = {
+			event_target:rebels = {
+				add_opinion_modifier = {
+					who = event_target:fatherland
+					modifier = opinion_abandoned_to_sleeper
+				}
+			}
+		}
+		ai_chance = {
+			factor = 20
+		}
+	}
+}
+#don't join
+country_event = {
+	id = sleeper_berserk.26
+	title = sleeper.communciations
+	desc = sleeper_berserk.26.desc
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:new_rebels
+		planet_background = event_target:rebel_planet
+		city_level = event_target:rebel_planet
+		room = event_target:new_rebels.ruler
+	}
+
+	immediate = {
+		event_target:new_rebels = {
+			add_opinion_modifier = {
+				who = event_target:fatherland
+				modifier = opinion_abandoned_to_sleeper
+			}
+		}
+	}
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_berserk.26.a
+	}
+	option = {
+		name = sleeper_berserk.26.b
+	}
+	option = {
+		name = sleeper_berserk.26.c
+	}
+	option = {
+		name = sleeper_berserk.26.d
+	}
+}

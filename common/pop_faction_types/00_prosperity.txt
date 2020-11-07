@@ -10,11 +10,15 @@ prosperity = {
 	support_multiplier = 1
 	
 	is_potential = {
-		NOT = { has_country_flag = cf_vanfac_prosperity_died }
 		years_passed > 10
 		has_encountered_other_species = yes
 		NOT = { has_ethic = ethic_gestalt_consciousness }
-		NOT = { has_modifier = banned_pacifist }
+		count_owned_pops = {
+			count >= 5
+			limit = {
+				has_ethic = ethic_pacifist
+			}
+		}		
 	}
 	
 	parameters = {
@@ -35,9 +39,10 @@ prosperity = {
 
 	can_join_pre_triggers = {
 		is_enslaved = no
-		is_being_purged = no }
+		is_being_purged = no
+	}
+
 	can_join_faction = {
-		is_enslaved = no
 		is_shackled_robot = no
 		has_culture_shock = no
 		NOT = { has_trait = trait_nerve_stapled }
@@ -46,14 +51,6 @@ prosperity = {
 	
 	attraction = {
 		base = 100
-		
-		modifier = {
-			factor = 0
-			exists = from
-			from = {
-				has_modifier = banned_faction
-			}
-		}
 		
 		modifier = {
 			factor = 1.25
@@ -104,7 +101,7 @@ prosperity = {
 			is_event_leader = yes
 		}		
 	}
-
+	
 	demand = {
 		title = "FACTION_OUTRAGED_GC"
 		unfulfilled_title = "FACTION_OUTRAGED_GC"
@@ -125,7 +122,8 @@ prosperity = {
 				has_country_flag = faction_pacifist_outraged_gc
 			}
 		}
-	}
+	}	
+
 
 	demand = {
 		title = "PROSPERITY_LIQUIDITY"
@@ -228,6 +226,7 @@ prosperity = {
 			}
 		}
 	}
+	
 	demand = {
 		title = "PROSPERITY_PEACEFUL_APPLICATIONS"
 		unfulfilled_title = "PROSPERITY_NO_PEACEFUL_APPLICATIONS_APPLICATIONS"
@@ -269,7 +268,7 @@ prosperity = {
 
 		unfulfilled_effect = -5
 		fulfilled_effect = +0.001
-		
+
 		potential = {
 			exists = owner
 			owner = {
@@ -277,8 +276,8 @@ prosperity = {
 				has_technology = tech_arcane_deciphering
 				OR = {
 					has_modifier = artifact_find_military_application_army
-					has_modifier = artifact_find_military_application_shield_damage 
-					has_modifier = artifact_find_military_application_armor_damage 
+					has_modifier = artifact_find_military_application_shield_damage
+					has_modifier = artifact_find_military_application_armor_damage
 				}
 			}
 		}
@@ -287,33 +286,9 @@ prosperity = {
 			owner = {
 				NOR = {
 					has_modifier = artifact_find_military_application_army
-					has_modifier = artifact_find_military_application_shield_damage 
-					has_modifier = artifact_find_military_application_armor_damage 
+					has_modifier = artifact_find_military_application_shield_damage
+					has_modifier = artifact_find_military_application_armor_damage
 				}
-			}
-		}
-	}
-
-	demand = {
-		title = "MERCANTILE_DIPLO_STANCE"
-		unfulfilled_title = "MERCANTILE_DIPLO_STANCE"
-		desc = "MERCANTILE_DIPLO_STANCE_DESC"
-
-		fulfilled_effect = 10
-		unfulfilled_effect = -0.001
-
-		potential = {
-			exists = owner
-			owner = {
-				is_homicidal = no
-				is_country_type = default
-				has_policy_flag = diplo_stance_mercantile
-			}
-		}
-
-		trigger = {
-			owner = {
-				has_policy_flag = diplo_stance_mercantile
 			}
 		}
 	}
@@ -347,15 +322,31 @@ prosperity = {
 			}
 		}
 	}
+	
+	demand = {
+		title = "PEACEFUL_ECONOMY"
+		unfulfilled_title = "PEACEFUL_ECONOMY"
+		desc = "PEACEFUL_ECONOMY_DESC"
+
+		fulfilled_effect = 10
+
+		potential = { 
+			exists = owner
+		}
+
+		trigger = {
+			owner = { 			  			
+				has_policy_flag = economic_policy_civilian		
+			}
+				
+		}
+	}		
 
 	on_create = {
 		pop_faction_event = { id = factions.1 }
-	}
+	}	
+
 	on_destroy = {
-		set_timed_country_flag = {
-			flag = cf_vanfac_prosperity_died
-			days = 3600
-		}
 		if = {
 			limit = {
 				has_modifier = promoted_pacifist
@@ -385,11 +376,6 @@ prosperity = {
 					OR = {
 						is_subject = no
 						NOT = { is_subject_type = dominion }
-					}
-				}
-				parameter:empire = {
-					NOT = {
-						has_modifier = suppressed_pacifist
 					}
 				}
 			}
@@ -476,8 +462,8 @@ prosperity = {
 				exists = owner
 				parameter:empire = {
 					NOR = {
-						has_modifier = suppressed_pacifist
-						has_modifier = promoted_pacifist
+						has_ethic = ethic_pacifist
+						has_ethic = ethic_fanatic_pacifist
 					}
 				}
 			}
@@ -547,84 +533,12 @@ prosperity = {
 				parameter:empire = {
 					has_modifier = suppressed_pacifist
 				}
-				not = { has_modifier = banned_faction }
 			}
 
 			effect = {
 				remove_modifier = suppressed_faction
 				parameter:empire = {
 					remove_modifier = suppressed_pacifist
-				}
-			}
-			
-			ai_weight = {
-				base = 0
-			}
-		}
-		ban_faction = {
-			title = "BAN_FACTION"
-			description = "BAN_FACTION_DESC"
-			
-			potential = {
-				exists = owner
-				parameter:empire = { 
-					has_modifier = suppressed_pacifist
-					not = { has_ethic = ethic_pacifist }
-					not = { has_ethic = ethic_fanatic_pacifist}
-				}
-				not = { has_modifier = banned_faction }
-			}
-
-			effect = {
-				hidden_effect = {
-					save_event_target_as = MyFaction
-					parameter:empire = {
-						every_owned_pop = {
-							limit = {
-								member_of_faction = event_target:MyFaction
-							}
-							random_list = {
-								10 = {
-									add_modifier = { modifier = pop_faction_banned days = 360 }							
-								}
-								85 = {
-									add_modifier = { modifier = pop_faction_banned days = 720 }
-								}
-								5 = {
-									add_modifier = { modifier = pop_faction_banned days = 1800 }
-								}
-							}
-						}
-					}
-				}
-				add_modifier = { modifier = banned_faction days = 1800 }
-				parameter:empire = {
-					if = {
-						limit = {
-							not = { has_modifier = banned_pacifist }
-						}
-						add_modifier = { modifier = banned_pacifist days = -1 }
-					}
-				}
-			}
-			
-			ai_weight = {
-				base = 0
-			}
-		}
-		cancel_ban_faction = {
-			title = "CANCEL_BAN_FACTION"
-			description = "CANCEL_BAN_FACTION_DESC"
-			
-			potential = {
-				exists = owner
-				has_modifier = banned_faction
-			}
-
-			effect = {
-				remove_modifier = banned_faction
-				parameter:empire = {
-					remove_modifier = banned_pacifist
 				}
 			}
 			

@@ -21,10 +21,9 @@ particle_accelerator_0 = {
 	}
 
 	possible = {
-		custom_tooltip = { fail_text = "requires_inside_border"								is_inside_border = from }
-		custom_tooltip = { fail_text = "requires_surveyed_system"							giga_system_is_surveyed = yes }
-		custom_tooltip = { fail_text = "requires_no_black_hole_neutron_star_pulsar_crusher"	giga_is_special_star = no }
-		custom_tooltip = { fail_text = "requires_no_existing_accelerator"					giga_has_particle_accelerator = no }
+		custom_tooltip = { fail_text = "requires_inside_border"				is_inside_border = from }
+		custom_tooltip = { fail_text = "requires_surveyed_system"			giga_system_is_surveyed = yes }
+		custom_tooltip = { fail_text = "requires_no_existing_accelerator"	giga_has_particle_accelerator = no }
 		custom_tooltip = {
 			fail_text = "requires_not_capped"
 			from = {
@@ -41,6 +40,7 @@ particle_accelerator_0 = {
 			custom_tooltip = { fail_text = "requires_no_existing_megastructure"		planet_has_no_megastructure = yes }
 			custom_tooltip = { fail_text = "must_build_around_star"					is_star = yes }
 			custom_tooltip = { fail_text = "requires_no_anomaly"					has_anomaly = no }
+			custom_tooltip = { fail_text = "requires_standard_planet_class"			giga_is_standard_star = yes }
 		}
 	}
 
@@ -83,6 +83,7 @@ particle_accelerator_0 = {
 		modifier = { factor = 1.25	from = { has_civic = civic_technocracy } }
 
 		# How many of this megastructure can the AI build?
+		modifier = { factor = 0.00 from = { has_country_flag = has_recently_built_particle_accelerator } }
 		modifier = { factor = 0.00 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = particle_accelerator_1 is_megastructure_type = particle_accelerator_restored } } count > 5 } } }
 		modifier = { factor = 0.15 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = particle_accelerator_1 is_megastructure_type = particle_accelerator_restored } } count = 5 } } }
 		modifier = { factor = 0.30 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = particle_accelerator_1 is_megastructure_type = particle_accelerator_restored } } count = 4 } } }
@@ -102,15 +103,16 @@ particle_accelerator_0 = {
 
 	on_build_complete = {
 		save_event_target_as = giga_system
-		fromfrom.planet = { save_event_target_as = giga_planet }
-		from = {
-			country_event = { id = giga_dialog.1801 }	# Notification
-			change_variable = { which = giga_current_accelerator value = 1 }
-		}
 		fromfrom.planet = {
+			save_event_target_as = giga_planet
 			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
 			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
 			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
+		}
+		from = {
+			set_timed_country_flag = { flag = has_recently_built_particle_accelerator years = 20 }
+			country_event = { id = giga_dialog.1801 }	# Notification
+			change_variable = { which = giga_current_accelerator value = 1 }
 		}
 	}
 }
@@ -139,8 +141,11 @@ particle_accelerator_1 = {
 	on_build_complete = {
 		save_event_target_as = giga_system
 		fromfrom.planet = { save_event_target_as = giga_planet }
-		from = { country_event = { id = giga_dialog.1802 } }	# Notification
 		from = {
+			if = {
+				limit = { NOT = { has_country_flag = giga_repaired_mega_no_dialog } }
+				country_event = { id = giga_dialog.1802 }				# Notification
+			}
 			if = {
 				limit = { NOT = { has_modifier = acceleratorbuff } }
 				add_modifier = { modifier = "acceleratorbuff" days = -1 }
@@ -204,14 +209,17 @@ particle_accelerator_restored = {
 	}
 
 	potential = { NOT = { has_global_flag = accelerator_disabled } }
-	possible = { from = { has_technology = giga_tech_particle_accelerator } }
+	possible = {
+		exists = from
+		from = { has_technology = giga_tech_particle_accelerator }
+	}
 
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
 		fromfrom.planet = { save_event_target_as = giga_planet }
 		from = { country_event = { id = giga_dialog.1804 } }	# Notification
-		every_system_ambient_object = { destroy_ambient_object = this }
+		giga_remove_system_debris = yes
 		spawn_megastructure = { type = "particle_accelerator_1" location = fromfrom.planet owner = from }
 		remove_megastructure = fromfrom
 		from = {

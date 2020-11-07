@@ -634,6 +634,7 @@ fleet_event = {
 					}
 				}
 			}
+			add_extra_hyperlane_to_spawned_system_effect = yes
 		}
 		hidden_effect = {
 			random_system = {
@@ -942,13 +943,6 @@ ship_event = {
 			FROM = { has_planet_flag = aliens_site_badaliens }
 		}
 	}
-	desc = {
-		text = ancrel.107.nothing.desc
-		#text = ancrel.107.fallback.desc
-		trigger = {
-			
-		}
-	}
 	picture = GFX_evt_ship_in_orbit_3
 	show_sound = event_finding_loot
 	location = from
@@ -1000,7 +994,11 @@ ship_event = {
 			if = {
 				limit = { colonizeable_planet = yes }
 				if = {
-					limit = { NOT = { has_modifier = mineral_rich } }
+					limit = {
+						NOT = { has_modifier = mineral_rich }
+						NOT = { has_modifier = ultra_rich }
+					}
+					hidden_effect = { remove_modifier = mineral_poor }
 					add_modifier = { modifier = mineral_rich days = -1 }
 				}
 				else = {
@@ -1008,8 +1006,16 @@ ship_event = {
 				}
 				add_deposit = d_rich_mountain
 			}
+			else_if = {
+				limit = { 
+					has_deposit_for = shipclass_research_station
+				}
+				root.owner = {
+					add_resource = { minerals = 5000 }
+				}
+			}
 			else = {
-				set_deposit = d_minerals_8
+				add_deposit = d_minerals_8
 			}
 		}
 		name = CURIOUS
@@ -1037,12 +1043,14 @@ ship_event = {
 					NOT = { has_technology = tech_sensors_3 }
 				}
 				give_technology = { tech = tech_sensors_3 }
+				add_research_option = tech_sensors_4
 			}
 			else_if = {
 				limit = {
 					NOT = { has_technology = tech_sensors_2 }
 				}
 				give_technology = { tech = tech_sensors_2 }
+				add_research_option = tech_sensors_3
 				add_monthly_resource_mult = {
                     resource = physics_research
                     value = @tier2researchreward
@@ -1860,27 +1868,61 @@ ship_event = {
 		hidden_effect = {
 			if = {
 				limit = { exists = event_target:rubricator_planet }
-				create_point_of_interest = {
-					id = hidden_planet
-					name = "rubricator_coordinates_poi"
-					desc = rubricator_coordinates_desc
-					event_chain = rubricator_chain
-					location = event_target:rubricator_planet
+				# do nothing, already exists
+			}
+			else_if = {
+				limit = {
+					any_system = {
+						distance = {
+							source = root
+							min_jumps = 2
+							max_jumps = 4
+						}
+						has_access_fleet = root.owner
+						has_owner = no
+						NOT = {
+							any_fleet_in_system = {
+								owner = { 
+									is_hostile = root.owner
+								}
+							}
+						}
+					}
+				}
+				closest_system = {
+					min_steps = 2
+					max_steps = 4
+					limit = {
+						has_access_fleet = root.owner
+						has_owner = no
+						NOT = {
+							any_fleet_in_system = {
+								owner = { 
+									is_hostile = root.owner
+								}
+							}
+						}
+					}
+					spawn_system = {
+						min_distance >= 29
+						max_distance <= 31
+						min_orientation_angle = 24
+						max_orientation_angle = 66
+						initializer = rubricator_system
+					}
 				}
 			}
 			else_if = {
 				limit = {
 					any_system = {
 						distance = {
-							source = root.solar_system
-							use_bypasses = no
+							source = root
 							min_jumps = 2
 							max_jumps = 4
 						}
 						has_access_fleet = root.owner
-						is_owned_by = root.owner
 						NOT = {
-							any_ship_in_system = {
+							any_fleet_in_system = {
 								owner = { 
 									is_hostile = root.owner
 								}
@@ -1893,9 +1935,8 @@ ship_event = {
 					max_steps = 4
 					limit = {
 						has_access_fleet = root.owner
-						is_owned_by = root.owner
 						NOT = {
-							any_ship_in_system = {
+							any_fleet_in_system = {
 								owner = { 
 									is_hostile = root.owner
 								}
@@ -1903,80 +1944,34 @@ ship_event = {
 						}
 					}
 					spawn_system = {
-						min_distance >= 6
-						max_distance <= 10
+						min_distance >= 29
+						max_distance <= 31
+						min_orientation_angle = 24
+						max_orientation_angle = 66
 						initializer = rubricator_system
 					}
-					if = {
-						limit = {
-							any_system = {
-								has_star_flag = rubricator_system
-								NOT = { has_hyperlane_to = prev }
-							}
-						}
-						random_system = {
-							limit = {
-								has_star_flag = rubricator_system
-								NOT = { has_hyperlane_to = prev }
-							}
-							add_hyperlane = { from = this to = prev }
-						}
-					}
-				}
-				create_point_of_interest = {
-					id = hidden_planet
-					name = "rubricator_coordinates_poi"
-					desc = rubricator_coordinates_desc
-					event_chain = rubricator_chain
-					location = event_target:rubricator_planet
 				}
 			}
 			else = {
 				closest_system = {
 					min_steps = 2
 					max_steps = 4
-					limit = {
-						has_access_fleet = root.owner
-						OR = {
-							has_owner = no
-							is_owned_by = root.owner
-						}
-						NOT = {
-							any_ship_in_system = {
-								owner = { 
-									is_hostile = root.owner
-								}
-							}
-						}
-					}
 					spawn_system = {
-						min_distance >= 6
-						max_distance <= 10
+						min_distance >= 29
+						max_distance <= 31
+						min_orientation_angle = 24
+						max_orientation_angle = 66
 						initializer = rubricator_system
 					}
-					if = {
-						limit = {
-							any_system = {
-								has_star_flag = rubricator_system
-								NOT = { has_hyperlane_to = prev }
-							}
-						}
-						random_system = {
-							limit = {
-								has_star_flag = rubricator_system
-								NOT = { has_hyperlane_to = prev }
-							}
-							add_hyperlane = { from = this to = prev }
-						}
-					}
 				}
-				create_point_of_interest = {
-					id = hidden_planet
-					name = "rubricator_coordinates_poi"
-					desc = rubricator_coordinates_desc
-					event_chain = rubricator_chain
-					location = event_target:rubricator_planet
-				}
+			}
+			add_extra_hyperlane_to_spawned_system_effect = yes
+			create_point_of_interest = {
+				id = hidden_planet
+				name = "rubricator_coordinates_poi"
+				desc = rubricator_coordinates_desc
+				event_chain = rubricator_chain
+				location = event_target:rubricator_planet
 			}
 		}
 		
@@ -1996,6 +1991,7 @@ planet_event = {
 
    	trigger = {
    		has_ancrel = yes
+		is_homeworld = no
 		NOT = { exists = archaeological_site }
    		From = {
    			OR = {
@@ -2017,14 +2013,39 @@ planet_event = {
    				is_deposit_type = d_impenetrable_taiga
    				is_deposit_type = d_flooded_plain
    				is_deposit_type = d_impassable_erg
+				is_deposit_type = d_blocked_tunnell
+				is_deposit_type = d_radioactive_wasteland
+				is_deposit_type = d_city_ruins
+   				is_deposit_type = d_bomb_crater
+   				is_deposit_type = d_industrial_forest
    			}
    		}
-   		owner = {
-   			is_ai = no
-   		}
-		NOT = {
-			any_country = {
-				has_country_flag = triggered_the_oracle_digsite
+		OR = {
+			NOT = { any_country = { has_country_flag = triggered_the_sentinels_digsite } }
+			NOT = { any_country = { has_country_flag = triggered_the_oracle_digsite } }
+			NOT = {
+				any_system = {
+					any_system_planet = {
+						exists = archaeological_site
+						archaeological_site = { is_site_type = city_of_bones }
+					}
+				}
+			}
+			NOT = {
+				any_system = {
+					any_system_planet = {
+						exists = archaeological_site
+						archaeological_site = { is_site_type = mutation_vats }
+					}
+				}
+			}
+			NOT = {
+				any_system = {
+					any_system_planet = {
+						exists = archaeological_site
+						archaeological_site = { is_site_type = it_was_aliens_site }
+					}
+				}
 			}
 		}
    	}
@@ -2131,9 +2152,284 @@ planet_event = {
    				owner = {
    					set_country_flag = triggered_the_oracle_digsite
    				}
+				modifier = {
+					factor = 0
+					any_country = {
+						has_country_flag = triggered_the_oracle_digsite
+					}
+				}
+				modifier = {
+					factor = 0
+					From = {
+						NOR = {
+							is_deposit_type = d_dense_jungle
+							is_deposit_type = d_toxic_kelp
+							is_deposit_type = d_deep_sinkhole
+							is_deposit_type = d_collapsed_sinkhole
+							is_deposit_type = d_deep_sinkhole_mesa
+							is_deposit_type = d_quicksand_basin
+							is_deposit_type = d_saline_lakes
+							is_deposit_type = d_dusty_pit
+							is_deposit_type = d_noxious_swamp
+							is_deposit_type = d_noxious_swamp_bubbling
+							is_deposit_type = d_viscous_morass
+							is_deposit_type = d_massive_glacier
+							is_deposit_type = d_ice_crust
+							is_deposit_type = d_exofungus_blocker
+							is_deposit_type = d_mountain_range
+							is_deposit_type = d_impenetrable_taiga
+							is_deposit_type = d_flooded_plain
+							is_deposit_type = d_impassable_erg
+						}
+					}
+				}
    			}
-
-   			95 = {}
+			5 = {  # Sentinels
+				if = {
+					limit = {
+						from = { is_deposit_type = d_dense_jungle }
+					}
+					set_planet_flag = sentinels_d_dense_jungle
+				}
+				if = {
+					limit = {
+						from = { is_deposit_type = d_toxic_kelp }
+					}
+					set_planet_flag = sentinels_d_toxic_kelp
+				}
+				if = {
+					limit = {
+						from = {
+							OR = {
+								is_deposit_type = d_noxious_swamp
+								is_deposit_type = d_noxious_swamp_bubbling
+								is_deposit_type = d_viscous_morass
+							}
+						}
+					}
+					set_planet_flag = sentinels_d_noxious_swamp
+				}
+				if = {
+					limit = {
+						from = {
+							OR = {
+								is_deposit_type = d_massive_glacier
+								is_deposit_type = d_ice_crust
+							}
+						}
+					}
+					set_planet_flag = sentinels_d_massive_glacier
+				}
+				if = {
+					limit = {
+						from = { is_deposit_type = d_exofungus_blocker }
+					}
+					set_planet_flag = sentinels_d_exofungus_blocker
+				}
+				if = {
+					limit = {
+						from = {
+							OR = {
+								is_deposit_type = d_quicksand_basin
+								is_deposit_type = d_saline_lakes
+							}
+						}
+					}
+					set_planet_flag = sentinels_d_quicksand_basin
+				}
+				if = {
+					limit = {
+						from = { is_deposit_type = d_impenetrable_taiga }
+					}
+					set_planet_flag = sentinels_d_impenetrable_taiga
+				}
+				if = {
+					limit = {
+						from = { is_deposit_type = d_impassable_erg }
+					}
+					set_planet_flag = sentinels_d_impassable_erg
+				}
+				if = {
+					limit = {
+						from = { is_deposit_type = d_blocked_tunnell }
+					}
+					set_planet_flag = sentinels_d_blocked_tunnell
+				}
+				planet_event = { id = ancrel.4051 days = 1 }
+				owner = {
+					set_country_flag = triggered_the_sentinels_digsite
+				}
+				modifier = {
+					factor = 0
+					From = {
+						NOR = {
+							is_deposit_type = d_dense_jungle
+							is_deposit_type = d_toxic_kelp
+							is_deposit_type = d_noxious_swamp
+							is_deposit_type = d_noxious_swamp_bubbling
+							is_deposit_type = d_viscous_morass
+							is_deposit_type = d_massive_glacier
+							is_deposit_type = d_ice_crust
+							is_deposit_type = d_exofungus_blocker
+							is_deposit_type = d_quicksand_basin
+							is_deposit_type = d_saline_lakes
+							is_deposit_type = d_impenetrable_taiga
+							is_deposit_type = d_impassable_erg
+							is_deposit_type = d_blocked_tunnell
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						num_pops <= 5
+						owner = {
+							is_gestalt = yes
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					any_country = {
+						has_country_flag = triggered_the_sentinels_digsite
+					}
+				}
+   			}
+			10 = { # It Was Aliens
+				planet_event = { id = expandedrelics.200 days = 3 }
+				modifier = {
+					factor = 0
+					From = {
+						NOR = {
+							is_deposit_type = d_radioactive_wasteland
+							is_deposit_type = d_city_ruins
+							is_deposit_type = d_bomb_crater
+							is_deposit_type = d_industrial_forest
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						has_global_flag = it_was_aliens_site_found
+						any_system = {
+							any_system_planet = {
+								exists = archaeological_site
+								archaeological_site = { is_site_type = it_was_aliens_site }
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						is_nuked = no
+						has_planet_flag = ratling_planet
+					}
+				}
+			}
+			5 = { # City of Bones
+				if = {
+					limit = {
+						from = {
+							OR = {
+								is_deposit_type = d_deep_sinkhole
+								is_deposit_type = d_collapsed_sinkhole
+								is_deposit_type = d_deep_sinkhole_mesa
+								is_deposit_type = d_dusty_pit
+							}
+						}
+					}
+					set_planet_flag = bone_city_d_deep_sinkhole
+				}
+				if = {
+					limit = {
+						from = {
+							OR = {
+								is_deposit_type = d_quicksand_basin
+								is_deposit_type = d_viscous_morass
+								is_deposit_type = d_saline_lakes
+							}
+						}
+					}
+					set_planet_flag = bone_city_d_quicksand_basin
+				}
+				planet_event = { id = expandedrelics.201 days = 1 }
+				set_global_flag = bone_city_found
+				modifier = {
+					factor = 0
+					From = {
+						NOR = {
+							is_deposit_type = d_deep_sinkhole
+							is_deposit_type = d_collapsed_sinkhole
+							is_deposit_type = d_deep_sinkhole_mesa
+							is_deposit_type = d_dusty_pit
+							is_deposit_type = d_quicksand_basin
+							is_deposit_type = d_viscous_morass
+							is_deposit_type = d_saline_lakes
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						has_global_flag = bone_city_found
+						any_system = {
+							any_system_planet = {
+								exists = archaeological_site
+								archaeological_site = { is_site_type = city_of_bones }
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					NOR = {
+						is_dry = yes
+						is_gaia = yes
+					}
+				}
+			}
+			10 = { # Mutation Vats
+				planet_event = { id = expandedrelics.203 days = 1 }
+				modifier = {
+					factor = 0
+					From = {
+						NOR = {
+							is_deposit_type = d_radioactive_wasteland
+							is_deposit_type = d_city_ruins
+							is_deposit_type = d_bomb_crater
+							is_deposit_type = d_industrial_forest
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						has_global_flag = mutation_vats_found
+						any_system = {
+							any_system_planet = {
+								exists = archaeological_site
+								archaeological_site = { is_site_type = mutation_vats }
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					OR = {
+						is_nuked = no
+						has_planet_flag = ratling_planet
+					}
+				}
+			}
+   			95 = {
+				modifier = {
+					factor = 10
+					exists = owner
+					owner = { is_ai = yes }
+				}
+			}
    		}
    	}
 }
@@ -2313,131 +2609,6 @@ fleet_event = {
 }
 
 ### The Sentinels  ###
-
-# Gateway event
-planet_event = {
-    id = ancrel.4050
-	hide_window = yes
-
-   	is_triggered_only = yes
-
-   	trigger = {
-   		is_homeworld = no
-   		num_pops > 5
-   		has_ancrel = yes
-		NOT = { exists = archaeological_site }
-   		From = {
-   			OR = {
-   				is_deposit_type = d_dense_jungle
-   				is_deposit_type = d_toxic_kelp
-   				is_deposit_type = d_noxious_swamp
-   				is_deposit_type = d_noxious_swamp_bubbling
-   				is_deposit_type = d_viscous_morass
-   				is_deposit_type = d_massive_glacier
-   				is_deposit_type = d_ice_crust
-   				is_deposit_type = d_exofungus_blocker
-   				is_deposit_type = d_quicksand_basin
-   				is_deposit_type = d_saline_lakes
-   				is_deposit_type = d_impenetrable_taiga
-   				is_deposit_type = d_impassable_erg
-   				is_deposit_type = d_blocked_tunnell
-   			}
-   		}
-   		owner = {
-   			is_ai = no
-   			is_gestalt = no
-   		}
-		NOT = {
-			any_country = {
-				has_country_flag = triggered_the_sentinels_digsite
-			}
-		}
-   	}
-
-   	immediate = {
-   		if = {
-   			limit = {
-   				from = { is_deposit_type = d_dense_jungle }
-   			}
-   			set_planet_flag = sentinels_d_dense_jungle
-   		}
-   		if = {
-   			limit = {
-   				from = { is_deposit_type = d_toxic_kelp }
-   			}
-   			set_planet_flag = sentinels_d_toxic_kelp
-   		}
-   		if = {
-   			limit = {
-   				from = {
-					OR = {
-						is_deposit_type = d_noxious_swamp
-						is_deposit_type = d_noxious_swamp_bubbling
-						is_deposit_type = d_viscous_morass
-					}
-				}
-   			}
-   			set_planet_flag = sentinels_d_noxious_swamp
-   		}
-   		if = {
-   			limit = {
-   				from = {
-					OR = {
-						is_deposit_type = d_massive_glacier
-						is_deposit_type = d_ice_crust
-					}
-				}
-   			}
-   			set_planet_flag = sentinels_d_massive_glacier
-   		}
-		if = {
-   			limit = {
-   				from = { is_deposit_type = d_exofungus_blocker }
-   			}
-   			set_planet_flag = sentinels_d_exofungus_blocker
-   		}
-		if = {
-   			limit = {
-   				from = {
-					OR = {
-						is_deposit_type = d_quicksand_basin
-						is_deposit_type = d_saline_lakes
-					}
-				}
-   			}
-   			set_planet_flag = sentinels_d_quicksand_basin
-   		}
-		if = {
-   			limit = {
-   				from = { is_deposit_type = d_impenetrable_taiga }
-   			}
-   			set_planet_flag = sentinels_d_impenetrable_taiga
-   		}
-		if = {
-   			limit = {
-   				from = { is_deposit_type = d_impassable_erg }
-   			}
-   			set_planet_flag = sentinels_d_impassable_erg
-   		}
-		if = {
-   			limit = {
-   				from = { is_deposit_type = d_blocked_tunnell }
-   			}
-   			set_planet_flag = sentinels_d_blocked_tunnell
-   		}
-   		random_list = {
-   			50 = { 
-   				planet_event = { id = ancrel.4051 days = 1 }
-   				owner = {
-   					set_country_flag = triggered_the_sentinels_digsite
-   				}
-   			}
-
-   			100 = {}
-   		}
-   	}
-}
-
 # Site Discovery
 planet_event = {
     id = ancrel.4051
@@ -2790,7 +2961,7 @@ country_event = {
 		}
 	}
 	option = {
-		name = TASTY
+		name = ancrel.6130.ds
 		exclusive_trigger = { has_valid_civic = civic_hive_devouring_swarm }
 		add_modifier = {
 			modifier = chosen_of_zarqlan

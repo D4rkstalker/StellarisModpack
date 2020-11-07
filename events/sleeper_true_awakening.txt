@@ -1,0 +1,798 @@
+namespace = sleeper_awake
+
+#actual awakening event
+country_event = {
+	id = sleeper_awake.1
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = sleepers_awake_happened
+		set_global_flag = sleeper_true_awakening_happened
+	#change country type and civics
+		set_country_type = awakened_sleeper
+		change_government = {
+			authority = auth_hive_mind
+			civics = { 
+				civic = civic_awoken_hive
+				civic = civic_dilligent_drones 
+			} 
+		}
+	#add resources
+		add_resource = { minerals = 50000 }
+		add_resource = { energy = 50000 }
+		add_resource = { food = 10000 }
+		add_resource = { alloys = 3000 }
+		add_resource = { influence = 1000 }
+		#set policys and rights
+		set_policy = {
+			policy = robot_pop_policy
+			option = robot_pops_outlawed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = slavery
+			option = slavery_allowed
+			cooldown = yes
+		}
+		set_policy = {
+			policy = purge
+			option = purge_allowed
+			cooldown = yes
+		}
+		sleeper_reset_rights = yes
+	#spawn some additional fleets
+		capital_scope = {	
+			sleeper_spawn_construction_ship = yes
+			sleeper_spawn_construction_ship = yes
+			sleeper_spawn_construction_ship = yes
+			spawn_sleeper_colossus = yes
+			spawn_sleeper_fleet = yes
+		}
+		if = {
+			limit = {
+				any_country = {
+					is_country_type = default
+					fleet_power > 200000
+				}
+			}
+			capital_scope = {	
+				spawn_sleeper_fleet = yes
+			}
+		}
+	#Establish communications with everyone
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+					is_country_type = ascended_empire
+				}
+				NOT = { has_communications = root }
+			}
+			establish_communications_no_message = root
+			root = { save_event_target_as = contact_empire }
+			country_event = { id = action.1 }
+		}
+	country_event = { id = sleeper_awake.4 days = 400 } #subject demands
+	country_event = { id = sleeper_awake.10 days = 11000 } #decay event
+	#add negative opinion of everybody who owns a border planet
+		every_planet = {
+			limit = { 
+				has_planet_flag = sleeper_border_planet
+				exists = owner
+				NOT = { 
+					owner = { is_same_value = event_target:the_sleeper }
+				}
+			}
+			owner = {
+				save_event_target_as = drone_planet_owner
+				event_target:the_sleeper = {
+					add_opinion_modifier = {
+						modifier = opinion_owns_drone_world 
+						who = event_target:drone_planet_owner
+					}
+				}
+			}
+		}
+	#remove aggro marker and senate stuff
+		every_playable_country = {
+			remove_modifier = sleeper_aggressor_marker
+			remove_modifier = sleeper_aggressor_reward
+			remove_modifier = sleeper_aggressor_sanctions
+		}
+	#announcement
+		every_country = {
+			limit = {
+				is_ai = no
+			}
+			country_event = { id = sleeper_awake.2 }
+		}
+	#TN-3's fate
+		if = {
+			limit = { any_country = { is_country_type = hive_researcher_enclave } }
+		#roll for everybody who has enough points with Tony.
+			every_country = {
+				limit = {
+					event_target:hive_enclave_country = {
+						trust = {
+							who = PREV
+							value >= 80
+						}
+					}
+				}
+				set_country_flag = tony_likes
+			}
+			country_event = { id = sleeper_tony.1 days = 10 }
+		}
+	}
+}
+#diplo for normal awakening
+country_event = {
+	id = sleeper_awake.2
+	title = sleeper_awake.2.title
+	desc = sleeper_awake.2.desc
+	picture = GFX_evt_fallen_empire
+	show_sound = event_alien_signal
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_awake.2.a
+	}
+	option = {
+		name = sleeper_awake.2.b
+	}
+}
+
+#true awakening gatekeeper. Works just like the vanilla awakening gatekeeper, but changed to only trigger on the sleeper. 
+#If one of them goes off, the other will never trigger since they use the same flags. Better compatability that way, although if any mod changes the vanilla events weights/conditions, one may trigger more often than the other.
+country_event = {
+	id = sleeper_awake.3
+	title = OK
+	desc = OK
+	hide_window = yes
+	trigger = {
+		is_country_type = the_sleeper_fallen			
+		end_game_years_passed >= 0
+		NOT = { has_global_flag = sleepers_awake_happened }
+		NOT = { has_global_flag = guardians_of_the_galaxy_happened }
+		any_owned_planet = { has_planet_flag = sleeper_core_world }
+		fleet_power > 60000
+		# Wake up if regular empire is growing too strong or has started to conquer other fallen empires
+		any_country = {
+			is_country_type = default
+			OR = {
+				fleet_power > 70000
+				AND = {
+					has_federation = yes
+					federation = {
+						fleet_power > 90000
+					}
+				}
+				any_owned_planet = {
+					has_planet_flag = fallen_empire_world
+				}
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		years = 50
+		modifier = {
+			factor = 0.5
+			any_country = {
+				is_country_type = default
+				fleet_power > 120000
+			}
+		}
+		modifier = {
+			factor = 1.5
+			num_fallen_empires > 1
+			num_fallen_empires < 3
+		}
+		modifier = {
+			factor = 2.0
+			num_fallen_empires > 2
+			num_fallen_empires < 4
+		}
+		modifier = {
+			factor = 2.5
+			num_fallen_empires > 3
+		}
+		modifier = {
+			factor = 0.1
+			any_country = {
+				is_country_type = default
+				any_owned_planet = {
+					has_planet_flag = fallen_empire_world
+					NOT = { is_original_owner = root }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		country_event = { id = sleeper_awake.1 }
+		observer_event = { id = observer.73 }
+	#the sleeper will not trigger a war in heaven. I see no reason for any country to logically allign with the sleeper, so it kinda defeats the purpouse of the war in heaven.
+	#if it gets big enough however, the pacifist FE (not implemented yet) will awake. FEs may also become guardians if the sleeper deamnds of them to become a subject
+	}
+}
+#hivemind demands another empire to become its feeder vassal. Since there seems to be no way of creating new diplo actions this workaround is needed.
+#trigger event: chooses a country to demand (neighbors first, then random), triggered on the sleeper
+#if the sleeper declares against an FE, it has a chance to become a guardian of the galaxy (only if its a valid one for that and no other has awakened already). should also work with zenith and twinks
+country_event = {
+	id = sleeper_awake.4
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		sleeper_reset_rights = yes #just in case
+		country_event = { id = sleeper_awake.4 days = 300 random = 600 }
+		if = {
+			limit = {
+				any_neighbor_country = {
+					exists = this
+					OR = {
+						is_country_type = default
+						is_country_type = awakened_fallen_empire
+						is_country_type = fallen_empire
+						is_country_type = lost_empire
+						is_country_type = ascended_empire
+						is_country_type = eternal_empire
+					}
+					is_subject = no
+					is_at_war = no
+					NOT = { has_country_flag = sleeper_rejected }
+				}
+			}
+			random_neighbor_country = {
+				limit = {
+					is_subject = no
+					is_at_war = no
+					OR = {
+						is_country_type = default
+						is_country_type = awakened_fallen_empire
+						is_country_type = fallen_empire
+						is_country_type = lost_empire
+						is_country_type = ascended_empire
+						is_country_type = eternal_empire
+					}
+					NOT = { has_country_flag = sleeper_rejected }
+				}
+				country_event = { id = sleeper_awake.5 days = 1 }
+			}
+		}
+		else_if = {
+			limit = {
+				any_country = {
+					exists = this
+					OR = {
+						is_country_type = default
+						is_country_type = awakened_fallen_empire
+						is_country_type = fallen_empire
+						is_country_type = lost_empire
+						is_country_type = ascended_empire
+						is_country_type = eternal_empire
+					}
+					is_subject = no
+					is_at_war = no
+					NOT = { has_country_flag = sleeper_rejected }
+				}
+			}
+			random_country = {
+				limit = {
+					OR = {
+						is_country_type = default
+						is_country_type = awakened_fallen_empire
+						is_country_type = fallen_empire
+						is_country_type = lost_empire
+						is_country_type = ascended_empire
+						is_country_type = eternal_empire
+					}
+					is_subject = no
+					is_at_war = no
+					NOT = { has_country_flag = sleeper_rejected }
+				}
+				country_event = { id = sleeper_awake.5 days = 1 }
+			}
+		}
+		else = {
+		}
+	}
+}
+#the coice. AIs outcome will be randomized based on their situation and ethics
+country_event = {
+	id = sleeper_awake.5
+	title = sleeper_awake.5.title
+	desc = {
+		text = sleeper_awake.5.desc.norm
+		trigger = {
+			NOT = {
+				has_ethic = ethic_gestalt_consciousness
+			}
+		}
+	}
+	desc = {
+		text = sleeper_awake.5.desc.gest
+		trigger = {
+			has_ethic = ethic_gestalt_consciousness
+		}
+	}
+	diplomatic = yes
+	picture_event_data = { 
+		portrait = event_target:contact_empire 
+		room = event_target:contact_empire 
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:the_sleeper = {
+			save_event_target_as = contact_empire
+		}
+		save_event_target_as = submitter
+		if = {
+			limit = {
+				is_ai = yes
+			}
+			random_list = {
+			#ai submits
+				40 = {
+					set_subject_of = {
+						who = event_target:contact_empire 
+						subject_type = feeder_vassal
+					}
+					every_subject = {
+						set_subject_of = {
+							who = event_target:contact_empire 
+							subject_type = feeder_vassal
+						}
+					}
+					every_playable_country = {
+						limit = {
+							NOT = { is_same_value = event_target:submitter }
+							is_ai = no
+						}
+						country_event = { id = sleeper_awake.9 }
+					}
+				#mods
+					modifier = {
+						factor = 0
+						OR = {
+							has_ethic = ethic_gestalt_consciousness
+							is_homicidal = yes
+							is_country_type = awakened_fallen_empire
+							is_country_type = fallen_empire
+						}
+					}
+				#if Ai has eq or better fleet, they will almost never submit
+					modifier = {
+						factor = 0.5
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value = equivalent
+						}
+					}
+					modifier = {
+						factor = 0
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value > equivalent
+						}
+					}
+					modifier = {
+						factor = 0.6
+						OR = {
+							is_militarist = yes
+							is_xenophobe = yes
+							is_egalitarian = yes
+						}
+					}
+					modifier = {
+						factor = 2
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value < inferior
+						}
+					}
+					modifier = {
+						factor = 1.5
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value = inferior
+						}
+					}
+				}
+			#ai resists or is not eligible for subjugation
+				40 = {
+					set_country_flag = sleeper_rejected
+					event_target:contact_empire = {
+						add_opinion_modifier = {
+							modifier = opinion_reyected_feeder_vassal 
+							who = event_target:submitter
+						}
+					}
+				#mods
+					modifier = {
+						factor = 0
+						OR = {
+							is_country_type = awakened_fallen_empire
+							is_country_type = fallen_empire
+						}
+					}
+					modifier = {
+						factor = 2
+						OR = {
+							is_homicidal = yes
+						}
+					}
+					modifier = {
+						factor = 2
+						OR = {
+							is_militarist = yes
+							is_xenophobe = yes
+							is_egalitarian = yes
+						}
+					}
+					modifier = {
+						factor = 2
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value = equivalent
+						}
+					}
+					modifier = {
+						factor = 3
+						relative_power = { 
+							who = event_target:contact_empire  
+							category = fleet
+							value > equivalent
+						}
+					}
+				}
+			#empire is a FE/AE
+				40 = {
+			#awaken guardians, but only once
+					if = {
+						limit = {
+							is_country_type = fallen_empire
+							OR = {
+								has_ethic = ethic_fanatic_materialist
+								has_ethic = ethic_fanatic_xenophile
+								has_country_flag = guardians_of_the_galaxy
+							}
+							fleet_power > 40000
+							NOT = { has_global_flag = guardians_of_the_galaxy_happened }
+						}
+						set_country_flag = guardians_of_the_galaxy
+						set_timed_country_flag = { flag = timed_guardians_of_the_galaxy days = 1825 }
+						set_timed_country_flag = { flag = timed_guardians_of_the_galaxy_2 days = 3650 }
+						set_global_flag = guardians_of_the_galaxy_happened
+						country_event = { id = fallen_empires_awakening.3 }
+						save_event_target_as = fe_guardians
+						every_country = {
+							limit = {
+								is_country_type = default
+							}
+							random_list = {
+								33 = { add_opinion_modifier = { who = root modifier = opinion_crisis_fighter } }
+								33 = { add_opinion_modifier = { who = root modifier = opinion_crisis_fighter_small } }
+								33 = { }
+							}
+						}
+						# Notify
+						every_country = {
+							limit = { is_ai = no }
+							country_event = { id = sleeper_awake.11 }
+						}
+						observer_event = { id = observer.74 }
+					}
+					declare_war = {
+						target = event_target:the_sleeper
+						attacker_war_goal = wg_end_threat_sleeper
+					}
+				#mods
+					modifier = {
+						factor = 0
+						NOR = {
+							is_country_type = awakened_fallen_empire
+							is_country_type = fallen_empire
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = sleeper_awake.5.ai_option
+		trigger = { 
+			is_ai = yes
+		}
+		ai_chance = { factor = 100 }
+	}
+
+#submit...
+	option = {
+		name = sleeper_awake.5.a
+		custom_tooltip = sleeper_awake.5.a.tooltip
+		trigger = {
+			NOR = {
+				is_ai = yes
+				has_ethic = ethic_gestalt_consciousness
+				is_country_type = lost_empire
+				is_country_type = ascended_empire
+				is_country_type = eternal_empire
+				is_country_type = awakened_fallen_empire
+				is_country_type = fallen_empire
+			}
+		}
+		set_subject_of = {
+			who = event_target:contact_empire 
+			subject_type = feeder_vassal
+		}
+		every_subject = {
+			set_subject_of = {
+				who = event_target:contact_empire 
+				subject_type = feeder_vassal
+			}
+		}
+		hidden_effect = {
+			if = { 
+				limit = { num_pops > 8 }
+				event_target:the_sleeper = {
+					add_modifier = { modifier = sleeper_food_thrall_gain days = -1 }
+					random_owned_planet = {
+						limit = {
+							has_planet_flag = sleeper_farms
+						}
+						save_event_target_as = food_shipping_planet
+					}
+				}
+				if = {
+					limit = { exists = event_target:food_shipping_planet }
+					while = {
+						count = 8
+						random_owned_pop = {
+							limit = {
+								species = {
+									NOR = {
+										has_trait = trait_mechanical
+										has_trait = trait_machine_unit
+										is_species_class = ROBOT
+										has_trait = trait_hive_mind
+									}
+								}
+							}
+							resettle_pop = {
+								pop = THIS
+								planet = event_target:food_shipping_planet
+							}
+						}
+					}
+				}
+			}
+		#notify players about submission
+			every_playable_country = {
+				limit = {
+					NOT = { is_same_value = event_target:submitter }
+					is_ai = no
+				}
+				country_event = { id = sleeper_awake.9 }
+			}
+		}
+		ai_chance = { factor = 0 }
+	}
+	
+#...or resist
+	option = {
+		name = sleeper_awake.5.b
+		custom_tooltip = sleeper_awake.5.b.tooltip
+		trigger = {
+			NOR = {
+				is_ai = yes
+				has_ethic = ethic_gestalt_consciousness
+				is_homicidal = yes
+				is_country_type = lost_empire
+				is_country_type = ascended_empire
+				is_country_type = eternal_empire
+				is_country_type = awakened_fallen_empire
+				is_country_type = fallen_empire
+			}
+		}
+		event_target:contact_empire = {
+			add_opinion_modifier = {
+				modifier = opinion_reyected_feeder_vassal 
+				who = event_target:submitter
+			}
+		}
+		hidden_effect = {
+			set_country_flag = sleeper_rejected
+		}
+		ai_chance = { factor = 0 }
+	}
+#or you are not eligible for subjugation
+	option = {
+		name = sleeper_awake.5.c
+		custom_tooltip = sleeper_awake.5.c.tooltip
+		trigger = {
+			has_ethic = ethic_gestalt_consciousness
+			NOR = {
+				is_ai = yes
+				is_country_type = lost_empire
+				is_country_type = ascended_empire
+				is_country_type = eternal_empire
+				is_country_type = awakened_fallen_empire
+				is_country_type = fallen_empire
+			}
+		}
+		hidden_effect = {
+			event_target:contact_empire = {
+				add_opinion_modifier = {
+					modifier = opinion_gestalt_threat 
+					who = event_target:submitter
+				}
+			}
+		}
+		ai_chance = { factor = 0 }
+	}
+	
+	after = {
+		country_event = { id = sleeper_awake.7 }
+	}
+}
+#answer
+country_event = {
+	id = sleeper_awake.7
+	title = sleeper_awake.5.title
+	desc = {
+		text = sleeper_awake.7.desc.free
+		trigger = {
+			is_subject = no
+		}
+	}
+	desc = {
+		text = sleeper_awake.7.desc.sub
+		trigger = {
+			is_subject = yes
+		}
+	}
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:contact_empire 
+		room = event_target:contact_empire 
+	}
+	
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:the_sleeper = {
+			save_event_target_as = contact_empire
+		}
+	}
+	
+	option = {
+		name = sleeper_awake.7.a
+		trigger = {
+			is_subject = no
+		}
+	}
+
+	option = {
+		name = sleeper_awake.7.b
+		trigger = {
+			is_subject = yes
+		}
+	}
+}
+#add subject penalty, triggered through on_becoming_subject and on_war_lost on action.
+# This = subject
+# From = subject's overlord
+country_event = {
+	id = sleeper_awake.6
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = { is_country_type = awakened_sleeper }
+	}
+
+	immediate = {
+		if = {
+			limit = { 
+				NOT = { has_modifier = sleeper_food_thrall_penalty }
+			}
+			add_modifier = { modifier = sleeper_food_thrall_penalty days = -1 }
+			event_target:the_sleeper = {
+				add_modifier = { modifier = sleeper_food_thrall_gain days = -1 }
+			}
+		}
+		if = {
+			limit = { 
+				has_country_flag = sleeper_rejected
+			}
+			remove_country_flag = sleeper_rejected
+		}
+	}
+}
+#remove subject penalty, triggered through on action.
+# This = country
+# From = opponent war leader
+country_event = {
+	id = sleeper_awake.8
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = { is_country_type = awakened_sleeper }
+	}
+
+	immediate = {
+		remove_modifier = sleeper_food_thrall_penalty
+		event_target:the_sleeper = {
+			remove_modifier = sleeper_food_thrall_gain
+		}
+	}
+}
+#message for player that another empire caved
+country_event = {
+	id = sleeper_awake.9
+	title = sleeper_awake.9.title
+	desc = sleeper_awake.9.desc
+	picture = GFX_evt_alien_segregation
+	show_sound = event_public_unrest
+	location = event_target:submitter.capital_scope
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_awake.9.a
+	}
+	option = {
+		name = sleeper_awake.9.b
+	}
+}
+#the sleeper has soemthing similar to decadence. Instead of lowering resources, it will add an deviancy multiplier and wandering drone jobs to its planets, starting 30 years after its awakening.
+#repeats every 3 years
+country_event = {
+	id = sleeper_awake.10
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		add_modifier = { modifier = sleeper_decay days = -1 }
+		country_event = { id = sleeper_awake.10 days = 1095 }
+	}
+}
+
+country_event = {
+	id = sleeper_awake.11
+	title = sleeper_awake.11.title
+	desc = sleeper_awake.11.desc
+	picture = GFX_evt_fallen_empire
+	show_sound = event_alien_signal
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = sleeper_awake.11.a
+	}
+	option = {
+		name = sleeper_awake.11.b
+	}
+}

@@ -75,6 +75,7 @@ macro_test_site_0 = {
 		modifier = { factor = 1.25	from = { has_civic = civic_technocracy } }
 
 		# How many of this megastructure can the AI build?
+		modifier = { factor = 0.00 from = { has_country_flag = has_recently_built_macro_test_site } }
 		modifier = { factor = 0.00 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = macro_test_site_1 is_megastructure_type = macro_test_site_restored } } count > 5 } } }
 		modifier = { factor = 0.15 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = macro_test_site_1 is_megastructure_type = macro_test_site_restored } } count = 5 } } }
 		modifier = { factor = 0.30 from = { count_owned_megastructure = { limit = { OR = { is_megastructure_type = macro_test_site_1 is_megastructure_type = macro_test_site_restored } } count = 4 } } }
@@ -94,15 +95,16 @@ macro_test_site_0 = {
 
 	on_build_complete = {
 		save_event_target_as = giga_system
-		fromfrom.planet = { save_event_target_as = giga_planet }
-		from = {
-			country_event = { id = giga_dialog.401 }	# Notification
-			change_variable = { which = giga_current_megabase value = 1 }
-		}
 		fromfrom.planet = {
+			save_event_target_as = giga_planet
 			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
 			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
 			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
+		}
+		from = {
+			set_timed_country_flag = { flag = has_recently_built_macro_test_site years = 20 }
+			country_event = { id = giga_dialog.401 }	# Notification
+			change_variable = { which = giga_current_megabase value = 1 }
 		}
 	}
 }
@@ -133,7 +135,10 @@ macro_test_site_1 = {
 		save_event_target_as = giga_system
 		fromfrom.planet = { save_event_target_as = giga_planet }
 		from = {
-			country_event = { id = giga_dialog.402 }	# Notification
+			if = {
+				limit = { NOT = { has_country_flag = giga_repaired_mega_no_dialog } }
+				country_event = { id = giga_dialog.402 }				# Notification
+			}
 			if = {
 				limit = { NOT = { has_modifier = testbuff } }
 				add_modifier = { modifier = "testbuff" days = -1 }
@@ -199,7 +204,10 @@ macro_test_site_restored = {
 	}
 
 	potential = { NOT = { has_global_flag = megabase_disabled } }
-	possible = { from = { has_technology = giga_tech_engineering_test_site } }
+	possible = {
+		exists = from
+		from = { has_technology = giga_tech_engineering_test_site }
+	}
 
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
@@ -212,7 +220,7 @@ macro_test_site_restored = {
 				add_modifier = { modifier = "testbuff" days = -1 }
 			}
 		}
-		every_system_ambient_object = { destroy_ambient_object = this }
+		giga_remove_system_debris = yes
 		spawn_megastructure = { type = "macro_test_site_1" owner = from location = fromfrom.planet }
 		remove_megastructure = fromfrom
 	}

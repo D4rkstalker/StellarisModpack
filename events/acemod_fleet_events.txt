@@ -444,7 +444,8 @@ fleet_event = {
 		}
 		save_event_target_as = acemod_event_target_invader_fleet
 		set_fleet_stance = aggressive
-		set_fleet_bombardment_stance = indiscriminate		# Vanilla has selective on default
+		set_fleet_bombardment_stance = indiscriminate		# For backwards compatibility with pre 2.8
+		set_fleet_bombardment_stance = armageddon		# Vanilla has selective on default
 		set_aggro_range_measure_from = self
 		set_aggro_range = 800		# Longer aggro range, same as for pirate systems (default 500)
 		queue_actions = {
@@ -525,7 +526,8 @@ fleet_event = {
 		}
 		save_event_target_as = acemod_event_target_invader_fleet
 		set_fleet_stance = aggressive
-		set_fleet_bombardment_stance = indiscriminate		# Vanilla has selective on default
+		set_fleet_bombardment_stance = indiscriminate		# For backwards compatibility with pre 2.8
+		set_fleet_bombardment_stance = armageddon		# Vanilla has selective on default
 		set_aggro_range_measure_from = self
 		set_aggro_range = 800		# Longer aggro range, same as for pirate systems (default 500)
 		queue_actions = {
@@ -1590,168 +1592,178 @@ fleet_event = {
 				}
 			}
 			save_event_target_as = acemod_event_target_invader_army
-			queue_actions = {
-				find_closest_planet = {
-					trigger = {
-						id = "acemod.405.t1"
-						is_colony = yes
-						# is_under_colonization =  yes	#	Cannot be invaded.
-						NOT = {
-							has_planet_flag = acemod_planet_flag_army_target
-						}
-						NOT = {
-							is_owned_by = root.owner
-						}
-						NOT = {
-							is_controlled_by = root.owner
-						}
-						# Crisis worlds cannot (legally) and shouldn't (to avoid the bug) be invaded.
-						NOR = {
-							is_planet_class = pc_infested
-							is_planet_class = pc_ai
-						}
-					}
-					found_planet = {
-						effect = {
-							id = "acemod.405.e1"
-							save_event_target_as = acemod_event_target_invader_army_target
-							set_timed_planet_flag = {
-								flag = acemod_planet_flag_army_target
-								days = 120
+			if = {
+				limit = {
+					exists = event_target:acemod_event_target_invader_army
+				}
+				queue_actions = {
+					find_closest_planet = {
+						trigger = {
+							id = "acemod.405.t1"
+							is_colony = yes
+							# is_under_colonization =  yes	#	Cannot be invaded.
+							NOT = {
+								has_planet_flag = acemod_planet_flag_army_target
+							}
+							NOT = {
+								is_owned_by = root.owner
+							}
+							NOT = {
+								is_controlled_by = root.owner
+							}
+							# Crisis worlds cannot (legally) and shouldn't (to avoid the bug) be invaded.
+							NOR = {
+								is_planet_class = pc_infested
+								is_planet_class = pc_ai
 							}
 						}
-						move_to = this
-						wait = 5
-						orbit_planet = this
-						effect = {
-							id = "acemod.405.e2"
-							root = {
-								# fleet = {
-								# 	leader = {
-								# 		save_event_target_as = acemod_event_target_invader_army_leader
-								# 		unassign_leader = this
-								# 	}
-								# }
-								if = {
-									limit = {
+						found_planet = {
+							effect = {
+								id = "acemod.405.e1"
+								save_event_target_as = acemod_event_target_invader_army_target
+								set_timed_planet_flag = {
+									flag = acemod_planet_flag_army_target
+									days = 120
+								}
+							}
+							move_to = this
+							wait = 5
+							orbit_planet = this
+							effect = {
+								id = "acemod.405.e2"
+								root = {
+									# fleet = {
+									# 	leader = {
+									# 		save_event_target_as = acemod_event_target_invader_army_leader
+									# 		unassign_leader = this
+									# 	}
+									# }
+									if = {
+										limit = {
+											owner = {
+												is_country_type = swarm
+											}
+										}
 										owner = {
-											is_country_type = swarm
-										}
-									}
-									owner = {
-										save_event_target_as = invader_owner
-										owner_species = {
-											save_event_target_as = prethoryn_species
-										}
-									}
-									every_owned_ship = {
-										prevprev = {
-											create_army = {
-												name = "NAME_Prethoryn_Invaders"
-												owner = root.owner
-												type = "swarm_army"
-												species = event_target:prethoryn_species
+											save_event_target_as = invader_owner
+											owner_species = {
+												save_event_target_as = prethoryn_species
 											}
 										}
+										every_owned_ship = {
+											prevprev = {
+												create_army = {
+													name = "NAME_Prethoryn_Invaders"
+													owner = root.owner
+													type = "swarm_army"
+													species = event_target:prethoryn_species
+												}
+											}
+										}
+										# Does not work.
+										# prev = {
+										# 	random_planet_army = {
+										# 		limit = {
+										# 			is_owned_by = event_target:invader_owner
+										# 		}
+										# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+										# 	}
+										# }
+										delete_fleet = {
+											target = this
+											kill_leader = no
+											destroy_template = no
+										}
+										break = yes
 									}
-									# Does not work.
-									# prev = {
-									# 	random_planet_army = {
-									# 		limit = {
-									# 			is_owned_by = event_target:invader_owner
-									# 		}
-									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
-									# 	}
-									# }
-									delete_fleet = {
-										target = this
-										kill_leader = no
-										destroy_template = no
-									}
-									break = yes
-								}
-								if = {
-									limit = {
+									if = {
+										limit = {
+											owner = {
+												is_country_type = ai_empire
+											}
+										}
 										owner = {
-											is_country_type = ai_empire
-										}
-									}
-									owner = {
-										owner_species = {
-											save_event_target_as = custodian_bot
-										}
-									}
-									every_owned_ship = {
-										prevprev = {
-											create_army = {
-												name = "NAME_Contingency"
-												owner = root.owner
-												type = "robotic_army"
-												species = event_target:custodian_bot
+											owner_species = {
+												save_event_target_as = custodian_bot
 											}
 										}
+										every_owned_ship = {
+											prevprev = {
+												create_army = {
+													name = "NAME_Contingency"
+													owner = root.owner
+													type = "robotic_army"
+													species = event_target:custodian_bot
+												}
+											}
+										}
+										# Does not work.
+										# prev = {
+										# 	random_planet_army = {
+										# 		limit = {
+										# 			is_owned_by = event_target:invader_owner
+										# 		}
+										# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+										# 	}
+										# }
+										delete_fleet = {
+											target = this
+											kill_leader = no
+											destroy_template = no
+										}
+										break = yes
 									}
-									# Does not work.
-									# prev = {
-									# 	random_planet_army = {
-									# 		limit = {
-									# 			is_owned_by = event_target:invader_owner
-									# 		}
-									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
-									# 	}
-									# }
-									delete_fleet = {
-										target = this
-										kill_leader = no
-										destroy_template = no
+									else = {
+										owner = {
+											owner_species = {
+												save_event_target_as = invader_species
+											}
+										}
+										every_owned_ship = {
+											prevprev = {
+												create_army = {
+													name = "%O% Expeditionary Force"
+													owner = root.owner
+													type = "assault_army"
+													species = event_target:invader_species
+												}
+											}
+										}
+										# Does not work.
+										# prev = {
+										# 	random_planet_army = {
+										# 		limit = {
+										# 			is_owned_by = event_target:invader_owner
+										# 		}
+										# 		assign_leader = event_target:acemod_event_target_invader_army_leader
+										# 	}
+										# }
+										delete_fleet = {
+											target = this
+											kill_leader = no
+											destroy_template = no
+										}
+										break = yes
 									}
-									break = yes
 								}
-								else = {
-									owner = {
-										owner_species = {
-											save_event_target_as = invader_species
-										}
+							}
+						}
+						failed = {
+							effect = {
+								id = "acemod.405.e3"
+								root = {
+									fleet_event = {
+										id = acemod_fleet.410
 									}
-									every_owned_ship = {
-										prevprev = {
-											create_army = {
-												name = "%O% Expeditionary Force"
-												owner = root.owner
-												type = "assault_army"
-												species = event_target:invader_species
-											}
-										}
-									}
-									# Does not work.
-									# prev = {
-									# 	random_planet_army = {
-									# 		limit = {
-									# 			is_owned_by = event_target:invader_owner
-									# 		}
-									# 		assign_leader = event_target:acemod_event_target_invader_army_leader
-									# 	}
-									# }
-									delete_fleet = {
-										target = this
-										kill_leader = no
-										destroy_template = no
-									}
-									break = yes
 								}
 							}
 						}
 					}
-					failed = {
-						effect = {
-							id = "acemod.405.e3"
-							root = {
-								fleet_event = {
-									id = acemod_fleet.410
-								}
-							}
-						}
-					}
+				}
+			}
+			else = {
+				fleet_event = {
+					id = acemod_fleet.410
 				}
 			}
 		}
