@@ -44,16 +44,31 @@ nicoll_beam_0 = {
 
 	on_build_complete = {
 		save_event_target_as = giga_system
-		fromfrom.planet = { save_event_target_as = giga_planet }
-		from = {
-			country_event = { id = giga_dialog.3201 }	# Notification
-			change_variable = { which = giga_current_ndb value = 1 }
-		}
 		fromfrom.planet = {
+			save_event_target_as = giga_planet
 			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
 			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
 			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
 			set_planet_flag = cant_build_here
+			set_planet_flag = cant_target_this_planet
+		}
+		every_system = {
+			limit = {
+				distance = {
+					source = prev
+					use_bypasses = no
+					min_jumps = 1
+					max_jumps = 4
+				}
+			}
+			every_system_planet = {
+				set_planet_flag = cant_build_here
+				set_planet_flag = cant_target_this_planet
+			}
+		}
+		from = {
+			country_event = { id = giga_dialog.3201 }	# Notification
+			change_variable = { which = giga_current_ndb value = 1 }
 		}
 	}
 }
@@ -181,9 +196,12 @@ nicoll_beam_4 = {
 		save_event_target_as = giga_system
 		fromfrom.planet = { save_event_target_as = giga_planet }
 		from = {
-			country_event = { id = giga_dialog.3205 }	# Notification
-			country_event = { id = giga_dialog.3206 }	# Notification
-			set_country_flag = giga_ndb_completed
+			if = {
+				limit = { NOT = { has_country_flag = giga_ndb_completed } }
+				country_event = { id = giga_dialog.3205 }	# Notification
+				country_event = { id = giga_dialog.3206 }	# Notification
+				set_country_flag = giga_ndb_completed
+			}
 		}
 		set_star_flag = giga_ndb_system@from
 	}
@@ -236,9 +254,8 @@ nicoll_beam_f9 = {	entity = "giga_ndb_firing_9_entity"	portrait = "GFX_megastruc
 ### Gates ######################
 ################################
 # Owner
-#NDB ORIGINAL X = 220
-nicoll_beam_side_gate = { entity = "giga_ndb_owner_gate_closed_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 129.25 y = 0 } upgrade_desc = hide potential = { always = no } }
-nicoll_beam_side_gate_1 = { entity = "giga_ndb_owner_gate_open_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 129.25 = 0 } upgrade_from = { nicoll_beam_side_gate } upgrade_desc = hide potential = { always = no } }
+nicoll_beam_side_gate = { entity = "giga_ndb_owner_gate_closed_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 220 y = 0 } upgrade_desc = hide potential = { always = no } }
+nicoll_beam_side_gate_1 = { entity = "giga_ndb_owner_gate_open_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 220 y = 0 } upgrade_from = { nicoll_beam_side_gate } upgrade_desc = hide potential = { always = no } }
 
 # Enemy
 nicoll_beam_gate = {
@@ -268,18 +285,18 @@ nicoll_beam_gate = {
 			has_ascension_perk = ap_gigastructural_constructs
 			has_technology = giga_tech_ndb_4
 		}
-		custom_tooltip = { fail_text = "requires_ndb_mega"						from = { any_owned_megastructure = { is_megastructure_type = nicoll_beam_4 } } }
-		custom_tooltip = { fail_text = "already_have_target"			NOT = { from = { has_country_flag = giga_ndb_target_acquired@root } } }
-		custom_tooltip = { fail_text = "cant_build_here"				NOT = { any_system_planet = { is_planet_class = pc_ai } } }
-		custom_tooltip = { fail_text = "cant_build_here_ehof"			NOT = { any_system_planet = { has_planet_flag = cant_build_here } } }
-		custom_tooltip = { fail_text = "requires_no_black_hole_nicoll"	NOT = { is_star_class = sc_black_hole } }
+		custom_tooltip = { fail_text = "requires_ndb_mega"					from = { any_owned_megastructure = { is_megastructure_type = nicoll_beam_4 } } }
+		custom_tooltip = { fail_text = "already_have_target"				NOT = { from = { has_country_flag = giga_ndb_target_acquired@root } } }
+		custom_tooltip = { fail_text = "cant_build_here"					NOT = { any_system_planet = { is_planet_class = pc_ai } } }
+		custom_tooltip = { fail_text = "cant_build_here_ehof"				NOT = { any_system_planet = { has_planet_flag = cant_build_here } } }
 	}
 
 	placement_rules = {
 		planet_possible = {
-			custom_tooltip = { fail_text = "requires_no_contingency"	NOT = { is_planet_class = pc_ai } }
-			custom_tooltip = { fail_text = "requires_no_quberine"		NOT = { is_planet_class = pc_squareworld_habitable } }
-			custom_tooltip = { fail_text = "must_build_around_star"		is_star = yes }
+			custom_tooltip = { fail_text = "requires_no_contingency"		NOT = { is_planet_class = pc_ai } }
+			custom_tooltip = { fail_text = "requires_no_quberine"			NOT = { is_planet_class = pc_squareworld_habitable } }
+			custom_tooltip = { fail_text = "must_build_around_star"			is_star = yes }
+			custom_tooltip = { fail_text = "requires_standard_planet_class"	giga_is_standard_star = yes }
 		}
 	}
 
@@ -294,9 +311,8 @@ nicoll_beam_gate = {
 		from = { set_country_flag = giga_ndb_target_acquired@root.from }
 	}
 }
-#NDB ORIGINAL Y = 60
-nicoll_beam_gate_1 = { entity = "giga_ndb_enemy_gate_open_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 0 y = 8.75 } upgrade_from = { nicoll_beam_gate }		upgrade_desc = hide potential = { always = no } }
-nicoll_beam_gate_2 = { entity = "giga_ndb_enemy_gate_firing_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 0 y = 8.75 } upgrade_from = { nicoll_beam_gate_1 }	upgrade_desc = hide potential = { always = no } }
+nicoll_beam_gate_1 = { entity = "giga_ndb_enemy_gate_open_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 0 y = 60 } upgrade_from = { nicoll_beam_gate }		upgrade_desc = hide potential = { always = no } }
+nicoll_beam_gate_2 = { entity = "giga_ndb_enemy_gate_firing_entity"	portrait = "GFX_megastructure_construction_background" entity_offset = { x = 0 y = 60 } upgrade_from = { nicoll_beam_gate_1 }	upgrade_desc = hide potential = { always = no } }
 
 ################################
 ### Planet Marker ##############

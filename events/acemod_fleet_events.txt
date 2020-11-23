@@ -23,6 +23,7 @@ namespace = acemod_fleet
 # set_country_flag = acemod_country_flag_disabled_army_ai						country				Disables ACEMOD AI for army fleets.
 # set_country_flag = acemod_country_flag_disabled_colonizer_ai					country				Disables ACEMOD AI for colonizer fleets.
 #
+# set_global_flag = acemod_constructor_reinforcements_disabled					global				Disables constructor reinforcements for all countries.
 # set_country_flag = acemod_constructor_reinforcements							country				Enables constructor reinforcements for given country. Vanilla crisis countries receive them by default. Requires acemod_assisted_ai country flag.
 # acemod_set_country_constructor_reinforcements_exclusion_on = yes				country				Prevents ACEMOD from issuing constructor reinforcements.
 # acemod_set_country_constructor_reinforcements_exclusion_off = yes				country				Resumes default operation.
@@ -94,6 +95,18 @@ event = {
 			}
 			set_global_flag = acemod_activated
 			set_country_flag = acemod_assisted_ai
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = acemod_constructor_reinforcements_disabled
+						check_variable = {
+							which = acemod_var_country_constructor_reinforcements_exclusion
+							value = 1
+						}
+					}
+				}
+				set_country_flag = acemod_constructor_reinforcements
+			}
 		}
 	}
 }
@@ -332,7 +345,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -359,7 +372,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -465,7 +478,7 @@ fleet_event = {
 					# 				any_system_megastructure = {
 					# 					is_megastructure_type = gateway_final
 					# 					is_megastructure_type = gateway_restored
-					# 					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					# 					is_megastructure_type = lgate_base
 					# 				}
 					# 				acemod_is_active_bypass = yes
 					# 			}
@@ -551,7 +564,7 @@ fleet_event = {
 					# 				any_system_megastructure = {
 					# 					is_megastructure_type = gateway_final
 					# 					is_megastructure_type = gateway_restored
-					# 					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					# 					is_megastructure_type = lgate_base
 					# 				}
 					# 				acemod_is_active_bypass = yes
 					# 			}
@@ -566,6 +579,92 @@ fleet_event = {
 				# 		log = "ACEMOD_log: acemod.112.e2 Military fleet failed to find system via fallback script."
 				# 	}
 				# }
+			}
+			effect = {
+				id = acemod.112.e3
+				root = {
+					if = {
+						limit = {
+							is_fleet_idle = yes
+						}
+						# log = "ACEMOD_log: acemod.111.e2 Military fleet failed to find system via standard script and executed fallback script."
+						fleet_event = {
+							id = acemod_fleet.113
+							days = 5
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Seeks L-Cluster system to park.
+fleet_event = {
+	id = acemod_fleet.113
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		queue_actions = {
+			find_random_system = {
+				trigger = {
+					id = "acemod.113.t1"
+					has_star_flag = lcluster
+					has_access_fleet = root.owner
+					any_fleet_in_system = {
+						owner = {
+							is_hostile = root.owner
+						}
+						fleet_power > 0
+					}
+					NOT = {
+						has_star_flag = acemod_star_flag_solar_system_target
+					}
+				}
+				found_system = {
+					effect = {
+						id = "acemod.113.e1"
+						set_timed_star_flag = {
+							flag = acemod_star_flag_solar_system_target
+							days = 120
+						}
+					}
+					move_to = this
+				}
+				failed = {
+					effect = {
+						id = "acemod.113.e3"
+						queue_actions = {
+							find_random_system = {
+								trigger = {
+									id = "acemod.113.t3"
+									exists = owner
+									owner = {
+										NOR = {
+											is_same_value = root.owner
+											is_country_type = fallen_empire
+										}
+									}
+									NOR = {
+										has_star_flag = lcluster
+										has_star_flag = acemod_star_flag_solar_system_target
+									}
+									has_access_fleet = root.owner
+								}
+								found_system = {
+									effect = {
+										id = "acemod.113.e4"
+										set_timed_star_flag = {
+											flag = acemod_star_flag_solar_system_target
+											days = 120
+										}
+									}
+									move_to = this
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1023,7 +1122,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -1050,7 +1149,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -1204,28 +1303,41 @@ fleet_event = {
 }
 
 # Constructor reinforcements.
-country_event = {
+event = {
 	id = acemod_fleet.350
 	hide_window = yes
 	is_triggered_only = yes
 	trigger = {
 		has_global_flag = acemod_activated
-		has_country_flag = acemod_assisted_ai
-		OR = {
-			is_country_type = swarm
-			is_country_type = extradimensional
-			is_country_type = extradimensional_2
-			is_country_type = extradimensional_3
-			is_country_type = ai_empire
-			has_country_flag = acemod_constructor_reinforcements
-		}
 		NOT = {
-			check_variable = {
-				which = acemod_var_country_constructor_reinforcements_exclusion
-				value = 1
+			has_global_flag = acemod_constructor_reinforcements_disabled
+		}
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai
+				has_country_flag = acemod_constructor_reinforcements
+				NOT = {
+					check_variable = {
+						which = acemod_var_country_constructor_reinforcements_exclusion
+						value = 1
+					}
+				}
+			}
+			country_event = {
+				id = acemod_fleet.351				# Delayed for performance.
+				days = 20
+				random = 5
 			}
 		}
 	}
+}
+
+country_event = {
+	id = acemod_fleet.351
+	hide_window = yes
+	is_triggered_only = yes
 	immediate = {
 		if = {
 			limit = {
@@ -1234,7 +1346,7 @@ country_event = {
 					limit = {
 						is_ship_size = construction_ship_swarm
 					}
-					count < 20
+					count < 10
 				}
 			}
 			if = {
@@ -1246,7 +1358,7 @@ country_event = {
 				save_event_target_as = acemod_prethoryn
 			}
 			while = {
-				count = 5
+				count = 2
 				random_owned_ship = {
 					save_event_target_as = acemod_constructor_respawn_system
 				}
@@ -1284,12 +1396,9 @@ country_event = {
 			every_owned_planet = {
 				limit = {
 					is_planet_class = pc_ai
-					NOT = {
-						has_planet_flag = machine_lair
-					}
 				}
 				planet_event = {
-					id = acemod_fleet.351
+					id = acemod_fleet.352
 				}
 			}
 			break = yes
@@ -1305,7 +1414,7 @@ country_event = {
 					limit = {
 						is_ship_size = construction_ship_ed
 					}
-					count < 20
+					count < 10
 				}
 			}
 			if = {
@@ -1325,7 +1434,7 @@ country_event = {
 						}
 					}
 					while = {
-						count = 5
+						count = 2
 						create_fleet = {
 							effect = {
 								set_owner = ROOT
@@ -1362,7 +1471,7 @@ country_event = {
 						}
 					}
 					while = {
-						count = 5
+						count = 2
 						create_fleet = {
 							effect = {
 								set_owner = ROOT
@@ -1399,7 +1508,7 @@ country_event = {
 						}
 					}
 					while = {
-						count = 5
+						count = 2
 						create_fleet = {
 							effect = {
 								set_owner = ROOT
@@ -1424,6 +1533,19 @@ country_event = {
 		if = {
 			limit = {
 				has_country_flag = acemod_constructor_reinforcements
+				NOR = {
+					is_country_type = swarm
+					is_country_type = extradimensional
+					is_country_type = extradimensional_2
+					is_country_type = extradimensional_3
+					is_country_type = ai_empire
+				}
+				NOT = {
+					check_variable = {
+						which = acemod_var_country_constructor_reinforcements_exclusion
+						value = 1
+					}
+				}
 			}
 			random_system_within_border = {
 				limit = {
@@ -1458,7 +1580,7 @@ country_event = {
 
 # Constructor reinforcements spawn in AI hub systems.
 planet_event = {
-	id = acemod_fleet.351
+	id = acemod_fleet.352
 	hide_window = yes
 	is_triggered_only = yes
 	immediate = {
@@ -1469,7 +1591,7 @@ planet_event = {
 						limit = {
 							is_ship_size = construction_ship_ai
 						}
-						count < 20
+						count < 10
 					}
 				}
 			}
@@ -1688,12 +1810,31 @@ fleet_event = {
 											}
 										}
 										every_owned_ship = {
-											prevprev = {
-												create_army = {
-													name = "NAME_Contingency"
-													owner = root.owner
-													type = "robotic_army"
-													species = event_target:custodian_bot
+											if = {
+												limit = {
+													has_global_flag = acot_override_activated													# Compatibility for Ancient Cache of Technologies: Override.
+												}
+												prevprev = {
+													create_army = {
+														name = "NAME_Contingency"
+														owner = root.owner
+														type = "fe_omnimech"
+														species = event_target:custodian_bot
+													}
+													change_variable = {
+														which = acemod_var_planet_acot_override_fe_omnimech_num_debug														# For debug purposes.
+														value = 1
+													}
+												}
+											}
+											else = {
+												prevprev = {
+													create_army = {
+														name = "NAME_Contingency"
+														owner = root.owner
+														type = "robotic_army"
+														species = event_target:custodian_bot
+													}
 												}
 											}
 										}
@@ -1810,7 +1951,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -1837,7 +1978,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -2522,5 +2663,18 @@ fleet_event = {
 			days = 200
 		}
 		clear_orders = yes
+	}
+}
+
+# Disables crisis colossi by default to avoid player meltdown.
+country_event = {
+	id = acemod_fleet.799
+	hide_window = yes
+	fire_only_once = yes
+	trigger = {
+		is_ai = no
+	}
+	immediate = {
+		set_global_flag = acemod_crisis_colossus_disabled
 	}
 }
