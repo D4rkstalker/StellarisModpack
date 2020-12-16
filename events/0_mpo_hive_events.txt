@@ -1,0 +1,271 @@
+namespace = vbp_hive
+
+#######################################
+#Primitive Hive Minds by ViolentBeetle#
+#######################################
+
+#Superego -> Space Age
+country_event = {
+	id = vbp_hive.220
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		remove_country_flag = vbp_hive_superego_stage
+		set_country_flag = primitives_can_into_space
+		set_country_type = default
+		remove_country_flag = day_0
+		
+		set_timed_country_flag = { flag = vbp_hive_recently_advanced days = 7200 }
+		
+		IF = {
+			limit = { capital_scope = { has_planet_flag = vbp_hive_earth } }
+			change_country_flag = {
+				icon = {
+					category = "human"
+					file = "flag_human_8.dds"
+				}
+				background = {
+					category = "backgrounds"
+					file = "triangle_split.dds"
+				}
+				colors = {
+					"green"
+					"dark_blue"
+					"null"
+					"null"
+				}
+			}
+		}
+		else = {
+			change_country_flag = random
+		}
+		
+		change_government = {
+			civics = random
+		}
+		
+		capital_scope = {
+			remove_all_buildings = yes
+			remove_all_armies = yes
+			while = {
+				limit = { 
+					num_pops < 8
+					#free_housing > 0
+				}
+				create_pop = {
+					species = owner
+				}
+			}
+
+			add_building = building_hive_capital
+
+			if = {
+				limit = { NOT = { is_planet_class = pc_ringworld_habitable } }
+				add_district = district_hive
+				add_district = district_hive
+				add_district = district_hive
+				add_district = district_hive
+				add_district = district_mining
+				add_district = district_mining
+				add_district = district_generator
+				add_district = district_generator
+				add_district = district_farming
+				add_district = district_farming
+				add_district = district_farming	
+				IF = {
+					limit = {
+						any_owned_species = { is_lithoid = yes }
+					}
+					remove_district = district_farming
+					add_district = district_mining
+					IF = {
+						limit = {
+							species = {
+								is_lithoid = yes
+							}
+						}
+						remove_district = district_farming
+						add_district = district_mining
+						IF = {
+							limit = {
+								count_owned_species = {
+									count = all
+									limit = {
+										is_lithoid = yes
+									}
+								}
+								NOT = {
+									root = { has_origin = origin_tree_of_life }
+								}
+							}
+							remove_district = district_farming
+							add_district = district_mining
+						}
+					}
+				}
+				IF = {
+					limit = {
+						owner = { has_origin = origin_tree_of_life }
+					}
+					remove_district = district_mining
+					add_district = district_farming
+				}
+
+				add_building = building_research_lab_1
+				add_building = building_foundry_1
+			}
+			if = {
+				limit = { is_planet_class = pc_ringworld_habitable }
+				add_district = district_rw_hive
+				IF = {
+					limit = {
+						any_owned_species = {
+							is_robotic = no
+							is_lithoid = no
+						}
+					}
+					add_district = district_rw_farming
+					add_building = building_chemical_plant
+				}
+				ELSE = {
+					add_district = district_rw_generator
+					add_building = building_crystal_plant
+				}
+				
+				add_building = building_foundry_1
+			}
+			
+			observation_outpost_owner = {
+				country_event = { id = vbp_hive.221 }
+			}
+			observation_outpost = { dismantle = yes }
+			solar_system = {
+				if = {
+					limit = {
+						NOT = { exists = starbase }
+					}
+					create_starbase = {
+						size = starbase_outpost
+						owner = root
+					}
+				}
+				else = {
+					if = {
+						limit = {
+							starbase = {
+								NOT = { owner = { is_same_value = root } }
+							}								
+						}	
+						starbase = {
+							owner = { country_event = { id = primitive.180 days = 10 } }
+						}								
+					}
+				}
+			}
+		}
+
+		IF = {
+			limit = { has_country_flag = mpo_primitive_contact_sender }
+			remove_country_flag = mpo_primitive_contact_sender
+			random_list = {
+				# common ground
+				1 = {
+					every_country = {
+						limit = {
+							has_country_flag = mpo_primitive_contact@prev
+						}
+						remove_country_flag = mpo_primitive_contact@prev
+						add_opinion_modifier = {
+							who = prev
+							modifier = opinion_common_ground
+						}
+						IF = {
+							limit = {
+								OR = {
+									is_country_type = primitive
+									is_country_type = vbp_hive
+									is_country_type = vbp_machine
+								}	
+							}
+							set_timed_country_flag = { flag = mpo_common_ground_advance days = 2 }
+							country_event = { id = prim_orig.5 }
+						}
+						ELSE = {
+							join_alliance = { who = root override_requirements = yes }
+							IF = {
+								limit = {
+									NOT = { has_country_flag = mpo_common_ground_advance }
+								}
+								set_federation_leader = this
+								add_tradition = tr_diplomacy_adopt
+								add_tradition = tr_diplomacy_the_federation
+							}
+						}
+					}
+					modifier = {
+						factor = 0
+						has_country_flag = mpo_hegemon_advance
+					}
+				}
+				# hegemon
+				1 = {
+					IF = {
+						limit = { has_origin = origin_common_ground }
+						set_origin = origin_hegemon
+					}
+					every_country = {
+						limit = {
+							has_country_flag = mpo_primitive_contact@prev
+						}
+						remove_country_flag = mpo_primitive_contact@prev
+						IF = {
+							limit = {
+								OR = {
+									is_country_type = primitive
+									is_country_type = vbp_hive
+									is_country_type = vbp_machine
+								}	
+							}
+							set_timed_country_flag = { flag = mpo_hegemon_advance days = 2 }
+							country_event = { id = prim_orig.5 }
+						}
+						ELSE = {
+							join_alliance = { who = root override_requirements = yes }
+							IF = {
+								limit = {
+									NOT = { has_country_flag = mpo_hegemon_advance }
+								}
+								set_federation_leader = this
+								add_tradition = tr_diplomacy_adopt
+								add_tradition = tr_diplomacy_the_federation
+								federation = {
+									set_federation_type = hegemony_federation
+									set_name = random
+									set_federation_law = succession_term_years_20
+								}
+							}
+						}
+					}
+					modifier = {
+						factor = 0
+						OR = {
+							has_country_flag = mpo_common_ground_advance
+							AND = {
+								is_egalitarian = yes
+								NOT = { has_country_flag = mpo_hegemon_advance 	}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		add_resource = {
+			energy = 500
+			minerals = 1000 # enough for a spaceport and then some
+		}		
+		set_name = random
+	}
+}
