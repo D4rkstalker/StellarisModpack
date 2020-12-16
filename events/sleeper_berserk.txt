@@ -14,7 +14,7 @@ country_event = {
 	#if the war in heaven is going on, there is only a chance the bereserker awakes. otherwise, it will not happen ever
 		if = {
 			limit = {
-				NOR = { 
+				NOR = {
 					has_global_flag = sleeper_berserker_happened 
 					has_global_flag = sleeper_true_awakening_happened
 				}
@@ -35,10 +35,10 @@ country_event = {
 				}
 			}
 			random_list = {
-				67 = {
+				60 = {
 					set_global_flag = sleeper_berserker_happened
 				}#nothing, disable berserker
-				33 = {
+				40 = {
 					country_event = { id = sleeper_berserk.4 }
 				}#berserk
 			}
@@ -71,7 +71,7 @@ country_event = {
 					country_event = { id = sleeper_awake.1 }
 					modifier = {
 						factor = 0
-						NAND = {
+						NOR = {
 							any_owned_planet = { has_planet_flag = sleeper_core_world }
 							NOT = { has_global_flag = sleepers_awake_happened }
 							NOT = { has_global_flag = guardians_of_the_galaxy_happened }			
@@ -228,7 +228,7 @@ country_event = {
 			effect = {
 				set_graphical_culture = event_target:the_sleeper
 				save_global_event_target_as = the_sleeper_home_fleets
-				add_modifier = { modifier = sleeper_core_fleets_buff days = -1 } #a buff to the core fleets so they don't get wrecked by FEs immediatly (hopefully the AI will recognic ethe added power and leve the systems alone. If only i could restrict systems for the AI....)
+				add_modifier = { modifier = sleeper_core_fleets_buff days = -1 } #a buff to the core fleets so they don't get wrecked by FEs immediatly
 				add_resource = { energy = 50000 }
 				add_resource = { alloys = 50000 }
 				set_faction_hostility = {
@@ -332,28 +332,6 @@ country_event = {
 			limit = { is_country_type = default }
 			establish_communications_no_message = event_target:the_sleeper_home_fleets
 		}
-	#set FEs to neutral. I my testgames they wrecked the feral sleeper most of the time. Most will become hostile once the sleeper takes enough planets however.
-	#handled by  ai_should_restrict_system gamerule instead
-		#every_country = {
-		#	limit = {
-		#		is_country_type = fallen_empire
-		#	}
-		#	save_event_target_as = fallen
-		#	event_target:the_sleeper = {
-		#		set_faction_hostility = {
-		#			target = event_target:fallen
-		#			set_hostile = no
-		#			set_neutral = yes
-		#			set_friendly = no
-		#		}
-		#	}
-		#	set_faction_hostility = {
-		#		target = event_target:the_sleeper
-		#		set_hostile = no
-		#		set_neutral = yes
-		#		set_friendly = no
-		#	}
-		#}
 		country_event = { id = sleeper_berserk.6 days = 1 }
 	}
 }
@@ -387,6 +365,7 @@ country_event = {
 	}
 }
 #looping event for reinforcing the berserker gauged by the most powerful normal country in the galaxy (2.5x more powerful). Does not work with a while loop, since the relative_power condition needs to update first.
+#loops at a max of 40 times, so it does not go infinite if player attack it during the spawn. Also stops spawning if player enter its borders.
 country_event = {
 	id = sleeper_berserk.7
 	hide_window = yes
@@ -398,7 +377,17 @@ country_event = {
 		change_variable = { which = first_wave_fleet_amount value = 1 }
 		if = {
 			limit = {
-				any_country = { 
+				check_variable = { which = first_wave_fleet_amount value < 41 }
+				NOT = {
+					any_system_within_border = {
+						any_fleet_in_system = {
+							owner = {
+								is_ai = no
+							}
+						}
+					}
+				}
+				any_country = {
 					is_country_type = default
 					OR = {
 						relative_power = {
@@ -473,7 +462,7 @@ country_event = {
 		}
 	}
 }
-#reinforcement cycle, triggeres every year based on the amount of fleets that were spawned during the first wave. The variable is not very accurate since the spawned fleets power varies, but I am not going for accuarcy here.
+#reinforcement cycle, triggeres every year and a half based on the amount of fleets that were spawned during the first wave. The variable is not very accurate since the spawned fleets power varies, but I am not going for accuarcy here.
 #also resets species rights, in case the AI changes it along the way
 country_event = {
 	id = sleeper_berserk.8
@@ -484,10 +473,10 @@ country_event = {
 	immediate = {
 		sleeper_reset_rights = yes
 		if = {
-			limit ={ 
+			limit = {
 				is_country_type = berserker_awoken_hive
 			}
-			country_event = { id = sleeper_berserk.8 days = 365 }
+			country_event = { id = sleeper_berserk.8 days = 547 }
 			while = {
 				count = first_wave_fleet_fourth
 				sleeper_spawn_random_lowtech_fleet = yes
@@ -500,8 +489,7 @@ country_event = {
 		#if a FE is somwhere in its systems, it will spawn an additional 10 fleets
 			if = {
 				limit = {
-					any_system = {
-						is_within_borders_of = ROOT
+					any_system_within_border = {
 						any_fleet_in_system = {
 							owner = {
 								OR = {
@@ -517,17 +505,17 @@ country_event = {
 					sleeper_spawn_random_lowtech_fleet = yes
 				}
 			}
-		}
-		while = { 
-			count = 3
-			random_owned_planet = {
-				while = {
-					count = 10
-					create_army = {
-						name = random
-						owner = event_target:the_sleeper
-						species = event_target:the_sleeper.species
-						type = "xenomorph_army"
+			while = { 
+				count = 3
+				random_owned_planet = {
+					while = {
+						count = 5
+						create_army = {
+							name = random
+							owner = event_target:the_sleeper
+							species = event_target:the_sleeper.species
+							type = "xenomorph_army"
+						}
 					}
 				}
 			}
@@ -1277,10 +1265,6 @@ country_event = {
 	hide_window = yes
 	
 	is_triggered_only = yes
-	
-	trigger = {
-		NOT = { is_country_type = the_sleeper_fallen }
-	}
 	
 	immediate = {
 		remove_global_flag = sleeper_berserker_ongoing

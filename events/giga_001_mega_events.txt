@@ -81,7 +81,7 @@ event = {
 
 		# Squareworld System
 		random = {
-			chance = 25
+			chance = 100
 			if = {
 				limit = { NOT = { any_system = { has_star_flag = ruined_square_ring_system } } }
 				random_system = { spawn_system = { initializer = "square_world_init_01" } }
@@ -121,9 +121,9 @@ country_event = {
 
 		every_planet = {
 			if = {
-				limit = { 
+				limit = {
 					is_planet_class = pc_gas_giant
-					planet_size >= 35 
+					planet_size >= 35
 				}
 				add_modifier = { modifier = "helioforming_candidate" days = -1 }
 			}
@@ -196,6 +196,64 @@ country_event = {
 	is_triggered_only = yes
 
 	immediate = {
+		if = { #spawn flusion if its guaranteed to spawn and didnt spawn
+			limit = {
+				OR = {
+					has_global_flag = katzenartig_always
+					has_global_flag = katzenartig_deathwish
+					has_global_flag = katzenartig_stellarite
+				}
+				NOT = {
+					any_system = {
+						has_star_flag = flusion_system
+					}
+				}
+			}
+			random_system = { spawn_system = { initializer = "giga_flusion_initializer" } }
+			random_system = {
+				limit = { has_star_flag = giga_system_seven }
+
+				# Add extra hyperlane
+				while = {
+					count = 2
+					random_neighbor_system = {
+						limit = { NOR = { is_same_value = prev has_hyperlane_to = prev } }
+						ignore_hyperlanes = yes
+						add_hyperlane = { from = prev to = this }
+					}
+				}
+			}
+		}
+		if = { #deathwish buff
+			limit = { has_global_flag = katzenartig_deathwish }
+			event_target:flusion_primitives_country = {
+				add_modifier = {
+					modifier = initial_flusion_buff
+					days = -1
+				}
+			}
+		}
+		if = { #stellarite buff
+			limit = { has_global_flag = katzenartig_stellarite }
+			event_target:flusion_primitives_country = {
+				add_modifier = {
+					modifier = initial_flusion_buff_stellarite
+					days = -1
+				}
+			}
+		}
+		if = { #force the Mondkanone
+			limit = {
+				OR = {
+					has_global_flag = katzenartig_always
+					has_global_flag = katzenartig_deathwish
+					has_global_flag = katzenartig_stellarite
+				}
+			}
+			event_target:gigaflusion = {
+				planet_event = { id = giga_flusion.299 days = 2 }
+			}
+		}
 		every_planet = {
 			if = {
 				limit = { is_planet_class = pc_diamond }
@@ -212,7 +270,6 @@ country_event = {
 		}
 	}
 }
-
 
 ####################################
 ### Shipyard Uplink ################
@@ -672,15 +729,13 @@ country_event = {
 planet_event = { id = giga_mega.501 hide_window = yes is_triggered_only = yes immediate = { solar_system = { spawn_megastructure = { type = penrose_sphere_a41 location = star } } } }
 planet_event = { id = giga_mega.502 hide_window = yes is_triggered_only = yes immediate = { solar_system = { spawn_megastructure = { type = penrose_sphere_a42 location = star } } } }
 
-country_event = {
+planet_event = {
 	id = giga_mega.503
 	hide_window = yes
 	is_triggered_only = yes
 
 	immediate = {
-
-		random_system_within_border = {
-			limit = { has_star_flag = penrose_detonate_system }
+		solar_system = {
 			remove_star_flag = penrose_detonate_system
 
 			# Breaching Galactic Law
@@ -697,7 +752,7 @@ country_event = {
 						is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
 					}
 				}
-				root = { set_timed_country_flag = { flag = resolution_breached_fired_cracker days = 3600 } }
+				event_target:penrose_detonator = { set_timed_country_flag = { flag = resolution_breached_fired_cracker days = 3600 } }
 			}
 
 			# Wipe out system
@@ -760,20 +815,16 @@ country_event = {
 							NOT = { has_planet_flag = paluushia }
 						}
 						owner = {
-							add_opinion_modifier = { who = root modifier = "opinion_broke_our_planet" }
+							add_opinion_modifier = { who = event_target:penrose_detonator modifier = "opinion_broke_our_planet" }
 							every_country = {
 								limit = {
 									NOR = {
 										is_country_type = primitive
 										is_same_value = prev
 									}
-									OR = {
-										is_country_type = default
-										is_country_type = fallen_empire
-										is_country_type = awakened_fallen_empire
-									}
+									ehof_default_country = yes
 								}
-								add_opinion_modifier = { who = "root" modifier = "opinion_broke_planet" }
+								add_opinion_modifier = { who = event_target:penrose_detonator modifier = "opinion_broke_planet" }
 							}
 						}
 					}
@@ -835,20 +886,16 @@ country_event = {
 								NOT = { has_planet_flag = paluushia }
 							}
 							owner = {
-								add_opinion_modifier = { who = root modifier = "opinion_irradiated_our_planet" }
+								add_opinion_modifier = { who = event_target:penrose_detonator modifier = "opinion_irradiated_our_planet" }
 								every_country = {
 									limit = {
 										NOR = {
 											is_country_type = primitive
 											is_same_value = prev
 										}
-										OR = {
-											is_country_type = default
-											is_country_type = fallen_empire
-											is_country_type = awakened_fallen_empire
-										}
+										ehof_default_country = yes
 									}
-									add_opinion_modifier = { who = "root" modifier = "opinion_irradiated_planet" }
+									add_opinion_modifier = { who = event_target:penrose_detonator modifier = "opinion_irradiated_planet" }
 								}
 							}
 						}
@@ -883,7 +930,7 @@ country_event = {
 				limit = { has_star_flag = has_no_hyperlane }
 				while = {
 					limit = {
-						root = {
+						event_target:penrose_detonator = {
 							any_owned_fleet = {
 								exists = solar_system
 								solar_system = { NOT = { has_star_flag = has_no_hyperlane } }
@@ -928,95 +975,45 @@ country_event = {
 			is_ship_size = giga_massive_planet
 			NOT = { has_ship_flag = giga_moon_fe }
 		}
-		always = no #disabled
 	}
 
 	immediate = {
-		fromfrom.solar_system = { save_event_target_as = giga_debris_system }
-		if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_cold_barren } }
-			create_ambient_object = {
-				type = "giga_moon_cold_barren_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_cold_barren
-			}
-		}
-		else_if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_frozen } }
-			create_ambient_object = {
-				type = "giga_moon_frozen_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_frozen
-			}
-		}
-		else_if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_barren } }
-			create_ambient_object = {
-				type = "giga_moon_barren_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_barren
-			}
-		}
-		else_if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_molten } }
-			create_ambient_object = {
-				type = "giga_moon_molten_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_molten
-			}
-		}
-		else_if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_disco } }
-			create_ambient_object = {
-				type = "giga_moon_disco_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_disco
-			}
-		}
-		else_if = {
-			limit = { fromfrom = { has_ship_flag = giga_moon_luna } }
-			create_ambient_object = {
-				type = "giga_moon_luna_debris"
-				location = fromfrom
-			}
-			last_created_ambient_object = {
-				save_event_target_as = destroyed_war_moon
-				set_ambient_object_flag = giga_moon_luna
-			}
-		}
-
-		every_country = {
-			limit = {
-				OR = {
-					is_country_type = default
-					is_country_type = fallen_empire
-					is_country_type = awakened_fallen_empire
+		fromfrom = {
+			solar_system = { save_event_target_as = giga_debris_system }
+			if = {
+				limit = { solar_system = { has_star_flag = giga_has_craft_debris } }
+				solar_system = {
+					random_system_planet = {
+						limit = { NOT = { has_planet_flag = giga_debris_planet } }
+						set_timed_planet_flag = { flag = giga_debris_planet days = 360 }
+						save_event_target_as = giga_temp_planet
+					}
 				}
-				has_technology = giga_tech_war_moon_2
+				if = {		limit = { has_ship_flag = giga_moon_cold_barren }	solar_system = { spawn_megastructure = { type = "war_moon_debris_cold_barren"	location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_frozen }		solar_system = { spawn_megastructure = { type = "war_moon_debris_frozen"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_barren }		solar_system = { spawn_megastructure = { type = "war_moon_debris_barren"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_molten }		solar_system = { spawn_megastructure = { type = "war_moon_debris_molten"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_disco }			solar_system = { spawn_megastructure = { type = "war_moon_debris_disco"			location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_luna }			solar_system = { spawn_megastructure = { type = "war_moon_debris_luna"			location = event_target:giga_temp_planet owner = owner } } }
+				else = {														solar_system = { spawn_megastructure = { type = "war_moon_debris_cold_barren"	location = event_target:giga_temp_planet owner = owner } } }
 			}
-			set_country_flag = repairing_giga_moon_@event_target:destroyed_war_moon
-
-			event_target:destroyed_war_moon = {
-				enable_special_project = {
-					name = "REPAIR_WAR_MOON_PROJECT"
-					location = this
-					owner = prev
+			else = {
+				solar_system = {
+					set_timed_star_flag = { flag = giga_has_craft_debris days = 360 }
+					spawn_planet = {
+						class = pc_giga_empty_space
+						location = prev
+						init_effect = { save_event_target_as = giga_temp_planet }
+					}
 				}
+				if = {		limit = { has_ship_flag = giga_moon_cold_barren }	solar_system = { spawn_megastructure = { type = "war_moon_debris_cold_barren"	location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_frozen }		solar_system = { spawn_megastructure = { type = "war_moon_debris_frozen"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_barren }		solar_system = { spawn_megastructure = { type = "war_moon_debris_barren"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_molten }		solar_system = { spawn_megastructure = { type = "war_moon_debris_molten"		location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_disco }			solar_system = { spawn_megastructure = { type = "war_moon_debris_disco"			location = event_target:giga_temp_planet owner = owner } } }
+				else_if = {	limit = { has_ship_flag = giga_moon_luna }			solar_system = { spawn_megastructure = { type = "war_moon_debris_luna"			location = event_target:giga_temp_planet owner = owner } } }
+				else = {														solar_system = { spawn_megastructure = { type = "war_moon_debris_cold_barren"	location = event_target:giga_temp_planet owner = owner } } }
+				event_target:giga_temp_planet = { remove_planet = yes }
 			}
 		}
 	}
@@ -1031,28 +1028,6 @@ country_event = {
 	show_sound = event_sensor_ping
 	is_triggered_only = yes
 	option = { name = "giga_mega.602.a" }
-}
-
-# Someone else repaired it
-country_event = {
-	id = giga_mega.603
-	title = "giga_mega.603.name"
-	desc = "giga_mega.603.desc"
-	picture = GFX_evt_debris
-	show_sound = event_sensor_ping
-	is_triggered_only = yes
-	option = { name = "giga_mega.603.a" }
-}
-
-# Didn't repair it in time
-country_event = {
-	id = giga_mega.604
-	title = "giga_mega.604.name"
-	desc = "giga_mega.604.desc"
-	picture = GFX_evt_debris
-	show_sound = event_sensor_ping
-	is_triggered_only = yes
-	option = { name = "giga_mega.604.a" }
 }
 
 ####################################
@@ -1075,34 +1050,41 @@ country_event = {
 			}
 			NOT = { has_ship_flag = giga_planet_fe }
 		}
-		always = no #disabled
 	}
 
 	immediate = {
-		create_ambient_object = {
-			type = "giga_planet_debris"
-			location = fromfrom
-		}
-
-		last_created_ambient_object = { save_event_target_as = destroyed_war_planet }
-
-		every_country = {
-			limit = {
-				OR = {
-					is_country_type = default
-					is_country_type = fallen_empire
-					is_country_type = awakened_fallen_empire
+		fromfrom = {
+			solar_system = { save_event_target_as = giga_debris_system }
+			if = {
+				limit = { solar_system = { has_star_flag = giga_has_craft_debris } }
+				solar_system = {
+					random_system_planet = {
+						limit = { NOT = { has_planet_flag = giga_debris_planet } }
+						set_timed_planet_flag = { flag = giga_debris_planet days = 360 }
+						save_event_target_as = giga_temp_planet
+					}
+					spawn_megastructure = {
+						type = "war_planet_debris"
+						location = event_target:giga_temp_planet
+						owner = owner
+					}
 				}
-				has_technology = giga_tech_war_planet
 			}
-			set_country_flag = repairing_giga_planet_@event_target:destroyed_war_planet
-
-			event_target:destroyed_war_planet = {
-				enable_special_project = {
-					name = "REPAIR_WAR_PLANET_PROJECT"
-					location = this
-					owner = prev
+			else = {
+				solar_system = {
+					set_timed_star_flag = { flag = giga_has_craft_debris days = 360 }
+					spawn_planet = {
+						class = pc_giga_empty_space
+						location = prev
+						init_effect = { save_event_target_as = giga_temp_planet }
+					}
+					spawn_megastructure = {
+						type = "war_planet_debris"
+						location = event_target:giga_temp_planet
+						owner = owner
+					}
 				}
+				event_target:giga_temp_planet = { remove_planet = yes }
 			}
 		}
 	}
@@ -1117,28 +1099,6 @@ country_event = {
 	show_sound = event_sensor_ping
 	is_triggered_only = yes
 	option = { name = "giga_mega.702.a" }
-}
-
-# Someone else repaired it
-country_event = {
-	id = giga_mega.703
-	title = "giga_mega.703.name"
-	desc = "giga_mega.703.desc"
-	picture = GFX_evt_debris
-	show_sound = event_sensor_ping
-	is_triggered_only = yes
-	option = { name = "giga_mega.703.a" }
-}
-
-# Didn't repair it in time
-country_event = {
-	id = giga_mega.704
-	title = "giga_mega.704.name"
-	desc = "giga_mega.704.desc"
-	picture = GFX_evt_debris
-	show_sound = event_sensor_ping
-	is_triggered_only = yes
-	option = { name = "giga_mega.704.a" }
 }
 
 ####################################
@@ -1296,11 +1256,7 @@ country_event = {
 		event_target:extradimensionals = { random_owned_ship = { ship_event = { id = crisis.1280 } } }	# make portal invincible
 		every_country = {
 			limit = {
-				OR = {
-					is_country_type = default
-					is_country_type = fallen_empire
-					is_country_type = awakened_fallen_empire
-				}
+				ehof_default_country = yes
 				intel_level = {
 					level = high
 					system = event_target:extradimensional_system

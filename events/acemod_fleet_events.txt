@@ -292,15 +292,8 @@ fleet_event = {
 						NOT = {
 							has_planet_flag = acemod_planet_flag_bombardment_target
 						}
-						NOR = {
-							is_planet_class = pc_infested
-							is_planet_class = pc_ai
+						NOT = {
 							is_owned_by = root.owner
-							root.owner = {
-								is_country_type = swarm
-								is_country_type = ai_empire
-							}
-							
 						}
 						# is_same_value = event_target:acemod_event_target_invader_bombardment_target
 					}
@@ -352,7 +345,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -379,7 +372,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -485,7 +478,7 @@ fleet_event = {
 					# 				any_system_megastructure = {
 					# 					is_megastructure_type = gateway_final
 					# 					is_megastructure_type = gateway_restored
-					# 					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					# 					is_megastructure_type = lgate_base
 					# 				}
 					# 				acemod_is_active_bypass = yes
 					# 			}
@@ -571,7 +564,7 @@ fleet_event = {
 					# 				any_system_megastructure = {
 					# 					is_megastructure_type = gateway_final
 					# 					is_megastructure_type = gateway_restored
-					# 					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					# 					is_megastructure_type = lgate_base
 					# 				}
 					# 				acemod_is_active_bypass = yes
 					# 			}
@@ -1129,7 +1122,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -1156,7 +1149,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -1958,7 +1951,7 @@ fleet_event = {
 						any_system_megastructure = {
 							is_megastructure_type = gateway_final
 							is_megastructure_type = gateway_restored
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 						acemod_is_active_bypass = yes
 					}
@@ -1985,7 +1978,7 @@ fleet_event = {
 									any_system_megastructure = {
 										is_megastructure_type = gateway_final
 										is_megastructure_type = gateway_restored
-										OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+										is_megastructure_type = lgate_base
 									}
 									acemod_is_active_bypass = yes
 								}
@@ -2296,6 +2289,10 @@ fleet_event = {
 								root = {
 									delete_fleet = this
 								}
+								planet_event = {
+									id = acemod_fleet.506									# Fix for start_colony effect which broke in 2.8
+									days = 1825
+								}
 							}
 							else = {
 								root.owner = {
@@ -2309,6 +2306,10 @@ fleet_event = {
 								}
 								root = {
 									delete_fleet = this
+								}
+								planet_event = {
+									id = acemod_fleet.506									# Fix for start_colony effect which broke in 2.8
+									days = 1825
 								}
 							}
 						}
@@ -2334,6 +2335,72 @@ fleet_event = {
 		else = {
 			fleet_event = {
 				id = acemod_fleet.510
+			}
+		}
+	}
+}
+
+# Fix for start_colony effect which broke in 2.8 but was working just fine in 2.7... (ceaseless colonisation bug).
+planet_event = {
+	id = acemod_fleet.506
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				has_colony_progress >= 1				# Failsafe if planet was reclaimed by normal empire.
+			}
+			set_planet_flag = acemod_planet_flag_start_colony_effect_fix
+			create_colony = {
+				owner = solar_system.owner
+				species = solar_system.owner
+				# ethos = solar_system.owner
+			}
+		}
+	}
+}
+
+# Hotfix for start_colony effect for ongoing games. Needs commenting out when Stellaris 2.9 patch comes out and people drop their current saves.
+country_event = {
+	id = acemod_fleet.507
+	hide_window = yes
+	fire_only_once = yes
+	trigger = {
+		is_ai = no
+		NOT = {
+			has_global_flag = acemod_start_colony_effect_fix
+		}
+	}
+	immediate = {
+		country_event = {
+			id = acemod_fleet.508			#	Immediate effect.
+			days = 10
+			random = 5
+		}
+		country_event = {
+			id = acemod_fleet.508			#	Account for planets undergoing infestation.
+			days = 1825
+			random = 5
+		}
+	}
+}
+
+# Fix event delayed for game start performance and possibility for other mods to disable this without overwrites.
+country_event = {
+	id = acemod_fleet.508
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		set_global_flag = acemod_start_colony_effect_fix
+		every_planet = {
+			limit = {
+				has_colony_progress >= 1
+			}
+			set_planet_flag = acemod_planet_flag_start_colony_effect_fix
+			create_colony = {
+				owner = solar_system.owner
+				species = solar_system.owner
+				# ethos = solar_system.owner
 			}
 		}
 	}
