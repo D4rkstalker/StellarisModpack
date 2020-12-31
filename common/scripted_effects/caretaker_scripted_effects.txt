@@ -1,0 +1,233 @@
+# Stellaris Modjam 2020 - Caretaker
+# AlphaAsh, NHunter, Rough, GwenBlanketKnight
+
+### remove caretaker core [planet scope]
+caretaker_core_clean_up = {
+	remove_deposit = d_caretaker_core
+	remove_deposit = d_caretaker_core_pleased
+	remove_deposit = d_caretaker_core_content
+	remove_deposit = d_caretaker_core_annoyed
+	remove_deposit = d_caretaker_core_angry
+	remove_modifier = pm_caretaker_core_pleased
+	remove_modifier = pm_caretaker_core_content
+	remove_modifier = pm_caretaker_core_annoyed
+	remove_modifier = pm_caretaker_core_angry
+}
+
+### remove caretaker hub [planet scope]
+caretaker_hub_clean_up = {
+	remove_deposit = d_caretaker_hub
+	remove_planet_flag = caretaker_origin_reminded_to_build_caretaker_hub
+}
+
+### replace current caretaker core with pleased [planet scope]
+caretaker_set_mood_to_pleased = {
+	caretaker_core_clean_up = yes
+	add_deposit = d_caretaker_core_pleased
+	add_modifier = {
+		modifier = pm_caretaker_core_pleased
+		days = -1
+	}
+}
+
+### replace current caretaker core with content [planet scope]
+caretaker_set_mood_to_content = {
+	caretaker_core_clean_up = yes
+	add_deposit = d_caretaker_core_content
+	add_modifier = {
+		modifier = pm_caretaker_core_content
+		days = -1
+	}
+}
+
+### replace current caretaker core with annoyed [planet scope]
+caretaker_set_mood_to_annoyed = {
+	caretaker_core_clean_up = yes
+	add_deposit = d_caretaker_core_annoyed
+	add_modifier = {
+		modifier = pm_caretaker_core_annoyed
+		days = -1
+	}
+}
+
+### replace current caretaker core with angry [planet scope]
+caretaker_set_mood_to_angry = {
+	caretaker_core_clean_up = yes
+	add_deposit = d_caretaker_core_angry
+	add_modifier = {
+		modifier = pm_caretaker_core_angry
+		days = -1
+	}
+}
+
+### updates caretaker deposit to reflect current mood [planet scope]
+# Assumes that the owner of the planet is caretaker origin empire - no additional checks are done
+caretaker_set_current_mood = {
+	# caretaker is pleased
+	if = {
+		limit = { owner = { caretaker_mood_is_pleased_check = yes } }
+		caretaker_set_mood_to_pleased = yes
+	}
+	# caretaker is content
+	if = {
+		limit = { owner = { caretaker_mood_is_content_check = yes } }
+		caretaker_set_mood_to_content = yes
+	}
+	# caretaker is annoyed
+	if = {
+		limit = { owner = { caretaker_mood_is_annoyed_check = yes } }
+		caretaker_set_mood_to_annoyed = yes
+	}
+	# caretaker is angry
+	if = {
+		limit = { owner = { caretaker_mood_is_angry_check = yes } }
+		caretaker_set_mood_to_angry = yes
+	}
+}
+
+### Request cooldown depending on current mood [empire scope]
+caretaker_set_request_cooldown = {
+	if = {
+		limit = { caretaker_mood_is_pleased_check = yes }
+		set_timed_country_flag = {
+			flag = caretaker_resource_request_cooldown
+			days = 180
+		}
+	}
+	else_if = {
+		limit = { caretaker_mood_is_content_check = yes }
+		set_timed_country_flag = {
+			flag = caretaker_resource_request_cooldown
+			days = 360
+		}	
+	}
+	else_if = {
+		limit = { caretaker_mood_is_annoyed_check = yes }
+		set_timed_country_flag = {
+			flag = caretaker_resource_request_cooldown
+			days = 720
+		}	
+	}
+	else_if = {
+		limit = { caretaker_mood_is_angry_check = yes }
+		set_timed_country_flag = {
+			flag = caretaker_resource_request_cooldown
+			days = 1800
+		}	
+	}
+	else = {
+		set_timed_country_flag = {
+			flag = caretaker_resource_request_cooldown
+			days = 720
+		}	
+	}
+}
+
+### Caretaker mood update based on number of migration treaties
+caretaker_update_mood_migration_treaties = {
+	if = {
+		limit = { 
+			NOT = { has_country_flag = caretaker_migration_treaties_check_cooldown }
+			NOT = { has_valid_civic = civic_love_the_alien }		
+		}		
+		if = {
+			limit = {
+				NOT = { has_country_flag = caretaker_migration_treaties_first_check }
+			}
+			set_variable = {
+				which = migration_treaties
+				value = 0
+			}
+			set_country_flag = caretaker_migration_treaties_first_check
+		}
+
+		# count number of countries we have currently have migration treaties with
+		set_variable = {
+			which = updated_migration_treaties
+			value = 0
+		}
+		# Ash - Limit is never reached - re-worked		
+		every_country = {
+            limit = {
+				is_country_type = default
+                NOT = { is_country = root }
+                has_migration_access = root
+            }
+			# log = "Found a migration treaty"
+			root = {
+				change_variable = {
+					which = updated_migration_treaties
+					value = 1
+				}
+			}
+		}
+
+		# give +1 mood for each old migration treaty and -1 for each new migration treaty
+        change_variable = {
+            which = caretaker_mood
+            value = migration_treaties
+        }	
+        subtract_variable = {
+            which = caretaker_mood
+            value = updated_migration_treaties
+		}
+		# save new count for migration treaties
+        set_variable = {
+            which = migration_treaties
+            value = updated_migration_treaties
+        }
+
+		set_timed_country_flag = { flag = caretaker_migration_treaties_check_cooldown days = 179 }
+	}
+}
+
+# Given a species, create a mod with trait_personal_caretaker and apply to all pops, leaders
+# and armies that have the original species and the same owner as the scope object.
+# Scope: Something that has a species and an owner
+create_pci_species_mod = {
+	species = {
+		create_species = {
+			is_mod = yes
+			name = this
+			plural = this
+			class = this
+			portrait = this
+			traits = this
+			homeworld = this
+			traits = {
+				ideal_planet_class = this
+				trait = trait_personal_caretaker
+			}
+		}
+		save_event_target_as = changing_species
+	}
+
+	owner = {
+		every_owned_pop = {
+			limit = { is_exact_same_species = event_target:changing_species }
+			change_species = last_created_species
+		}
+		every_owned_leader = {
+			limit = { is_exact_same_species = event_target:changing_species }
+			change_species = last_created_species
+		}
+		every_pool_leader = {
+			limit = { is_exact_same_species = event_target:changing_species }
+			change_species = last_created_species
+		}
+		every_owned_army = {
+			limit = {
+				exists = species
+				is_exact_same_species = event_target:changing_species
+			}
+			change_species = last_created_species
+		}
+		every_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_colonizer
+				is_exact_same_species = event_target:changing_species
+			}
+			change_species = last_created_species
+		}
+	}
+}

@@ -1,0 +1,872 @@
+namespace = autofab_automation
+
+event = {
+	id = autofab_automation.0
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		every_country = {
+			limit = {
+				has_origin = origin_autofab
+			}
+			every_owned_planet = {
+				limit = {
+					NOT = {
+						has_planet_flag = factory_expanding
+					}
+					OR = {
+						owner = {
+							is_ai = yes
+						}
+						has_planet_flag = autofab_automation
+					}
+					OR = {
+						can_expand_factory = yes
+						can_upgrade_foundry = yes
+						can_upgrade_factory = yes
+					}
+				}
+				ROOT = {
+					change_variable = { which = autofab_auto_planets value = 1 }
+				}
+			}
+			random_list = {
+				10 = {
+					country_event = { id = autofab_automation.1000 days = 1 }
+				}
+				10 = {
+					country_event = { id = autofab_automation.1000 days = 91 }
+				}
+				10 = {
+					country_event = { id = autofab_automation.1000 days = 181 }
+				}
+				10 = {
+					country_event = { id = autofab_automation.1000 days = 271 }
+				}
+			}
+			country_energy_check = yes
+			country_food_check = yes
+			country_minerals_check = yes
+			country_consumer_goods_check = yes
+		}
+	}
+	#Automation Counting Logic
+	after = {
+		every_country = {
+			limit = {
+				has_origin = origin_autofab
+			}
+			set_variable = { which = country_energy_need_debug value = country_energy_need }
+			set_variable = { which = country_food_need_debug value = country_food_need }
+			set_variable = { which = country_minerals_need_debug value = country_minerals_need }
+			set_variable = { which = country_consumer_goods_need_debug value = country_consumer_goods_need }
+		}
+	}
+}
+
+
+
+country_event = {
+	id = autofab_automation.1000
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+	}
+	
+	after = {
+		every_owned_planet = {
+			limit = {
+				NOT = {
+					has_planet_flag = factory_expanding 
+				}
+				OR = {
+					owner = {
+						is_ai = yes
+					}
+					has_planet_flag = autofab_automation
+				}
+			}
+			planet_event = { id = autofab_automation.1 days = 1 }
+		}
+	}
+}
+
+#Automation Building Logic
+planet_event = {
+	id = autofab_automation.1
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				can_expand_factory = yes
+				owner = {	
+					#resource_stockpile_compare = {
+					#	resource = energy
+					#	value >= 0
+					#}
+					resource_stockpile_compare = {
+						resource = minerals
+						value >= @districtcost
+					}
+					resource_stockpile_compare = {
+						resource = alloys
+						value >= @factoryalloycost
+					}
+				}
+			}
+			if = {
+				limit = {
+					num_free_districts = { type = district_generator value > 0 }
+					owner = {
+						check_variable = { which = country_energy_need value >= 1 }
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+					change_variable = { which = country_energy_need value = -1 }
+				}
+				planet_event = { id = autofab_automation.2 days = 360 } #Energy
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					num_free_districts = { type = district_farming value > 0 }
+					owner = {
+						check_variable = { which = country_food_need value >= 1 }
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = energy  value > 5 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+					change_variable = { which = country_food_need value = -1 }
+				}
+				planet_event = { id = autofab_automation.3 days = 360 } #Food
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					has_deposit = autofab_farm
+					owner = {
+						check_variable = { which = country_food_need value < 0 }
+					}
+				}
+				planet_event = { id = autofab_automation.17 days = 90 } #Farm Retooling
+				set_planet_flag = factory_expanding
+				add_modifier = { modifier = factory_expansion days = 90 }
+				change_variable = { which = country_food_need value = 1 }
+			}
+			else_if = {
+				limit = {
+					owner = {
+						check_variable = { which = country_consumer_goods_need value >= 1 }
+						OR = {
+							NOT = {
+								has_ethic = ethic_gestalt_consciousness
+							}
+							has_valid_civic = civic_machine_servitor
+						}
+						resource_income_compare = { resource = minerals  value > 12 }
+						resource_income_compare = { resource = energy  value > 6 }
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+					}
+				}
+				if = {
+					limit = {
+						has_deposit = autofab_factory_2
+						exists = owner
+						owner = { 
+							has_technology = tech_luxuries_2
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b3_minerals
+							}
+							resource_stockpile_compare = {
+								resource = rare_crystals
+								value >= @b3_rare_cost
+							}
+							resource_income_compare = { resource = rare_crystals  value > @b2_rare_upkeep }
+							resource_income_compare = { resource = energy  value > 9 }
+							resource_income_compare = { resource = minerals  value > 18 }
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb3_minerals
+						}
+						add_resource = {
+							rare_crystals = @Negb3_rare_cost
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+						change_variable = { which = country_consumer_goods_need value = -1 }
+					}
+					planet_event = { id = autofab_automation.12 days = 360 }  #Upgrade Factory 2-3
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+				else_if = {
+					limit = {
+						has_deposit = autofab_factory				
+						exists = owner
+						owner = {
+							has_technology = tech_luxuries_1
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b2_minerals
+							}
+							resource_stockpile_compare = {
+								resource = rare_crystals
+								value >= @b2_rare_cost
+							}
+							resource_income_compare = { resource = rare_crystals  value > @b2_rare_upkeep }
+							resource_income_compare = { resource = energy  value > 9 }
+							resource_income_compare = { resource = minerals  value > 18 }
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb2_minerals
+						}
+						add_resource = {
+							rare_crystals = @Negb2_rare_cost
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+						change_variable = { which = country_consumer_goods_need value = -1 }
+					}
+					planet_event = { id = autofab_automation.11 days = 360 }  #Upgrade Factory 1-2
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+				else_if = {
+					limit = {
+						owner = {
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b1_minerals
+							}
+							resource_stockpile_compare = {
+								resource = alloys
+								value >= @factoryalloycost
+							}
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb1_minerals
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+						change_variable = { which = country_consumer_goods_need value = -1 }
+					}
+					planet_event = { id = autofab_automation.6 days = 360 }  #New Factory
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+			}
+			else_if = {
+				limit = {
+					has_rare_resource_deposit = yes
+					NOR = {
+						has_deposit = autofab_refinery_extractor
+						has_planet_flag = has_autofab_extractor
+					}
+					owner = {
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = energy  value > 8 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+				}
+				planet_event = { id = autofab_automation.10 days = 360 } #Strategic Resource Extractor
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					owner = {
+						has_enough_crystals = yes
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = minerals  value > 40 }
+						resource_income_compare = { resource = energy  value > 8 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+				}
+				planet_event = { id = autofab_automation.7 days = 360 } #Crystals
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					owner = {
+						has_enough_gas = yes
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = minerals  value > 40 }
+						resource_income_compare = { resource = energy  value > 8 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+				}
+				planet_event = { id = autofab_automation.8 days = 360 } #Gases
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					owner = {
+						has_enough_motes = yes
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = minerals  value > 40 }
+						resource_income_compare = { resource = energy  value > 8 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+				}
+				planet_event = { id = autofab_automation.9 days = 360 } #Motes
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}
+			else_if = {
+				limit = {
+					num_free_districts = { type = district_mining value > 0 }
+					owner = {
+						check_variable = { which = country_minerals_need value >= 1 }
+						resource_stockpile_compare = {
+							resource = minerals
+							value >= @districtcost
+						}
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+						resource_income_compare = { resource = energy  value > 5 }
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = @Negdistrictcost
+					}
+					add_resource = {
+						alloys = @Negfactoryalloycost
+					}
+					change_variable = { which = country_minerals_need value = -1 }
+				}
+				planet_event = { id = autofab_automation.4 days = 360 } #Minerals
+				set_planet_flag = factory_expanding 
+				add_modifier = { modifier = factory_expansion days = 360 }
+			}		
+			else_if = {
+				limit = {
+					owner = {
+						resource_income_compare = { resource = energy  value > 6 }
+						resource_income_compare = { resource = minerals  value > 12 }
+						resource_stockpile_compare = {
+							resource = alloys
+							value >= @factoryalloycost
+						}
+					}
+				}
+				if = {
+					limit = {
+						has_deposit = autofab_foundry_2
+						exists = owner
+						owner = { 
+							has_technology = tech_alloys_2
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b3_minerals
+							}
+							resource_stockpile_compare = {
+								resource = volatile_motes
+								value >= @b3_rare_cost
+							}
+							resource_income_compare = { resource = volatile_motes  value > @b2_rare_upkeep }
+							resource_income_compare = { resource = energy  value > 9 }
+							resource_income_compare = { resource = minerals  value > 18 }
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb3_minerals
+						}
+						add_resource = {
+							volatile_motes = @Negb3_rare_cost
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+					}
+					planet_event = { id = autofab_automation.14 days = 360 }  #Upgrade Foundry 2-3
+					set_planet_flag = foundry_expanding
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+				else_if = {
+					limit = {
+						has_deposit = autofab_foundry			
+						exists = owner
+						owner = {
+							has_technology = tech_alloys_1
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b2_minerals
+							}
+							resource_stockpile_compare = {
+								resource = volatile_motes
+								value >= @b2_rare_cost
+							}
+							resource_income_compare = { resource = volatile_motes  value > @b2_rare_upkeep }
+							resource_income_compare = { resource = energy  value > 9 }
+							resource_income_compare = { resource = minerals  value > 18 }
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb2_minerals
+						}
+						add_resource = {
+							volatile_motes = @Negb2_rare_cost
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+					}
+					planet_event = { id = autofab_automation.13 days = 360 }  #Upgrade Foundry 1-2
+					set_planet_flag = foundry_expanding
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+				else_if = {
+					limit = {
+						owner = {
+							resource_stockpile_compare = {
+								resource = minerals
+								value >= @b1_minerals
+							}
+						}
+					}
+					owner = {
+						add_resource = {
+							minerals = @Negb1_minerals
+						}
+						add_resource = {
+							alloys = @Negfactoryalloycost
+						}
+					}
+					planet_event = { id = autofab_automation.5 days = 360 }  #New Foundry
+					set_planet_flag = foundry_expanding
+					set_planet_flag = factory_expanding 
+					add_modifier = { modifier = factory_expansion days = 360 }
+				}
+			}
+		}
+	}	
+}
+
+#New Construction Events
+
+planet_event = {
+	id = autofab_automation.2
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_power = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.3
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_farm = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.4
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_mine = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.5
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_foundry = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.6
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_factory = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.7
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_translucer = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.8
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_refinery = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.9
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_chemical = yes
+	}	
+}
+
+planet_event = {
+	id = autofab_automation.10
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_autofab_extractor = yes
+	}
+}
+
+planet_event = {
+	id = autofab_automation.11
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_deposit = autofab_factory_2
+		remove_deposit = autofab_factory
+		remove_planet_flag = factory_expanding
+		change_variable = { which = autofab_factory_2 value = 1 }
+		change_variable = { which = autofab_factory value = -1 }	
+	}
+}
+
+planet_event = {
+	id = autofab_automation.12
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_deposit = autofab_factory_3
+		remove_deposit = autofab_factory_2
+		remove_planet_flag = factory_expanding 
+		change_variable = { which = autofab_factory_3 value = 1 }
+		change_variable = { which = autofab_factory_2 value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.13
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_deposit = autofab_foundry_2
+		remove_deposit = autofab_foundry
+		remove_planet_flag = factory_expanding
+		change_variable = { which = autofab_foundry_2 value = 1 }
+		change_variable = { which = autofab_foundry value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.14
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_deposit = autofab_foundry_3
+		remove_deposit = autofab_foundry_2
+		remove_planet_flag = factory_expanding
+		change_variable = { which = autofab_foundry_3 value = 1 }
+		change_variable = { which = autofab_foundry_2 value = -1 }
+	}
+}
+
+#Retooling events
+planet_event = {
+	id = autofab_automation.15
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_power
+		change_variable = { which = autofab_power value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.16
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_mine
+		change_variable = { which = autofab_mine value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.17
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_farm
+		change_variable = { which = autofab_farm value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.18
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_foundry
+		change_variable = { which = autofab_foundry value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.19
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_foundry_2
+		change_variable = { which = autofab_foundry_2 value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.20
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_foundry_3
+		change_variable = { which = autofab_foundry_3 value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.21
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_factory
+		change_variable = { which = autofab_factory value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.22
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_factory_2
+		change_variable = { which = autofab_factory_2 value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.23
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_factory_3
+		change_variable = { which = autofab_factory_3 value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.24
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_gases_refinery
+		change_variable = { which = autofab_gases_refinery value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.25
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_crystals_refinery
+		change_variable = { which = autofab_crystals_refinery value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.26
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_motes_refinery
+		change_variable = { which = autofab_motes_refinery value = -1 }
+	}
+}
+
+planet_event = {
+	id = autofab_automation.27
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		remove_planet_flag = factory_expanding
+		remove_deposit = autofab_farm
+		remove_planet_flag = has_autofab_extractor
+	}
+}
+
+#Build a new Factory
+planet_event = {
+	id = autofab_automation.28
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		add_deposit = autofab
+		set_planet_flag = has_autofab
+	}
+}

@@ -1,0 +1,681 @@
+##########################################################################
+# COMPLEX. nikmazza@gmail.com
+##########################################################################
+
+namespace = bts
+
+@promptdays = 180
+@rumor_anti_spam = 60
+
+# MECHANIC: Check if any empire that is rivaling me has the bts origin
+# This = country
+# From = opponent war leader
+country_event = {
+	id = bts.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		any_country = {
+			is_at_war = no
+			has_origin = origin_bts
+			is_rival = root
+			NOT = { has_edict = bts_shadow_masters }
+			NOT = { is_in_federation_with = from}
+			NOT = { has_defensive_pact = from}
+			has_communications = from
+		}
+	}
+	
+	immediate = {
+		#save the country that leads the party against me
+		save_event_target_as = my_enemy # named considering the rivals stand point of view
+		from = { save_event_target_as = enemy_of_my_enemy }
+		
+		every_country = {
+			limit = {
+				has_origin = origin_bts
+				is_at_war = no
+				is_rival = root
+				NOT = {	has_edict = bts_shadow_masters	}
+				NOT = { is_in_federation_with = from}
+				NOT = { has_defensive_pact = from}
+				has_communications = from
+			}
+			#tell them we got into a war
+			country_event = { id = bts.20 days = @promptdays }
+		}
+	}
+}
+
+# DEPRECATED UNTIL MIDGAME CRISIS: MECHANIC: Im a bts or have just joined the war via alert, invite empires rivaling me ## MEGA DEPRECATED SINCE A MIDGAME CRISIS WOULD AFFECT THE GENERAL GAMEPLAY AND THAT IS AGAINST THE RULES
+# This = country
+# From = opponent war leader
+country_event = {
+	id = bts.11
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = default
+		has_global_flag = chaos_wars
+		any_country = {
+			is_at_war = no
+			is_rival = root
+		}
+	}
+
+	immediate = {
+		#save the country that leads the party against me
+		save_event_target_as = my_enemy # named considering the rivals stand point of view
+		from = { save_event_target_as = enemy_of_my_enemy }
+		
+		every_country = {
+			limit = {
+				is_at_war = no
+				is_rival = root
+			}
+			#tell them we got into a war
+			country_event = { id = bts.20 days = @promptdays }
+		}
+			
+	}
+}
+
+# MECHANIC: a war just started, check if any empire has the bts origin with the active toggle and let them join either side
+# Root = Country
+# From = War
+country_event = {
+	id = bts.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		## only execute this for the attacking leader, so we dont have a call for each joining empire
+		from = {
+			any_attacker = {
+				is_same_value = root
+				is_war_leader = yes ## im not happy with this, but it will sufice
+			}
+		}
+		## i cant filter the country to tell if it has communications prior to event, so it will be filtered later
+		any_country = {
+			is_at_war = no
+			has_origin = origin_bts
+			has_edict = bts_shadow_masters
+			NOT = { is_in_federation_with = from}
+			NOT = { has_defensive_pact = from}
+		}
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				from = { is_war_participant = { who = prev side = attackers } }
+				is_war_leader = yes
+			}
+			save_event_target_as = attacking_side
+		}
+		random_country = {
+			limit = {
+				from = { is_war_participant = { who = prev side = defenders } }
+				is_war_leader = yes
+			}
+			save_event_target_as = defending_side
+		}
+		
+		every_country = {
+			limit = {
+				has_origin = origin_bts
+				has_edict = bts_shadow_masters
+				is_at_war = no
+				NOT = { is_in_federation_with = from}
+				NOT = { has_defensive_pact = from}
+				has_communications = event_target:attacking_side
+				has_communications = event_target:defending_side
+			}
+			#tell them we got into a war
+			country_event = { id = bts.25 days = @promptdays }
+		}
+	}
+}
+
+# OPTIONS: one of our rivals entered a war. Chaos war options are now DEPRECATED, to re-enable them use global flag chaos_wars
+country_event = {
+	id = bts.20
+	is_triggered_only = yes
+	title = bts.20.name
+	desc = bts.20.desc
+	#picture = GFX_evt_board_meeting
+	picture = GFX_evt_dark_alley
+	show_sound = event_whispering
+	
+
+	option = {
+		name = bts.20.a
+		allow = {
+			resource_stockpile_compare = { resource = influence value >= 150 }
+		}
+		join_war = event_target:enemy_of_my_enemy
+		owner = { add_resource = { influence = -150 } }
+		## notify the enemy we just joined the war cuz of us
+		hidden_effect = {
+			## join my federation allies
+			every_subject = {
+				join_war = prev
+			}
+			every_federation_ally = {
+				join_war = prev
+			}
+			
+			event_target:my_enemy = { country_event = { id = bts.21 } }
+			
+			# give rep to bts
+			every_country = {
+				limit = {
+					is_country_type = default
+					is_galactic_community_member = yes
+					NOR = {
+						is_same_value = event_target:my_enemy
+						is_same_value = event_target:enemy_of_my_enemy
+						is_same_value = root
+					}
+				}
+				add_opinion_modifier = { modifier = bts_entered_war_gc who = root }
+			}
+			event_target:my_enemy = { add_opinion_modifier = { modifier = bts_entered_war_foe who = root } }
+			event_target:enemy_of_my_enemy = { add_opinion_modifier = { modifier = bts_entered_war_friend who = root } }
+			
+		}
+		
+		ai_chance = {
+			factor = 2
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:my_enemy value < -0 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:my_enemy value < -10 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:my_enemy value < -100 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:my_enemy value < -500 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:my_enemy value < -750 }
+			}
+		}
+	}
+	option = {
+		name = bts.20.b
+		ai_chance = {
+			factor = 10
+		}
+	}
+}
+
+# NOTIFICATION: en empire rivaling us joined against us
+country_event = {
+	id = bts.21
+	is_triggered_only = yes
+	title = bts.21.name
+	desc = bts.21.desc
+	picture = GFX_evt_news_room
+	show_sound = event_factions
+	
+	option = {
+		name = bts.21.a
+	}
+	option = {
+		name = bts.21.b
+	}
+	option = {
+		name = bts.21.c
+	}
+	option = {
+		name = bts.21.d
+	}
+}
+
+# OPTIONS: we are a bts and we have the edict on. we just got word of a war
+country_event = {
+	id = bts.25
+	is_triggered_only = yes
+	title = bts.25.name
+	desc = bts.25.desc
+	picture = GFX_evt_board_meeting
+	#picture = GFX_evt_dark_alley
+	show_sound = event_conversation
+	
+	option = {
+		name = bts.25.a
+		allow = {
+			resource_stockpile_compare = { resource = influence value >= 150 }
+		}
+		join_war = event_target:attacking_side
+		owner = { add_resource = { influence = -150 } }
+		
+		## notify the enemy we just joined the war cuz of us
+		hidden_effect = {
+			## join my federation allies
+			every_subject = {
+				join_war = prev
+			}
+			every_federation_ally = {
+				join_war = prev
+			}
+
+			event_target:attacking_side = { country_event = { id = bts.21 } }
+			
+			# give rep to bts
+			every_country = {
+				limit = {
+					is_country_type = default
+					is_galactic_community_member = yes
+					NOR = {
+						is_same_value = event_target:attacking_side
+						is_same_value = event_target:defending_side
+						is_same_value = root
+					}
+				}
+				add_opinion_modifier = { modifier = bts_entered_war_gc who = root }
+			}
+			event_target:defending_side = { add_opinion_modifier = { modifier = bts_entered_war_foe who = root } }
+			event_target:attacking_side = { add_opinion_modifier = { modifier = bts_entered_war_friend who = root } }
+		}
+		
+		ai_chance = {
+			factor = 2
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:attacking_side value > 0 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:attacking_side value > 10 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:attacking_side value > 100 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:attacking_side value > 500 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:attacking_side value > 750 }
+			}
+		}
+	}
+	option = {
+		name = bts.25.b
+		allow = {
+			resource_stockpile_compare = { resource = influence value >= 150 }
+		}
+		join_war = event_target:defending_side
+		owner = { add_resource = { influence = -150 } }
+		## notify the enemy we just joined the war cuz of us
+		hidden_effect = {
+			## join my federation allies
+			every_subject = {
+				join_war = prev
+			}
+			every_federation_ally = {
+				join_war = prev
+			}
+			
+			event_target:defending_side = { country_event = { id = bts.21 } }
+			
+			# give rep to bts
+			every_country = {
+				limit = {
+					is_country_type = default
+					is_galactic_community_member = yes
+					NOR = {
+						is_same_value = event_target:attacking_side
+						is_same_value = event_target:defending_side
+						is_same_value = root
+					}
+				}
+				add_opinion_modifier = { modifier = bts_entered_war_gc who = root }
+			}
+			event_target:attacking_side = { add_opinion_modifier = { modifier = bts_entered_war_foe who = root } }
+			event_target:defending_side = { add_opinion_modifier = { modifier = bts_entered_war_friend who = root } }
+		}
+		
+		
+		ai_chance = {
+			factor = 2
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:defending_side value > 0 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:defending_side value > 10 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:defending_side value > 100 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:defending_side value > 500 }
+			}
+			modifier = {
+				factor = 2
+				opinion = { who = event_target:defending_side value > 750 }
+			}
+		}
+	}
+	option = {
+		name = bts.25.c
+		ai_chance = {
+			factor = 10
+		}
+	}
+}
+
+# MECHANIC: country just spreaded rumors mechanics
+country_event = {
+	id = bts.30
+	hide_window = yes
+	is_triggered_only = yes
+    title = bts.30.name
+	
+	immediate = {		
+	
+		every_rival_country = {
+		add_modifier = { modifier = bts_slandered days = 30 }
+		save_event_target_as = target_rival_country
+			root = {
+				every_envoy = {
+					if = {
+						limit = {
+							OR = {
+								has_envoy_task = {
+									task = harm_relations
+								}
+								has_envoy_task = {
+									task = improve_relations
+								}
+							}
+						}
+						envoy_location_country = {
+							add_opinion_modifier = { modifier = bts_heard_a_rumor who = event_target:target_rival_country }
+							if = {
+								limit = { NOT = { has_country_flag = bts_recently_rumored } }
+								set_timed_country_flag = { flag = bts_recently_rumored days = @rumor_anti_spam }
+								country_event = { id = bts.31 } ## i heard a rumor
+							}
+							event_target:target_rival_country = {
+								set_timed_country_flag = {
+									flag = rumored_country_by@root days = 30
+								}
+							}
+						}
+					}
+					else_if = {
+						limit = { has_envoy_task = { task = galactic_community } }
+						every_country = {
+							limit = {
+								is_country_type = default
+								is_galactic_community_member = yes
+								NOR = {
+									is_same_value = root
+								}
+							}
+							add_opinion_modifier = { modifier = bts_heard_a_rumor_gc who = event_target:target_rival_country }
+							if = {
+								limit = { NOT = { has_country_flag = bts_recently_rumored_gc } }
+								set_timed_country_flag = { flag = bts_recently_rumored_gc days = @rumor_anti_spam }
+								country_event = { id = bts.32 } ## i heard a rumor at the gc
+							}
+							event_target:target_rival_country = {
+								set_timed_country_flag = {
+									flag = rumored_country_by@root days = 30
+								}
+							}
+						}
+					}
+					else_if = {
+						limit = { has_envoy_task = { task = federation } }
+						every_country = {
+							limit = {
+								is_country_type = default
+								is_in_federation_with = root
+								NOR = {
+									is_same_value = root
+								}
+							}
+							add_opinion_modifier = { modifier = bts_heard_a_rumor_fed who = event_target:target_rival_country }
+							if = {
+								limit = { NOT = { has_country_flag = bts_heard_a_rumor_fed } }
+								set_timed_country_flag = { flag = bts_heard_a_rumor_fed days = @rumor_anti_spam }
+								country_event = { id = bts.35 } ## i heard a rumor at the fed
+							}
+							event_target:target_rival_country = {
+								set_timed_country_flag = {
+									flag = rumored_country_by@root days = 30
+								}
+							}
+						}
+					}
+				}
+			}
+			if = {
+				limit = { has_country_flag = rumored_country_by@root }
+				if = {
+					limit = { NOT = { has_country_flag = bts_recently_recieved_rumor } }
+					set_timed_country_flag = { flag = bts_recently_recieved_rumor days = @rumor_anti_spam }
+					country_event = { id = bts.33 } ## you have been rumored
+				}
+				
+			}
+		}
+		
+		if = {
+			limit = { NOT = { has_country_flag = bts_recently_spread_rumor } }
+			set_timed_country_flag = { flag = bts_recently_spread_rumor days = @rumor_anti_spam }
+			country_event = { id = bts.34 } ## i just spread a rumor
+		}
+		
+	}
+}
+
+# NOTIFICATION: ## i heard a rumor
+country_event = {
+	id = bts.31
+	is_triggered_only = yes
+	picture = GFX_evt_alien_segregation
+	show_sound = event_whispering
+	title = bts.31.name
+	desc = {
+		text = bts.31.1.desc
+	}
+	desc = {
+		text = bts.31.2.desc
+	}
+	desc = {
+		text = bts.31.3.desc
+	}
+	desc = {
+		text = bts.31.4.desc
+	}
+	desc = {
+		text = bts.31.5.desc
+	}
+	
+	
+	option = {
+		name = bts.31.a
+	}
+}
+
+# NOTIFICATION: ## i heard a rumor at gc
+country_event = {
+	id = bts.32
+	is_triggered_only = yes
+	picture = GFX_evt_galactic_community
+	show_sound = event_whispering
+	title = bts.32.name
+	desc = {
+		text = bts.32.1.desc
+	}
+	desc = {
+		text = bts.32.2.desc
+	}
+	desc = {
+		text = bts.32.3.desc
+	}
+	desc = {
+		text = bts.32.4.desc
+	}
+	desc = {
+		text = bts.32.5.desc
+	}
+	
+	
+	option = {
+		name = bts.32.a
+	}
+}
+
+# NOTIFICATION: ## i have been rumored
+country_event = {
+	id = bts.33
+	is_triggered_only = yes
+	picture = GFX_evt_alien_segregation
+	show_sound = event_factions
+	title = bts.33.name
+	desc =  bts.33.desc
+	
+	option = {
+		name = bts.33.a
+	}
+}
+
+# NOTIFICATION: ## i spread a rumor
+country_event = {
+	id = bts.34
+	is_triggered_only = yes
+	picture = GFX_evt_dark_alley
+	show_sound = event_whispering
+	title = bts.34.name
+	desc =  bts.34.desc
+	
+	option = {
+		name = bts.34.a
+	}
+}
+
+# NOTIFICATION: ## i heard a rumor at fed
+country_event = {
+	id = bts.35
+	is_triggered_only = yes
+	picture = GFX_evt_galactic_community
+	show_sound = event_whispering
+	title = bts.35.name
+	desc = {
+		text = bts.35.1.desc
+	}
+	desc = {
+		text = bts.35.2.desc
+	}
+	desc = {
+		text = bts.35.3.desc
+	}
+	desc = {
+		text = bts.35.4.desc
+	}
+	desc = {
+		text = bts.35.5.desc
+	}
+	
+	
+	option = {
+		name = bts.35.a
+	}
+}
+
+# MECHANIC: country is monthyl spreading rumors mechanics
+country_event = {
+	id = bts.36
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		has_origin = origin_bts
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				has_edict = bts_spread_rumors
+				any_country = {
+					root = { is_rival = prev }
+				}
+			}
+			every_rival_country = {
+				add_modifier = { modifier = bts_slandered days = 30 }
+				save_event_target_as = target_rival_country
+				root = {
+					every_envoy = {
+						if = {
+							limit = {
+								OR = {
+									has_envoy_task = {
+										task = harm_relations
+									}
+									has_envoy_task = {
+										task = improve_relations
+									}
+								}
+							}
+							envoy_location_country = {
+								add_opinion_modifier = { modifier = bts_heard_a_rumor who = event_target:target_rival_country }
+							}
+						}
+						else_if = {
+							limit = { has_envoy_task = { task = galactic_community } }
+							every_country = {
+								limit = {
+									is_country_type = default
+									is_galactic_community_member = yes
+									NOR = {
+										is_same_value = root
+									}
+								}
+								add_opinion_modifier = { modifier = bts_heard_a_rumor_gc who = event_target:target_rival_country }
+							}
+						}
+						else_if = {
+							limit = { has_envoy_task = { task = federation } }
+							every_country = {
+								limit = {
+									is_country_type = default
+									is_in_federation_with = root
+									NOR = {
+										is_same_value = root
+									}
+								}
+								add_opinion_modifier = { modifier = bts_heard_a_rumor_fed who = event_target:target_rival_country }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+

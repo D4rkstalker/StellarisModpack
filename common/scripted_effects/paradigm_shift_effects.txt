@@ -1,0 +1,469 @@
+########################################
+# common/scripted_effects/paradigm_shift_effects.txt
+# By Erdnuss
+########################################
+#
+paradigm_shift_spawn_zaxoid = {
+	create_species = {
+		class = ART
+		name = "Zaxoid"
+		plural = "Zaxoids"
+		adjective = "Zaxoid"
+		portrait = art17
+		traits = {
+			trait = trait_hive_mind
+			trait = trait_pc_hive_preference
+		}
+		effect = {
+			save_global_event_target_as = paradigm_shift_zaxoid_species
+		}
+	}
+	create_country = {
+		name = "Zaxoid Hive"
+		type = paradigm_shift_stale_country
+		flag = random
+		species = event_target:paradigm_shift_zaxoid_species
+		effect = {
+			save_global_event_target_as = paradigm_shift_zaxoid
+			set_country_flag = paradigm_shift_zaxoid
+			add_modifier = {
+				modifier = paradigm_shift_modifier_stale
+			}
+		}
+	}
+	random_system = {
+		limit = {
+			any_neighbor_system = {
+				always = yes
+			}
+			NOT = {
+				exists = space_owner
+			}
+		}
+		save_event_target_as = paradigm_shift_first_system
+		spawn_system = {
+			initializer = paradigm_shift_zaxoid_home_system
+			min_distance = 10
+			max_distance = 20
+			hyperlane = yes
+		}
+		last_created_system = {
+			save_global_event_target_as = paradigm_shift_zaxoid_system
+			create_starbase = {
+				size = starbase_citadel
+				owner = event_target:paradigm_shift_zaxoid
+				module = hangar_bay
+				module = hangar_bay
+				module = hangar_bay
+				module = hangar_bay
+				module = hangar_bay
+				module = hangar_bay
+			}
+		}
+	}
+}
+
+paradigm_shift_spawn_kellectors = {
+	create_species = {
+		class = MACHINE
+		name = "Kellector"
+		plural = "Kellectors"
+		adjective = "Kellector"
+		portrait = sd_art_robot
+		traits = {
+			trait = trait_machine_unit
+		}
+		effect = {
+			save_global_event_target_as = paradigm_shift_kellectors_species
+		}
+	}
+	create_country = {
+		name = "Kellectors Preserve"
+		type = paradigm_shift_stale_country
+		flag = random
+		species = event_target:paradigm_shift_kellectors_species
+		effect = {
+			save_global_event_target_as = paradigm_shift_kellectors
+			set_country_flag = paradigm_shift_kellectors
+			establish_communications_no_message = event_target:paradigm_shift_zaxoid
+			add_modifier = {
+				modifier = paradigm_shift_modifier_stale
+			}
+		}
+	}
+	if = {
+		limit = {
+			any_system = {
+				any_neighbor_system = {
+					always = yes
+				}
+				NOT = {
+					exists = space_owner
+				}
+				distance = {
+					source = event_target:paradigm_shift_first_system
+					min_jumps = 10
+				}
+			}
+		}
+		random_system = {
+			limit = {
+				any_neighbor_system = {
+					always = yes
+				}
+				NOT = {
+					exists = space_owner
+				}
+				distance = {
+					source = event_target:paradigm_shift_first_system
+					min_jumps = 10
+				}
+			}
+			spawn_system = {
+				initializer = paradigm_shift_kellectors_home_system
+				min_distance = 10
+				max_distance = 20
+				hyperlane = yes
+			}
+		}
+	}
+	else = {
+		random_system = {
+			limit = {
+				any_neighbor_system = {
+					always = yes
+				}
+			}
+			spawn_system = {
+				initializer = paradigm_shift_kellectors_home_system
+				min_distance = 10
+				max_distance = 20
+				hyperlane = yes
+			}
+		}
+	}
+	last_created_system = {
+		save_global_event_target_as = paradigm_shift_kellectors_system
+		create_starbase = {
+			size = starbase_citadel
+			owner = event_target:paradigm_shift_kellectors
+			module = hangar_bay
+			module = hangar_bay
+			module = hangar_bay
+			module = hangar_bay
+			module = hangar_bay
+			module = hangar_bay
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_check_endgame = {
+	if = {
+		limit = {
+			NOT = {
+				has_country_flag = paradigm_shift_no_task_available
+			}
+		}
+		set_country_flag = paradigm_shift_no_task_available
+		set_timed_country_flag = {
+			flag = paradigm_shift_endgame_countdown
+			days = 1799			# 5 years
+		}
+		set_timed_country_flag = {
+			flag = paradigm_shift_endgame_long_countdown
+			days = 5399			# 15 years
+		}
+	}
+	else_if = {
+		limit = {
+			NOT = {
+				has_country_flag = paradigm_shift_endgame_countdown
+			}
+			paradigm_shift_should_start_endgame = yes
+		}
+		random_list = {
+			2 = {
+				set_global_flag = paradigm_shift_started_endgame
+				paradigm_shift_start_endgame = yes
+			}
+			3 = {
+				modifier = {
+					factor = 0.1
+					paradigm_shift_should_really_start_endgame = yes
+				}
+				# does not start endgame
+				remove_country_flag = paradigm_shift_no_task_available
+			}
+		}
+	}
+}
+
+paradigm_shift_initialize_stale_fleets = {
+	set_global_flag = paradigm_shift_initialized_stale_fleets
+	event_target:paradigm_shift_zaxoid = {
+		create_ship_design = {
+			design = "Zaxoid Cruiser"
+		}
+		add_ship_design = last_created_design
+		if = {
+			limit = {
+				NOT = {
+					has_modifier = paradigm_shift_modifier_stale
+				}
+			}
+			add_modifier = {
+				modifier = paradigm_shift_modifier_stale
+			}
+		}
+		add_modifier = {
+			modifier = paradigm_shift_modifier_stale_speed
+		}
+	}
+	event_target:paradigm_shift_kellectors = {
+		create_ship_design = {
+			design = "Kellectors Defense Station"
+		}
+		add_ship_design = last_created_design
+		if = {
+			limit = {
+				NOT = {
+					has_modifier = paradigm_shift_modifier_stale
+				}
+			}
+			add_modifier = {
+				modifier = paradigm_shift_modifier_stale
+			}
+		}
+		add_modifier = {
+			modifier = paradigm_shift_modifier_stale_speed
+		}
+	}
+	event_target:paradigm_shift_zaxoid_system = {
+		paradigm_shift_spawn_zaxoid_fleet = yes
+	}
+	event_target:paradigm_shift_kellectors_system = {
+		every_system_planet = {
+			limit = {
+				is_planet_class = pc_black_hole
+			}
+			create_fleet = {
+				name = "Kellectors Defense Station"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:paradigm_shift_kellectors
+					set_location = {
+						target = prev
+						distance = 10
+						direction = in_system
+					}
+					create_ship = {
+						name = "Kellectors Defense Station"
+						design = "Kellectors Defense Station"
+						graphical_culture = "ai_01"
+						prefix = no
+						upgradable = no
+					}
+				}
+			}
+		}
+	}
+}
+
+# this = zax system
+paradigm_shift_spawn_zaxoid_fleet = {
+	every_system_planet = {
+		limit = {
+			is_planet_class = pc_shrouded
+		}
+		create_fleet = {
+			name = "Zaxoid Punitive Fleet"
+			settings = {
+				spawn_debris = no
+				is_boss = yes
+			}
+			effect = {
+				set_owner = event_target:paradigm_shift_zaxoid
+				set_location = {
+					target = prev
+					distance = 0
+					direction = in_system
+				}
+				while = {
+					count = 155
+					create_ship = {
+						name = "Zaxoid Punitive Cruiser"
+						design = "Zaxoid Cruiser"
+						prefix = no
+						upgradable = no
+					}
+				}
+			}
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_start_endgame = {
+	if = {
+		limit = {
+			NOT = {
+				has_global_flag = paradigm_shift_initialized_stale_fleets
+			}
+		}
+		paradigm_shift_initialize_stale_fleets = yes
+	}
+	every_country = {
+		limit = {
+			has_country_flag = paradigm_shift_accept_zaxoid_tasks
+		}
+		country_event = {
+			id = paradigm_shift.700
+		}
+	}
+	every_country = {
+		limit = {
+			has_country_flag = paradigm_shift_accept_kellectors_tasks
+		}
+		country_event = {
+			id = paradigm_shift.701
+		}
+	}
+	event_target:paradigm_shift_zaxoid = {
+		country_event = {
+			id = paradigm_shift.710
+			days = 1800
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_generate_task_zaxoid = {
+	set_variable = {
+		which = paradigm_shift_task_zaxoid
+		value = 0
+	}
+	remove_country_flag = paradigm_shift_task_zaxoid_accepted
+	remove_country_flag = paradigm_shift_task_zaxoid_fulfilled
+	paradigm_shift_select_random_task_zaxoid = yes
+	if = {
+		limit = {
+			check_variable = {
+				which = paradigm_shift_task_zaxoid
+				value > 0
+			}
+		}
+		remove_country_flag = paradigm_shift_no_task_available
+		remove_country_flag = paradigm_shift_endgame_countdown
+		paradigm_shift_set_task_offer_cooldown_zaxoid = yes
+		paradigm_shift_initialize_task_zaxoid = yes		# choose targets ...
+		# notify from available task
+		country_event = {
+			id = paradigm_shift.1000
+		}
+	}
+	else = {
+		paradigm_shift_check_endgame = yes
+		set_variable = {
+			which = paradigm_shift_task_zaxoid
+			value = 0
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_set_task_offer_cooldown_zaxoid = {
+	random_list = {
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_zaxoid
+				years = 7
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_zaxoid
+				years = 8
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_zaxoid
+				years = 9
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_zaxoid
+				years = 10
+			}
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_generate_task_kellectors = {
+	set_variable = {
+		which = paradigm_shift_task_kellectors
+		value = 0
+	}
+	remove_country_flag = paradigm_shift_task_kellectors_accepted
+	remove_country_flag = paradigm_shift_task_kellectors_fulfilled
+	paradigm_shift_select_random_task_kellectors = yes
+	if = {
+		limit = {
+			check_variable = {
+				which = paradigm_shift_task_kellectors
+				value > 0
+			}
+		}
+		remove_country_flag = paradigm_shift_no_task_available
+		remove_country_flag = paradigm_shift_endgame_countdown
+		paradigm_shift_set_task_offer_cooldown_kellectors = yes
+		paradigm_shift_initialize_task_kellectors = yes		# choose targets ...
+		# notify from available task
+		country_event = {
+			id = paradigm_shift.3000
+		}
+	}
+	else = {
+		paradigm_shift_check_endgame = yes
+		set_variable = {
+			which = paradigm_shift_task_kellectors
+			value = 0
+		}
+	}
+}
+
+# this = player country
+paradigm_shift_set_task_offer_cooldown_kellectors = {
+	random_list = {
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_kellectors
+				years = 7
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_kellectors
+				years = 8
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_kellectors
+				years = 9
+			}
+		}
+		1 = {
+			set_timed_country_flag = {
+				flag = paradigm_shift_task_offer_cooldown_kellectors
+				years = 10
+			}
+		}
+	}
+}
