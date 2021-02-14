@@ -1,0 +1,438 @@
+namespace = ne
+
+# ne.10: New Enclave Yearly Border Opinion
+event = {
+	id = ne.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_country = {
+			limit = { is_country_type = ne_enclave }
+			country_event = { id = ne.11 }
+		}
+	}
+}
+
+# ne.11: Add +1 opinion for each year
+country_event = {
+	id = ne.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_owned_fleet = {
+			limit = {
+				exists = solar_system
+				solar_system = {
+					exists = space_owner
+					space_owner = {
+						is_country_type = default
+					}
+				}
+			}
+			solar_system = {
+				space_owner = {
+					root = {
+						add_trust = {
+							who = prev
+							amount = 1
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# ne.12: Empire with no communications with enclave enters its system for the first time
+fleet_event = {
+	id = ne.12
+	title = action.10.name
+	desc = action.15.desc
+	picture = GFX_evt_star_chart
+	location = From
+	trackable = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_country_type = default
+			exists = capital_scope
+		}
+		From = {
+			has_star_flag = ne_enclave
+			any_ship_in_system = {
+				exists = owner
+				owner = {
+					is_country_type = ne_enclave
+					NOR = {
+						has_communications = root.owner
+						reverse_has_relation_flag = {
+							flag = ongoing_enclave_investigation
+							who = root.owner
+						}
+					}
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner = {
+			capital_scope = { save_event_target_as = pc_home }
+			From = {
+				random_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = { is_country_type = ne_enclave }
+					}
+					owner = {
+						save_event_target_as = target_ne_enclave
+						country_event = { id = ne.13 days = 300 random = 50 }
+						enable_special_project = {
+							name = "INVESTIGATE_NE_ENCLAVE"
+							location = event_target:pc_home
+							owner = root.owner
+						}
+						country_event = { id = ne.1000 } # passthrough for story.7
+					}
+				}
+			}
+			set_relation_flag = {
+				flag = ongoing_enclave_investigation
+				who = event_target:target_ne_enclave
+			}
+		}
+	}
+
+	option = {
+		name = action.10.a
+		owner = {
+			tooltip = {
+				enable_special_project = {
+					name = "INVESTIGATE_NE_ENCLAVE"
+					location = event_target:pc_home
+					owner = ROOT
+				}
+			}
+		}
+	}
+}
+
+# ne.13: New Enclave makes contact after 300 days
+country_event = {
+	id = ne.13
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		exists = event_target:pc_home
+		event_target:pc_home = {
+			exists = owner
+			owner = {
+				NOT = { has_communications = root }
+				has_relation_flag = {
+					flag = ongoing_enclave_investigation
+					who = root
+				}
+			}
+		}
+	}
+
+	immediate = {
+		event_target:pc_home = {
+			if = {
+				limit = {
+					exists = owner
+					owner = {
+						NOT = {
+							has_communications = root
+						}
+						has_relation_flag = {
+							flag = ongoing_enclave_investigation
+							who = root
+						}
+					}
+				}
+				owner = {
+					root = { establish_communications_no_message = prev }
+					country_event = { id = ne.14 }
+				}
+			}
+		}
+	}
+}
+
+# ne.14: New Enclave Establishes Communications
+country_event = {
+	id = ne.14
+	title = leviathans.98.name
+	desc = leviathans.98.desc
+	picture = GFX_evt_throne_room
+	show_sound = event_radio_chatter
+
+	is_triggered_only = yes
+
+	after = {
+		if = {
+			limit = {
+				is_xenophile = yes
+			}
+			add_monthly_resource_mult = {
+				resource = influence
+				value = @tier1influencecontactxenophile
+				min = @tier1influencecontactmin
+				max = @tier1influencecontactmax
+			}
+		}
+		else = {
+			add_monthly_resource_mult = {
+				resource = influence
+				value = @tier1influencecontact
+				min = @tier1influencecontactmin
+				max = @tier1influencecontactmax
+			}
+		}
+		hidden_effect = {
+			if = {
+				limit = { From = { has_country_flag = ne_hive_country } }
+				From = { country_event = { id = nehiv.10 } }
+				break = yes
+			}
+			if = {
+				limit = { From = { has_country_flag = ne_machine_country } }
+				From = { country_event = { id = nemac.10 } }
+				break = yes
+			}
+			if = {
+				limit = {
+					From = { has_country_flag = ne_shroud_country }
+				}
+				From = { country_event = { id = neshr.10 } } # Port
+				break = yes
+			}
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = {
+			has_valid_civic = civic_fanatic_purifiers
+		}
+	}
+
+	option = {
+		name = TASTY
+		trigger = {
+			has_valid_civic = civic_hive_devouring_swarm
+		}
+	}
+
+	option = {
+		name = EXTERMINATE
+		trigger = {
+			has_valid_civic = civic_machine_terminator
+		}
+	}
+
+	option = {
+		name = leviathans.98.a
+		trigger = { is_genocidal = no }
+	}
+}
+
+# ne.15: Communications Established
+country_event = {
+	id = ne.15
+	title = leviathans.99.name
+	desc = leviathans.99.desc
+	picture = GFX_evt_throne_room
+	show_sound = event_radio_chatter
+
+	is_triggered_only = yes
+
+	immediate = { establish_communications_no_message = FromFrom }
+
+	after = {
+		if = {
+			limit = {
+				is_xenophile = yes
+			}
+			add_monthly_resource_mult = {
+				resource = influence
+				value = @tier2influencecontactxenophile
+				min = @tier2influencecontactmin
+				max = @tier2influencecontactmax
+			}
+		}
+		else = {
+			add_monthly_resource_mult = {
+				resource = influence
+				value = @tier2influencecontact
+				min = @tier2influencecontactmin
+				max = @tier2influencecontactmax
+			}
+		}
+		hidden_effect = {
+			if = {
+				limit = {
+					FromFrom = {
+						has_country_flag = ne_hive_country
+					}
+				}
+				FromFrom = { country_event = { id = nehiv.10 } }
+				break = yes
+			}
+			if = {
+				limit = {
+					FromFrom = {
+						has_country_flag = ne_machine_country
+					}
+				}
+				FromFrom = { country_event = { id = nemac.10 } }
+				break = yes
+			}
+			if = {
+				limit = {
+					FromFrom = {
+						has_country_flag = ne_shroud_country
+					}
+				}
+				FromFrom = { country_event = { id = neshr.10 } }
+				break = yes
+			}
+		}
+	}
+
+	option = {
+		name = SCUM
+		trigger = {
+			has_valid_civic = civic_fanatic_purifiers
+		}
+	}
+
+	option = {
+		name = TASTY
+		trigger = {
+			has_valid_civic = civic_hive_devouring_swarm
+		}
+	}
+
+	option = {
+		name = EXTERMINATE
+		trigger = {
+			has_valid_civic = civic_machine_terminator
+		}
+	}
+
+	option = {
+		name = leviathans.98.a
+		trigger = { is_genocidal = no }
+	}
+}
+
+# ne.16: New Enclaves Communication Spread
+country_event = {
+	id = ne.16
+	hide_window = yes
+
+	trigger = {
+		is_country_type = ne_enclave
+		any_relation = {
+			is_country_type = default
+			any_relation = {
+				is_country_type = default
+				NOT = { has_communications = ROOT }
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		months = 80
+	}
+
+	immediate = {
+		random_relation = {
+			limit = {
+				any_relation = {
+					is_country_type = default
+					NOT = { has_communications = ROOT }
+				}
+			}
+			random_relation = {
+				limit = {
+					is_country_type = default
+					NOT = { has_communications = ROOT }
+				}
+				root = { establish_communications_no_message = prev }
+				country_event = { id = ne.14 }
+			}
+		}
+	}
+}
+
+# ne.17: No More Energy - Trades Canceled
+country_event = {
+	id = ne.17
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = default
+		resource_stockpile_compare = { resource = energy value <= 0 }
+		OR = {
+			has_active_ne_machine_trade_deal = yes
+			has_active_ne_shroud_trade_deal = yes
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { has_active_ne_machine_trade_deal = yes }
+			remove_ne_machine_trade_deal = yes
+			event_target:ne_machine_country = {
+				add_trust = {
+					who = Root
+					amount = -20
+				}
+			}
+		}
+		if = {
+			limit = { has_active_ne_shroud_trade_deal = yes }
+			remove_ne_shroud_trade_deal = yes
+			event_target:ne_shroud_country = {
+				add_trust = {
+					who = Root
+					amount = -20
+				}
+			}
+		}
+
+		if = {
+			limit = {
+				NOR = {
+					has_active_xuracorp_trade = yes
+					has_active_riggan_trade yes
+					has_active_muutagan_trade = yes
+				}
+			}
+			country_event = { id = leviathans.171 }
+		}
+	}
+}
+
+# ne.1000: passthrough for story.7
+country_event = {
+	id = ne.1000
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		From.owner = {
+			country_event = { id = story.7 days = 2 }
+		}
+	}
+}

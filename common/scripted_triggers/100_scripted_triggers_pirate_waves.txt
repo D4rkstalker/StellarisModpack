@@ -1,0 +1,286 @@
+##########################################################################
+# Scripted Triggers for Pirate Waves
+#
+# Written by ScepraX
+##########################################################################
+
+#############################################
+# 	Variables								#
+#############################################
+
+# Ship limit for pirate countries
+@count_ships_very_easy = 250
+@count_ships_easy = 500
+@count_ships_medium = 1000
+@count_ships_hard = 2000
+@count_ships_insane = 4000
+
+#############################################
+# 	Triggers								#
+#############################################
+
+# Checks if the mod should spawn pirates
+is_pirate_waves_active = {
+	years_passed >= 10
+	any_country = {
+		is_pirate_waves_player = yes
+	}
+}
+
+# Checks for difficulty
+is_pirate_waves_very_easy = {
+	any_country = {
+		is_pirate_waves_player = yes
+		has_policy_flag = pirate_waves_very_easy
+	}
+}
+
+is_pirate_waves_easy = {
+	NOT = {
+		is_pirate_waves_very_easy = yes
+	}
+	any_country = {
+		is_pirate_waves_player = yes
+		has_policy_flag = pirate_waves_easy
+	}
+}
+
+is_pirate_waves_medium= {
+	NOR = {
+		is_pirate_waves_very_easy = yes
+		is_pirate_waves_easy = yes
+	}
+	any_country = {
+		is_pirate_waves_player = yes
+		has_policy_flag = pirate_waves_medium
+	}
+}
+
+is_pirate_waves_hard = {
+	NOR = {
+		is_pirate_waves_very_easy = yes
+		is_pirate_waves_easy = yes
+		is_pirate_waves_medium = yes
+	}
+	any_country = {
+		is_pirate_waves_player = yes
+		has_policy_flag = pirate_waves_hard
+	}
+}
+
+is_pirate_waves_insane = {
+	NOR = {
+		is_pirate_waves_very_easy = yes
+		is_pirate_waves_easy = yes
+		is_pirate_waves_medium = yes
+		is_pirate_waves_hard = yes
+	}
+	any_country = {
+		is_pirate_waves_player = yes
+		has_policy_flag = pirate_waves_insane
+	}
+}
+
+# Check for ship count
+is_pirate_waves_spawn_allowed = {
+	event_target:current_pirate_country = {
+		OR = {
+			AND = {
+				is_pirate_waves_very_easy = yes
+				num_ships < @count_ships_very_easy
+			}
+			AND = {
+				is_pirate_waves_easy = yes
+				num_ships < @count_ships_easy
+			}
+			AND = {
+				is_pirate_waves_medium = yes
+				num_ships < @count_ships_medium
+			}
+			AND = {
+				is_pirate_waves_hard = yes
+				num_ships < @count_ships_hard
+			}
+			AND = {
+				is_pirate_waves_insane = yes
+				num_ships < @count_ships_insane
+			}	
+		}
+	}
+}
+
+# Checks if planet is pirate raiding target
+is_pirate_waves_raiding_planet = {
+	OR = {
+		has_mining_station = yes
+		has_research_station = yes
+		has_observation_outpost = yes
+		has_hostile_orbital_station = yes
+	}
+}
+
+# Check to see if a planet has a military station
+has_military_station = {
+	OR = {
+		any_orbital_station = {
+			is_ship_class = shipclass_military_station
+		}
+		solar_system = {
+			any_ship_in_system = {
+				is_ship_class = shipclass_military_station
+				exists = orbit
+				orbit = {
+					is_same_value = PREVPREVPREV
+				}
+			}
+		}
+	}
+}
+
+# Check to see if a planet has a hostile military station
+has_hostile_orbital_station = {
+	OR = {
+		any_orbital_station = {
+			exists = owner
+			owner = {
+				NOT = {
+					is_same_value = event_target:current_pirate_country
+				}
+			}
+		}
+		solar_system = {
+			any_ship_in_system = {
+				is_ship_class = shipclass_military_station
+				exists = orbit
+				orbit = {
+					is_same_value = PREVPREVPREV
+				}
+				exists = owner
+				owner = {
+					NOT = {
+						is_same_value = event_target:current_pirate_country
+					}
+				}
+			}
+		}
+	}
+}
+
+# Checks if planet is suitable as a base
+is_pirate_waves_base_planet = {
+	has_military_station = no
+	OR = {
+		is_asteroid = yes
+		is_planet_class = pc_barren
+		is_planet_class = pc_barren_cold
+		is_planet_class = pc_gaia
+		is_planet_class = pc_continental
+		is_planet_class = pc_ringworld_habitable
+		is_planet_class = pc_tropical
+		is_planet_class = pc_ocean
+		is_planet_class = pc_arid
+		is_planet_class = pc_desert
+		is_planet_class = pc_tundra
+		is_planet_class = pc_arctic
+		is_planet_class = pc_alpine
+		is_planet_class = pc_savannah
+		is_planet_class = pc_machine
+	}
+}
+
+# Complex check to support automated testing
+# When using human_ai, multiple countries have is_ai = no.
+# When using observe, no country has is_ai = no
+is_pirate_waves_player = {
+	OR = {
+		AND = {
+			is_ai = no
+			NOT = {
+				has_policy_flag = pirate_waves_0
+			}
+		}
+		AND = {
+			has_country_flag = tutorial_level_picked
+			NOT = {
+				any_country = {
+					is_ai = no
+				}
+			}
+		}
+	}
+}
+
+# Has a fleet build the station
+has_pirate_waves_fleet_build_station = {
+	ROOT = {
+		solar_system = {
+			any_ship_in_system = {
+				NOT = {
+					is_ship_class = shipclass_military_station
+				}
+				exists = owner
+				owner = {
+					is_same_value = event_target:current_pirate_country
+				}
+			}
+		}
+	}
+}
+
+# Compares pirate country with closest country
+is_pirate_waves_closest_country_pathetic = {
+	exists = event_target:current_pirate_country
+	ROOT = {
+		closest_system = {
+			limit = {
+				exists = space_owner
+			}
+		
+			space_owner = {
+				relative_power = {
+					who = event_target:current_pirate_country
+					category = fleet
+					value = pathetic
+				}
+			}
+		}
+	}
+}
+
+is_pirate_waves_closest_country_inferior = {
+	exists = event_target:current_pirate_country
+	ROOT = {
+		closest_system = {
+			limit = {
+				exists = space_owner
+			}
+		
+			space_owner = {
+				relative_power = {
+					who = event_target:current_pirate_country
+					category = fleet
+					value = inferior
+				}
+			}
+		}
+	}
+}
+
+is_pirate_waves_closest_country_equivalent = {
+	exists = event_target:current_pirate_country
+	ROOT = {
+		closest_system = {
+			limit = {
+				exists = space_owner
+			}
+		
+			space_owner = {
+				relative_power = {
+					who = event_target:current_pirate_country
+					category = fleet
+					value = equivalent
+				}
+			}
+		}
+	}
+}

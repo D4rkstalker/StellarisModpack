@@ -36,6 +36,12 @@ namespace = caretaker_origin_event
 # - caretaker_gift_cooldown                         : Shows that the Caretaker has recently given a gift to the empire
 #
 # - caretaker_break_up                              : Generic flag to show that empire no longer hosts the Caretaker
+# - caretaker_secession                             : The Caretaker decided to part ways with the empire it oversaw
+# - caretaker_secession_granted                     : The Caretaker's request for secession has been granted
+# - caretaker_secession_denied_politely             : The Caretaker's request for secession has been denied politely
+# - caretaker_secession_denied                      : The Caretaker's request for secession has been denied
+# - caretaker_seceded_country                       : Given to the Caretaker Rogue Servitor empire created as a result of the secession event chain
+# - caretaker_seceded_country_gift_rejected         : Denotes that the player has rejected a gift from the Caretaker RS.
 # - caretaker_experiment_scrapped                   : The Caretaker has proclaimed that species have failed it and must be assimilated/eradicated
 # - caretaker_destoryed                             : The Caretaker has been dealt with (used by faction status check event loop)
 # - caretaker_awful_truth_learned                   : Knows what the Caretaker has done to the species
@@ -72,8 +78,8 @@ country_event = {
 
     immediate = {
         capital_scope = {
-            remove_deposit = d_decrepit_dwellings
-			add_deposit = d_caretaker_core
+            # add modifier to show that we're about to start
+            add_modifier = { modifier = pm_caretaker_core_restarting days = -1 }
             # save current planet as target for caretaker core updates
             save_global_event_target_as = caretaker_core_planet@root
         }
@@ -87,7 +93,7 @@ country_event = {
             which = migration_treaties
             value = 0
         }
-       # roll for the glitch event chain
+        # roll for the glitch event chain
         random_list = {
             50 = {}
             50 = {
@@ -95,7 +101,7 @@ country_event = {
                 country_event = { id = caretaker_origin_event.2000 days = 18000 } # 50 years
             }
         }
-       # roll for the abandoned vault event 'chain'
+        # roll for the abandoned vault event 'chain'
         random_list = {
             50 = {}
             50 = {
@@ -110,7 +116,7 @@ country_event = {
                 set_country_flag = caretaker_hacked_hub
                 country_event = { id = caretaker_origin_event.2600 days = 21600 } # 60 years
             }
-        } 
+        }
         # roll for the downshifters event 'chain'
         random_list = {
             50 = {}
@@ -146,15 +152,65 @@ country_event = {
 				add_building = building_monitor_station_1
 			}
 		}
-		#if = {
-		#	limit = { has_civic = civic_care_crusade }
-		#	give_technology = { message = no tech = tech_centralized_command }
-		#}		
+	#	if = {
+	#		limit = { has_civic = civic_care_crusade }
+	#		give_technology = { message = no tech = tech_centralized_command }
+	#	}
 		if = {
-			limit = { has_civic = civic_love_the_alien }			
+			limit = { has_civic = civic_love_the_alien }
 			give_technology = { message = no tech = tech_neural_implants }
-		}
+        }
+
+        ### add the Caretaker Core with a 1 day delay to avoid other mods deleting it at the game start
+        country_event = { id = caretaker_origin_event.2 days = 1 }
 	}
+}
+
+### add the Caretaker Core with a 1 day delay to avoid other mods deleting it at the game start
+country_event = {
+    id = caretaker_origin_event.2
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+    }
+
+    immediate = {
+        ### check that previous core planet is still valid - if so, update core there
+        if = {
+            limit = {
+                event_target:caretaker_core_planet@root = {
+                    is_owned_by = root
+                    is_colony = yes
+                    num_pops > 0
+                }
+            }
+            event_target:caretaker_core_planet@root = {
+                # remove temporary planet modifier and set a proper one
+                remove_modifier = pm_caretaker_core_restarting
+                caretaker_set_current_mood = yes
+                # remove decrepit dwellings blocker and add a pop that it would've created
+                remove_deposit = d_decrepit_dwellings
+                create_pop = { species = ROOT }
+            }
+        }
+        ### scope to (new) capital and setup core there
+        else = {
+            # remove core deposit from old event target as it no longer works for our purposes
+            event_target:caretaker_core_planet@root = { caretaker_core_clean_up = yes }
+            # move core to the current capital and save it as new event target for core mood updates
+            capital_scope = {
+                save_global_event_target_as = caretaker_core_planet@root
+                # remove temporary planet modifier and set a proper one
+                remove_modifier = pm_caretaker_core_restarting
+                caretaker_set_current_mood = yes
+                # remove decrepit dwellings blocker and add a pop that it would've created
+                remove_deposit = d_decrepit_dwellings
+                create_pop = { species = ROOT }
+            }
+        }
+    }
 }
 
 ## ##################################################### ##
@@ -1200,7 +1256,8 @@ ship_event = {
             has_origin = origin_caretaker
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
                 has_country_flag = caretaker_hubs_on_colonies_explained
             }
         }
@@ -1385,7 +1442,7 @@ planet_event = {
         owner = {
             has_origin = origin_caretaker
             NOT = { has_country_flag = caretaker_break_up }
-        }											  
+        }
         OR = {
             last_building_changed = building_monitor_station_1
             last_building_changed = building_monitor_station_2
@@ -1757,7 +1814,7 @@ planet_event = {
         random_owned_pop = {
             limit = {
                 NOT = { is_same_species = owner }
-										   
+
                 is_robot_pop = no
                 is_being_assimilated = no
                 is_being_purged = no
@@ -2072,7 +2129,6 @@ planet_event = {
     }
 }
 
-
 ## ##################################################### ##
 ##           The Abandoned Vault event chain             ##
 ## ##################################################### ##
@@ -2117,7 +2173,8 @@ planet_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2160,7 +2217,8 @@ planet_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2217,7 +2275,8 @@ country_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2225,7 +2284,7 @@ country_event = {
     option = {
         name = caretaker_origin_event.2503.option.a
         hidden_effect = {
-            country_event = { id = caretaker_origin_event.2504 days = 1 }
+            country_event = { id = caretaker_origin_event.2504 days = -1 }
         }
     }
     option = {
@@ -2257,7 +2316,8 @@ country_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2313,7 +2373,8 @@ country_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2323,8 +2384,8 @@ country_event = {
     }
 
     option = {
-        name = caretaker_origin_event.2505.option.a
-        custom_tooltip = caretaker_origin_event.2505.option.a.tooltip
+        name = caretaker_origin_event.2504.option.a
+        custom_tooltip = caretaker_origin_event.2504.option.a.tooltip
         hidden_effect = {
             country_event = { id = caretaker_origin_event.2506 days = 1 }
             add_resource = {
@@ -2350,7 +2411,8 @@ country_event = {
             has_country_flag = caretaker_abandoned_vault
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2360,7 +2422,7 @@ country_event = {
         hidden_effect = {
             change_variable = {
                 which = caretaker_mood
-                value = 5
+                value = 7
             }
         }
     }
@@ -2369,12 +2431,11 @@ country_event = {
         hidden_effect = {
             change_variable = {
                 which = caretaker_mood
-                value = -5
+                value = -3
             }
         }
     }
 }
-
 
 ## ##################################################### ##
 ##         The hacked Caretaker hub event chain          ##
@@ -2391,7 +2452,8 @@ country_event = {
         has_country_flag = caretaker_hacked_hub
         NOR = {
             has_country_flag = caretaker_break_up
-            has_country_flag = caretaker_experiment_scrapped
+            has_country_flag = caretaker_secession
+			has_country_flag = caretaker_experiment_scrapped
         }
     }
 
@@ -2436,7 +2498,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2463,7 +2526,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2492,7 +2556,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2521,7 +2586,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2548,7 +2614,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2571,13 +2638,14 @@ planet_event = {
 
     trigger = {
         has_modifier = caretaker_hacked_hub_2
-		exists = owner   
+		exists = owner
 	   owner = {
             has_origin = origin_caretaker
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2606,7 +2674,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2641,7 +2710,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2688,7 +2758,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+                has_country_flag = caretaker_secession
+				has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2738,7 +2809,8 @@ planet_event = {
             has_country_flag = caretaker_hacked_hub
             NOR = {
                 has_country_flag = caretaker_break_up
-                has_country_flag = caretaker_experiment_scrapped
+				has_country_flag = caretaker_secession
+			   has_country_flag = caretaker_experiment_scrapped
             }
         }
     }
@@ -2845,7 +2917,7 @@ country_event = {
 			if = {
 				limit = { not = { has_country_flag = caretaker_downshifted_planet_found }}
 				country_event = { id = caretaker_origin_event.2700 days = 360 }
-			}			
+			}
         }
     }
 }
@@ -2908,7 +2980,8 @@ planet_event = {
                     limit = {
                         NOR = {
                             has_country_flag = caretaker_break_up
-                            has_country_flag = caretaker_experiment_scrapped
+                            has_country_flag = caretaker_secession
+							has_country_flag = caretaker_experiment_scrapped
                         }
                     }
                     change_variable = {
@@ -2946,7 +3019,8 @@ planet_event = {
             owner = {
                 NOR = {
                     has_country_flag = caretaker_break_up
-                    has_country_flag = caretaker_experiment_scrapped
+                    has_country_flag = caretaker_secession
+					has_country_flag = caretaker_experiment_scrapped
                 }
             }
         }
@@ -2968,7 +3042,8 @@ planet_event = {
             owner = {
                 OR = {
                     has_country_flag = caretaker_break_up
-                    has_country_flag = caretaker_experiment_scrapped
+                    has_country_flag = caretaker_secession
+					has_country_flag = caretaker_experiment_scrapped
                 }
             }
         }
@@ -2983,7 +3058,8 @@ planet_event = {
             owner = {
                 NOR = {
                     has_country_flag = caretaker_break_up
-                    has_country_flag = caretaker_experiment_scrapped
+                    has_country_flag = caretaker_secession
+					has_country_flag = caretaker_experiment_scrapped
                 }
             }
         }
@@ -3002,7 +3078,8 @@ planet_event = {
                     limit = {
                         NOR = {
                             has_country_flag = caretaker_break_up
-                            has_country_flag = caretaker_experiment_scrapped
+                            has_country_flag = caretaker_secession
+							has_country_flag = caretaker_experiment_scrapped
                         }
                     }
                     change_variable = {
@@ -3144,6 +3221,1130 @@ planet_event = {
 }
 
 ## ##################################################### ##
+##          Caretaker secedes into a RS empire           ##
+## ##################################################### ##
+
+### Gate event
+country_event = {
+    id = caretaker_origin_event.3000
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        host_has_dlc = "Synthetic Dawn Story Pack"
+    }
+
+    immediate = {
+        country_event = { id = caretaker_origin_event.3001 days = 1080 }
+    }
+}
+
+### Checking that conditions for peaceful separation are met
+country_event = {
+    id = caretaker_origin_event.3001
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        NOR = {
+            has_country_flag = caretaker_break_up
+            has_country_flag = caretaker_secession
+			has_country_flag = caretaker_experiment_scrapped
+        }
+    }
+
+    immediate = {
+        # check if empire has robotic workers tech, if it doesn't - wait 5 years before trying again
+        if = {
+            limit = { NOT = { has_technology = tech_robotic_workers } }
+            country_event = { id = caretaker_origin_event.3001 days = 1800 }
+            break = yes
+        }
+        # check if there are any ward planets with sufficient population, if not - wait 5 years before trying again
+        if = {
+            limit = {
+                NOT = {
+                    any_owned_planet = {
+                        colony_type = col_wardworld
+                        num_pops > 20
+                        NOT = {
+                            solar_system = {
+                                any_system_planet = {
+                                    is_colony = yes
+                                    NOT = { is_same_value = PREVPREV }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            country_event = { id = caretaker_origin_event.3001 days = 1800 }
+            break = yes
+        }
+        # check if the Caretaker is not content with the current state of the empire, if it is - try again in 5 years
+        if = {
+            limit = { caretaker_mood_is_not_bad_check = yes }
+            country_event = { id = caretaker_origin_event.3001 days = 1800 }
+            break = yes
+        }
+
+        random_list = {
+            # Caretaker asks for secession
+            20 = { country_event = { id = caretaker_origin_event.3002 days = 0 } }
+            # ...or decides to wait another year
+            80 = { country_event = { id = caretaker_origin_event.3001 days = 360 } }
+        }
+    }
+}
+
+### prepare diplo event data for secession request
+country_event = {
+    id = caretaker_origin_event.3002
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        NOR = {
+            has_country_flag = caretaker_break_up
+            has_country_flag = caretaker_secession
+			has_country_flag = caretaker_experiment_scrapped
+        }
+    }
+
+    immediate = {
+        # get robotic species for the Caretaker
+        create_species = {
+            is_mod = no
+            name = "NAME_CARETAKER_SPECIES"
+            plural = "NAME_CARETAKER_SPECIES_PLURAL"
+            namelist = this
+            class = MACHINE
+            portrait = default_robot
+            traits = {
+                trait = trait_machine_unit
+                trait = trait_robot_caretaker_directives
+                trait = trait_robot_efficient_processors
+                trait = trait_robot_bulky
+            }
+
+            effect = {
+                # select robot portrait
+                PREV = {
+                    switch = {
+                        trigger = is_species_class
+                        HUM = { PREV = { change_species_characteristics = { portrait = "sd_hum_robot" } } }
+                        MAM = { PREV = { change_species_characteristics = { portrait = "sd_mam_robot" } } }
+                        REP = { PREV = { change_species_characteristics = { portrait = "sd_rep_robot" } } }
+                        AVI = { PREV = { change_species_characteristics = { portrait = "sd_avi_robot" } } }
+                        ART = { PREV = { change_species_characteristics = { portrait = "sd_art_robot" } } }
+                        MOL = { PREV = { change_species_characteristics = { portrait = "sd_mol_robot" } } }
+                        FUN = { PREV = { change_species_characteristics = { portrait = "sd_fun_robot" } } }
+                        PLANT = { PREV = { change_species_characteristics = { portrait = "sd_pla_robot" } } }
+                        LITHOID = { PREV = { change_species_characteristics = { portrait = "lith_machine" } } }
+                        #NECROID = { PREV = { change_species_characteristics = { portrait = "nec_machine" } } }
+                    }
+                }
+
+                save_global_event_target_as = caretaker_robotic_species@root
+            }
+        }
+
+        # select a target planet
+        random_owned_planet = {
+            limit = {
+                colony_type = col_wardworld
+                num_pops > 20
+                NOT = {
+                    solar_system = {
+                        any_system_planet = {
+                            is_colony = yes
+                            NOT = { is_same_value = PREVPREV }
+                        }
+                    }
+                }
+            }
+            save_global_event_target_as = caretaker_secession_target_planet@root
+        }
+
+        # call the diplo event
+        event_target:caretaker_secession_target_planet@root = {
+            planet_event = { id = caretaker_origin_event.3003 days = 0 }
+        }
+    }
+}
+
+### Actual request for secession
+planet_event = {
+    id = caretaker_origin_event.3003
+    is_triggered_only = yes
+    diplomatic = yes
+
+    title = caretaker_origin_event.3003.name
+    desc = caretaker_origin_event.3003.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_robotic_species@root
+        planet_background = root.owner
+        graphical_culture = root.owner
+        city_level = root.owner
+        room = root.owner
+    }
+
+    immediate = {
+        owner = {
+            remove_country_flag = caretaker_secession_granted
+            remove_country_flag = caretaker_secession_denied
+            remove_country_flag = caretaker_secession_denied_politely
+        }
+    }
+
+    # allow the Caretaker to secede onto the ward world
+    option = {
+        name = caretaker_origin_event.3003.option.a
+        custom_tooltip = caretaker_origin_event.3003.option.a.tooltip
+        hidden_effect = {
+            # create the Caretaker country
+            owner = {
+                set_country_flag = caretaker_secession
+                set_country_flag = caretaker_secession_granted
+                country_event = { id = caretaker_origin_event.3100 days = 0 }
+            }
+        }
+    }
+    # tell the Caretaker 'no' politely
+    option = {
+        name = caretaker_origin_event.3003.option.b
+        custom_tooltip = caretaker_origin_event.3003.option.b.tooltip
+        hidden_effect = {
+            owner = {
+                set_country_flag = caretaker_secession_denied_politely			 
+                # call event that decides what the Caretaker will do next
+                country_event = { id = caretaker_origin_event.3004 days = 0 }
+            }
+        }
+    }
+    # tell the Caretaker 'no' forcefully
+    option = {
+        name = caretaker_origin_event.3003.option.c
+        custom_tooltip = caretaker_origin_event.3003.option.c.tooltip
+        hidden_effect = {
+            owner = {
+                change_variable = {
+                    which = caretaker_mood
+                    value = -5				 
+                }
+                set_country_flag = caretaker_secession_denied
+                # call event that decides what the Caretaker will do next
+                country_event = { id = caretaker_origin_event.3004 days = 0 }
+            }
+        }
+    }
+}
+
+### Caretaker has been denied secession
+country_event = {
+    id = caretaker_origin_event.3004
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        OR = {
+            has_country_flag = caretaker_secession_denied_politely
+            has_country_flag = caretaker_secession_denied
+        }
+    }
+
+    immediate = {
+        # if secession request has been denied politely, the Caretaker will be more forgiving
+        if = {
+            limit = { has_country_flag = caretaker_secession_denied_politely }
+            # if mood is relatively good, Caretaker will almost certainly give the empire another chance
+            if = {
+                limit = { caretaker_mood_is_slighly_annoyed = yes }
+                random_list = {
+                    # no secession, but will try again in 10 years
+                    90 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 3600 }
+                    }
+                    # break away immediate
+                    10 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+            # if the mood is rather bad, it is more likely to break away by force
+            else_if = {
+                limit = { caretaker_mood_is_very_annoyed = yes }
+                random_list = {
+                    # no secession, but will try again in 5 years
+                    50 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 1800 }
+                    }
+                    # break away immediate
+                    50 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+            # otherwise, there is a decent chance it will break away by force
+            else = {
+                random_list = {
+                    # no secession, but will try again in 10 years
+                    75 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 3600 }
+                    }
+                    # break away immediate
+                    25 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+        }
+        # if secession has been denied harshly, the Caretaker will be more likely to break away anyway
+        if = {
+            limit = { has_country_flag = caretaker_secession_denied }
+            # if mood is really bad, the Caretaker is almost guaranteed to break away by force
+            if = {
+                limit = { caretaker_mood_is_very_annoyed = yes }
+                random_list = {
+                    # no secession, but will try again in 5 years
+                    15 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 1800 }
+                    }
+                    # break away immediate
+                    85 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+            # if Caretaker somehow is still in a relatively 'not bad' mood, the chance of break away by force is not that high
+            else_if = {
+                limit = { caretaker_mood_is_slighly_annoyed = yes }
+                random_list = {
+                    # no secession, but will try again in 10 years
+                    60 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 3600 }
+                    }
+                    # break away immediate
+                    40 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+            # otherwise Caretaker is likely to break away, but not too likely
+            else = {
+                random_list = {
+                    # no secession, but will try again in 10 years
+                    35 = {
+                        country_event = { id = caretaker_origin_event.3010 days = 0 }
+                        country_event = { id = caretaker_origin_event.3001 days = 3600 }
+                    }
+                    # break away immediate
+                    65 = {
+                        set_country_flag = caretaker_secession
+                        event_target:caretaker_secession_target_planet@root = {
+                            planet_event = { id = caretaker_origin_event.3011 days = 0 }
+                        }
+                        country_event = { id = caretaker_origin_event.3100 days = 1 }
+                    }
+                }
+            }
+        }
+    }
+}
+
+### Caretaker says that it is willing to give you another chance
+country_event = {
+    id = caretaker_origin_event.3010
+    is_triggered_only = yes
+    diplomatic = yes
+
+    title = caretaker_origin_event.3010.name
+    desc = caretaker_origin_event.3010.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_robotic_species@root
+        planet_background = root
+        graphical_culture = root
+        city_level = root
+        room = root
+    }
+
+    option = {
+        name = caretaker_origin_event.3010.option.a
+    }
+}
+
+### Caretaker is going to break away regardless of your permission
+planet_event = {
+    id = caretaker_origin_event.3011
+    is_triggered_only = yes
+    diplomatic = yes
+
+    title = caretaker_origin_event.3011.name
+    desc = caretaker_origin_event.3011.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_robotic_species@root
+        planet_background = root.owner
+        graphical_culture = root.owner
+        city_level = root.owner
+        room = root.owner
+    }
+
+    option = {
+        name = caretaker_origin_event.3011.option.a
+		custom_tooltip = caretaker_origin_event.3011.option.a.tooltip
+	}
+}
+
+### Creating the Caretaker country
+country_event = {
+    id = caretaker_origin_event.3100
+    is_triggered_only = yes
+    hide_window = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+    }
+
+    immediate = {
+        # create country
+        create_country = {
+            type = default
+            name = "NAME_CARETAKER_EMPIRE"
+            species = event_target:caretaker_robotic_species@root
+            ignore_initial_colony_error = yes
+            day_zero_contact = no
+            ethos = { ethic = ethic_gestalt_consciousness }
+            authority = auth_machine_intelligence
+            civics = {
+                civic = civic_machine_servitor
+                civic = civic_machine_introspective
+            }
+            origin = origin_caretaker_sevitor
+            flag = {
+                icon = { category = "special" file = "caretaker_emblem.dds" }
+                background = { category = "backgrounds" file = "00_solid.dds" }
+                colors = { "black" "black" "null" "null" }
+            }
+
+            effect = {
+                set_country_flag = caretaker_seceded_country
+                # setup 'initial' technology for the seceded Caretaker
+                caretaker_seceded_empire_setup_technology = { PARENT_EMPIRE = ROOT }
+
+                # give the Caretaker empire starting resources
+                add_resource = {
+                    minerals = 15000
+                    energy = 15000
+                    food = 15000
+                    alloys = 15000
+                    consumer_goods = 15000
+                    influence = 1000
+                    rare_crystals = 500
+                    exotic_gases = 500
+                    volatile_motes = 500
+                }
+
+                # add empire-level modifier to help the Caretaker
+                add_modifier = { modifier = caretaker_country_boost days = -1 }
+
+                save_global_event_target_as = caretaker_secession_empire
+            }
+        }
+
+        # establish communications, set truce and forced open borders between the Caretaker empire and the empire it was spawned from
+        event_target:caretaker_secession_empire = {
+            ROOT = {
+                establish_communications_no_message = PREV
+                set_truce = {
+                    target = PREV
+                    type = war
+                }
+                set_closed_borders = {
+                    who = PREV
+                    status = no
+                    forced = 10 # 10 years																						
+                }
+            }
+
+            establish_communications_no_message = ROOT
+            every_playable_country = {
+                limit = { has_communications = ROOT }
+                establish_communications_no_message = PREV
+            }
+										   
+            set_truce = {
+                target = ROOT
+                type = war
+            }
+            set_closed_borders = {
+                who = ROOT
+                status = no
+                forced = 10 # 10 years
+            }
+
+            # opinion modifiers
+            if = {
+                limit = { ROOT = { has_country_flag = caretaker_secession_granted } }
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_secession_request_granted
+                }
+            }
+            else_if = {
+                limit = {
+                    ROOT = {
+                        OR = {
+                            has_country_flag = caretaker_secession_denied
+                            has_country_flag = caretaker_secession_denied_politely
+                        }
+                    }
+                }
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_secession_request_denied
+                }
+                ROOT = {
+                    add_opinion_modifier = {
+                        who = PREV
+                        modifier = caretaker_seceded_against_our_wishes
+                    }
+                }
+            }
+        }
+
+        # caretaker capital
+        event_target:caretaker_secession_target_planet@root = {
+            set_owner = event_target:caretaker_secession_empire
+            set_controller = event_target:caretaker_secession_empire
+            set_capital = yes
+            caretaker_seceded_empire_setup_initial_population = {
+                PARENT_EMPIRE_SPECIES = ROOT
+                CARETAKER_SPECIES = event_target:caretaker_robotic_species@root
+            }
+            caretaker_seceded_empire_setup_capital = yes
+            set_sector_capital = yes
+
+            # update starbase
+            solar_system = {
+                starbase = {
+                    set_owner = event_target:caretaker_secession_empire
+                    caretaker_seceded_empire_setup_starbase = yes
+                }
+            }
+        }
+
+        # caretaker leaders
+        event_target:caretaker_secession_empire = {
+            # create caretaker fleets with leaders
+            caretaker_seceded_empire_create_starting_fleet = { FLEET_TARGET = THIS }
+            caretaker_seceded_empire_create_civilian_ships = { FLEET_TARGET = THIS }
+            # create other leaders
+            caretaker_seceded_empire_setup_leaders = yes
+        }
+
+        # clean up event targets
+        clear_global_event_target = caretaker_robotic_species@root
+        clear_global_event_target = caretaker_secession_target_planet@root
+
+        # set country flag for caretaker break up
+        set_country_flag = caretaker_break_up
+        # Caretaker takes some pops, hubs/core are removed
+        every_owned_planet = {
+            caretaker_secession_planets_clean_up = yes
+        }
+
+        ### Setup further diplomacy with the new Caretaker country
+        if = {
+            limit = {
+                OR = {
+                    has_country_flag = caretaker_secession_granted
+                    has_country_flag = caretaker_secession_denied_politely
+                }
+            }
+            # Caretaker asks for alloys and energy
+            random_list = {
+                80 = { country_event = { id = caretaker_origin_event.3201 days = 720 random = 720 } }
+                20 = {}
+            }
+            # Caretaker asks for more pops
+            random_list = {
+                80 = { country_event = { id = caretaker_origin_event.3200 days = 1440 random = 720 } }
+                20 = {}
+            }
+            # Caretaker asks for food
+            random_list = {
+                80 = { country_event = { id = caretaker_origin_event.3202 days = 2160 random = 720 } }
+                20 = {}
+            }
+        }
+        else_if = {
+            limit = { has_country_flag = caretaker_secession_denied }
+            # pop stealing #1
+            random_list = {
+                70 = { country_event = { id = caretaker_origin_event.3250 days = 720 random = 720 } }
+                30 = {}
+            }
+            # caretaker steals a fleet
+            random_list = {
+                40 = { country_event = { id = caretaker_origin_event.3252 days = 1440 random = 720 } }
+                60 = {}
+            }
+            # caretaker steals resources
+            random_list = {
+                70 = { country_event = { id = caretaker_origin_event.3251 days = 2160 random = 720 } }
+                30 = {}
+            }
+            # pop stealing #2
+            random_list = {
+                70 = { country_event = { id = caretaker_origin_event.3250 days = 3600 random = 720 } }
+                30 = {}
+            }
+        }
+
+        if = {
+            limit = { has_country_flag = caretaker_secession_granted }
+            country_event = { id = caretaker_origin_event.3300 days = 4680 random = 1440 }
+        }
+    }
+}
+
+### Diplomatic event : the Caretaker asks you to give it several pops from your empire that want to live under its care
+country_event = {
+    id = caretaker_origin_event.3200
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+    }
+
+    title = caretaker_origin_event.3200.name
+    desc = caretaker_origin_event.3200.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    # allow pops to resettle to the Caretaker country
+    option = {
+        name = caretaker_origin_event.3200.option.a
+        custom_tooltip = caretaker_origin_event.3200.option.a.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                capital_scope = {
+                    save_event_target_as = resettlement_target_planet
+                }
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_granted
+                }
+            }
+            while = {
+                count = 3
+                random_owned_pop = {
+                    resettle_pop = {
+                        pop = THIS
+                        planet = event_target:resettlement_target_planet
+                    }
+                }
+            }
+        }
+    }
+    # do not allow pops to resettle to the Caretaker country
+    option = {
+        name = caretaker_origin_event.3200.option.b
+        custom_tooltip = caretaker_origin_event.3200.option.b.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_denied
+                }
+            }
+        }
+    }
+}
+
+### Diplomatic event : the Caretaker asks for additional resources (energy and alloys)
+country_event = {
+    id = caretaker_origin_event.3201
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+    }
+
+    title = caretaker_origin_event.3201.name
+    desc = caretaker_origin_event.3201.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    # empire has resources and is willing to give them to the seceded Caretaker
+    option = {
+        name = caretaker_origin_event.3201.option.a
+        custom_tooltip = caretaker_origin_event.3201.option.a.tooltip
+        trigger = {
+            has_resource = { type = alloys amount > 1000 }
+            has_resource = { type = energy amount > 1000 }
+        }
+        hidden_effect = {
+            # take resources from empire's stockpile
+            add_resource = {
+                alloys = -1000
+                energy = -1000
+            }
+            # ...and give them to the Caretaker RS + improve Caretaker's opinion
+            event_target:caretaker_secession_empire = {
+                add_resource = {
+                    alloys = 1000
+                    energy = 1000
+                }
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_granted
+                }
+            }
+        }
+    }
+    # empire doesn't have resources
+    option = {
+        name = caretaker_origin_event.3201.option.b
+        trigger = {
+            NAND = {
+                has_resource = { type = alloys amount > 1000 }
+                has_resource = { type = energy amount > 1000 }
+            }
+        }
+    }
+    # empire doesn't want to share
+    option = {
+        name = caretaker_origin_event.3201.option.c
+        custom_tooltip = caretaker_origin_event.3201.option.c.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_denied
+                }
+            }
+        }
+    }
+}
+
+### Diplomatic event : the Caretaker asks for additional resources (food)
+country_event = {
+    id = caretaker_origin_event.3202
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+    }
+
+    title = caretaker_origin_event.3202.name
+    desc = caretaker_origin_event.3202.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    # empire has resources and is willing to give them to the seceded Caretaker
+    option = {
+        name = caretaker_origin_event.3202.option.a
+        custom_tooltip = caretaker_origin_event.3202.option.a.tooltip
+        trigger = {
+            has_resource = { type = food amount > 5000 }
+        }
+        hidden_effect = {
+            # take resources from empire's stockpile
+            add_resource = {
+                food = -5000
+            }
+            # ...and give them to the Caretaker RS + improve Caretaker's opinion
+            event_target:caretaker_secession_empire = {
+                add_resource = {
+                    food = 5000
+                }
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_granted
+                }
+            }
+            # schedule Caretaker paying back for the food
+            country_event = { id = caretaker_origin_event.3203 days = 120 }
+        }
+    }
+    # empire doesn't have resources
+    option = {
+        name = caretaker_origin_event.3202.option.b
+        trigger = {
+            NOT = {
+                has_resource = { type = food amount > 5000 }
+            }
+        }
+    }
+    # empire doesn't want to share
+    option = {
+        name = caretaker_origin_event.3202.option.c
+        custom_tooltip = caretaker_origin_event.3202.option.c.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_diplo_request_denied
+                }
+            }
+        }
+    }
+}
+
+### Diplomatic event : the Caretaker pays back for the food it was given
+country_event = {
+    id = caretaker_origin_event.3203
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+    }
+
+    title = caretaker_origin_event.3203.name
+    desc = caretaker_origin_event.3203.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    option = {
+        name = caretaker_origin_event.3203.option.a
+        custom_tooltip = caretaker_origin_event.3203.option.a.tooltip
+        hidden_effect = {
+            add_resource = {
+                energy = 5000
+                minerals = 5000
+            }
+        }
+    }
+}
+
+### Caretaker that seceded forcefully steals pops
+country_event = {
+    id = caretaker_origin_event.3250
+    is_triggered_only = yes
+    picture = GFX_evt_burning_settlement
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+    }
+
+    title = caretaker_origin_event.3250.name
+    desc = caretaker_origin_event.3250.desc
+
+    option = {
+        name = caretaker_origin_event.3250.option.a
+        custom_tooltip = caretaker_origin_event.3250.option.a.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                capital_scope = {
+                    save_event_target_as = resettlement_target_planet
+                }
+            }
+            while = {
+                count = 3
+                random_owned_pop = {
+                    resettle_pop = {
+                        pop = THIS
+                        planet = event_target:resettlement_target_planet
+                    }
+                }
+            }
+            add_opinion_modifier = {
+                who = event_target:caretaker_secession_empire
+                modifier = caretaker_pops_stolen
+            }
+        }
+    }
+}
+
+### Caretaker steals resources
+country_event = {
+    id = caretaker_origin_event.3251
+    is_triggered_only = yes
+    picture = GFX_evt_ship_offloading_cargo
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+        has_resource = { type = energy amount > 5000 }
+        has_resource = { type = minerals amount > 5000 }
+    }
+
+    title = caretaker_origin_event.3251.name
+    desc = caretaker_origin_event.3251.desc
+
+    option = {
+        name = caretaker_origin_event.3251.option.a
+        custom_tooltip = caretaker_origin_event.3251.option.a.tooltip
+        hidden_effect = {
+            add_resource = {
+                energy = -5000
+                minerals = -5000
+            }
+            event_target:caretaker_secession_empire = {
+                add_resource = {
+                    energy = 5000
+                    minerals = 5000
+                }
+            }
+            add_opinion_modifier = {
+                who = event_target:caretaker_secession_empire
+                modifier = caretaker_resources_stolen
+            }
+        }
+    }
+}
+
+### Caretaker steals a fleet
+country_event = {
+    id = caretaker_origin_event.3252
+    is_triggered_only = yes
+    picture = GFX_evt_fleet_neutral
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+        num_fleets > 1
+        is_at_war = no
+    }
+
+    title = caretaker_origin_event.3252.name
+    desc = caretaker_origin_event.3252.desc
+
+    option = {
+        name = caretaker_origin_event.3252.option.a
+        custom_tooltip = caretaker_origin_event.3252.option.a.tooltip
+        hidden_effect = {
+            random_owned_fleet = {
+                set_owner = event_target:caretaker_secession_empire
+                order_forced_return = yes
+            }
+            add_opinion_modifier = {
+                who = event_target:caretaker_secession_empire
+                modifier = caretaker_resources_stolen
+            }
+        }
+    }
+}
+
+### Diplomatic event: the Caretaker that seceded with your permission gifts you pops if relations are positive
+country_event = {
+    id = caretaker_origin_event.3300
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession_granted
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+        event_target:caretaker_secession_empire = {
+            OR = {
+                is_loyal_to = ROOT
+                is_friendly_to = ROOT
+                is_cordial_to = ROOT
+                is_protective_to = ROOT
+            }
+        }
+    }
+
+    title = caretaker_origin_event.3300.name
+    desc = caretaker_origin_event.3300.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    option = {
+        name = caretaker_origin_event.3300.option.a
+        custom_tooltip = caretaker_origin_event.3300.option.a.tooltip
+        hidden_effect = {
+            capital_scope = {
+                while = {
+                    count = 5
+                    create_pop = { species = ROOT }
+                }
+            }
+            country_event = { id = caretaker_origin_event.3301 days = 1800 random = 720 }
+        }
+    }
+    option = {
+        name = caretaker_origin_event.3300.option.b
+        custom_tooltip = caretaker_origin_event.3300.option.b.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_gift_rejected
+                }
+            }
+            set_country_flag = caretaker_seceded_country_gift_rejected
+            country_event = { id = caretaker_origin_event.3301 days = 3600 random = 720 }
+        }
+    }
+}
+
+### Diplomatic event: smaller repeated gifts of pops from the seceded Caretaker
+country_event = {
+    id = caretaker_origin_event.3301
+    is_triggered_only = yes
+    diplomatic = yes
+
+    trigger = {
+        has_origin = origin_caretaker
+        has_country_flag = caretaker_secession_granted
+        any_playable_country = {
+            has_country_flag = caretaker_seceded_country
+        }
+        event_target:caretaker_secession_empire = {
+            OR = {
+                is_loyal_to = ROOT
+                is_friendly_to = ROOT
+                is_cordial_to = ROOT
+                is_protective_to = ROOT
+            }
+        }
+    }
+
+    title = caretaker_origin_event.3301.name
+    desc = caretaker_origin_event.3301.desc
+
+    picture_event_data = {
+        portrait = event_target:caretaker_secession_empire
+        planet_background = event_target:caretaker_secession_empire
+        graphical_culture = event_target:caretaker_secession_empire
+        city_level = event_target:caretaker_secession_empire
+        room = event_target:caretaker_secession_empire
+    }
+
+    option = {
+        name = caretaker_origin_event.3301.option.a
+        custom_tooltip = caretaker_origin_event.3301.option.a.tooltip
+        hidden_effect = {
+            capital_scope = {
+                # guaranteed pop
+                create_pop = { species = ROOT }
+                # random pop
+                random_list = {
+                    50 = {}
+                    50 = { create_pop = { species = ROOT } }
+                }
+            }
+            country_event = { id = caretaker_origin_event.3301 days = 1800 random = 720 }
+        }
+    }
+    option = {
+        name = caretaker_origin_event.3301.option.b
+        custom_tooltip = caretaker_origin_event.3301.option.b.tooltip
+        hidden_effect = {
+            event_target:caretaker_secession_empire = {
+                add_opinion_modifier = {
+                    who = ROOT
+                    modifier = caretaker_gift_rejected
+                }
+            }
+            if = {
+                limit = { NOT = { has_country_flag = caretaker_seceded_country_gift_rejected } }
+                set_country_flag = caretaker_seceded_country_gift_rejected
+                country_event = { id = caretaker_origin_event.3301 days = 3600 random = 720 }
+            }
+        }
+    }
+}
+
+## ##################################################### ##
 ##         Caretaker goes into exterminatus mode         ##
 ## ##################################################### ##
 
@@ -3194,19 +4395,19 @@ country_event = {
     }
     option = {
         name = caretaker_origin_event.4000.option.c
-        trigger = {		
+        trigger = {
             OR = {
                 has_ethic = ethic_pacifist
-                has_ethic = ethic_fanatic_pacifist	 
+                has_ethic = ethic_fanatic_pacifist
             }
         }
     }
     option = {
         name = caretaker_origin_event.4000.option.d
-        trigger = {			
+        trigger = {
             OR = {
                 has_ethic = ethic_militarist
-                has_ethic = ethic_fanatic_militarist	 
+                has_ethic = ethic_fanatic_militarist
             }
         }
     }
@@ -3529,7 +4730,7 @@ country_event = {
             has_country_flag = caretaker_break_up
             has_country_flag = caretaker_experiment_scrapped
         }
-													   
+
         FROMFROM = {
             controller = { is_country = event_target:caretaker_exterminatus_faction@root }
             OR = {
@@ -3785,7 +4986,7 @@ country_event = {
     }
     option = {
         name = caretaker_origin_event.4110.option.b
-        trigger = {		
+        trigger = {
             OR = {
                 has_ethic = ethic_militarist
                 has_ethic = ethic_fanatic_militarist
@@ -4099,7 +5300,7 @@ country_event = {
                 has_communications = root
             }
         }
-		  
+
 		hidden_effect = {
             random_country = {
                 limit = {
