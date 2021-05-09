@@ -1,6 +1,6 @@
 namespace = giga_menu
 
-@gigastructures_version = 3.01
+@gigastructures_version = 3.13.0
 
 # On monthly pulse country (Check version)
 country_event = {
@@ -26,7 +26,7 @@ country_event = {
 	id = giga_menu.101
 	title = "giga_menu.101.name"
 	desc = "giga_menu.101.desc"
-	picture = GFX_evt_gigastructures
+	picture = GFX_evt_star_lifters
 	is_triggered_only = yes
 
 	option = {
@@ -50,10 +50,7 @@ country_event = {
 	immediate = {
 		set_global_flag = giga_has_host
 		set_country_flag = giga_host
-
 		giga_preset_00 = yes
-		set_global_flag = giga_build_infinite_megas
-		every_country = { add_modifier = { modifier = giga_no_build_cap days = -1 } }
 	}
 }
 
@@ -70,7 +67,6 @@ country_event = {
 
 	immediate = {
 		country_event = { id = ehof_megastructure.004 days = 30 }	# Mod compatibility check error
-		country_event = { id = ehof_map_stars.001 }					# Map the stars
 
 		if = {
 			limit = { NOT = { has_global_flag = giga_versioned } }
@@ -78,10 +74,25 @@ country_event = {
 			set_variable = { which = giga_version value = @gigastructures_version }
 		}
 
-		remove_global_flag = giga_menu_page_presets
-		remove_global_flag = giga_menu_page_01
-		remove_global_flag = giga_menu_page_02
-		set_global_flag = giga_menu_page_00
+		if = { #buff aeternum for acot
+			limit = { has_global_flag = acot_activated }
+			set_global_flag = giga_core_aeternum_2
+		}
+		else = {
+			set_global_flag = giga_core_aeternum_1
+		}
+
+		#Disable O-Stars for real space
+		if = {
+			limit = { has_global_flag = has_real_space_mod }
+			set_global_flag = giga_o_stars_disabled
+		}
+
+		remove_country_flag = giga_menu_page_presets
+		remove_country_flag = giga_menu_page_01
+		remove_country_flag = giga_menu_page_02
+		remove_country_flag = giga_menu_page_03
+		set_country_flag = giga_menu_page_00
 	}
 
 	# Confirm
@@ -94,9 +105,9 @@ country_event = {
 			custom_tooltip = {
 				fail_text = "must_not_have_settings_window_open"
 				NOR = {
-					has_global_flag = giga_menu_checking_settings
-					has_global_flag = giga_menu_checking_settings2
-					has_global_flag = giga_menu_checking_settings3
+					has_country_flag = giga_menu_checking_settings
+					has_country_flag = giga_menu_checking_settings2
+					has_country_flag = giga_menu_checking_settings3
 				}
 			}
 		}
@@ -119,13 +130,6 @@ country_event = {
 				set_global_flag = ring_gargantuan_disabled
 			}
 
-			# Set Megastructure Build Cap
-			if = {
-				limit = { has_global_flag = giga_build_infinite_megas }
-				every_country = { add_modifier = { modifier = giga_no_build_cap days = -1 } }
-			}
-			else = { every_country = { remove_modifier = giga_no_build_cap } }
-
 			#########################################
 			### Can only happen once ################
 			#########################################
@@ -133,6 +137,159 @@ country_event = {
 				limit = { NOT = { has_global_flag = giga_game_started } }
 				set_global_flag = giga_game_started
 
+				# Make LGate systems not targetable by QSO/NDB to prevent crashes
+				every_system = {
+					limit = { has_megastructure = lgate_base }
+					every_system_planet = {
+						set_planet_flag = cant_build_here
+						set_planet_flag = cant_target_this_planet
+					}
+				}
+
+				# O Stars
+				if = {
+					limit = { NOT = { has_global_flag = giga_o_stars_disabled } }
+					event_target:global_event_country = {
+						country_event = { id = giga_o_star.1000 }
+					}
+				}
+
+				# Modifiers
+				every_galaxy_planet = {
+					if = {
+						limit = { is_planet_class = pc_diamond }
+						add_modifier = { modifier = "giga_pd_diamond_planet" days = -1 }
+					}
+					if = {
+						limit = { is_planet_class = pc_chthonian }
+						add_modifier = { modifier = "giga_pd_chthonian_planet" days = -1 }
+					}
+					if = {
+						limit = { is_planet_class = pc_ethane_ocean }
+						add_modifier = { modifier = "giga_pd_ethane_planet" days = -1 }
+					}
+
+					if = {
+						limit = {
+							is_planet_class = pc_gas_giant
+							planet_size >= 35
+							NOR = {
+								has_planet_flag = crisis_vital_planet
+								has_global_flag = suppressor_disabled
+							}
+						}
+						add_modifier = { modifier = "helioforming_candidate" days = -1 }
+					}
+
+					if = {
+						limit = { has_planet_flag = planet_earth }
+						every_moon = {
+							limit = { is_planet_class = pc_barren_cold }
+							set_planet_flag = giga_luna
+						}
+					}
+
+				}
+
+				# Deathwish buff
+				if = {
+					limit = { has_global_flag = katzenartig_deathwish }
+					event_target:flusion_primitives_country = {
+						add_modifier = {
+							modifier = initial_flusion_buff
+							days = -1
+						}
+					}
+				}
+
+				# Stellarite buff
+				if = {
+					limit = { has_global_flag = katzenartig_stellarite }
+					event_target:flusion_primitives_country = {
+						add_modifier = {
+							modifier = initial_flusion_buff_stellarite
+							days = -1
+						}
+					}
+				}
+
+				# Improbability buff
+				if = {
+					limit = { has_global_flag = katzenartig_improbable }
+					event_target:flusion_primitives_country = {
+						add_modifier = {
+							modifier = initial_flusion_buff_improbable
+							days = -1
+						}
+					}
+				}
+
+				# Force the Mondkanone
+				if = {
+					limit = {
+						OR = {
+							has_global_flag = katzenartig_always
+							has_global_flag = katzenartig_deathwish
+							has_global_flag = katzenartig_stellarite
+							has_global_flag = katzenartig_improbable
+						}
+					}
+					event_target:gigaflusion = {
+						planet_event = { id = giga_flusion.299 days = 2 }
+					}
+				}
+
+				# Destroy Flusion if disabled
+				if = {
+					limit = {
+						has_global_flag = katzenartig_never
+					}
+					event_target:corrona = {
+						every_owned_pop = { kill_pop = yes }
+						destroy_colony = yes
+						change_pc = pc_shrouded
+					}
+					event_target:gigaflusion = {
+						every_owned_pop = { kill_pop = yes }
+						destroy_colony = yes
+						change_pc = pc_katzenland
+						clear_blockers = yes
+						clear_deposits = yes
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_bomb_crater
+						add_deposit = d_radioactive_wasteland
+						add_deposit = d_radioactive_wasteland
+						add_deposit = d_radioactive_wasteland
+						add_deposit = d_radioactive_wasteland
+						add_deposit = d_radioactive_wasteland
+						add_deposit = d_searing_desert
+						add_deposit = d_searing_desert
+						add_deposit = d_tempestous_mountain
+						add_deposit = d_geothermal_vent
+						add_deposit = d_ore_rich_caverns
+						add_deposit = d_rich_mountain
+						add_deposit = d_dust_desert
+						add_deposit = d_bubbling_swamp
+						add_modifier = {
+							modifier = katzenland_planet
+							days = -1
+						}
+					}
+				}
+
+				if = {
+					limit = {
+						event_target:gigaflusion = { is_planet_class = pc_continental }
+					}
+					event_target:gigaflusion = { set_planet_entity = { entity = flusion_planet_entity } }
+				}
+
+				# Remove Paluushia if disabled
 				if = {
 					limit = {
 						NOT = { has_global_flag = giga_paluushia }
@@ -151,6 +308,13 @@ country_event = {
 					}
 				}
 
+				###### TEMPORARY ########
+				set_global_flag = ehof_disabled
+				set_global_flag = ehof_ai_disabled
+				set_global_flag = compound_disabled
+				#########################
+
+				# Set EHOF AI Caps
 				if = {
 					limit = { NOT = { has_global_flag = ehof_ai_disabled } }
 					random_country = {
@@ -173,13 +337,6 @@ country_event = {
 								1 = { set_variable = { which = giga_ehof_ai_cap value = 10 } }
 							}
 						}
-					}
-				}
-
-				every_country = {
-					every_system_within_border = {
-						set_star_flag = empire_has_visited_anyone
-						set_star_flag = empire_has_visited@prev
 					}
 				}
 
@@ -289,9 +446,78 @@ country_event = {
 					}
 				}
 
-				# Spawn Heiroglyphics Digsites
+				# If EHOF is enabled
 				if = {
 					limit = { NOT = { has_global_flag = ehof_disabled } }
+
+					# Spawn pgates
+					random_system = {
+						limit = { NOT = { has_star_flag = empire_cluster } }
+						set_star_flag = ehof_has_pgate
+						spawn_megastructure = {
+							type = "ehof_pgate_unknown"
+							orbit_angle = 110
+							orbit_distance = 35
+						}
+					}
+
+					if = {
+						limit = { galaxy_size = tiny }
+						random_list = {
+							2 = { while = { count = 1 ehof_generate_pgate = yes } }
+							1 = { while = { count = 2 ehof_generate_pgate = yes } }
+						}
+					}
+					else_if = {
+						limit = { galaxy_size = small }
+						random_list = {
+							3 = { while = { count = 1 ehof_generate_pgate = yes } }
+							2 = { while = { count = 2 ehof_generate_pgate = yes } }
+							1 = { while = { count = 3 ehof_generate_pgate = yes } }
+						}
+					}
+					else_if = {
+						limit = { galaxy_size = medium }
+						random_list = {
+							4 = { while = { count = 1 ehof_generate_pgate = yes } }
+							3 = { while = { count = 2 ehof_generate_pgate = yes } }
+							2 = { while = { count = 3 ehof_generate_pgate = yes } }
+							1 = { while = { count = 4 ehof_generate_pgate = yes } }
+						}
+					}
+					else_if = {
+						limit = { galaxy_size = large }
+						random_list = {
+							5 = { while = { count = 1 ehof_generate_pgate = yes } }
+							4 = { while = { count = 2 ehof_generate_pgate = yes } }
+							3 = { while = { count = 3 ehof_generate_pgate = yes } }
+							2 = { while = { count = 4 ehof_generate_pgate = yes } }
+							1 = { while = { count = 5 ehof_generate_pgate = yes } }
+						}
+					}
+					else_if = {
+						limit = { galaxy_size = huge }
+						random_list = {
+							6 = { while = { count = 1 ehof_generate_pgate = yes } }
+							5 = { while = { count = 2 ehof_generate_pgate = yes } }
+							4 = { while = { count = 3 ehof_generate_pgate = yes } }
+							3 = { while = { count = 4 ehof_generate_pgate = yes } }
+							2 = { while = { count = 5 ehof_generate_pgate = yes } }
+							1 = { while = { count = 6 ehof_generate_pgate = yes } }
+						}
+					}
+					else = {
+						random_list = {
+							6 = { while = { count = 1 ehof_generate_pgate = yes } }
+							5 = { while = { count = 2 ehof_generate_pgate = yes } }
+							4 = { while = { count = 3 ehof_generate_pgate = yes } }
+							3 = { while = { count = 4 ehof_generate_pgate = yes } }
+							2 = { while = { count = 5 ehof_generate_pgate = yes } }
+							1 = { while = { count = 6 ehof_generate_pgate = yes } }
+						}
+					}
+
+					# Spawn Heiroglyphics Digsites
 					every_country = {
 						limit = {
 							OR = {
@@ -312,16 +538,91 @@ country_event = {
 								}
 							}
 						}
-						country_event = { id = ehof_megastructure.005 }
+						country_event = { id = ehof_megastructure.005 days = 360 }
 					}
 				}
 
+
+				# Spawn FE moon/planetcrafts
 				if = {
 					limit = { NOT = { has_global_flag = fe_planetcrafts_disabled } }
 					country_event = { id = giga_fallen_empire.001 days = 1 }
 				}
 
+				# Set Megastructure Caps
 				every_country = {
+
+					# Set Megastructure Build Cap
+					switch = {
+						trigger = has_global_flag
+						giga_buildcap_2 = { add_modifier = { modifier = giga_plus_1_build_cap days = -1 } }
+						giga_buildcap_3 = { add_modifier = { modifier = giga_plus_2_build_cap days = -1 } }
+						giga_buildcap_u = { add_modifier = { modifier = giga_no_build_cap days = -1 } }
+					}
+
+					# Count systems
+					if = {
+						limit = {
+							OR = {
+								has_global_flag = giga_habitats_system_3
+								has_global_flag = giga_habitats_system_10
+								has_global_flag = giga_habitats_system_25
+							}
+						}
+						set_variable = { which = giga_owned_systems value = 0 }
+						every_system_within_border = { prev = { change_variable = { which = giga_owned_systems value = 1 } } }
+						giga_calculate_allowed_habitats = yes
+					}
+
+					# Count pops
+					if = {
+						limit = {
+							OR = {
+								has_global_flag = giga_habitats_pop_25
+								has_global_flag = giga_habitats_pop_50
+								has_global_flag = giga_habitats_pop_100
+							}
+						}
+						set_variable = { which = giga_owned_pops value = 0 }
+						every_owned_pop = { prev = { change_variable = { which = giga_owned_pops value = 1 } } }
+						giga_calculate_allowed_habitats = yes
+					}
+
+					# Mark starting systems as visited
+					every_system_within_border = {
+						set_star_flag = empire_has_visited_anyone
+						set_star_flag = empire_has_visited@prev
+					}
+
+					if = {
+						limit = { is_ai = yes }
+
+						# Ensure AI doesn't get origins
+						if = {
+							limit = { has_origin = origin_birch }
+							set_origin = origin_default
+							capital_scope = {
+								random_list = {
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_tropical } }	change_pc = pc_tropical }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_arid } }		change_pc = pc_arid }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_continental } }	change_pc = pc_continental }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_ocean } }		change_pc = pc_ocean }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_tundra } }		change_pc = pc_tundra }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_arctic } }		change_pc = pc_arctic }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_alpine } }		change_pc = pc_alpine }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_savannah } }	change_pc = pc_savannah }
+									1 = { every_owned_pop = { limit = { is_robot_pop = no is_sapient = yes } modify_species = { ideal_planet_class = pc_desert } }		change_pc = pc_desert }
+								}
+								clear_blockers = yes
+								clear_deposits = yes
+								generate_start_deposits_and_blockers = yes
+							}
+						}
+
+						# Megastructure cost discount for AI
+						add_modifier = { modifier = "feeble_ai_mega_buff" days = -1 }
+					}
+
 					if = {
 						limit = { NOT = { has_global_flag = vanilla_dyson_disabled } }
 						if = {		limit = { has_global_flag = vanilla_dyson_capped_1 } set_variable = { which = giga_vanilla_dyson_cap value = 1 } }
@@ -507,6 +808,14 @@ country_event = {
 						else_if = {	limit = { has_global_flag = geothermal_capped_r } set_variable = { which = giga_geothermal_cap value = 1 } }
 					}
 					if = {
+						limit = { NOT = { has_global_flag = glue_disabled } }
+						if = {		limit = { has_global_flag = glue_capped_1 } set_variable = { which = giga_glue_cap value = 1 } }
+						else_if = {	limit = { has_global_flag = glue_capped_2 } set_variable = { which = giga_glue_cap value = 2 } }
+						else_if = {	limit = { has_global_flag = glue_capped_3 } set_variable = { which = giga_glue_cap value = 3 } }
+						else_if = {	limit = { has_global_flag = glue_capped_u } set_variable = { which = giga_glue_cap value = 0 } }
+						else_if = {	limit = { has_global_flag = glue_capped_r } set_variable = { which = giga_glue_cap value = 1 } }
+					}
+					if = {
 						limit = { NOT = { has_global_flag = hraemc_disabled } }
 						if = {		limit = { has_global_flag = hraemc_capped_1 } set_variable = { which = giga_hraemc_cap value = 1 } }
 						else_if = {	limit = { has_global_flag = hraemc_capped_2 } set_variable = { which = giga_hraemc_cap value = 2 } }
@@ -611,14 +920,6 @@ country_event = {
 						else_if = {	limit = { has_global_flag = academy_capped_r } set_variable = { which = giga_academy_cap value = 1 } }
 					}
 					if = {
-						limit = { NOT = { has_global_flag = elysium_disabled } }
-						if = {		limit = { has_global_flag = elysium_capped_1 } set_variable = { which = giga_elysium_cap value = 1 } }
-						else_if = {	limit = { has_global_flag = elysium_capped_2 } set_variable = { which = giga_elysium_cap value = 2 } }
-						else_if = {	limit = { has_global_flag = elysium_capped_3 } set_variable = { which = giga_elysium_cap value = 3 } }
-						else_if = {	limit = { has_global_flag = elysium_capped_u } set_variable = { which = giga_elysium_cap value = 0 } }
-						else_if = {	limit = { has_global_flag = elysium_capped_r } set_variable = { which = giga_elysium_cap value = 1 } }
-					}
-					if = {
 						limit = { NOT = { has_global_flag = penrose_sphere_disabled } }
 						if = {		limit = { has_global_flag = penrose_sphere_capped_1 } set_variable = { which = giga_penrose_sphere_cap value = 1 } }
 						else_if = {	limit = { has_global_flag = penrose_sphere_capped_2 } set_variable = { which = giga_penrose_sphere_cap value = 2 } }
@@ -719,9 +1020,9 @@ country_event = {
 			custom_tooltip = {
 				fail_text = "must_not_have_settings_window_open"
 				NOR = {
-					has_global_flag = giga_menu_checking_settings
-					has_global_flag = giga_menu_checking_settings2
-					has_global_flag = giga_menu_checking_settings3
+					has_country_flag = giga_menu_checking_settings
+					has_country_flag = giga_menu_checking_settings2
+					has_country_flag = giga_menu_checking_settings3
 				}
 			}
 		}
@@ -730,9 +1031,9 @@ country_event = {
 			country_event = { id = giga_menu.2 }
 			country_event = { id = giga_menu.3 }
 			country_event = { id = giga_menu.4 }
-			set_global_flag = giga_menu_checking_settings
-			set_global_flag = giga_menu_checking_settings2
-			set_global_flag = giga_menu_checking_settings3
+			set_country_flag = giga_menu_checking_settings
+			set_country_flag = giga_menu_checking_settings2
+			set_country_flag = giga_menu_checking_settings3
 		}
 	}
 	after = {
@@ -771,14 +1072,17 @@ country_event = {
 					NOT = { has_global_flag = vanilla_dyson_disabled }
 				}
 				remove_megastructure = this
-				if = {		limit = { planet = { is_planet_class = pc_b_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_b_star"		owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_m_giant_star } }	solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_m_giant_star"	owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_a_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_a_star"		owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_f_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_f_star"		owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_g_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_g_star"		owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_k_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_k_star"		owner = from location = prev.planet } } }
-				else_if = {	limit = { planet = { is_planet_class = pc_m_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_m_star"		owner = from location = prev.planet } } }
-				else = {																solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined"				owner = from location = prev.planet } } }
+				if = {
+					limit = { exists = planet }
+					if = {		limit = { planet = { is_planet_class = pc_b_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_b_star"		owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_m_giant_star } }	solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_m_giant_star"	owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_a_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_a_star"		owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_f_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_f_star"		owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_g_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_g_star"		owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_k_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_k_star"		owner = from coords_from = prev.planet } } }
+					else_if = {	limit = { planet = { is_planet_class = pc_m_star } }		solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined_m_star"		owner = from coords_from = prev.planet } } }
+					else = {																solar_system = { spawn_megastructure = { type = "dyson_sphere_ruined"				owner = from coords_from = prev.planet } } }
+				}
 			}
 		}
 	}
@@ -796,7 +1100,7 @@ country_event = {
 		default_hide_option = yes
 		custom_gui = "giga_settings_menu_option"
 		name = CLOSE
-		hidden_effect = { remove_global_flag = giga_menu_checking_settings }
+		hidden_effect = { remove_country_flag = giga_menu_checking_settings }
 	}
 }
 
@@ -812,7 +1116,7 @@ country_event = {
 		default_hide_option = yes
 		custom_gui = "giga_settings_menu_option"
 		name = CLOSE
-		hidden_effect = { remove_global_flag = giga_menu_checking_settings2 }
+		hidden_effect = { remove_country_flag = giga_menu_checking_settings2 }
 	}
 }
 
@@ -828,6 +1132,6 @@ country_event = {
 		default_hide_option = yes
 		custom_gui = "giga_settings_menu_option"
 		name = CLOSE
-		hidden_effect = { remove_global_flag = giga_menu_checking_settings3 }
+		hidden_effect = { remove_country_flag = giga_menu_checking_settings3 }
 	}
 }

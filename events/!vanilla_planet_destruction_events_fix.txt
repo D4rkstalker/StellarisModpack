@@ -18,9 +18,20 @@ planet_event = {
 			}
 		}
 
+		#Dismantle observation post
+		if = {
+			limit = {
+				has_observation_outpost = yes
+			}
+			observation_outpost_owner = {
+				country_event = { id = planet_destruction.1000 days = 1 }
+			}
+		}
+
 		# Swarm Situation Log counter
 		if = {
 			limit = {
+				exists = owner
 				owner = { is_country_type = swarm }
 			}
 			every_country = {
@@ -35,6 +46,19 @@ planet_event = {
 					counter = "infested_worlds_cleansed"
 					amount = 1 
 				}
+			}
+		}
+
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_rulesofwar_independent_tribunals"
+					is_active_resolution = "resolution_rulesofwar_last_resort_doctrine"
+					is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
+				}
+			}
+			from.owner = {
+				set_timed_country_flag = { flag = resolution_breached_fired_neutron days = 3600 }
 			}
 		}
 
@@ -149,30 +173,32 @@ planet_event = {
 				}
 			}
 		}
-		# Add war exhaustion to planet owner 
+		# Add war exhaustion to planet owner
 		owner = {
-			add_static_war_exhaustion = {
-				attacker = from.fleet.owner
-				location = root
-				value_for_planet_destruction = 1.0
+			if = {
+				limit = { #isn't the case when the crisis bombards planets, for instance
+					is_at_war_with = from.fleet.owner
+				}
+				add_static_war_exhaustion = {
+					attacker = from.fleet.owner
+					location = root
+					value_for_planet_destruction = 1.0
+				}
 			}
 		}
-		#destroy_colony = yes
-		neutron_sweep_planet = yes
-		if = {
-			limit = {
-				exists = owner
-				owner = { is_same_value = from.owner }
+		every_owned_pop = {
+			from.owner = {
+				if = {
+					limit = { has_ascension_perk = ap_become_the_crisis }
+					complete_crisis_objective = crisobj_purge_pops
+				}
 			}
-			# already owned
 		}
-		else = {
-			set_owner = from.owner
-		}
+		destroy_colony = yes
 		add_modifier = {
 			modifier = neutron_bombarded
 			days = 3600
-		}		
+		}	
 		# Special graphics for Habitats and Ring Worlds
 		if = {
 			limit = {
@@ -209,7 +235,9 @@ planet_event = {
 				pc_alpine = { change_pc = pc_alpine }
 				pc_snow = { change_pc = pc_snow }
 				pc_highland = { change_pc = pc_highland }
+				pc_duneforest = { change_pc = pc_duneforest }
 				pc_tidallylocked = { change_pc = pc_tidallylocked }
+				pc_supercon = { change_pc = pc_supercon }
 				pc_mangrove = { change_pc = pc_mangrove }
 				pc_wetswamp = { change_pc = pc_wetswamp }
 				pc_desertislands = { change_pc = pc_desertislands }
@@ -242,23 +270,38 @@ planet_event = {
 				pc_lake = { change_pc = pc_lake }	
 				pc_tepid = { change_pc = pc_tepid }		
 				pc_ecocity = { change_pc = pc_ecocity }	
+				pc_palacearc = { change_pc = pc_palacearc }	
+				pc_capitalarc = { change_pc = pc_capitalarc }	
+				pc_necropolis = { change_pc = pc_necropolis }	
+				pc_machine_necropolis = { change_pc = pc_machine_necropolis }	
+				pc_necrohive = { change_pc = pc_necrohive }	
+				pc_milarc = { change_pc = pc_milarc }		
+				pc_biofort = { change_pc = pc_biofort }		
+				pc_megaflorafort = { change_pc = pc_megaflorafort }	
+				pc_machine_fort = { change_pc = pc_machine_fort }	
 				pc_prairie = { change_pc = pc_prairie }	
 				pc_veld = { change_pc = pc_veld }	
 				pc_semiarid = { change_pc = pc_semiarid }
 				pc_med = { change_pc = pc_med }	
 				pc_machine_factory = { change_pc = pc_machine_factory }
+				pc_machine_capital = { change_pc = pc_machine_capital }
 				pc_bioforge = { change_pc = pc_bioforge }
+				pc_biocapital = { change_pc = pc_biocapital }
 				pc_irradiated = { change_pc = pc_irradiated }
 				pc_karst = { change_pc = pc_karst }
 				pc_ash = { change_pc = pc_ash }
 				pc_primal = { change_pc = pc_primal }
 				pc_salt = { change_pc = pc_salt }
+				pc_aquifer = { change_pc = pc_aquifer }
 				pc_coral = { change_pc = pc_coral }
 				pc_storm = { change_pc = pc_storm }
 				pc_rogue = { change_pc = pc_rogue }
+				pc_lichen = { change_pc = pc_lichen }
 				pc_eyeball = { change_pc = pc_eyeball }
 				pc_glacio = { change_pc = pc_glacio }
+				pc_lanthanide = { change_pc = pc_lanthanide }
 				pc_megaflora = { change_pc = pc_megaflora }
+				pc_megaflorahive = { change_pc = pc_megaflorahive }
 				pc_megafloratol = { change_pc = pc_megafloratol }
 				pc_pdhive1 = { change_pc = pc_pdhive1 }
 				pc_pdhive2 = { change_pc = pc_pdhive2 }
@@ -300,7 +343,7 @@ country_event = {
 						is_planet_class = pc_barren_cold
 					}
 				}
-				count_pops = {
+				count_owned_pop = {
 					count < 1
 				}
 			}
@@ -310,7 +353,7 @@ country_event = {
 		text = planet_destruction.301.bots.desc
 		trigger = {
 			from = {
-				count_pops = {
+				count_owned_pop = {
 					count > 0
 				}
 			}
@@ -519,12 +562,17 @@ planet_event = {
 					}
 				}
 			}
-			# Add war exhaustion to planet owner 
+			# Add war exhaustion to planet owner
 			owner = {
-				add_static_war_exhaustion = {
-					attacker = from.fleet.owner
-					location = root
-					value_for_planet_destruction = 1.0
+				if = {
+					limit = { #isn't the case when the crisis bombards planets, for instance
+						is_at_war_with = from.fleet.owner
+					}
+					add_static_war_exhaustion = {
+						attacker = from.fleet.owner
+						location = root
+						value_for_planet_destruction = 1.0
+					}
 				}
 			}
 		}
@@ -541,6 +589,12 @@ planet_event = {
 				}
 			}
 			kill_pop = yes
+			from.owner = {
+				if = {
+					limit = { has_ascension_perk = ap_become_the_crisis }
+					complete_crisis_objective = crisobj_purge_pops
+				}
+			}
 		}
 		every_owned_pop = {
 			limit = {
@@ -592,7 +646,9 @@ planet_event = {
 				pc_alpine = { change_pc = pc_alpine }
 				pc_snow = { change_pc = pc_snow }
 				pc_highland = { change_pc = pc_highland }
+				pc_duneforest = { change_pc = pc_duneforest }
 				pc_tidallylocked = { change_pc = pc_tidallylocked }
+				pc_supercon = { change_pc = pc_supercon }
 				pc_mangrove = { change_pc = pc_mangrove }
 				pc_wetswamp = { change_pc = pc_wetswamp }
 				pc_desertislands = { change_pc = pc_desertislands }
@@ -624,24 +680,39 @@ planet_event = {
 				pc_forest = { change_pc = pc_forest }
 				pc_lake = { change_pc = pc_lake }	
 				pc_tepid = { change_pc = pc_tepid }		
-				pc_ecocity = { change_pc = pc_ecocity }	
+				pc_ecocity = { change_pc = pc_ecocity }
+				pc_palacearc = { change_pc = pc_palacearc }	
+				pc_capitalarc = { change_pc = pc_capitalarc }		
+				pc_necropolis = { change_pc = pc_necropolis }
+				pc_machine_necropolis = { change_pc = pc_machine_necropolis }	
+				pc_necrohive = { change_pc = pc_necrohive }		
+				pc_milarc = { change_pc = pc_milarc }		
+				pc_biofort = { change_pc = pc_biofort }		
+				pc_megaflorafort = { change_pc = pc_megaflorafort }	
+				pc_machine_fort = { change_pc = pc_machine_fort }	
 				pc_prairie = { change_pc = pc_prairie }	
 				pc_veld = { change_pc = pc_veld }	
 				pc_semiarid = { change_pc = pc_semiarid }
 				pc_med = { change_pc = pc_med }	
 				pc_machine_factory = { change_pc = pc_machine_factory }
+				pc_machine_capital = { change_pc = pc_machine_capital }
 				pc_bioforge = { change_pc = pc_bioforge }
+				pc_biocapital = { change_pc = pc_biocapital }
 				pc_irradiated = { change_pc = pc_irradiated }
 				pc_karst = { change_pc = pc_karst }
 				pc_ash = { change_pc = pc_ash }
 				pc_primal = { change_pc = pc_primal }
 				pc_salt = { change_pc = pc_salt }
+				pc_aquifer = { change_pc = pc_aquifer }
 				pc_coral = { change_pc = pc_coral }
 				pc_storm = { change_pc = pc_storm }
 				pc_rogue = { change_pc = pc_rogue }
+				pc_lichen = { change_pc = pc_lichen }
 				pc_eyeball = { change_pc = pc_eyeball }
 				pc_glacio = { change_pc = pc_glacio }
+				pc_lanthanide = { change_pc = pc_lanthanide }
 				pc_megaflora = { change_pc = pc_megaflora }
+				pc_megaflorahive = { change_pc = pc_megaflorahive }
 				pc_megafloratol = { change_pc = pc_megafloratol }
 				pc_pdhive1 = { change_pc = pc_pdhive1 }
 				pc_pdhive2 = { change_pc = pc_pdhive2 }
@@ -834,15 +905,20 @@ planet_event = {
 				}
 			}
 		}
-		# Add war exhaustion to planet owner 
+		# Add war exhaustion to planet owner
 		owner = {
-			add_static_war_exhaustion = {
-				attacker = from.fleet.owner
-				location = root
-				value_for_planet_destruction = 1.0
+			if = {
+				limit = { #isn't the case when the crisis bombards planets, for instance
+					is_at_war_with = from.fleet.owner
+				}
+				add_static_war_exhaustion = {
+					attacker = from.fleet.owner
+					location = root
+					value_for_planet_destruction = 1.0
+				}
 			}
 		}
-		if = {
+				if = {
 			limit = {
 				exists = owner
 				owner = { is_same_value = from.owner }
@@ -921,7 +997,9 @@ planet_event = {
 				pc_alpine = { change_pc = pc_alpine }
 				pc_snow = { change_pc = pc_snow }
 				pc_highland = { change_pc = pc_highland }
+				pc_duneforest = { change_pc = pc_duneforest }
 				pc_tidallylocked = { change_pc = pc_tidallylocked }
+				pc_supercon = { change_pc = pc_supercon }
 				pc_mangrove = { change_pc = pc_mangrove }
 				pc_wetswamp = { change_pc = pc_wetswamp }
 				pc_desertislands = { change_pc = pc_desertislands }
@@ -954,23 +1032,38 @@ planet_event = {
 				pc_lake = { change_pc = pc_lake }
 				pc_tepid = { change_pc = pc_tepid }			
 				pc_ecocity = { change_pc = pc_ecocity }	
+				pc_palacearc = { change_pc = pc_palacearc }	
+				pc_capitalarc = { change_pc = pc_capitalarc }	
+				pc_necropolis = { change_pc = pc_necropolis }	
+				pc_machine_necropolis = { change_pc = pc_machine_necropolis }	
+				pc_necrohive = { change_pc = pc_necrohive }		
+				pc_milarc = { change_pc = pc_milarc }		
+				pc_biofort = { change_pc = pc_biofort }		
+				pc_megaflorafort = { change_pc = pc_megaflorafort }	
+				pc_machine_fort = { change_pc = pc_machine_fort }	
 				pc_prairie = { change_pc = pc_prairie }	
 				pc_veld = { change_pc = pc_veld }	
 				pc_semiarid = { change_pc = pc_semiarid }
 				pc_med = { change_pc = pc_med }	
 				pc_machine_factory = { change_pc = pc_machine_factory }
+				pc_machine_capital = { change_pc = pc_machine_capital }
 				pc_bioforge = { change_pc = pc_bioforge }
+				pc_biocapital = { change_pc = pc_biocapital }
 				pc_irradiated = { change_pc = pc_irradiated }
 				pc_karst = { change_pc = pc_karst }
 				pc_ash = { change_pc = pc_ash }
 				pc_primal = { change_pc = pc_primal }
 				pc_salt = { change_pc = pc_salt }
+				pc_aquifer = { change_pc = pc_aquifer }
 				pc_coral = { change_pc = pc_coral }
 				pc_storm = { change_pc = pc_storm }
 				pc_rogue = { change_pc = pc_rogue }
+				pc_lichen = { change_pc = pc_lichen }
 				pc_eyeball = { change_pc = pc_eyeball }
 				pc_glacio = { change_pc = pc_glacio }
+				pc_lanthanide = { change_pc = pc_lanthanide }
 				pc_megaflora = { change_pc = pc_megaflora }
+				pc_megaflorahive = { change_pc = pc_megaflorahive }
 				pc_megafloratol = { change_pc = pc_megafloratol }
 				pc_pdhive1 = { change_pc = pc_pdhive1 }
 				pc_pdhive2 = { change_pc = pc_pdhive2 }

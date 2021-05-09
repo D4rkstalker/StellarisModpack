@@ -1,0 +1,380 @@
+namespace = planet_destruction_digest
+
+	
+
+planet_event = {
+	id = planet_destruction_digest.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		if = {
+			limit = {
+				exists = owner
+				owner = { NOT = { is_same_value = from.owner } }
+			}
+			from.owner = {
+				country_event = { id = planet_destruction_digest.2 }
+			}
+		}
+
+
+
+		# Swarm Situation Log counter
+		if = {
+			limit = {
+				owner = { is_country_type = swarm }
+			}
+			every_country = {
+				limit = { has_event_chain = "prethoryn_scourge_chain" }
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds"
+					amount = -1 
+				}
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds_cleansed"
+					amount = 1 
+				}
+			}
+		}
+		
+		# Exterminatus Achievement
+		if = {
+			limit = { is_capital = yes }
+			from.owner = { set_country_flag = exterminatus }
+		}
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+					OR = {
+						is_country_type = default
+						is_country_type = fallen_empire
+						is_country_type = awakened_fallen_empire
+					}
+				}
+			}
+			# Generate threat
+			if = {
+				limit = {
+					is_colony = yes
+				}
+				add_threat = { who = from.owner amount = 3 }
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = from.owner
+							is_same_value = root.owner
+							AND = {
+								has_federation = yes
+								is_in_federation_with = from.owner
+							}
+						}
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							AND = {
+								has_federation = yes
+								is_in_federation_with = root.owner
+							}
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								OR = {
+									is_egalitarian = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					if = {
+						limit = { root = { is_colony = no } }
+						add_opinion_modifier = {
+							modifier = opinion_cracked_an_uninhabited_world
+							who = from.owner
+						}
+					}
+					else = {
+						add_opinion_modifier = {
+							modifier = opinion_cracked_a_world
+							who = from.owner
+						}
+					}
+				}
+			}
+			else = {
+				add_threat = { who = from.owner amount = 1 }
+			}
+			# modifiers for victim
+			owner = {
+				if = {
+					limit = { root = { is_colony = no } }
+					add_opinion_modifier = {
+						modifier = opinion_cracked_my_uninhabited_world
+						who = from.owner
+					}
+				}
+				else = {
+					add_opinion_modifier = {
+						modifier = opinion_cracked_my_world
+						who = from.owner
+					}
+				}
+				if = {
+					limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+					add_modifier = {
+						modifier = colossus_victim
+						days = 10800 # 30 years
+					}
+				}
+			}
+			if = {
+				limit = {
+					exists = owner
+					owner = { is_country_type = primitive }
+				}
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								NOR = {
+									is_xenophobe = yes
+									is_homicidal = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_cracked_a_primitive_world
+						who = from.owner
+					}
+				}
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								is_xenophile = yes
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_cracked_a_primitive_world_phile
+						who = from.owner
+					}
+				}
+			}
+		}
+		# Add war exhaustion to planet owner 
+		if = {
+			limit = {
+				exists = owner
+			}
+			owner = {
+				add_static_war_exhaustion = {
+					attacker = from.fleet.owner
+					location = root
+					value_for_planet_destruction = 1.0
+				}
+			}			
+		}
+		
+		
+		## start the effects
+		#destroy_colony = yes
+		## add deposits based on pops
+		set_variable = { which = alloycount value = 0 }
+		set_variable = { which = foodcount value = 0 }
+		set_variable = { which = mineralcount value = 0 }
+		
+		if = {
+			limit = {
+				OR = { 
+					is_planet_class = pc_infested
+					is_planet_class = pc_hive
+				}
+			}
+		change_variable = { which = foodcount value = 20 }
+		}
+		if = {
+			limit = {
+				OR = { 
+					is_planet_class = pc_ai
+					is_planet_class = pc_machine
+					is_planet_class = pc_matryoshka
+				}
+			}
+		change_variable = { which = alloycount value = 20 }
+		}
+		##lithoids are minerals
+		while = {
+			limit = { any_owned_pop = { is_lithoid = yes	} }
+			change_variable = { which = mineralcount value = 1 }
+			while = {
+			count = 15
+			random_owned_pop = { limit = {  is_lithoid = yes  }
+			kill_pop = yes
+			 }
+			}
+			
+		}
+		##organics are food
+		while = {
+			limit = { any_owned_pop = { is_flesh_species = yes	} }
+			change_variable = { which = foodcount value = 1 }
+			while = {
+			count = 20
+			random_owned_pop = { limit = {  is_flesh_species = yes  }
+			kill_pop = yes
+			 }
+			}
+			
+		}
+		while = {
+			limit = { any_owned_pop = { is_robot_pop = yes } }
+			change_variable = { which = alloycount value = 1 }
+			while = {
+			count = 20
+			random_owned_pop = { limit = {  is_robot_pop = yes  }
+			kill_pop = yes
+			 }
+			}
+			
+		}
+		
+				
+	
+		# Special graphics for Habitats and Ring Worlds
+		if = {
+			limit = {
+				is_planet_class = pc_habitat
+			}
+			spawn_habitat_neutron_effect = yes
+		}
+		else_if = {
+			limit = {
+				is_planet_class = pc_ringworld_habitable
+			}
+			spawn_ringworld_neutron_effect = yes
+		}
+		if = {
+			limit = {
+				OR = {
+					is_planet_class = pc_habitat
+					is_planet_class = pc_ringworld_habitable
+				}
+			}
+			# nothing
+		}
+		else = {
+			switch = {
+				trigger = is_planet_class
+				pc_desert = { change_pc = pc_barren }
+				pc_arid = { change_pc = pc_barren }
+				pc_savannah = { change_pc = pc_barren }
+				pc_ocean = { change_pc = pc_barren }
+				pc_continental = { change_pc = pc_barren }
+				pc_tropical = { change_pc = pc_barren }
+				pc_tundra = { change_pc = pc_barren_cold }
+				pc_arctic = { change_pc = pc_barren_cold }
+				pc_alpine = { change_pc = pc_barren_cold }
+				default = { change_pc = pc_barren }
+			}
+			
+		}
+		# For Infested worlds
+		if = {
+			limit = { is_planet_class = pc_infested }
+			random_list = {
+				50 = { change_pc = pc_barren }
+				50 = { change_pc = pc_barren_cold }
+			}
+		}
+		if = {
+			limit = { is_planet_class = pc_ai }
+			random_list = {
+				50 = { change_pc = pc_barren }
+				50 = { change_pc = pc_barren_cold }
+			}
+		}
+		
+		add_modifier = { modifier = "terraforming_candidate" days = -1 }
+
+		clear_deposits = yes
+		while = {
+			limit = {  check_variable = { which = foodcount value >= 1 } }
+			add_deposit = d_food_1
+			subtract_variable = { which = foodcount value = 1 }
+		}
+		while = {
+			limit = { check_variable = { which = alloycount value >= 1 } }
+			add_deposit = d_alloys_1
+			subtract_variable = { which = alloycount value = 1 }
+		}
+	while = {
+			limit = { check_variable = { which = mineralcount value >= 1 } }
+			add_deposit = d_minerals_1
+			subtract_variable = { which = mineralcount value = 1 }
+		}
+
+		
+		#destroy everything after calculating the deposits
+		#destroy_colony = yes
+	}
+	
+}
+
+country_event = {
+	id = planet_destruction_digest.2
+	title = planet_destruction_digest.2.name
+	desc = {
+		text = planet_destruction_digest.2.desc
+
+	}
+	
+	
+	picture = GFX_evt_planet_digested
+	show_sound = event_solar_fusion
+	location = from
+	
+
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = fired_digest }
+	}
+
+	immediate = {
+		set_country_flag = fired_digest
+	}
+
+	option = {
+		name = planet_destruction_digest.2.a
+
+	}
+
+
+}
+
+

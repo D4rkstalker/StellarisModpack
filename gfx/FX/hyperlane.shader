@@ -60,7 +60,7 @@ VertexShader =
 			VS_OUTPUT Out;
 			Out.vPos = v.vPosition.xz;
 			Out.vPosition  	= mul( ViewProjectionMatrix, float4( v.vPosition, 1.0 ) );
-			Out.vPrimaryColor = float3(0.1, 1.0, 0.1);
+			Out.vPrimaryColor = float3(1.0, 1.0, 1.0); //白色航道
 			Out.vSecondaryColor = v.vSecondaryColor.rgb;
 			Out.vPrimaryColorFactor = v.vPrimaryColor.a;
 			Out.vSecondaryColorFactor = v.vSecondaryColor.a;
@@ -76,8 +76,8 @@ PixelShader =
 	[[
 		float4 main( VS_OUTPUT v ) : PDX_COLOR
 		{
-			float fMinAlpha = 0.05f;
-				float fAlpha = clamp (0.33f - abs( v.vPos.x / 2900.f) - abs( v.vPos.y / 2900.f), 0.05f, 0.33f); // 'clamp' sets the min value to 0.05 and max to 0.33, 'abs' gets rid of the minus, 'info' command shows coordinates in the game. 
+			float fMinAlpha = 0.040f;	//EG最小0.035
+			float fAlpha = clamp (0.055f - abs( v.vPos.x / 5000.f) - abs( v.vPos.y / 5000.f), 0.040f, 0.055f); // EG0.060f - 4700.fx2 EG=0.025-0.1 'clamp' sets the min value to 0.1 and max to 0.5,'abs' gets rid of the minus,'info' command shows coordinates in the game.
 			float4 vPrimColor = float4( v.vPrimaryColor, fAlpha );
 			float4 vSecColor = float4( v.vSecondaryColor, fAlpha );
 			float4 vColor = lerp( vSecColor, vPrimColor, saturate( pow( v.vPrimaryColorFactor, 15 ) ) );

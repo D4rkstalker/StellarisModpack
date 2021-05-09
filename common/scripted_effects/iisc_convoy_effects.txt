@@ -1,0 +1,192 @@
+#this = corp
+iisc_create_convoy_fleet = {
+	iisc_subtract_corp_money = {
+		TYPE = convoy
+		AMOUNT = @iisc_convoy_cost
+	}
+	create_fleet = {
+		name = random
+		effect = {
+			set_owner = prev
+			set_location = {
+				target = event_target:iisc_hq_planet
+				distance = 10
+				angle = random
+			}
+			set_fleet_stance = passive
+			create_ship = {
+				name = random
+				random_existing_design = iisc_civilian_freighter
+			}
+			create_ship = {
+				name = random
+				random_existing_design = iisc_civilian_tanker
+			}
+			create_ship = {
+				name = random
+				random_existing_design = iisc_passenger_liner
+			}
+			# TODO make this spawn different ships
+			set_timed_fleet_flag = {
+				flag = iisc_should_not_destroy_convoy
+				days = 1800				# TODO increase?
+			}
+			set_fleet_flag = iisc_fleet_needs_escort
+			set_fleet_flag = iisc_convoy
+			event_target:iisc_hq_planet = {
+				save_event_target_as = iisc_convoy_old_dest
+			}
+			fleet_event = {
+				id = iisc_convoy.20				# set name
+				days = 1
+			}
+			iisc_set_convoy_orders = yes
+		}
+	}
+}
+
+# this = convoy fleet
+# has headquarters loaded
+iisc_set_convoy_orders = {
+	if = {
+		limit = {
+			exists = orbit
+			exists = event_target:iisc_convoy_dest
+			orbit = {
+				is_same_value = event_target:iisc_convoy_dest
+			}
+		}
+		if = {
+			limit = {
+				has_fleet_flag = iisc_fleet_returning
+			}
+			iisc_land_convoy_hq = yes			# will destroy fleet
+		}
+		else = {
+			iisc_land_convoy_dest = yes
+		}
+	}
+	if = {
+		limit = {
+			OR = {
+				is_fleet_idle = yes
+				has_fleet_flag = iisc_fleet_returning_temp
+			}
+			exists = event_target:iisc_convoy_dest
+		}
+		clear_orders = yes
+		# clear_fleet_actions = this
+		# TODO check better
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = iisc_escort_caught_up
+					# has_fleet_flag = iisc_fleet_needs_escort
+				}
+				exists = solar_system
+				owner = {
+					any_owned_fleet = {
+						prevprev = {
+							has_fleet_flag = iisc_escorted_by_@prev
+						}
+						exists = solar_system
+						solar_system = {
+							is_same_value = prevprevprev.solar_system
+						}
+					}
+				}
+			}
+			set_fleet_flag = iisc_escort_caught_up
+		}
+		if = {
+			limit = {
+				OR = {
+					has_fleet_flag = iisc_escort_caught_up
+					# has_fleet_flag = iisc_fleet_needs_escort
+				}
+			}
+			queue_actions = {
+				move_to = event_target:iisc_convoy_dest
+				orbit_planet = event_target:iisc_convoy_dest
+			}
+		}
+	}
+	if = {
+		limit = {
+			iisc_should_destroy_convoy = yes
+		}
+		delete_fleet = this
+		# reimburse
+		iisc_change_corp_money = {
+			TYPE = convoy
+			AMOUNT = @iisc_convoy_cost
+		}
+		# unconnect destination
+		if = {
+			limit = {
+				exists = event_target:iisc_convoy_dest
+				exists = event_target:iisc_convoy_dest.owner
+			}
+			event_target:iisc_convoy_dest.owner = {
+				random_subject = {
+					limit = {
+						event_target:iisc_convoy_dest = {
+							has_planet_flag = iisc_hq_of_@prev
+						}
+					}
+					prevprev.owner = {
+						remove_country_flag = iisc_corp_connected_@prev
+					}
+				}
+			}
+		}
+	}
+	else = {
+		save_event_target_as = iisc_convoy_fleet
+		owner = {
+			country_event = {
+				id = iisc_convoy.10
+				days = 30
+				random = 30
+			}
+		}
+	}
+}
+
+# this = fleet
+iisc_land_convoy_dest = {
+	owner = {
+		add_resource = {
+			energy = @iisc_convoy_reward
+		}
+	}
+	set_fleet_flag = iisc_fleet_returning
+	set_timed_fleet_flag = {
+		flag = iisc_fleet_returning_temp
+		days = 1
+	}
+	event_target:iisc_convoy_dest = {
+		save_event_target_as = iisc_convoy_old_dest
+	}
+	event_target:iisc_hq_planet = {
+		save_event_target_as = iisc_convoy_dest
+	}
+	fleet_event = {
+		id = iisc_convoy.20		# set name
+		days = 1
+	}
+}
+
+# this = fleet
+iisc_land_convoy_hq = {
+	owner = {
+		iisc_change_corp_money = {
+			TYPE = convoy
+			AMOUNT = @iisc_convoy_cost
+		}
+		add_resource = {
+			energy = @iisc_convoy_reward
+		}
+	}
+	delete_fleet = this
+}

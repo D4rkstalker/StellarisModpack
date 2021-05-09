@@ -60,6 +60,7 @@
 #		modification = yes					#should AI genemod & terraform? default yes
 #		construction = yes					#should AI build ships and buildings? default yes
 #		tech = yes							#should AI advance its technology? default yes
+#		espionage = yes					#should AI use espionage? default yes
 #		ship_data							#highest fleet slot size first for military ship sizes
 #
 #		modules = {							#List of diferent ai modules this country type should have
@@ -76,6 +77,7 @@
 #		standard_economy_module = {}
 #		standard_leader_module = {}
 #		standard_diplomacy_module = {}
+#				#contact_rule: auto (default: has first contact sites formed upon); does_first_contact_sites (uses first contact sites on others); on_action_only (no first contact site on this country, only on_first_contact event); never; always (fires on_first_contact immediately, but no site formed)
 #		standard_technology_module = {}
 #		standard_trade_routes_module = {}
 #		standard_pop_factions_module = {}
@@ -105,7 +107,7 @@ default = {
 		enabled = yes
 		declare_war = yes
 		min_navy_for_wars = 0.5
-		min_assault_armies_for_wars = 6
+		min_assault_armies_for_wars = @armies_for_declaring_war	
 		colonizer = yes
 		internal_policies = yes
 		modification = yes
@@ -136,7 +138,17 @@ default = {
 				max = 1
 			}
 
+			juggernaut = {
+				min = 1
+				max = 1
+			}
+
 			colossus = {
+				min = 1
+				max = 1
+			}
+
+			star_eater = {
 				min = 1
 				max = 1
 			}
@@ -199,6 +211,45 @@ default = {
 					modifier = {
 						add = -5
 						has_technology = tech_battleships
+					}
+				}
+			}
+
+			crisis_cruiser = {
+				fraction = {
+					modifier = {
+						add = 35
+						has_crisis_level = crisis_level_4
+					}
+				}
+			}
+
+			crisis_destroyer = {
+				fraction = {
+					modifier = {
+						add = 50
+						has_crisis_level = crisis_level_3
+					}
+					modifier = {
+						add = -15
+						has_crisis_level = crisis_level_4
+					}
+				}
+			}
+
+			crisis_corvette = {
+				fraction = {
+					modifier = {
+						add = 100
+						has_crisis_level = crisis_level_2
+					}
+					modifier = {
+						add = -25
+						has_crisis_level = crisis_level_3
+					}
+					modifier = {
+						add = -45
+						has_crisis_level = crisis_level_4
 					}
 				}
 			}
@@ -386,7 +437,7 @@ default = {
 		standard_event_module = {}
 		standard_economy_module = {}
 		standard_leader_module = {}
-		standard_diplomacy_module = {}
+		standard_diplomacy_module = { contact_rule = does_first_contact_sites }
 		standard_technology_module = {}
 		standard_trade_routes_module = {}
 		standard_pop_factions_module = {}
@@ -473,7 +524,7 @@ global_event = {
 	modules = {
 		standard_event_module = {} # Needed for events
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 	}
 }
@@ -491,7 +542,9 @@ faction = {
 		needs_colony = no
 	}
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { # Nothing is allowed, but we need this for relationships.
+			contact_rule = on_action_only
+		}
 		basic_technology_module = {}
 	}
 }
@@ -513,7 +566,7 @@ adversary = {
 		basic_technology_module = {}
 		standard_event_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 			can_receive = {
 				action_declare_war
 				action_offer_peace
@@ -638,7 +691,7 @@ ruined_marauders = { # Diplomacy no longer possible
 		auto_delete = no
 	}
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { contact_rule = on_action_only } # Nothing is allowed, but we need this for relationships.
 		tiered_technology_module = {
 			tier = 3
 			rare = no
@@ -648,150 +701,44 @@ ruined_marauders = { # Diplomacy no longer possible
 }
 
 awakened_marauders = {
-	
-	scaled_difficulty_bonuses = 1.0	# scales to setting
 	attack_unarmed_orbital_stations = yes
-	mid_game_crisis=yes
+	scaled_difficulty_bonuses = 1.0	# scales to setting
+	destroys_starbases = yes
+	show_in_contacts_list = yes
 	counts_for_victory = yes
 	share_survey_data = no
-	relations = yes
-	custom_diplomacy=yes
-	custom_starbase=starbase_marauder
+	custom_diplomacy = yes
+	mid_game_crisis = yes
+	enforces_borders = no
 	needs_survey = no
-	diplomatic_wars = yes
+	has_complete_sensor = yes
+	can_have_their_comms_shared = yes
+	custom_starbase = starbase_marauder
 	observable = yes
-	destroys_starbases=yes
-	has_complete_sensor=yes
-	enforces_borders=no 
-	faction={
-		needs_colony=no
-	}
-
 	ai = {
 		enabled = yes
-		declare_war = yes
-		min_navy_for_wars = 0.0
-		min_assault_armies_for_wars = 6
-		colonizer = no
-		internal_policies = no
-		modification = no
-		construction = no
-		starbase_upgrade = no
-		limited_construction = yes
-		tech = no
 		modules = {
-			#change military minister if shit breaks even more
-			horde_military_minister_module
-			foreign_minister_module
 			horde_interior_minister_module
+			horde_military_minister_module
 		}
+	}
 
-		army_data = {
-			gene_warrior_army = {
-				fraction = {
-					factor = 75
-					modifier = {
-						factor = 0
-						NOT = { has_ethic = ethic_fanatic_xenophile }
-					}
-				}
-			}
-
-			psionic_army = {
-				fraction = {
-					factor = 75
-					modifier = {
-						factor = 0
-						NOT = { has_ethic = ethic_fanatic_spiritualist }
-					}
-				}
-			}
-
-			xenomorph_army = {
-				fraction = {
-					factor = 75
-					modifier = {
-						factor = 0
-						NOT = { has_ethic = ethic_fanatic_xenophobe }
-					}
-				}
-			}
-
-			robotic_army = {
-				fraction = {
-					factor = 75
-					modifier = {
-						factor = 0
-						NOT = { has_ethic = ethic_fanatic_materialist }
-					}
-				}
-			}
-
-			machine_assault_2 = {
-				fraction = {
-					factor = 50
-					modifier = {
-						factor = 0
-						NOT = { has_authority = auth_machine_intelligence }
-					}
-				}
-			}
-
-			machine_assault_3 = {
-				fraction = {
-					factor = 25
-					modifier = {
-						factor = 0
-						NOT = { has_authority = auth_machine_intelligence }
-					}
-				}
-			}
-		}
+	faction = {
+		hostile = yes
+		needs_border_access = no
+		generate_borders = yes
+		needs_colony = no
 	}
 	modules = {
-		tiered_technology_module = {tier=3 
-		rare=no}
+		exclusive_diplomacy_module = { # Nothing is allowed, but we need this for relationships.
+			contact_rule = always
+		}
+		tiered_technology_module = {
+			tier = 3
+			rare = no
+		}
 		standard_event_module = {}
-		exclusive_diplomacy_module = {
-			can_receive = {
-				action_declare_war
-				action_offer_peace
-				action_make_rival
-				action_end_rivalry
-				action_offer_trade_deal
-				action_cancel_trade_deal
-				action_insult
-			}
-			can_send = {
-				action_declare_war
-				action_make_rival
-				action_end_rivalry
-				action_offer_peace
-				action_offer_trade_deal
-				action_cancel_trade_deal
-				action_open_borders
-				action_close_borders
-			}
-		}
 	}
-
-	resources = {
-		category = country_base
-		produces = {
-			energy = 1000
-			minerals = 250
-			food = 100
-			alloys = 100
-			consumer_goods = 200
-			rare_crystals = 10
-			exotic_gases = 10
-			volatile_motes = 10
-			sr_dark_matter = 2
-			sr_living_metal = 2
-			sr_zro = 2
-			influence = 3
-		}
-	}	
 }
 
 fallen_empire = {
@@ -818,15 +765,14 @@ fallen_empire = {
 		enabled = yes
 		declare_war = yes
 		min_navy_for_wars = 0.0
-		min_assault_armies_for_wars = 6
+		min_assault_armies_for_wars = 0	
 		colonizer = no
 		internal_policies = no
 		modification = no
 		construction = no
 		starbase_upgrade = no
 		limited_construction = yes
-		tech = yes
-		traditions = yes
+		tech = no
 		modules = {
 			military_minister_module
 			foreign_minister_module
@@ -902,6 +848,7 @@ fallen_empire = {
 		standard_economy_module = {}
 		standard_species_rights_module = {}
 		exclusive_diplomacy_module = {
+			contact_rule = on_action_only
 			can_receive = {
 				action_declare_war
 				action_offer_peace
@@ -939,9 +886,6 @@ fallen_empire = {
 			sr_living_metal = 2
 			sr_zro = 2
 			influence = 3
-			engineering_research = 1000
-			physics_research = 1000
-			society_research = 1000
 		}
 	}
 }
@@ -972,7 +916,7 @@ awakened_fallen_empire = {
 		enabled = yes
 		declare_war = yes
 		min_navy_for_wars = 0.2
-		min_assault_armies_for_wars = 6
+		min_assault_armies_for_wars = 0	
 		colonizer = yes
 		internal_policies = yes
 		starbase_upgrade = no
@@ -980,7 +924,6 @@ awakened_fallen_empire = {
 		government = no
 		construction = yes
 		tech = yes
-		traditions = yes
 		modules = {
 			military_minister_module
 			foreign_minister_module
@@ -1093,6 +1036,7 @@ awakened_fallen_empire = {
 		standard_expansion_module = {}
 		standard_species_rights_module = {}
 		exclusive_diplomacy_module = {
+			contact_rule = always
 			can_receive = {
 				action_declare_war
 				action_offer_peace
@@ -1135,21 +1079,18 @@ awakened_fallen_empire = {
 	resources = {
 		category = country_base
 		produces = {
-			energy = 1000
-			minerals = 250
-			food = 100
-			alloys = 100
-			consumer_goods = 100
-			rare_crystals = 10
-			exotic_gases = 10
-			volatile_motes = 10
-			sr_dark_matter = 2
-			sr_living_metal = 2
-			sr_zro = 2
-			influence = 3
-			engineering_research = 3000
-			physics_research = 3000
-			society_research = 3000
+			energy = 1250
+			minerals = 1250
+			food = 1250
+			alloys = 500
+			consumer_goods = 500
+			rare_crystals = 50
+			exotic_gases = 50
+			volatile_motes = 50
+			sr_dark_matter = 25
+			sr_living_metal = 25
+			sr_zro = 25
+			influence = 10
 		}
 	}
 }
@@ -1177,7 +1118,7 @@ primitive = {
 		standard_event_module = {}
 		basic_technology_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 	}
 }
@@ -1205,7 +1146,9 @@ rebel = {
 		#standard_economy_module = {}
 		standard_leader_module = {}
 		#standard_diplomacy_module = {}
-		exclusive_diplomacy_module = {}
+		exclusive_diplomacy_module = {
+			contact_rule = on_action_only
+		}
 		standard_technology_module = {}
 		standard_trade_routes_module = {}
 		#standard_species_rights_module = {}
@@ -1229,7 +1172,7 @@ ambient = {
 	}
 	modules = {
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		} # Nothing is allowed, but we need this for relationships.
 		#basic_technology_module = {}
 	}
@@ -1256,9 +1199,7 @@ enclave = {
 	modules = {
 		basic_technology_module = {}
 		standard_event_module = {}
-		exclusive_diplomacy_module = {
-			contact_rule = script_only
-		} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { } # Nothing is allowed, but we need this for relationships.
 		#basic_technology_module = {}
 	}
 }
@@ -1286,7 +1227,7 @@ shroud = {
 	modules = {
 		basic_technology_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 	}
 }
@@ -1308,9 +1249,129 @@ shroud_spirits = {
 	}
 	modules = {
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 		basic_technology_module = {}
+		standard_event_module = {}
+	}
+}
+
+gdf = {
+	blocks_piracy = yes
+	government = no
+	observable = no
+	uses_origins = no
+	playable = no
+	needs_survey = no
+	ship_disengagement = yes
+	has_complete_sensor = yes
+	ai = {
+		enabled = yes
+		modules = {
+			military_minister_module
+			galactic_community_patrol_military_minister_module
+		}
+
+		ship_data = {
+			constructor = {
+				min = 3
+				max = 3
+			}
+
+			science	= {
+				min = 3
+				max = 3
+			}
+
+			colonizer = {
+				min = 1
+				max = 1
+			}
+
+			juggernaut = {
+				min = 1
+				max = 1
+			}
+
+			colossus = {
+				min = 1
+				max = 1
+			}
+
+			titan = {
+				min = 1
+				max = 2
+			}
+
+			battleship = {
+				fraction = {
+					modifier = {
+						add = 25
+						has_technology = tech_battleships
+					}
+				}
+			}
+
+			cruiser = {
+				fraction = {
+					modifier = {
+						add = 35
+						has_technology = tech_cruisers
+					}
+					modifier = {
+						add = -10
+						has_technology = tech_battleships
+					}
+				}
+			}
+
+			destroyer = {
+				fraction = {
+					modifier = {
+						add = 50
+						has_technology = tech_destroyers
+					}
+					modifier = {
+						add = -15
+						has_technology = tech_cruisers
+					}
+					modifier = {
+						add = -10
+						has_technology = tech_battleships
+					}
+				}
+			}
+
+			corvette = {
+				fraction = {
+					base = 100
+					modifier = {
+						add = -25
+						has_technology = tech_destroyers
+					}
+					modifier = {
+						add = -45
+						has_technology = tech_cruisers
+					}
+					modifier = {
+						add = -5
+						has_technology = tech_battleships
+					}
+				}
+			}
+		}
+	}
+	faction = {
+		hostile = no
+		needs_border_access = yes
+		generate_borders = no
+		needs_colony = no
+	}
+	modules = {
+		exclusive_diplomacy_module = {
+			contact_rule = always
+		}
+		all_technology_module = {}
 		standard_event_module = {}
 	}
 }
@@ -1610,7 +1671,7 @@ sentinels = {
 	custom_diplomacy = yes
 
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { contact_rule = on_action_only } # Nothing is allowed, but we need this for relationships.
 		all_technology_module = {}
 		standard_event_module = {}
 	}
@@ -1641,7 +1702,7 @@ gate_builders = {
 	custom_diplomacy = yes
 
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { contact_rule = on_action_only } # Nothing is allowed, but we need this for relationships.
 		all_technology_module = {}
 		standard_event_module = {}
 		standard_economy_module = {}
@@ -1686,7 +1747,7 @@ gray = {
 	modules = {
 		basic_technology_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 	}
 }
@@ -1822,6 +1883,24 @@ amoeba_garrison = {
 	pre_communications_fleet_name = "NO_COMMUNICATIONS_AMOEBA"
 }
 
+amoeba_faction = { #same as "faction", but doesn't block first contact site from spawning
+	government = no
+	observable = no
+	ai = {
+		enabled = no
+	}
+	faction = {
+		hostile = yes
+		needs_border_access = no
+		generate_borders = no
+		needs_colony = no
+	}
+	modules = {
+		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		basic_technology_module = {}
+	}
+}
+
 crystal = {
 	share_communications = no
 	is_space_critter = yes
@@ -1844,7 +1923,26 @@ crystal = {
 	}
 }
 
+crystal_faction = { #same as "faction", but doesn't block first contact site from spawning
+	government = no
+	observable = no
+	ai = {
+		enabled = no
+	}
+	faction = {
+		hostile = yes
+		needs_border_access = no
+		generate_borders = no
+		needs_colony = no
+	}
+	modules = {
+		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		basic_technology_module = {}
+	}
+}
+
 drone = {
+	always_valid_target_aggressive = yes
 	share_communications = no
 	is_space_critter = yes
 	blocks_piracy = yes
@@ -1859,6 +1957,24 @@ drone = {
 		generate_borders = no
 		needs_colony = no
 		space_creatures = yes
+	}
+	modules = {
+		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		basic_technology_module = {}
+	}
+}
+
+drone_faction = {
+	government = no
+	observable = no
+	ai = {
+		enabled = no
+	}
+	faction = {
+		hostile = yes
+		needs_border_access = no
+		generate_borders = no
+		needs_colony = no
 	}
 	modules = {
 		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
@@ -1975,7 +2091,9 @@ marauder_raiders = {
 	#custom_diplomacy = yes
 	modules = {
 		standard_event_module = {}
-		exclusive_diplomacy_module = {}
+		exclusive_diplomacy_module = {
+			contact_rule = on_action_only
+		}
 		basic_technology_module = {}
 	}
 }
@@ -1997,7 +2115,7 @@ vol = {
 		basic_technology_module = {}
 		standard_event_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 			can_receive = {
 				action_declare_war
 				action_offer_peace
@@ -2026,7 +2144,7 @@ ratlings = {
 		standard_event_module = {}
 		basic_technology_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 		#exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
 	}
@@ -2049,7 +2167,7 @@ enigmatic_cache = {
 		auto_delete = no
 	}
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { contact_rule = on_action_only } # Nothing is allowed, but we need this for relationships.
 		basic_technology_module = {}
 		standard_event_module = {}
 	}
@@ -2084,7 +2202,7 @@ gray_goo = {
 	}
 	modules = {
 		exclusive_diplomacy_module = {
-			#contact_rule = script_only
+			contact_rule = on_action_only 
 		} # Nothing is allowed, but we need this for relationships.
 		tiered_technology_module = {
 			tier = 3
@@ -2115,7 +2233,7 @@ mechanocalibrator = {
 		standard_event_module = {}
 		basic_technology_module = {}
 		exclusive_diplomacy_module = {
-			contact_rule = script_only
+			contact_rule = on_action_only
 		}
 		#exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
 	}
@@ -2141,7 +2259,7 @@ vluur = {
 		space_creatures = yes
 	}
 	modules = {
-		exclusive_diplomacy_module = {} # Nothing is allowed, but we need this for relationships.
+		exclusive_diplomacy_module = { contact_rule = on_action_only } # Nothing is allowed, but we need this for relationships.
 		basic_technology_module = {}
 		standard_event_module = {} # For bouncing events
 	}

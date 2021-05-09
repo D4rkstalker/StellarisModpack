@@ -1,0 +1,1551 @@
+# this = corp
+iisc_set_hq = {
+	if = {
+		limit = {
+			exists = overlord
+			overlord = {
+				any_owned_planet = {
+					iisc_suitable_for_hq = yes
+				}
+			}
+		}
+		overlord = {
+			random_owned_planet = {
+				limit = {
+					iisc_suitable_for_hq = yes
+				}
+				set_planet_flag = iisc_hq
+				set_planet_flag = iisc_hq_of_@prevprev
+				save_event_target_as = iisc_hq_planet
+			}
+		}
+		set_country_flag = iisc_hq_set
+	}
+}
+
+# this = corp
+iisc_get_hq = {
+	overlord = {
+		random_owned_planet = {
+			limit = {
+				has_planet_flag = iisc_hq_of_@prevprev
+			}
+			save_event_target_as = $TARGET|iisc_hq_planet$
+		}
+	}
+}
+
+# this = corp
+iisc_get_overlord = {
+	overlord = {
+		save_event_target_as = iisc_overlord
+	}
+}
+
+# this = corp
+# hq set and exists
+iisc_handle_corp_connection_to_overlord = {
+	if = {
+		limit = {
+			OR = {
+				NOT = {
+					exists = event_target:iisc_hq_planet.owner
+				}
+				event_target:iisc_hq_planet.owner = {
+					iisc_can_have_space_corp = no
+				}
+				event_target:iisc_hq_planet.owner = {
+					is_subject = yes
+				}
+			}
+		}
+		iisc_destroy_corp = yes
+	}
+	else_if = {
+		# the owner exists and can have corps
+		limit = {
+			# same as a NAND without the NOTs but this way it's easier to understand
+			OR = {
+				NOT = {
+					exists = overlord
+				}
+				NOT = {
+					overlord = {
+						is_same_value = event_target:iisc_hq_planet.owner
+					}
+				}
+			}
+		}
+		# the corp is not connected
+		# we need to make it subject to the owner of the planet
+		# the owner of the planet should not be already a subject thanks to the on_becoming_subject
+		set_subject_of = {
+			who = event_target:iisc_hq_planet.owner
+			subject_type = iisc_corp_vassal
+		}
+		event_target:iisc_hq_planet = {
+			iisc_reset_hq_deposit_authority = yes
+		}
+		# if necessary in the future: scope to overlord and
+		# iisc_count_corps = yes
+		# TODO add an event with a window?
+	}
+}
+
+# this = corp
+# overlord exists
+iisc_copy_techs_from_overlord_if_needed = {
+	if = {
+		limit = {
+			NOT = {
+				has_country_flag = iisc_copy_techs_on_cooldown
+			}
+		}
+		set_timed_country_flag = {
+			flag = iisc_copy_techs_on_cooldown
+			years = 5
+		}
+		copy_techs_from = {
+			target = overlord
+			except = {
+				# not dangerous techs?
+				tech_synthetic_workers
+				tech_combat_computers_3
+				tech_jump_drive_1
+				tech_psi_jump_drive_1
+			}
+		}
+	}
+}
+
+# this = corp
+# corp is supposed to be destroyed => its money is copied, not transferred
+# overlord exists
+iisc_split_disbanded_corp_money = {
+	if = {
+		limit = {
+			check_variable = {
+				which = iisc_corp_money
+				value > 0
+			}
+		}
+		divide_variable = {
+			which = iisc_corp_money
+			value = 5
+		}
+		set_variable = {
+			which = iisc_corp_money_to_give
+			value = iisc_corp_money
+		}
+		overlord = {
+			while = {
+				count = 3
+				# select a random corp
+				random_subject = {
+					limit = {
+						is_country_type = iisc_space_corporation
+						iisc_is_corp_connected = yes
+					}
+					set_variable = {
+						which = iisc_corp_money_to_give
+						value = prevprev
+					}
+					add_resource = {
+						energy = 1
+						mult = iisc_corp_money_to_give
+					}
+					# cleanup
+					set_variable = {
+						which = iisc_corp_money_to_give
+						value = 0
+					}
+				}
+			}
+		}
+	}
+}
+
+# this = corp
+# overlord = the new overlord (should exist)
+iisc_disband_disconnected_corp = {
+	if = {
+		limit = {
+			is_country_type = iisc_space_corporation
+		}
+		# just a redundant check
+		if = {
+			limit = {
+				exists = overlord
+			}
+			# load (old) hq
+			# removal of hq deposit is done afterwards in iisc_destroy_corp
+			overlord = {
+				random_subject = {
+					limit = {
+						iisc_can_have_space_corp = yes
+						any_owned_planet = {
+							has_planet_flag = iisc_hq_of_@prevprevprev
+						}
+					}
+					random_owned_planet = {
+						limit = {
+							has_planet_flag = iisc_hq_of_@prevprevprev
+						}
+						save_event_target_as = iisc_hq_planet
+					}
+				}
+			}
+			# give some of the money to the corps of the overlord
+			iisc_split_disbanded_corp_money = yes
+		}
+		iisc_destroy_corp = yes
+	}
+	else = {
+		log = "Tried to disband non corp country by iisc_disband_disconnected_corp"
+	}
+}
+
+# this = corp
+iisc_destroy_corp = {
+	if = {
+		limit = {
+			is_country_type = iisc_space_corporation
+		}
+		# just a redundant check
+		if = {
+			limit = {
+				exists = event_target:iisc_hq_planet
+			}
+			event_target:iisc_hq_planet = {
+				remove_planet_flag = iisc_hq_of_@prev
+				remove_planet_flag = iisc_hq
+				remove_deposit = d_iisc_income_deposit
+				subtract_variable = {
+					which = iisc_taxes_energy
+					value = {
+						scope = prev
+						variable = iisc_previous_taxes_energy
+					}
+				}
+				subtract_variable = {
+					which = iisc_taxes_minerals
+					value = {
+						scope = prev
+						variable = iisc_previous_taxes_minerals
+					}
+				}
+				subtract_variable = {
+					which = iisc_taxes_food
+					value = {
+						scope = prev
+						variable = iisc_previous_taxes_food
+					}
+				}
+				subtract_variable = {
+					which = iisc_taxes_alloys
+					value = {
+						scope = prev
+						variable = iisc_previous_taxes_alloys
+					}
+				}
+				subtract_variable = {
+					which = iisc_taxes_consumer_goods
+					value = {
+						scope = prev
+						variable = iisc_previous_taxes_consumer_goods
+					}
+				}
+			}
+			iisc_remove_hq_deposit_from_corp = yes
+		}
+		every_mining_station = {
+			delete_fleet = this
+		}
+		every_research_station = {
+			delete_fleet = this
+		}
+		every_owned_fleet = {
+			delete_fleet = this
+		}
+		destroy_country = yes
+	}
+	else = {
+		log = "Tried to delete non corp country by iisc_destroy_corp"
+	}
+}
+
+# this = overlord
+iisc_give_tech_overlord_and_corps = {
+	give_technology = {
+		tech = $TECH$
+	}
+	every_subject = {
+		limit = {
+			is_country_type = iisc_space_corporation
+		}
+		give_technology = {
+			tech = $TECH$
+		}
+	}
+}
+
+# this = overlord
+iisc_give_tech_to_corps = {
+	every_subject = {
+		limit = {
+			is_country_type = iisc_space_corporation
+		}
+		give_technology = {
+			tech = $TECH$
+		}
+	}
+}
+
+# this = corp
+iisc_set_tech_costs = {
+	get_galaxy_setup_value = {
+		which = iisc_tech_base_cost
+		setting = tech_costs_scale
+	}
+	multiply_variable = {
+		which = iisc_tech_base_cost
+		value = @iisc_tech_base_cost
+	}
+	if = {
+		limit = {
+			has_ethic = ethic_materialist
+		}
+		multiply_variable = {
+			which = iisc_tech_base_cost
+			value = 0.9
+		}
+	}
+	set_variable = {
+		which = iisc_tech_cost_t1
+		value = 1
+	}
+	multiply_variable = {
+		which = iisc_tech_cost_t1
+		value = iisc_tech_base_cost
+	}
+	set_variable = {
+		which = iisc_tech_cost_t2
+		value = 2
+	}
+	multiply_variable = {
+		which = iisc_tech_cost_t2
+		value = iisc_tech_base_cost
+	}
+	set_variable = {
+		which = iisc_tech_cost_t3
+		value = 3
+	}
+	multiply_variable = {
+		which = iisc_tech_cost_t3
+		value = iisc_tech_base_cost
+	}
+	set_variable = {
+		which = iisc_tech_cost_t4
+		value = 4
+	}
+	multiply_variable = {
+		which = iisc_tech_cost_t4
+		value = iisc_tech_base_cost
+	}
+	set_variable = {
+		which = iisc_tech_cost_t5
+		value = 5
+	}
+	multiply_variable = {
+		which = iisc_tech_cost_t5
+		value = iisc_tech_base_cost
+	}
+}
+
+# this = corp
+iisc_get_survey_reward = {
+	if = {
+		limit = {
+			overlord = {
+				balance >= 3
+				has_policy_flag = iisc_survey_high_reward
+			}
+		}
+		add_resource = {
+			energy = 3
+		}
+		overlord = {
+			add_resource = {
+				energy = -3
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			overlord = {
+				balance >= 2
+				has_policy_flag = iisc_survey_medium_reward
+			}
+		}
+		add_resource = {
+			energy = 2
+		}
+		overlord = {
+			add_resource = {
+				energy = -2
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			overlord = {
+				balance >= 1
+				has_policy_flag = iisc_low_reward
+			}
+		}
+		add_resource = {
+			energy = 1
+		}
+		overlord = {
+			add_resource = {
+				energy = -1
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			overlord = {
+				has_policy_flag = iisc_survey_no_reward
+			}
+		}
+		change_variable = {
+			which = iisc_unhappiness
+			value = 0.01
+		}
+	}
+	else = {
+		change_variable = {
+			which = iisc_unhappiness
+			value = 0.05
+		}
+	}
+}
+
+# this = corp
+# HQ set
+iisc_launch_convoy_if_possible = {
+	random_country = {
+		limit = {
+			is_country_type = iisc_space_corporation
+			iisc_is_suitable_convoy_partner = yes
+		}
+		iisc_get_hq = {
+			TARGET = iisc_convoy_dest
+		}
+		prev = {
+			iisc_create_convoy_fleet = yes
+			set_timed_country_flag = {
+				flag = iisc_corp_sent_convoy_recently
+				days = 90
+			}
+		}
+	}
+}
+
+# this = corp
+iisc_set_budget_multiplier = {
+	set_variable = {
+		which = iisc_budget_multiplier_military
+		value = 0.25
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_convoy
+		value = 0.2
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_supply
+		value = 0
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_builder
+		value = 0.05
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_science_ship
+		value = 0.05
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_mining_station
+		value = 0.15
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_research_station
+		value = 0.15
+	}
+	set_variable = {
+		which = iisc_budget_multiplier_colonization
+		value = 0.15
+	}
+	# ethic effect
+	switch = {
+		trigger = has_ethic
+		ethic_xenophile = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 1.25
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 1.1
+			}
+		}
+		ethic_xenophobe = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.25
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 0.9
+			}
+		}
+		ethic_egalitarian = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.1
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 1.1
+			}
+		}
+		ethic_authoritarian = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_mining_station
+				value = 1.1
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_builder
+				value = 1.1
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 1.1
+			}
+		}
+		ethic_materialist = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 1.2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 0.9
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_supply
+				value = 0.9
+			}
+		}
+		ethic_spiritualist = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 0.9
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 0.8
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 1.2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.2
+			}
+		}
+		ethic_militarist = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_supply
+				value = 1.25
+			}
+		}
+		ethic_pacifist = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 0.8
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 1.1
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.1
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_mining_station
+				value = 1.1
+			}
+		}
+	}
+	# civic effects
+	switch = {
+		trigger = has_civic
+		iisc_civic_research_consortium = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 1.25
+			}
+		}
+		iisc_civic_engineering_firm = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_mining_station
+				value = 1.2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 1.2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 1.3
+			}
+		}
+		iisc_civic_mining_union = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_mining_station
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_builder
+				value = 1.1
+			}
+		}
+		iisc_civic_security_force = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_mining_station
+				value = 0.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 0.3
+			}
+		}
+		iisc_civic_logistics_agency = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_supply
+				value = 2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 0.8
+			}
+		}
+		iisc_civic_exploration_initiative = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_science_ship
+				value = 2
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_research_station
+				value = 1.3
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 0.7
+			}
+		}
+		iisc_civic_financial_group = {
+			multiply_variable = {
+				which = iisc_budget_multiplier_convoy
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_colonization
+				value = 1.5
+			}
+			multiply_variable = {
+				which = iisc_budget_multiplier_military
+				value = 0.7
+			}
+		}
+	}
+	# dynamic effects
+	if = {
+		limit = {
+			check_variable = {
+				which = iisc_budget_convoy
+				value > 2000
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_convoy
+			value = 0
+		}
+	}
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_budget_convoy
+				value > 1000
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_convoy
+			value = 0.5
+		}
+	}
+	if = {
+		limit = {
+			OR = {
+				AND = {
+					iisc_search_mining_stations = no
+					iisc_search_research_stations = no
+				}
+				iisc_below_builders_cap = no
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_builder
+			value = 0
+		}
+	}
+	if = {
+		limit = {
+			iisc_below_science_ship_cap = no
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_science_ship
+			value = 0
+		}
+	}
+	if = {
+		limit = {
+			OR = {
+				iisc_search_mining_stations = no
+				check_variable = {
+					which = iisc_budget_mining_station
+					value >= 500
+				}
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_mining_station
+			value = 0
+		}
+	}
+	else_if = {
+		limit = {
+			NOT = {
+				has_country_flag = iisc_built_mining_station_recently
+			}
+			check_variable = {
+				which = iisc_budget_mining_station
+				value >= @iisc_mining_station_cost
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_mining_station
+			value = 0.5
+		}
+	}
+	if = {
+		limit = {
+			OR = {
+				iisc_search_research_stations = no
+				check_variable = {
+					which = iisc_budget_research_station
+					value >= 500
+				}
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_research_station
+			value = 0
+		}
+	}
+	else_if = {
+		limit = {
+			NOT = {
+				has_country_flag = iisc_built_research_station_recently
+			}
+			check_variable = {
+				which = iisc_budget_research_station
+				value >= @iisc_mining_station_cost
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_research_station
+			value = 0.5
+		}
+	}
+	if = {
+		limit = {
+			OR = {
+				iisc_should_build_hq_deposit = no
+				iisc_hq_deposits_full = yes
+			}
+		}
+		multiply_variable = {
+			which = iisc_budget_multiplier_colonization
+			value = 0
+		}
+	}
+	# normalize so the sum is (almost) 1
+	set_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_military
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_convoy
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_supply
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_builder
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_science_ship
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_mining_station
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_research_station
+	}
+	change_variable = {
+		which = iisc_budget_multiplier_total
+		value = iisc_budget_multiplier_colonization
+	}
+	if = {
+		limit = {
+			check_variable = {
+				which = iisc_budget_multiplier_total
+				value > 0
+			}
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_military
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_convoy
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_supply
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_builder
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_science_ship
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_mining_station
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_research_station
+			value = iisc_budget_multiplier_total
+		}
+		divide_variable = {
+			which = iisc_budget_multiplier_colonization
+			value = iisc_budget_multiplier_total
+		}
+	}
+}
+
+# this = corp
+iisc_sum_budget = {
+	set_variable = {
+		which = iisc_budget_total
+		value = 0
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_military
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_convoy
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_supply
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_builder
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_science_ship
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_mining_station
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_research_station
+	}
+	change_variable = {
+		which = iisc_budget_total
+		value = iisc_budget_colonization
+	}
+}
+
+# this = corp
+iisc_compute_budget_change = {
+	iisc_sum_budget = yes
+	subtract_variable = {
+		which = iisc_budget_total
+		value = iisc_corp_money
+	}
+	multiply_variable = {
+		which = iisc_budget_total
+		value = -1
+	}
+	# iisc_budget_total remaining is what we need to split between the budgets
+	iisc_set_budget_multiplier = yes
+	iisc_compute_budget_change_aux = {
+		TYPE = military
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = convoy
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = supply
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = builder
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = science_ship
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = mining_station
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = research_station
+	}
+	iisc_compute_budget_change_aux = {
+		TYPE = colonization
+	}
+}
+
+# this = corp
+# TYPE = which field
+iisc_compute_budget_change_aux = {
+	set_variable = {
+		which = iisc_budget_increase_$TYPE$
+		value = iisc_budget_multiplier_$TYPE$
+	}
+	multiply_variable = {
+		which = iisc_budget_increase_$TYPE$
+		value = iisc_budget_total
+	}
+	change_variable = {
+		which = iisc_budget_$TYPE$
+		value = iisc_budget_increase_$TYPE$
+	}
+}
+
+# this = corp
+# TYPE = field of expense/income
+# AMOUNT = amount added
+iisc_change_corp_money = {
+	change_variable = {
+		which = iisc_corp_money
+		value = $AMOUNT$
+	}
+	change_variable = {
+		which = iisc_budget_$TYPE$
+		value = $AMOUNT$
+	}
+}
+
+# this = corp
+# TYPE = field of expense/income
+# AMOUNT = amount added
+iisc_subtract_corp_money = {
+	subtract_variable = {
+		which = iisc_corp_money
+		value = $AMOUNT$
+	}
+	subtract_variable = {
+		which = iisc_budget_$TYPE$
+		value = $AMOUNT$
+	}
+}
+
+# this = corp
+iisc_compute_passive_income = {
+	# TODO balance passive income
+	event_target:iisc_hq_planet = {
+		every_owned_pop = {
+			limit = {
+				NOR = {
+					has_citizenship_type = {
+						country = owner
+						type = citizenship_slavery
+					}
+					has_citizenship_type = {
+						country = owner
+						type = citizenship_purge_machine
+					}
+					has_citizenship_type = {
+						country = owner
+						type = citizenship_purge
+					}
+					has_citizenship_type = {
+						country = owner
+						type = citizenship_assimilation
+					}
+				}
+			}
+			prevprev = {
+				add_resource = {
+					energy = 1
+				}
+			}
+		}
+	}
+	if = {
+		limit = {
+			has_ethic = ethic_xenophile
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					is_organic_species = yes
+					NOR = {
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_slavery
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge_machine
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_assimilation
+						}
+					}
+					NOT = {
+						is_same_species = prevprev.owner_species						# species of the corp
+					}
+				}
+				prevprev = {
+					add_resource = {
+						energy = 0.3
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_xenophobe
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					NOR = {
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_slavery
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge_machine
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_assimilation
+						}
+					}
+				}
+				if = {
+					limit = {
+						is_same_species = prevprev.owner_species						# species of the corp
+					}
+					prevprev = {
+						add_resource = {
+							energy = 0.3
+						}
+					}
+				}
+				else = {
+					prevprev = {
+						add_resource = {
+							energy = -0.3
+						}
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_egalitarian
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					NOR = {
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_slavery
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge_machine
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_purge
+						}
+						has_citizenship_type = {
+							country = owner
+							type = citizenship_assimilation
+						}
+					}
+				}
+				prevprev = {
+					add_resource = {
+						energy = 0.2
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_authoritarian
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					has_citizenship_type = {
+						country = owner
+						type = citizenship_slavery
+					}
+				}
+				prevprev = {
+					add_resource = {
+						energy = 0.5
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_materialist
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					is_robot_pop = yes
+				}
+				prevprev = {
+					add_resource = {
+						energy = 0.5
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_spiritualist
+		}
+		event_target:iisc_hq_planet = {
+			every_owned_pop = {
+				limit = {
+					has_ethic = ethic_spiritualist
+				}
+				prevprev = {
+					add_resource = {
+						energy = 0.3
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_militarist
+		}
+		event_target:iisc_hq_planet = {
+			every_planet_army = {
+				prevprev = {
+					add_resource = {
+						energy = 1
+					}
+				}
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_pacifist
+		}
+		if = {
+			limit = {
+				overlord = {
+					years_of_peace = {
+						value >= 50
+					}
+				}
+			}
+			add_resource = {
+				energy = 25
+			}
+		}
+		else_if = {
+			limit = {
+				overlord = {
+					years_of_peace = {
+						value >= 40
+					}
+				}
+			}
+			add_resource = {
+				energy = 20
+			}
+		}
+		else_if = {
+			limit = {
+				overlord = {
+					years_of_peace = {
+						value >= 30
+					}
+				}
+			}
+			add_resource = {
+				energy = 15
+			}
+		}
+		else_if = {
+			limit = {
+				overlord = {
+					years_of_peace = {
+						value >= 20
+					}
+				}
+			}
+			add_resource = {
+				energy = 10
+			}
+		}
+		else_if = {
+			limit = {
+				overlord = {
+					years_of_peace = {
+						value >= 10
+					}
+				}
+			}
+			add_resource = {
+				energy = 5
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			has_ethic = ethic_gestalt_consciousness
+		}
+		add_resource = {
+			energy = 5
+		}
+	}
+}
+
+# this = corp
+# hq set
+iisc_compute_income_from_hq_deposits = {
+	# this adds raw resources to the corp before it being taxed and converted into money
+	add_resource = {
+		energy = 5
+		minerals = 3
+		alloys = 1
+		mult = iisc_major_deposit_size
+	}
+}
+
+# this = corp
+# hq set
+iisc_compute_and_tax_space_corp_income = {
+	iisc_compute_passive_income = yes
+	iisc_compute_income_from_hq_deposits = yes
+	iisc_compute_and_tax_space_corp_income_from_resource = {
+		RESOURCE = energy
+	}
+	iisc_compute_and_tax_space_corp_income_from_resource = {
+		RESOURCE = minerals
+	}
+	iisc_compute_and_tax_space_corp_income_from_resource = {
+		RESOURCE = alloys
+	}
+	iisc_compute_and_tax_space_corp_income_from_resource = {
+		RESOURCE = consumer_goods
+	}
+	iisc_compute_and_tax_space_corp_income_from_resource = {
+		RESOURCE = food
+	}
+	# now transform that as money
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_energy_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_minerals_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_food_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_alloys_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_alloys_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_consumer_goods_income
+	}
+	change_variable = {
+		which = iisc_corp_money
+		value = iisc_consumer_goods_income
+	}
+	# twice because alloys/CG = 2 energy here
+	set_variable = {
+		which = iisc_total_taxed
+		value = 0
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_energy_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_minerals_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_food_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_alloys_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_alloys_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_consumer_goods_taxed_total
+	}
+	change_variable = {
+		which = iisc_total_taxed
+		value = iisc_consumer_goods_taxed_total
+	}
+	# twice because alloys/CG = 2 energy here
+	# compute month income
+	set_variable = {
+		which = iisc_corp_money_variation
+		value = iisc_corp_money_last_month
+	}
+	multiply_variable = {
+		which = iisc_corp_money_variation
+		value = -1
+	}
+	change_variable = {
+		which = iisc_corp_money_variation
+		value = iisc_corp_money
+	}
+	# compute budget for next month
+	iisc_compute_budget_change = yes
+	# save money of last month
+	set_variable = {
+		which = iisc_corp_money_last_month
+		value = iisc_corp_money
+	}
+}
+
+# this = corp
+# RESOURCE = one of the resource
+iisc_compute_and_tax_space_corp_income_from_resource = {
+	# compute income
+	export_resource_stockpile_to_variable = {
+		resource = $RESOURCE$
+		variable = iisc_$RESOURCE$_income
+	}
+	subtract_variable = {
+		which = iisc_$RESOURCE$_income
+		value = @corp_default_resources_amount
+	}
+	# put resources back to @corp_default_resources_amount
+	add_resource = {
+		$RESOURCE$ = -1
+		mult = iisc_$RESOURCE$_income
+	}
+	if = {
+		limit = {
+			check_variable = {
+				which = iisc_$RESOURCE$_income
+				value >= 0
+			}
+		}
+		overlord = {
+			set_variable = {
+				which = iisc_$RESOURCE$_income
+				value = prev
+			}
+			set_variable = {
+				which = iisc_taxes
+				value = iisc_$RESOURCE$_income
+			}
+			if = {
+				limit = {
+					NOT = {
+						is_variable_set = iisc_corp_tax_policy_value
+					}
+				}
+				set_variable = {
+					which = iisc_corp_tax_policy_value
+					value = 0
+				}
+			}
+			multiply_variable = {
+				which = iisc_taxes
+				value = iisc_corp_tax_policy_value
+			}
+			event_target:iisc_hq_planet = {
+				if = {
+					limit = {
+						NOT = {
+							has_deposit = d_iisc_income_deposit
+						}
+					}
+					add_deposit = d_iisc_income_deposit
+				}
+				# as there could be several corps on the HQ
+				# we add the taxes and subtract the previous taxes
+				# that way, iisc_taxes_$RESOURCE$ should always have the sum of the taxes from every corps on that HQ
+				set_variable = {
+					which = iisc_previous_taxes_$RESOURCE$
+					value = prevprev
+				}
+				subtract_variable = {
+					which = iisc_taxes_$RESOURCE$
+					value = iisc_previous_taxes_$RESOURCE$
+				}
+				change_variable = {
+					which = iisc_taxes_$RESOURCE$
+					value = {
+						scope = prev
+						variable = iisc_taxes
+					}
+				}
+				# decompose it into a list of 0 and 1 up to 1023
+				# remark: iisc_taxes_$RESOURCE$_0 is the modulo by 2 => might not be integer => we check in the deposit if >= 1
+				iisc_decompose_into_binary = {
+					LIST = iisc_taxes_$RESOURCE$
+					VARIABLE = iisc_taxes_$RESOURCE$
+				}
+			}
+			change_variable = {
+				which = iisc_$RESOURCE$_taxed_total
+				value = iisc_taxes
+			}
+			prev = {
+				set_variable = {
+					which = iisc_taxes
+					value = prev
+				}
+				set_variable = {
+					which = iisc_previous_taxes_$RESOURCE$
+					value = iisc_taxes
+				}
+				change_variable = {
+					which = iisc_$RESOURCE$_taxed_total
+					value = iisc_taxes
+				}
+				subtract_variable = {
+					which = iisc_$RESOURCE$_income
+					value = iisc_taxes
+				}
+			}
+		}
+	}
+}
+
+# this = corp
+iisc_corps_load_research_points = {
+	export_resource_stockpile_to_variable = {
+		resource = physics_research
+		variable = iisc_stored_physics_points
+	}
+	export_resource_stockpile_to_variable = {
+		resource = society_research
+		variable = iisc_stored_society_points
+	}
+	export_resource_stockpile_to_variable = {
+		resource = engineering_research
+		variable = iisc_stored_engineering_points
+	}
+}

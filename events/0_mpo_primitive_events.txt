@@ -1,158 +1,6 @@
 namespace = primitive
 
-### Nuclear War Scenarios
 
-# Nuclear War Breaks Out (HIDDEN)
-planet_event = {
-	id = primitive.130
-	hide_window = yes
-
-	pre_triggers = {
-		has_owner = yes
-	}
-
-	trigger = {
-		NOT = { is_planet_class = pc_habitat }
-		NOT = { is_planet_class = pc_ringworld_habitable }
-		owner = {
-			is_country_type = primitive
-			is_pacifist = no
-			OR = {
-				has_country_flag = atomic_age
-				has_country_flag = early_space_age
-			}
-		}
-		OR = {
-			has_observation_outpost = no
-			AND = {
-				has_observation_outpost = yes
-				observation_outpost = { has_mission = passive_observation }
-			}
-			AND = {
-				has_observation_outpost = yes
-				observation_outpost = { has_mission = native_indoctrination }
-			}			
-			AND = {
-				has_observation_outpost = yes
-				observation_outpost = { has_mission = specimen_collection }
-			}
-		}
-	}
-
-	mean_time_to_happen = {
-		years  = 10
-	}
-
-	immediate = {
-		owner = {
-			random_owned_ship = {
-				limit = { is_ship_size = primitive_space_station }
-				fleet = { destroy_fleet = THIS }
-			}
-		}
-		random_list = {
-			5 = {
-				if = {
-					limit = {
-						has_observation_outpost = yes
-					}
-					observation_outpost_owner = {
-						random_list = {
-							25 = {
-								country_event = { id = primitive.131 }
-							}
-							70 = { country_event = { id = primitive.133 } }
-							5 = {
-								country_event = { id = prim_orig.30 }
-								modifier = {
-									factor = 0
-									root = {
-										OR = {
-											is_planet_class = pc_ringworld_habitable
-											is_planet_class = pc_habitat
-										}
-									}
-								}
-							}
-						}
-					}	
-				}	
-				else = {
-					owner = {
-						random_list = {
-							25 = {
-								country_event = { id = primitive.131 }
-								modifier = {
-									factor = 0 # won't turn planet uninhabitable if it's not a planet
-									root = {
-										OR = {
-											is_planet_class = pc_ringworld_habitable
-											is_planet_class = pc_habitat
-										}
-									}
-								}
-							}
-							70 = { country_event = { id = primitive.133 } }
-							5 = {
-								country_event = { id = prim_orig.30 }
-								modifier = {
-									factor = 0
-									NAND = {
-										root = {
-											OR = {
-												is_planet_class = pc_ringworld_habitable
-												is_planet_class = pc_habitat
-											}
-										}
-										host_has_dlc = Apocalypse
-									}
-								}
-							}
-						}
-					}
-				}
-				modifier = {
-					factor = 2
-					has_observation_outpost = yes
-					observation_outpost = {
-						has_mission = native_indoctrination
-					}
-				}
-				modifier = {
-					factor = 1.5
-					has_observation_outpost = yes
-					observation_outpost = {
-						has_mission = specimen_collection
-					}
-				}
-			}
-			5 = {
-				modifier = {
-					factor = 0
-					has_observation_outpost = yes
-					observation_outpost = {
-						has_mission = native_indoctrination
-					}
-				}
-				modifier = {
-					factor = 0.5
-					has_observation_outpost = yes
-					observation_outpost = {
-						has_mission = specimen_collection
-					}
-				}
-			}
-			10 = {
-				modifier = {
-					factor = 0
-					owner = {
-						is_militarist = yes
-					}
-				}
-			}
-		}
-	}
-}
 
 ### Entering Space Age
 
@@ -204,9 +52,19 @@ country_event = {
 			set_graphical_culture = lithoid_01
 		}
 
-		change_government = {
-			authority = random
-			civics = random
+		if = {
+			limit = {
+				ruler = { has_trait = leader_trait_ruler_chosen }
+			}
+			change_government = {
+				civics = random
+			}
+		}
+		else = {
+			change_government = {
+				authority = random
+				civics = random
+			}	
 		}
 		set_name = random
 		home_planet = {
@@ -240,6 +98,16 @@ country_event = {
 			}
 		}
 
+		if = {
+			limit = {
+				capital_scope = { is_planet_class = pc_hive }
+			}
+			add_modifier = {
+				modifier = foreign_biosphere_acclimatization
+				days = 9125
+			}
+		}
+
 		add_resource = { influence = 300 }
 		capital_scope = {
 			clear_blockers = yes
@@ -263,49 +131,65 @@ country_event = {
 			
 			if = {
 				limit = { NOT = { is_planet_class = pc_ringworld_habitable } }
-				add_district = district_city
-				add_district = district_city
-				add_district = district_city
-				add_district = district_city
-				add_district = district_farming
-				add_district = district_farming
-				add_district = district_farming
-				add_district = district_mining
-				add_district = district_mining
-				add_district = district_generator
-				add_district = district_generator
-				IF = {
-					limit = {
-						any_owned_species = { is_lithoid = yes }
+				while = {
+					count = 3
+					add_district = {
+						district_type = district_city
+						ignore_cap = yes
 					}
-					add_district = district_mining
 				}
-				ELSE = {
-					add_district = district_farming
+				while = {
+					count = 2
+					add_district = {
+						district_type = district_industrial
+						ignore_cap = yes
+					}
 				}
 				IF = {
 					limit = {
 						any_owned_species = {
-							is_lithoid = no
-							is_robotic = no
+							is_archetype = BIOLOGICAL
 						}
 					}
-					add_district = district_farming
-					add_district = district_farming	
+					while = {
+						count = 3
+						add_district = {
+							district_type = district_farming
+							ignore_cap = yes
+						}
+					}
 				}
 				ELSE = {
-					add_district = district_mining
-					add_district = district_mining
+					while = {
+						count = 3
+						add_district = {
+							district_type = district_mining
+							ignore_cap = yes
+						}
+					}
+				}
+				while = {
+					count = 3
+					add_district = {
+						district_type = district_mining
+						ignore_cap = yes
+					}
+				}
+				while = {
+					count = 3
+					add_district = {
+						district_type = district_generator
+						ignore_cap = yes
+					}
 				}
 
 				add_building = building_research_lab_1
 				add_building = building_foundry_1
-				add_building = building_factory_1
+				add_building = building_commercial_forum
 			}
 			if = {
 				limit = { is_planet_class = pc_ringworld_habitable }
 				add_district = district_rw_city
-				
 				add_district = district_rw_farming
 				
 				add_building = building_chemical_plant
@@ -330,7 +214,7 @@ country_event = {
 						}
 					}	
 					starbase = {
-						owner = { country_event = { id = primitive.180 days  = 2 } }
+						owner = { country_event = { id = primitive.180 } }
 					}
 				}
 			}				
@@ -369,7 +253,7 @@ country_event = {
 									is_country_type = vbp_machine
 								}	
 							}
-							set_timed_country_flag = { flag = mpo_common_ground_advance days  = 0 }
+							set_timed_country_flag = { flag = mpo_common_ground_advance days = 2 }
 							country_event = { id = prim_orig.5 }
 						}
 						ELSE = {
@@ -408,7 +292,7 @@ country_event = {
 									is_country_type = vbp_machine
 								}	
 							}
-							set_timed_country_flag = { flag = mpo_hegemon_advance days  = 0 }
+							set_timed_country_flag = { flag = mpo_hegemon_advance days = 2 }
 							country_event = { id = prim_orig.5 }
 						}
 						ELSE = {
@@ -551,6 +435,179 @@ country_event = {
 		name = SCUM # Xeno Scum
 		trigger = {
 			has_valid_civic = civic_fanatic_purifiers
+		}
+	}
+}
+
+### Nuclear War Scenarios
+
+# Nuclear War Breaks Out (HIDDEN)
+planet_event = {
+	id = primitive.130
+	hide_window = yes
+
+	pre_triggers = {
+		has_owner = yes
+	}
+
+	trigger = {
+		is_artificial = no
+		owner = {
+			is_country_type = primitive
+			is_pacifist = no
+			OR = {
+				has_country_flag = atomic_age
+				has_country_flag = early_space_age
+			}
+			NOT = { has_country_flag = suppress_vanilla_primitive_nuking }
+			NOT = {
+				ruler = { has_trait = leader_trait_ruler_chosen }
+			}
+		}
+		OR = {
+			has_observation_outpost = no
+			AND = {
+				has_observation_outpost = yes
+				observation_outpost = { has_mission = passive_observation }
+			}
+			AND = {
+				has_observation_outpost = yes
+				observation_outpost = { has_mission = native_indoctrination }
+			}
+			AND = {
+				has_observation_outpost = yes
+				observation_outpost = { has_mission = specimen_collection }
+			}
+			AND = {
+				has_observation_outpost = yes
+				observation_outpost = { has_scion_mission = yes }
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		years = 50
+	}
+
+	immediate = {
+		random_list = {
+			5 = {
+				owner = {
+					random_owned_ship = {
+						limit = { is_ship_size = primitive_space_station }
+						fleet = { destroy_fleet = THIS }
+					}
+				}
+				if = {
+					limit = {
+						has_observation_outpost = yes
+					}
+					observation_outpost_owner = {
+						random_list = {
+							25 = {
+								country_event = { id = primitive.131 }
+								modifier = {
+									factor = 0 # won't turn planet uninhabitable if it's not a planet
+									root = {
+										OR = {
+											is_planet_class = pc_ringworld_habitable
+											is_planet_class = pc_habitat
+										}
+									}
+								}
+							}
+							70 = { country_event = { id = primitive.133 } }
+							5 = {
+								country_event = { id = prim_orig.30 }
+								modifier = {
+									factor = 0
+									NAND = {
+										root = {
+											OR = {
+												is_planet_class = pc_ringworld_habitable
+												is_planet_class = pc_habitat
+											}
+										}
+										host_has_dlc = Apocalypse
+									}
+								}
+							}
+						}
+					}	
+				}	
+				else = {
+					owner = {
+						random_list = {
+							25 = {
+								country_event = { id = primitive.131 }
+								modifier = {
+									factor = 0 # won't turn planet uninhabitable if it's not a planet
+									root = {
+										OR = {
+											is_planet_class = pc_ringworld_habitable
+											is_planet_class = pc_habitat
+										}
+									}
+								}
+							}
+							70 = { country_event = { id = primitive.133 } }
+							5 = {
+								country_event = { id = prim_orig.30 }
+								modifier = {
+									factor = 0
+									NAND = {
+										root = {
+											OR = {
+												is_planet_class = pc_ringworld_habitable
+												is_planet_class = pc_habitat
+											}
+										}
+										host_has_dlc = Apocalypse
+									}
+								}
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 2
+					has_observation_outpost = yes
+					observation_outpost = {
+						has_mission = native_indoctrination
+					}
+				}
+				modifier = {
+					factor = 1.5
+					has_observation_outpost = yes
+					observation_outpost = {
+						has_mission = specimen_collection
+					}
+				}
+			}
+			5 = {
+				modifier = {
+					factor = 0
+					has_observation_outpost = yes
+					observation_outpost = {
+						has_mission = native_indoctrination
+					}
+				}
+				modifier = {
+					factor = 0.5
+					has_observation_outpost = yes
+					observation_outpost = {
+						has_mission = specimen_collection
+					}
+				}
+			}
+			10 = {
+				modifier = {
+					factor = 0
+					owner = {
+						is_militarist = yes
+					}
+				}
+			}
 		}
 	}
 }

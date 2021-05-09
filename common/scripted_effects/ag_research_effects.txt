@@ -1,0 +1,2917 @@
+# All effects hera are in Country Scope.
+
+# ag_give_research_project
+# Parameters:
+# ag_project_id
+# ag_progress, default is 5
+
+# ag_save_current_progress
+# Parameters:
+# clear_current_research: yes, no(default)
+
+# ag_modify_research_project_elem
+# Parameters:
+# ag_research_project_id
+# ag_operation: set, change, subtract, multiply, divide
+# ag_variable: difficulty, required_progress, total_progress
+# ag_value
+
+ag_calculate_research_progress = {
+	# formula: 10 * ag_skill_bonus / ag_difficulty * ag_random_factor
+	set_variable = { which = ag_skill_bonus value = 5 }
+	if = {
+		limit = { any_owned_leader = { is_researching_area = $ag_area$ } }
+		random_owned_leader = {
+			limit = { is_researching_area = $ag_area$ }
+			if = { limit = { has_skill = 1 } prev = { change_variable = { which = ag_skill_bonus value = 10 } } }
+			else_if = { limit = { has_skill = 2 } prev = { change_variable = { which = ag_skill_bonus value = 20 } } }
+			else_if = { limit = { has_skill = 3 } prev = { change_variable = { which = ag_skill_bonus value = 30 } } }
+			else_if = { limit = { has_skill = 4 } prev = { change_variable = { which = ag_skill_bonus value = 40 } } }
+			else_if = { limit = { has_skill = 5 } prev = { change_variable = { which = ag_skill_bonus value = 50 } } }
+			else_if = { limit = { has_skill = 6 } prev = { change_variable = { which = ag_skill_bonus value = 60 } } }
+			else_if = { limit = { has_skill = 7 } prev = { change_variable = { which = ag_skill_bonus value = 70 } } }
+			else_if = { limit = { has_skill = 8 } prev = { change_variable = { which = ag_skill_bonus value = 80 } } }
+			else_if = { limit = { has_skill = 9 } prev = { change_variable = { which = ag_skill_bonus value = 90 } } }
+			else_if = { limit = { has_skill > 9 } prev = { change_variable = { which = ag_skill_bonus value = 100 } } }
+			# set_variable = { which = ag_leader_var_temp value = 0 }
+			# export_trigger_value_to_variable = { trigger = has_skill variable = ag_leader_var_temp }
+			# multiply_variable = { which = ag_leader_var_temp value = 10 }
+			# prev = { set_variable = { which = ag_skill_bonus value = { variable = ag_leader_var_temp scope = prev } } }
+			# clear_variable = ag_leader_var_temp
+		}
+	}
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which = ag_skill_bonus value = 3 } }
+		10 = { subtract_variable = { which = ag_skill_bonus value = 2 } }
+		10 = { subtract_variable = { which = ag_skill_bonus value = 1 } }
+		10 = { change_variable = { which = ag_skill_bonus value = 1 } }
+		10 = { change_variable = { which = ag_skill_bonus value = 2 } }
+		10 = { change_variable = { which = ag_skill_bonus value = 3 } }
+	}
+	set_variable = { which = ag_difficulty value = ag_current_difficulty }
+	multiply_variable = { which = ag_difficulty value = 20 }
+	random_list = {
+		10 = { subtract_variable = { which = ag_difficulty value = 15 } }
+		10 = { subtract_variable = { which = ag_difficulty value = 10 } }
+		10 = { subtract_variable = { which = ag_difficulty value = 5 } }
+		10 = { }
+	}
+	random_list = {
+		10 = { set_variable = { which = ag_random_factor value = 0.5 } }
+		10 = { set_variable = { which = ag_random_factor value = 0.6 } }
+		10 = { set_variable = { which = ag_random_factor value = 0.7 } }
+		10 = { set_variable = { which = ag_random_factor value = 0.8 } }
+		10 = { set_variable = { which = ag_random_factor value = 0.9 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.0 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.1 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.2 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.3 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.4 } }
+		10 = { set_variable = { which = ag_random_factor value = 1.5 } }
+	}
+	set_variable = { which = ag_currently_progress value = 10 }
+	multiply_variable = { which = ag_currently_progress value = ag_skill_bonus }
+	divide_variable = { which = ag_currently_progress value = ag_difficulty }
+	multiply_variable = { which = ag_currently_progress value = ag_random_factor }
+	if = {
+		limit = { has_modifier = "ag_ancient_knowledge_projects_buff" }
+		multiply_variable = { which = ag_currently_progress value = 1.15 }
+	}
+}
+ag_completed_research_project_effect = {
+	create_message = {
+		type = "message_ag_research_project_completed"
+		localization = "message_ag_research_project_completed_message_desc"
+		days = 20
+		target = this
+		variable = {
+			type = name
+			localization = "ag_location"
+			scope = prev.from
+		}
+		variable = {
+			type = name
+			localization = "ag_science_ship"
+			scope = prev
+		}
+	}
+	set_country_flag = ag_current_research_completed
+}
+ag_continue_research_project_effect = {
+	create_message = {
+		type = "message_ag_research_project_in_progress"
+		localization = "message_ag_research_project_in_progress_message_desc"
+		days = 20
+		target = this
+		variable = {
+			type = name
+			localization = "ag_location"
+			scope = prev.from
+		}
+		variable = {
+			type = name
+			localization = "ag_science_ship"
+			scope = prev
+		}
+		variable = {
+			type = variable
+			varname = ag_currently_progress
+			localization = "ag_currently_progress"
+			scope = this
+		}
+	}
+	begin_event_chain = {
+		event_chain = $ag_event_chain$
+		target = this
+	}
+	if = {
+		limit = {
+			OR = {
+				has_country_flag = ag_current_area_phy
+				has_country_flag = ag_current_area_soc
+				has_country_flag = ag_current_area_eng
+			}
+		}
+		prev.from = { enable_special_project = { name = $ag_project$ location = this owner = prev } }
+		prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$ target = prevprev.from } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc }
+		random_list = {
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_phy target = prevprev.from } }
+			}
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_soc target = prevprev.from } }
+			}
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_eng }
+		random_list = {
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_phy target = prevprev.from } }
+			}
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_eng target = prevprev.from } }
+			}
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_soc_eng }
+		random_list = {
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_soc target = prevprev.from } }
+			}
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_eng target = prevprev.from } }
+			}
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc_eng }
+		random_list = {
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_phy target = prevprev.from } }
+			}
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_soc target = prevprev.from } }
+			}
+			50 = {
+				prev.from = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } }
+				prev.fleet = { fleet_action_research_special_project = { special_project = $ag_project$_eng target = prevprev.from } }
+			}
+		}
+	}
+}
+ag_finished_research_round = {
+	end_event_chain = $ag_event_chain$
+	change_variable = { which = ag_total_progress value = ag_currently_progress }
+	if = {
+		limit = { check_variable = { which = ag_total_progress value >= ag_required_progress } }
+		set_variable = { which = ag_total_progress value = ag_required_progress }
+		set_variable = { which = ag_research_project_counter value = 0 }
+		ag_completed_research_project_effect = yes
+	}
+	else = { change_variable = { which = ag_research_project_counter value = 1 } }
+	if = {
+		limit = { check_variable = { which = ag_research_project_counter value > 5 } }
+		set_country_flag = ag_current_research_abort
+		set_variable = { which = ag_research_project_counter value = 0 }
+		if = {
+			limit = {
+				prev = {
+					NOR = {
+						is_ship_class = shipclass_constructor
+						is_ship_class = shipclass_colonizer
+					}
+				}
+			}
+			if = {
+				limit = { prev = { exists = leader } }
+				prev.leader = {
+					if = { limit = { has_skill = 1 } owner = { change_variable = { which = ag_skill_bonus_alt value = 10 } } }
+					else_if = { limit = { has_skill = 2 } owner = { change_variable = { which = ag_skill_bonus_alt value = 20 } } }
+					else_if = { limit = { has_skill = 3 } owner = { change_variable = { which = ag_skill_bonus_alt value = 30 } } }
+					else_if = { limit = { has_skill = 4 } owner = { change_variable = { which = ag_skill_bonus_alt value = 40 } } }
+					else_if = { limit = { has_skill = 5 } owner = { change_variable = { which = ag_skill_bonus_alt value = 50 } } }
+					else_if = { limit = { has_skill = 6 } owner = { change_variable = { which = ag_skill_bonus_alt value = 60 } } }
+					else_if = { limit = { has_skill = 7 } owner = { change_variable = { which = ag_skill_bonus_alt value = 70 } } }
+					else_if = { limit = { has_skill = 8 } owner = { change_variable = { which = ag_skill_bonus_alt value = 80 } } }
+					else_if = { limit = { has_skill = 9 } owner = { change_variable = { which = ag_skill_bonus_alt value = 90 } } }
+					else_if = { limit = { has_skill > 9 } owner = { change_variable = { which = ag_skill_bonus_alt value = 100 } } }
+					# set_variable = { which = ag_leader_var_temp value = 0 }
+					# export_trigger_value_to_variable = { trigger = has_skill variable = ag_leader_var_temp }
+					# multiply_variable = { which = ag_leader_var_temp value = 10 }
+					# prev = { set_variable = { which = ag_skill_bonus_alt value = { variable = ag_leader_var_temp scope = prev } } }
+					# clear_variable = ag_leader_var_temp
+				}
+			}
+			else = { set_variable = { which = ag_skill_bonus_alt value = 5 } }
+			random_list = {
+				10 = { }
+				10 = { subtract_variable = { which = ag_skill_bonus_alt value = 3 } }
+				10 = { subtract_variable = { which = ag_skill_bonus_alt value = 2 } }
+				10 = { subtract_variable = { which = ag_skill_bonus_alt value = 1 } }
+				10 = { change_variable = { which = ag_skill_bonus_alt value = 1 } }
+				10 = { change_variable = { which = ag_skill_bonus_alt value = 2 } }
+				10 = { change_variable = { which = ag_skill_bonus_alt value = 3 } }
+			}
+			set_variable = { which = ag_difficulty_alt value = ag_current_difficulty }
+			multiply_variable = { which = ag_difficulty_alt value = 20 }
+			random_list = {
+				10 = { subtract_variable = { which = ag_difficulty_alt value = 15 } }
+				10 = { subtract_variable = { which = ag_difficulty_alt value = 10 } }
+				10 = { subtract_variable = { which = ag_difficulty_alt value = 5 } }
+				10 = { }
+			}
+			set_variable = { which = ag_temp_lvl_1 value = ag_skill_bonus_alt }
+			subtract_variable = { which = ag_temp_lvl_1 value = ag_difficulty_alt }
+			set_variable = { which = ag_temp_lvl_2 value = ag_skill_bonus_alt }
+			change_variable = { which = ag_temp_lvl_2 value = ag_difficulty_alt }
+			divide_variable = { which = ag_temp_lvl_1 value = ag_temp_lvl_2 }
+			divide_variable = { which = ag_temp_lvl_1 value = 2 }
+			if = {
+				limit = { check_variable = { which = ag_temp_lvl_1 value < 0 } }
+				set_variable = { which = ag_total_progress_reduce_perc value = 1.0 }
+				change_variable = { which = ag_total_progress_reduce_perc value = ag_temp_lvl_1 }
+				random_list = {
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.1 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.08 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.06 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.04 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.02 } }
+					50 = { }
+				}
+				if = {
+					limit = { check_variable = { which = ag_total_progress_reduce_perc value < 0.5 } }
+					set_variable = { which = ag_total_progress_reduce_perc value = 0.5 }
+				}
+				multiply_variable = { which = ag_total_progress value = ag_total_progress_reduce_perc }
+			}
+			else = {
+				set_variable = { which = ag_total_progress_reduce_perc value = 0.5 }
+				change_variable = { which = ag_total_progress_reduce_perc value = ag_temp_lvl_1 }
+				random_list = {
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.1 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.08 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.06 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.04 } }
+					20 = { subtract_variable = { which = ag_total_progress_reduce_perc value = 0.02 } }
+					50 = { }
+				}
+				if = {
+					limit = { check_variable = { which = ag_total_progress_reduce_perc value < 0.5 } }
+					set_variable = { which = ag_total_progress_reduce_perc value = 0.5 }
+				}
+				else_if = {
+					limit = { check_variable = { which = ag_total_progress_reduce_perc value > 1.0 } }
+					set_variable = { which = ag_total_progress_reduce_perc value = 1.0 }
+				}
+				multiply_variable = { which = ag_total_progress value = ag_total_progress_reduce_perc }
+				set_variable = { which = ag_temp_lvl_1 value = ag_required_progress }
+				if = {
+					limit = { check_variable = { which = ag_current_progress_lvl value = 4 } }
+					multiply_variable = { which = ag_temp_lvl_1 value = 0.8 }
+					if = {
+						limit = { check_variable = { which = ag_total_progress value < ag_temp_lvl_1 } }
+						set_variable = { which = ag_total_progress value = ag_temp_lvl_1 }
+					}
+				}
+				else_if = {
+					limit = { check_variable = { which = ag_current_progress_lvl value = 3 } }
+					multiply_variable = { which = ag_temp_lvl_1 value = 0.6 }
+					if = {
+						limit = { check_variable = { which = ag_total_progress value < ag_temp_lvl_1 } }
+						set_variable = { which = ag_total_progress value = ag_temp_lvl_1 }
+					}
+				}
+				else_if = {
+					limit = { check_variable = { which = ag_current_progress_lvl value = 2 } }
+					multiply_variable = { which = ag_temp_lvl_1 value = 0.4 }
+					if = {
+						limit = { check_variable = { which = ag_total_progress value < ag_temp_lvl_1 } }
+						set_variable = { which = ag_total_progress value = ag_temp_lvl_1 }
+					}
+				}
+				else_if = {
+					limit = { check_variable = { which = ag_current_progress_lvl value = 1 } }
+					multiply_variable = { which = ag_temp_lvl_1 value = 0.2 }
+					if = {
+						limit = { check_variable = { which = ag_total_progress value < ag_temp_lvl_1 } }
+						set_variable = { which = ag_total_progress value = ag_temp_lvl_1 }
+					}
+				}
+				else_if = {
+					limit = { check_variable = { which = ag_total_progress value < 0.001 } }
+					set_variable = { which = ag_total_progress value = 0.001 }
+				}
+			}
+			clear_variable = ag_temp_lvl_1
+			clear_variable = ag_temp_lvl_2
+		}
+		else = {
+			random_list = {
+				10 = { multiply_variable = { which = ag_total_progress value = 0.5 } }
+				12 = { multiply_variable = { which = ag_total_progress value = 0.6 } }
+				16 = { multiply_variable = { which = ag_total_progress value = 0.7 } }
+				12 = { multiply_variable = { which = ag_total_progress value = 0.8 } }
+				10 = { multiply_variable = { which = ag_total_progress value = 0.9 } }
+			}
+		}
+		remove_country_flag = ag_research_project_ongoing
+		create_message = {
+			type = "message_ag_research_project_abort"
+			localization = "message_ag_research_project_abort_message_desc"
+			days = 20
+			target = this
+			variable = {
+				type = name
+				localization = "ag_location"
+				scope = prev.from
+			}
+			variable = {
+				type = name
+				localization = "ag_science_ship"
+				scope = prev
+			}
+			variable = {
+				type = variable
+				varname = ag_total_progress
+				localization = "ag_total_progress"
+				scope = this
+			}
+			variable = {
+				type = variable
+				varname = ag_required_progress
+				localization = "ag_required_progress"
+				scope = this
+			}
+		}
+	}
+	else_if = {
+		limit = { NOT = { has_country_flag = ag_current_research_completed } }
+		ag_continue_research_project_effect = { ag_event_chain = $ag_event_chain$ ag_project = $ag_project$ }
+	}
+	if = {
+		limit = {
+			OR = {
+				has_country_flag = ag_current_research_completed
+				has_country_flag = ag_current_research_abort
+			}
+		}
+		ag_save_current_progress = { clear_current_research = yes }
+		remove_country_flag = ag_current_research_abort
+	}
+	else = { ag_save_current_progress = { clear_current_research = no } }
+}
+
+ag_give_research_project = {
+	if = {
+		limit = { NOT = { has_country_flag = ag_has_research_project_$ag_project_id$ } }
+		set_country_flag = ag_has_research_project_$ag_project_id$
+		change_variable = { which = ag_num_research_projects value = 1 }
+		change_variable = { which = ag_page_counter value = 1 }
+		if = {
+			limit = { check_variable = { which = ag_page_counter value = 4 } }
+			set_variable = { which = ag_page_counter value = 0 }
+		}
+		if = {
+			limit = { check_variable = { which = ag_page_counter value = 1 } }
+			change_variable = { which = ag_research_total_pages value = 1 }
+		}
+		if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 1 } }
+			country_event = { id = ag_research.2 days = 1 }
+			ag_set_research_project_variables = { ag_seq = 1 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 2 } }
+			ag_set_research_project_variables = { ag_seq = 2 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 3 } }
+			ag_set_research_project_variables = { ag_seq = 3 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 4 } }
+			ag_set_research_project_variables = { ag_seq = 4 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 5 } }
+			ag_set_research_project_variables = { ag_seq = 5 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 6 } }
+			ag_set_research_project_variables = { ag_seq = 6 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 7 } }
+			ag_set_research_project_variables = { ag_seq = 7 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 8 } }
+			ag_set_research_project_variables = { ag_seq = 8 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 9 } }
+			ag_set_research_project_variables = { ag_seq = 9 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 10 } }
+			ag_set_research_project_variables = { ag_seq = 10 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 11 } }
+			ag_set_research_project_variables = { ag_seq = 11 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 12 } }
+			ag_set_research_project_variables = { ag_seq = 12 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 13 } }
+			ag_set_research_project_variables = { ag_seq = 13 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 14 } }
+			ag_set_research_project_variables = { ag_seq = 14 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 15 } }
+			ag_set_research_project_variables = { ag_seq = 15 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 16 } }
+			ag_set_research_project_variables = { ag_seq = 16 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 17 } }
+			ag_set_research_project_variables = { ag_seq = 17 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 18 } }
+			ag_set_research_project_variables = { ag_seq = 18 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 19 } }
+			ag_set_research_project_variables = { ag_seq = 19 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_num_research_projects value = 20 } }
+			ag_set_research_project_variables = { ag_seq = 20 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		}
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 21 } }
+		# 	ag_set_research_project_variables = { ag_seq = 21 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 22 } }
+		# 	ag_set_research_project_variables = { ag_seq = 22 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 23 } }
+		# 	ag_set_research_project_variables = { ag_seq = 23 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 24 } }
+		# 	ag_set_research_project_variables = { ag_seq = 24 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 25 } }
+		# 	ag_set_research_project_variables = { ag_seq = 25 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 26 } }
+		# 	ag_set_research_project_variables = { ag_seq = 26 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 27 } }
+		# 	ag_set_research_project_variables = { ag_seq = 27 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 28 } }
+		# 	ag_set_research_project_variables = { ag_seq = 28 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 29 } }
+		# 	ag_set_research_project_variables = { ag_seq = 29 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 30 } }
+		# 	ag_set_research_project_variables = { ag_seq = 30 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 31 } }
+		# 	ag_set_research_project_variables = { ag_seq = 31 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 32 } }
+		# 	ag_set_research_project_variables = { ag_seq = 32 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 33 } }
+		# 	ag_set_research_project_variables = { ag_seq = 33 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 34 } }
+		# 	ag_set_research_project_variables = { ag_seq = 34 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 35 } }
+		# 	ag_set_research_project_variables = { ag_seq = 35 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 36 } }
+		# 	ag_set_research_project_variables = { ag_seq = 36 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 37 } }
+		# 	ag_set_research_project_variables = { ag_seq = 37 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 38 } }
+		# 	ag_set_research_project_variables = { ag_seq = 38 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 39 } }
+		# 	ag_set_research_project_variables = { ag_seq = 39 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 40 } }
+		# 	ag_set_research_project_variables = { ag_seq = 40 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 41 } }
+		# 	ag_set_research_project_variables = { ag_seq = 41 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 42 } }
+		# 	ag_set_research_project_variables = { ag_seq = 42 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 43 } }
+		# 	ag_set_research_project_variables = { ag_seq = 43 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 44 } }
+		# 	ag_set_research_project_variables = { ag_seq = 44 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 45 } }
+		# 	ag_set_research_project_variables = { ag_seq = 45 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 46 } }
+		# 	ag_set_research_project_variables = { ag_seq = 46 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 47 } }
+		# 	ag_set_research_project_variables = { ag_seq = 47 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 48 } }
+		# 	ag_set_research_project_variables = { ag_seq = 48 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 49 } }
+		# 	ag_set_research_project_variables = { ag_seq = 49 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 50 } }
+		# 	ag_set_research_project_variables = { ag_seq = 50 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 51 } }
+		# 	ag_set_research_project_variables = { ag_seq = 51 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 52 } }
+		# 	ag_set_research_project_variables = { ag_seq = 52 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 53 } }
+		# 	ag_set_research_project_variables = { ag_seq = 53 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 54 } }
+		# 	ag_set_research_project_variables = { ag_seq = 54 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 55 } }
+		# 	ag_set_research_project_variables = { ag_seq = 55 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 56 } }
+		# 	ag_set_research_project_variables = { ag_seq = 56 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 57 } }
+		# 	ag_set_research_project_variables = { ag_seq = 57 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 58 } }
+		# 	ag_set_research_project_variables = { ag_seq = 58 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 59 } }
+		# 	ag_set_research_project_variables = { ag_seq = 59 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 60 } }
+		# 	ag_set_research_project_variables = { ag_seq = 60 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 61 } }
+		# 	ag_set_research_project_variables = { ag_seq = 61 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 62 } }
+		# 	ag_set_research_project_variables = { ag_seq = 62 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 63 } }
+		# 	ag_set_research_project_variables = { ag_seq = 63 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 64 } }
+		# 	ag_set_research_project_variables = { ag_seq = 64 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 65 } }
+		# 	ag_set_research_project_variables = { ag_seq = 65 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 66 } }
+		# 	ag_set_research_project_variables = { ag_seq = 66 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 67 } }
+		# 	ag_set_research_project_variables = { ag_seq = 67 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 68 } }
+		# 	ag_set_research_project_variables = { ag_seq = 68 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 69 } }
+		# 	ag_set_research_project_variables = { ag_seq = 69 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 70 } }
+		# 	ag_set_research_project_variables = { ag_seq = 70 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 71 } }
+		# 	ag_set_research_project_variables = { ag_seq = 71 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 72 } }
+		# 	ag_set_research_project_variables = { ag_seq = 72 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 73 } }
+		# 	ag_set_research_project_variables = { ag_seq = 73 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 74 } }
+		# 	ag_set_research_project_variables = { ag_seq = 74 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 75 } }
+		# 	ag_set_research_project_variables = { ag_seq = 75 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 76 } }
+		# 	ag_set_research_project_variables = { ag_seq = 76 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 77 } }
+		# 	ag_set_research_project_variables = { ag_seq = 77 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 78 } }
+		# 	ag_set_research_project_variables = { ag_seq = 78 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 79 } }
+		# 	ag_set_research_project_variables = { ag_seq = 79 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 80 } }
+		# 	ag_set_research_project_variables = { ag_seq = 80 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 81 } }
+		# 	ag_set_research_project_variables = { ag_seq = 81 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 82 } }
+		# 	ag_set_research_project_variables = { ag_seq = 82 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 83 } }
+		# 	ag_set_research_project_variables = { ag_seq = 83 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 84 } }
+		# 	ag_set_research_project_variables = { ag_seq = 84 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 85 } }
+		# 	ag_set_research_project_variables = { ag_seq = 85 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 86 } }
+		# 	ag_set_research_project_variables = { ag_seq = 86 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 87 } }
+		# 	ag_set_research_project_variables = { ag_seq = 87 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 88 } }
+		# 	ag_set_research_project_variables = { ag_seq = 88 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 89 } }
+		# 	ag_set_research_project_variables = { ag_seq = 89 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 90 } }
+		# 	ag_set_research_project_variables = { ag_seq = 90 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 91 } }
+		# 	ag_set_research_project_variables = { ag_seq = 91 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 92 } }
+		# 	ag_set_research_project_variables = { ag_seq = 92 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 93 } }
+		# 	ag_set_research_project_variables = { ag_seq = 93 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 94 } }
+		# 	ag_set_research_project_variables = { ag_seq = 94 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 95 } }
+		# 	ag_set_research_project_variables = { ag_seq = 95 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 96 } }
+		# 	ag_set_research_project_variables = { ag_seq = 96 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 97 } }
+		# 	ag_set_research_project_variables = { ag_seq = 97 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 98 } }
+		# 	ag_set_research_project_variables = { ag_seq = 98 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 99 } }
+		# 	ag_set_research_project_variables = { ag_seq = 99 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+		# else_if = {
+		# 	limit = { check_variable = { which = ag_num_research_projects value = 100 } }
+		# 	ag_set_research_project_variables = { ag_seq = 100 ag_project_id = $ag_project_id$ ag_progress = $ag_progress|5$ }
+		# }
+	}
+}
+ag_set_research_project_variables = {
+	set_variable = { which = ag_research_project_$ag_seq$ value = $ag_project_id$ }
+	##############################################################################################################
+	# New Research Project: (7) Create initialization effect in scripted effect.
+	##############################################################################################################
+	if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_locate_ancient_system_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_locate_ancient_system_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_locate_ancient_system_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_locate_ancient_system_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_locate_ancient_system_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_beta_ship_unlock_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_beta_ship_unlock_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_beta_ship_unlock_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_beta_ship_unlock_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_beta_ship_unlock_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_country_flag
+			ag_condition_2 = ag_ancient_beta_data_flag
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = no
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_beta_psionic_source_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_beta_psionic_source_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_beta_psionic_source_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_beta_psionic_source_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_beta_psionic_source_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_country_flag
+			ag_condition_2 = ag_ancient_beta_data_flag
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = no
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_gamma_ship_unlock_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_gamma_ship_unlock_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_gamma_ship_unlock_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_gamma_ship_unlock_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_gamma_ship_unlock_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_country_flag
+			ag_condition_2 = ag_ancient_gamma_data_flag
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = no
+		}
+	}
+	
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_delta_ship_unlock_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_delta_ship_unlock_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_delta_ship_unlock_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_delta_ship_unlock_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_delta_ship_unlock_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_country_flag
+			ag_condition_2 = ag_ancient_delta_data_flag
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = no
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_disable_ancient_shield_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_disable_ancient_shield_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_disable_ancient_shield_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_disable_ancient_shield_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_disable_ancient_shield_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_repair_starfish_ship_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_repair_starfish_ship_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_repair_starfish_ship_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_repair_starfish_ship_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_repair_starfish_ship_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_repair_starlight_2_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_repair_starlight_2_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_repair_starlight_2_project_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_repair_starlight_2_project_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_repair_starlight_2_project_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_reverse_engineering_wandering_ship_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_reverse_engineering_wandering_ship_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_reverse_engineering_wandering_ship_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_reverse_engineering_wandering_ship_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_reverse_engineering_wandering_ship_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_technology
+			ag_condition_2 = tech_ag_beta_station_type1
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = yes
+		}
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_technology
+			ag_condition_2 = tech_ag_beta_station_type2
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = yes
+		}
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_technology
+			ag_condition_2 = tech_ag_gamma_station
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = yes
+		}
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_technology
+			ag_condition_2 = tech_ag_delta_titan
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = yes
+		}
+		ag_modify_research_project_variables = {
+			ag_condition_1 = has_technology
+			ag_condition_2 = tech_ag_delta_platform
+			ag_seq = $ag_seq$
+			ag_no_modify_difficulty = yes
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_wandering_ship_unlock_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_wandering_ship_unlock_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_wandering_ship_unlock_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_wandering_ship_unlock_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_wandering_ship_unlock_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_$ag_seq$ value = @ag_kag_annihilator_project_id } }
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 1 }
+		set_variable = { which = ag_research_project_$ag_seq$_difficulty value = @ag_kag_annihilator_project_base_difficulty }
+		set_variable = { which = ag_research_project_$ag_seq$_requirement value = @ag_kag_annihilator_requirements }
+		set_variable = { which = ag_research_project_$ag_seq$_area value = @ag_kag_annihilator_area }
+		set_variable = { which = ag_research_project_$ag_seq$_required_progress value = @ag_kag_annihilator_base_required_progress }
+		set_variable = { which = ag_research_project_$ag_seq$_total_progress value = $ag_progress$ }
+		set_variable = { which = ag_research_project_$ag_seq$_research_counter value = 0 }
+	}
+	
+	##############################################################################################################
+	##############################################################################################################
+	##############################################################################################################
+}
+ag_modify_research_project_variables = {
+	if = {
+		limit = { $ag_condition_1$ = $ag_condition_2$ }
+		random_list = {
+			10 = { subtract_variable = { which = ag_research_project_$ag_seq$_required_progress value = 30 } }
+			10 = { subtract_variable = { which = ag_research_project_$ag_seq$_required_progress value = 25 } }
+			10 = { subtract_variable = { which = ag_research_project_$ag_seq$_required_progress value = 20 } }
+			10 = { subtract_variable = { which = ag_research_project_$ag_seq$_required_progress value = 15 } }
+			10 = { subtract_variable = { which = ag_research_project_$ag_seq$_required_progress value = 10 } }
+			10 = { change_variable = { which = ag_research_project_$ag_seq$_total_progress value = 30 } }
+			10 = { change_variable = { which = ag_research_project_$ag_seq$_total_progress value = 25 } }
+			10 = { change_variable = { which = ag_research_project_$ag_seq$_total_progress value = 20 } }
+			10 = { change_variable = { which = ag_research_project_$ag_seq$_total_progress value = 15 } }
+			10 = { change_variable = { which = ag_research_project_$ag_seq$_total_progress value = 10 } }
+			1 = { modifier = { factor = 0 always = $ag_no_modify_difficulty|yes$ } subtract_variable = { which = ag_research_project_$ag_seq$_difficulty value = 1 } }
+		}
+	}
+}
+
+ag_select_project_tooltip = {
+	##############################################################################################################
+	# New Research Project: (8) Create research project's extra requirements fail texts in scripted effect.
+	##############################################################################################################
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_locate_ancient_system_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = { has_technology = tech_sensors_4 }
+			custom_tooltip = "ag_locate_ancient_system_project_extra_1_success"
+		}
+		else = { custom_tooltip = "ag_locate_ancient_system_project_extra_1_failed" }
+		if = {
+			limit = { NOT = { ag_all_ancient_system_exists_or_known = yes } }
+			custom_tooltip = "ag_locate_ancient_system_project_extra_2_success"
+		}
+		else = { custom_tooltip = "ag_locate_ancient_system_project_extra_2_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_theta_shielded_world
+				event_target:ag_ancient_theta_shielded_world = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+					exists = controller
+					controller = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_locate_ancient_system_project_extra_3_success"
+		}
+		else = { custom_tooltip = "ag_locate_ancient_system_project_extra_3_failed" }
+		if = {
+			limit = {
+				NOT = { has_country_flag = ag_locate_ancient_system_project_actived }
+				resource_stockpile_compare = { resource = minor_artifacts value >= 5 }
+			}
+			custom_tooltip = "ag_require_5_artifacts_success"
+		}
+		else_if = {
+			limit = { NOT = { has_country_flag = ag_locate_ancient_system_project_actived } }
+			custom_tooltip = "ag_require_5_artifacts_failed"
+		}
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_beta_ship_unlock_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_beta_shielded_world
+				event_target:ag_ancient_beta_shielded_world = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+					has_building = ag_ancient_beta_archive
+				}
+			}
+			custom_tooltip = "ag_control_beta_shielded_world_success"
+		}
+		else = { custom_tooltip = "ag_control_beta_shielded_world_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_beta_psionic_source_project_id } }
+		custom_tooltip = "ag_research_no_extra_requirement"
+		if = {
+			limit = { NOT = { exists = event_target:ag_ancient_beta_shielded_world } }
+			custom_tooltip = "ag_forced_triggers_failed"
+		}
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_gamma_ship_unlock_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_gamma_shielded_world
+				event_target:ag_ancient_gamma_shielded_world = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_control_gamma_shielded_world_success"
+		}
+		else = { custom_tooltip = "ag_control_gamma_shielded_world_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_gamma_shielded_world
+				event_target:ag_ancient_gamma_shielded_world = {
+					has_building = ag_ancient_gamma_nexus_1
+				}
+			}
+			custom_tooltip = "ag_gamma_nexus_upgraded_success"
+		}
+		else = { custom_tooltip = "ag_gamma_nexus_upgraded_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_delta_ship_unlock_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_delta_shielded_world
+				event_target:ag_ancient_delta_shielded_world = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+					has_building = ag_ancient_delta_archive
+				}
+			}
+			custom_tooltip = "ag_control_delta_shielded_world_success"
+		}
+		else = { custom_tooltip = "ag_control_delta_shielded_world_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_disable_ancient_shield_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = { NOT = { exists = event_target:ag_primitive_shielded_moon } }
+			custom_tooltip = "ag_forced_triggers_failed"
+		}
+		if = {
+			limit = {
+				exists = event_target:ag_primitive_shielded_moon
+				event_target:ag_primitive_shielded_moon = {
+					is_planet_class = pc_shielded
+				}
+			}
+			custom_tooltip = "ag_required_ancient_shield_success"
+		}
+		else = { custom_tooltip = "ag_required_ancient_shield_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_repair_starfish_ship_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_starfish_ship
+				event_target:ag_ancient_starfish_ship = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_repair_starfish_ship_project_extra_1_success"
+		}
+		else = { custom_tooltip = "ag_repair_starfish_ship_project_extra_1_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_starfish_ship
+				event_target:ag_ancient_starfish_ship = { is_in_combat = no }
+			}
+			custom_tooltip = "ag_not_in_combat_success"
+		}
+		else = { custom_tooltip = "ag_not_in_combat_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_starfish_ship
+				event_target:ag_ancient_starfish_ship = {
+					has_ship_flag = ag_experiment_ship_damaged
+				}
+			}
+			custom_tooltip = "ag_repair_starfish_ship_project_extra_2_success"
+		}
+		else = { custom_tooltip = "ag_repair_starfish_ship_project_extra_2_failed" }
+		if = {
+			limit = {
+				NOT = { has_country_flag = ag_repair_starfish_ship_project_actived }
+				resource_stockpile_compare = { resource = minor_artifacts value >= 30 }
+			}
+			custom_tooltip = "ag_require_30_artifacts_success"
+		}
+		else_if = {
+			limit = { NOT = { has_country_flag = ag_repair_starfish_ship_project_actived } }
+			custom_tooltip = "ag_require_30_artifacts_failed"
+		}
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_repair_starlight_2_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		if = {
+			limit = {
+				exists = event_target:ag_starlight_2_ship
+				event_target:ag_starlight_2_ship = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_repair_starlight_2_project_extra_1_success"
+		}
+		else = { custom_tooltip = "ag_repair_starlight_2_project_extra_1_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_starlight_2_ship
+				event_target:ag_starlight_2_ship = { is_in_combat = no }
+			}
+			custom_tooltip = "ag_not_in_combat_success"
+		}
+		else = { custom_tooltip = "ag_not_in_combat_failed" }
+		if = {
+			limit = { NOT = { has_country_flag = ag_lost_ancient_ship_restored } }
+			custom_tooltip = "ag_repair_starlight_2_project_extra_2_success"
+		}
+		else = { custom_tooltip = "ag_repair_starlight_2_project_extra_2_failed" }
+		if = {
+			limit = {
+				NOT = { has_country_flag = ag_repair_starlight_2_project_actived }
+				resource_stockpile_compare = { resource = minor_artifacts value >= 30 }
+			}
+			custom_tooltip = "ag_require_30_artifacts_success"
+		}
+		else_if = {
+			limit = { NOT = { has_country_flag = ag_repair_starlight_2_project_actived } }
+			custom_tooltip = "ag_require_30_artifacts_failed"
+		}
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_reverse_engineering_wandering_ship_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		random_owned_ship = {
+			limit = { has_ship_flag =  ag_ancient_wandering_ship_player }
+			save_event_target_as = ag_ancient_wandering_ship_player
+		}
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_wandering_ship_player
+				event_target:ag_ancient_wandering_ship_player = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_reverse_engineering_wandering_ship_project_extra_1_success"
+		}
+		else = { custom_tooltip = "ag_reverse_engineering_wandering_ship_project_extra_1_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_wandering_ship_player
+				event_target:ag_ancient_wandering_ship_player = { is_in_combat = no }
+			}
+			custom_tooltip = "ag_not_in_combat_success"
+		}
+		else = { custom_tooltip = "ag_not_in_combat_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_wandering_ship_unlock_project_id } }
+		custom_tooltip = "ag_research_has_extra_requirement"
+		random_owned_ship = {
+			limit = { has_ship_flag =  ag_ancient_wandering_ship_player }
+			save_event_target_as = ag_ancient_wandering_ship_player
+		}
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_wandering_ship_player
+				event_target:ag_ancient_wandering_ship_player = {
+					exists = owner
+					owner = { is_same_value = prevprev }
+				}
+			}
+			custom_tooltip = "ag_wandering_ship_unlock_project_extra_1_success"
+		}
+		else = { custom_tooltip = "ag_wandering_ship_unlock_project_extra_1_failed" }
+		if = {
+			limit = {
+				exists = event_target:ag_ancient_wandering_ship_player
+				event_target:ag_ancient_wandering_ship_player = { is_in_combat = no }
+			}
+			custom_tooltip = "ag_not_in_combat_success"
+		}
+		else = { custom_tooltip = "ag_not_in_combat_failed" }
+	}
+
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_kag_annihilator_project_id } }
+		if = {
+			limit = { has_global_flag = install_kuat_mod }
+			custom_tooltip = "ag_research_has_extra_requirement"
+			if = {
+				limit = {
+					any_system_within_border = {
+						OR = {
+							has_star_flag = Kuat_system
+							has_star_flag = Kuat_system_1
+							has_star_flag = Kuat_system_2
+							has_star_flag = Kuat_system_3
+						}
+						any_system_planet = {
+							NOT = { is_planet_class = pc_ringworld_habitable_damaged }
+							OR = {
+								has_planet_flag = kuat_system_ring_3
+								has_planet_flag = kuat_system_ring_6
+								has_planet_flag = kuat_system_ring_9
+								has_planet_flag = kuat_system_ring_12
+							}
+						}
+					}
+				}
+				custom_tooltip = "ag_kag_annihilator_project_extra_1_success"
+			}
+			else = { custom_tooltip = "ag_kag_annihilator_project_extra_1_failed" }
+		}
+		else = { custom_tooltip = "ag_requires_kag_mod" }
+	}
+	
+	##############################################################################################################
+	##############################################################################################################
+	##############################################################################################################
+}
+# Selected a research project, create its event chain, load variables
+ag_select_research_project = {
+	set_variable = { which = ag_current_research value = ag_research_$ag_research_number$_id }
+	set_variable = { which = ag_current_seq value = ag_research_$ag_research_number$_seq }
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 1 } }
+		set_country_flag = ag_current_area_phy
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 2 } }
+		set_country_flag = ag_current_area_soc
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 3 } }
+		set_country_flag = ag_current_area_eng
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 4 } }
+		set_country_flag = ag_current_area_phy_soc
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 5 } }
+		set_country_flag = ag_current_area_phy_eng
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_area value = 6 } }
+		set_country_flag = ag_current_area_soc_eng
+	}
+	else_if = { limit = { always = yes } set_country_flag = ag_current_area_phy_soc_eng }
+	set_variable = { which = ag_current_difficulty value = ag_research_$ag_research_number$_difficulty }
+	set_variable = { which = ag_research_$ag_research_number$_status value = 2 }
+	set_variable = { which = ag_difficulty value = ag_research_$ag_research_number$_difficulty }
+	set_variable = { which = ag_required_progress value = ag_research_$ag_research_number$_required_progress }
+	set_variable = { which = ag_total_progress value = ag_research_$ag_research_number$_total_progress }
+	set_variable = { which = ag_research_project_counter value = ag_research_$ag_research_number$_research_counter }
+	##############################################################################################################
+	# New Research Project: (9) Create Begin event chain effect in scripted effect.
+	##############################################################################################################
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_locate_ancient_system_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_locate_ancient_system_project_chain
+			ag_project = ag_locate_ancient_system_project
+			ag_location = event_target:ag_ancient_theta_shielded_world
+		}
+		if = {
+			limit = { NOT = { has_country_flag = ag_locate_ancient_system_project_actived } }
+			set_country_flag = ag_locate_ancient_system_project_actived
+			add_resource = { minor_artifacts = -5 }
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_beta_ship_unlock_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_beta_ship_unlock_project_chain
+			ag_project = ag_beta_ship_unlock_project
+			ag_location = event_target:ag_ancient_beta_shielded_world
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_beta_psionic_source_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_beta_psionic_source_project_chain
+			ag_project = ag_beta_psionic_source_project
+			ag_location = event_target:ag_ancient_beta_shielded_world
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_gamma_ship_unlock_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_gamma_ship_unlock_project_chain
+			ag_project = ag_gamma_ship_unlock_project
+			ag_location = event_target:ag_ancient_gamma_shielded_world
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_delta_ship_unlock_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_delta_ship_unlock_project_chain
+			ag_project = ag_delta_ship_unlock_project
+			ag_location = event_target:ag_ancient_delta_shielded_world
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_disable_ancient_shield_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_disable_ancient_shield_project_chain
+			ag_project = ag_disable_ancient_shield_project
+			ag_location = event_target:ag_primitive_shielded_moon
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_repair_starfish_ship_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_repair_starfish_ship_project_chain
+			ag_project = ag_repair_starfish_ship_project
+			ag_location = event_target:ag_ancient_starfish_ship
+		}
+		if = {
+			limit = { NOT = { has_country_flag = ag_repair_starfish_ship_project_actived } }
+			set_country_flag = ag_repair_starfish_ship_project_actived
+			add_resource = { minor_artifacts = -30 }
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_repair_starlight_2_project_id } }
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_repair_starlight_2_project_chain
+			ag_project = ag_repair_starlight_2_project
+			ag_location = event_target:ag_starlight_2_ship
+		}
+		if = {
+			limit = { NOT = { has_country_flag = ag_repair_starlight_2_project_actived } }
+			set_country_flag = ag_repair_starlight_2_project_actived
+			add_resource = { minor_artifacts = -30 }
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_reverse_engineering_wandering_ship_project_id } }
+		random_owned_ship = {
+			limit = { has_ship_flag =  ag_ancient_wandering_ship_player is_in_combat = no }
+			save_event_target_as = ag_ancient_wandering_ship_player
+		}
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_reverse_engineering_wandering_ship_project_chain
+			ag_project = ag_reverse_engineering_wandering_ship_project
+			ag_location = event_target:ag_ancient_wandering_ship_player
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_wandering_ship_unlock_project_id } }
+		random_owned_ship = {
+			limit = { has_ship_flag =  ag_ancient_wandering_ship_player is_in_combat = no }
+			save_event_target_as = ag_ancient_wandering_ship_player
+		}
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_wandering_ship_unlock_project_chain
+			ag_project = ag_wandering_ship_unlock_project
+			ag_location = event_target:ag_ancient_wandering_ship_player
+		}
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_number$_id value = @ag_kag_annihilator_project_id } }
+		random_system = {
+			limit = {
+				OR = {
+					has_star_flag = Kuat_system
+					has_star_flag = Kuat_system_1
+					has_star_flag = Kuat_system_2
+					has_star_flag = Kuat_system_3
+				}
+			}
+			random_system_planet = {
+				limit = {
+					NOT = { is_planet_class = pc_ringworld_habitable_damaged }
+					OR = {
+						has_planet_flag = kuat_system_ring_3
+						has_planet_flag = kuat_system_ring_6
+						has_planet_flag = kuat_system_ring_9
+						has_planet_flag = kuat_system_ring_12
+					}
+				}
+				save_event_target_as = ag_kag_annihilator_project_loc
+			}
+		}
+		ag_select_research_project_1 = {
+			ag_event_chain = ag_kag_annihilator_project_chain
+			ag_project = ag_kag_annihilator_project
+			ag_location = event_target:ag_kag_annihilator_project_loc
+		}
+	}
+	
+	##############################################################################################################
+	##############################################################################################################
+	##############################################################################################################
+}
+ag_select_research_project_1 = {
+	begin_event_chain = { event_chain = $ag_event_chain$ target = this }
+	if = {
+		limit = {
+			OR = {
+				has_country_flag = ag_current_area_phy
+				has_country_flag = ag_current_area_soc
+				has_country_flag = ag_current_area_eng
+			}
+		}
+		$ag_location$ = { enable_special_project = { name = $ag_project$ location = this owner = prev } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc }
+		random_list = {
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } } }
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } } }
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_eng }
+		random_list = {
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } } }
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } } }
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_soc_eng }
+		random_list = {
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } } }
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } } }
+		}
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc_eng }
+		random_list = {
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_phy location = this owner = prev } } }
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_soc location = this owner = prev } } }
+			50 = { $ag_location$ = { enable_special_project = { name = $ag_project$_eng location = this owner = prev } } }
+		}
+	}
+}
+
+# Load a page when refreshed
+ag_load_page = {
+	if = {
+		limit = { check_variable = { which = ag_research_current_page value = 1 } }
+		ag_load_page_1 = { ag_research_1 = 1 ag_research_2 = 2 ag_research_3 = 3 ag_research_4 = 4 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_current_page value = 2 } }
+		ag_load_page_1 = { ag_research_1 = 5 ag_research_2 = 6 ag_research_3 = 7 ag_research_4 = 8 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_current_page value = 3 } }
+		ag_load_page_1 = { ag_research_1 = 9 ag_research_2 = 10 ag_research_3 = 11 ag_research_4 = 12 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_current_page value = 4 } }
+		ag_load_page_1 = { ag_research_1 = 13 ag_research_2 = 14 ag_research_3 = 15 ag_research_4 = 16 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_current_page value = 5 } }
+		ag_load_page_1 = { ag_research_1 = 17 ag_research_2 = 18 ag_research_3 = 19 ag_research_4 = 20 }
+	}
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 6 } }
+	# 	ag_load_page_1 = { ag_research_1 = 21 ag_research_2 = 22 ag_research_3 = 23 ag_research_4 = 24 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 7 } }
+	# 	ag_load_page_1 = { ag_research_1 = 25 ag_research_2 = 26 ag_research_3 = 27 ag_research_4 = 28 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 8 } }
+	# 	ag_load_page_1 = { ag_research_1 = 29 ag_research_2 = 30 ag_research_3 = 31 ag_research_4 = 32 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 9 } }
+	# 	ag_load_page_1 = { ag_research_1 = 33 ag_research_2 = 34 ag_research_3 = 35 ag_research_4 = 36 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 10 } }
+	# 	ag_load_page_1 = { ag_research_1 = 37 ag_research_2 = 38 ag_research_3 = 39 ag_research_4 = 40 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 11 } }
+	# 	ag_load_page_1 = { ag_research_1 = 41 ag_research_2 = 42 ag_research_3 = 43 ag_research_4 = 44 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 12 } }
+	# 	ag_load_page_1 = { ag_research_1 = 45 ag_research_2 = 46 ag_research_3 = 47 ag_research_4 = 48 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 13 } }
+	# 	ag_load_page_1 = { ag_research_1 = 49 ag_research_2 = 50 ag_research_3 = 51 ag_research_4 = 52 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 14 } }
+	# 	ag_load_page_1 = { ag_research_1 = 53 ag_research_2 = 54 ag_research_3 = 55 ag_research_4 = 56 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 15 } }
+	# 	ag_load_page_1 = { ag_research_1 = 57 ag_research_2 = 58 ag_research_3 = 59 ag_research_4 = 60 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 16 } }
+	# 	ag_load_page_1 = { ag_research_1 = 61 ag_research_2 = 62 ag_research_3 = 63 ag_research_4 = 64 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 17 } }
+	# 	ag_load_page = { ag_research_1 = 65 ag_research_2 = 66 ag_research_3 = 67 ag_research_4 = 68 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 18 } }
+	# 	ag_load_page_1 = { ag_research_1 = 69 ag_research_2 = 70 ag_research_3 = 71 ag_research_4 = 72 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 19 } }
+	# 	ag_load_page_1 = { ag_research_1 = 73 ag_research_2 = 74 ag_research_3 = 75 ag_research_4 = 76 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 20 } }
+	# 	ag_load_page_1 = { ag_research_1 = 77 ag_research_2 = 78 ag_research_3 = 79 ag_research_4 = 80 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 21 } }
+	# 	ag_load_page_1 = { ag_research_1 = 81 ag_research_2 = 82 ag_research_3 = 83 ag_research_4 = 84 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 22 } }
+	# 	ag_load_page_1 = { ag_research_1 = 85 ag_research_2 = 86 ag_research_3 = 87 ag_research_4 = 88 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 23 } }
+	# 	ag_load_page_1 = { ag_research_1 = 89 ag_research_2 = 90 ag_research_3 = 91 ag_research_4 = 92 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 24 } }
+	# 	ag_load_page_1 = { ag_research_1 = 93 ag_research_2 = 94 ag_research_3 = 95 ag_research_4 = 96 }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_current_page value = 25 } }
+	# 	ag_load_page_1 = { ag_research_1 = 97 ag_research_2 = 98 ag_research_3 = 99 ag_research_4 = 100 }
+	# }
+}
+ag_load_page_1 = {
+	if = {
+		limit = {
+			is_variable_set = ag_research_project_$ag_research_1$
+			NOT = { check_variable = { which = ag_research_project_$ag_research_1$ value = 0 } }
+		}
+		set_variable = { which = ag_research_1 value = 1 }
+		set_variable = { which = ag_research_1_id value = ag_research_project_$ag_research_1$ }
+		set_variable = { which = ag_research_1_seq value = $ag_research_1$ }
+		set_variable = { which = ag_research_1_status value = ag_research_project_$ag_research_1$_status }
+		set_variable = { which = ag_research_1_difficulty value = ag_research_project_$ag_research_1$_difficulty }
+		set_variable = { which = ag_research_1_requirement value = ag_research_project_$ag_research_1$_requirement }
+		set_variable = { which = ag_research_1_area value = ag_research_project_$ag_research_1$_area }
+		set_variable = { which = ag_research_1_required_progress value = ag_research_project_$ag_research_1$_required_progress }
+		set_variable = { which = ag_research_1_total_progress value = ag_research_project_$ag_research_1$_total_progress }
+		set_variable = { which = ag_research_1_research_counter value = ag_research_project_$ag_research_1$_research_counter }
+		set_variable = { which = ag_research_1_progress value = ag_research_1_total_progress }
+		divide_variable = { which = ag_research_1_progress value = ag_research_1_required_progress }
+		multiply_variable = { which = ag_research_1_progress value = 100 }
+		if = {
+			limit = {
+				check_variable = { which = ag_current_research value = ag_research_1_id }
+				NOT = { check_variable = { which = ag_research_1_status value = 2 } }
+			}
+			set_variable = { which = ag_research_1_status value = 2 }
+		}
+	}
+	else = {
+		set_variable = { which = ag_research_1 value = 0 }
+		set_variable = { which = ag_research_1_id value = 0 }
+		set_variable = { which = ag_research_1_seq value = 0 }
+		set_variable = { which = ag_research_1_status value = 0 }
+		set_variable = { which = ag_research_1_difficulty value = 0 }
+		set_variable = { which = ag_research_1_requirement value = 0 }
+		set_variable = { which = ag_research_1_area value = 0 }
+		set_variable = { which = ag_research_1_required_progress value = 0 }
+		set_variable = { which = ag_research_1_total_progress value = 0 }
+		set_variable = { which = ag_research_1_research_counter value = 0 }
+		set_variable = { which = ag_research_1_progress value = 0 }
+	}
+	if = {
+		limit = {
+			is_variable_set = ag_research_project_$ag_research_2$
+			NOT = { check_variable = { which = ag_research_project_$ag_research_2$ value = 0 } }
+		}
+		set_variable = { which = ag_research_2 value = 1 }
+		set_variable = { which = ag_research_2_id value = ag_research_project_$ag_research_2$ }
+		set_variable = { which = ag_research_2_seq value = $ag_research_2$ }
+		set_variable = { which = ag_research_2_status value = ag_research_project_$ag_research_2$_status }
+		set_variable = { which = ag_research_2_difficulty value = ag_research_project_$ag_research_2$_difficulty }
+		set_variable = { which = ag_research_2_requirement value = ag_research_project_$ag_research_2$_requirement }
+		set_variable = { which = ag_research_2_area value = ag_research_project_$ag_research_2$_area }
+		set_variable = { which = ag_research_2_required_progress value = ag_research_project_$ag_research_2$_required_progress }
+		set_variable = { which = ag_research_2_total_progress value = ag_research_project_$ag_research_2$_total_progress }
+		set_variable = { which = ag_research_2_research_counter value = ag_research_project_$ag_research_2$_research_counter }
+		set_variable = { which = ag_research_2_progress value = ag_research_2_total_progress }
+		divide_variable = { which = ag_research_2_progress value = ag_research_2_required_progress }
+		multiply_variable = { which = ag_research_2_progress value = 100 }
+		if = {
+			limit = {
+				check_variable = { which = ag_current_research value = ag_research_2_id }
+				NOT = { check_variable = { which = ag_research_2_status value = 2 } }
+			}
+			set_variable = { which = ag_research_2_status value = 2 }
+		}
+	}
+	else = {
+		set_variable = { which = ag_research_2 value = 0 }
+		set_variable = { which = ag_research_2_id value = 0 }
+		set_variable = { which = ag_research_2_seq value = 0 }
+		set_variable = { which = ag_research_2_status value = 0 }
+		set_variable = { which = ag_research_2_difficulty value = 0 }
+		set_variable = { which = ag_research_2_requirement value = 0 }
+		set_variable = { which = ag_research_2_area value = 0 }
+		set_variable = { which = ag_research_2_required_progress value = 0 }
+		set_variable = { which = ag_research_2_total_progress value = 0 }
+		set_variable = { which = ag_research_2_research_counter value = 0 }
+		set_variable = { which = ag_research_2_progress value = 0 }
+	}
+	if = {
+		limit = {
+			is_variable_set = ag_research_project_$ag_research_3$
+			NOT = { check_variable = { which = ag_research_project_$ag_research_3$ value = 0 } }
+		}
+		set_variable = { which = ag_research_3 value = 1 }
+		set_variable = { which = ag_research_3_id value = ag_research_project_$ag_research_3$ }
+		set_variable = { which = ag_research_3_seq value = $ag_research_3$ }
+		set_variable = { which = ag_research_3_status value = ag_research_project_$ag_research_3$_status }
+		set_variable = { which = ag_research_3_difficulty value = ag_research_project_$ag_research_3$_difficulty }
+		set_variable = { which = ag_research_3_requirement value = ag_research_project_$ag_research_3$_requirement }
+		set_variable = { which = ag_research_3_area value = ag_research_project_$ag_research_3$_area }
+		set_variable = { which = ag_research_3_required_progress value = ag_research_project_$ag_research_3$_required_progress }
+		set_variable = { which = ag_research_3_total_progress value = ag_research_project_$ag_research_3$_total_progress }
+		set_variable = { which = ag_research_3_research_counter value = ag_research_project_$ag_research_3$_research_counter }
+		set_variable = { which = ag_research_3_progress value = ag_research_3_total_progress }
+		divide_variable = { which = ag_research_3_progress value = ag_research_3_required_progress }
+		multiply_variable = { which = ag_research_3_progress value = 100 }
+		if = {
+			limit = {
+				check_variable = { which = ag_current_research value = ag_research_3_id }
+				NOT = { check_variable = { which = ag_research_3_status value = 2 } }
+			}
+			set_variable = { which = ag_research_3_status value = 2 }
+		}
+	}
+	else = {
+		set_variable = { which = ag_research_3 value = 0 }
+		set_variable = { which = ag_research_3_id value = 0 }
+		set_variable = { which = ag_research_3_seq value = 0 }
+		set_variable = { which = ag_research_3_status value = 0 }
+		set_variable = { which = ag_research_3_difficulty value = 0 }
+		set_variable = { which = ag_research_3_requirement value = 0 }
+		set_variable = { which = ag_research_3_area value = 0 }
+		set_variable = { which = ag_research_3_required_progress value = 0 }
+		set_variable = { which = ag_research_3_total_progress value = 0 }
+		set_variable = { which = ag_research_3_research_counter value = 0 }
+		set_variable = { which = ag_research_3_progress value = 0 }
+	}
+	if = {
+		limit = {
+			is_variable_set = ag_research_project_$ag_research_4$
+			NOT = { check_variable = { which = ag_research_project_$ag_research_4$ value = 0 } }
+		}
+		set_variable = { which = ag_research_4 value = 1 }
+		set_variable = { which = ag_research_4_id value = ag_research_project_$ag_research_4$ }
+		set_variable = { which = ag_research_4_seq value = $ag_research_4$ }
+		set_variable = { which = ag_research_4_status value = ag_research_project_$ag_research_4$_status }
+		set_variable = { which = ag_research_4_difficulty value = ag_research_project_$ag_research_4$_difficulty }
+		set_variable = { which = ag_research_4_requirement value = ag_research_project_$ag_research_4$_requirement }
+		set_variable = { which = ag_research_4_area value = ag_research_project_$ag_research_4$_area }
+		set_variable = { which = ag_research_4_required_progress value = ag_research_project_$ag_research_4$_required_progress }
+		set_variable = { which = ag_research_4_total_progress value = ag_research_project_$ag_research_4$_total_progress }
+		set_variable = { which = ag_research_4_research_counter value = ag_research_project_$ag_research_4$_research_counter }
+		set_variable = { which = ag_research_4_progress value = ag_research_4_total_progress }
+		divide_variable = { which = ag_research_4_progress value = ag_research_4_required_progress }
+		multiply_variable = { which = ag_research_4_progress value = 100 }
+		if = {
+			limit = {
+				check_variable = { which = ag_current_research value = ag_research_4_id }
+				NOT = { check_variable = { which = ag_research_4_status value = 2 } }
+			}
+			set_variable = { which = ag_research_4_status value = 2 }
+		}
+	}
+	else = {
+		set_variable = { which = ag_research_4 value = 0 }
+		set_variable = { which = ag_research_4_id value = 0 }
+		set_variable = { which = ag_research_4_seq value = 0 }
+		set_variable = { which = ag_research_4_status value = 0 }
+		set_variable = { which = ag_research_4_difficulty value = 0 }
+		set_variable = { which = ag_research_4_requirement value = 0 }
+		set_variable = { which = ag_research_4_area value = 0 }
+		set_variable = { which = ag_research_4_required_progress value = 0 }
+		set_variable = { which = ag_research_4_total_progress value = 0 }
+		set_variable = { which = ag_research_4_research_counter value = 0 }
+		set_variable = { which = ag_research_4_progress value = 0 }
+	}
+}
+
+# Save urrent research project's variables, abort it if needed.
+ag_save_current_progress = {
+	##############################################################################################################
+	# New Research Project: (10) Create context switch effect in scripted effect.
+	##############################################################################################################
+	if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_locate_ancient_system_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_locate_ancient_system_project_chain
+				ag_project = ag_locate_ancient_system_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_locate_ancient_system_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_beta_ship_unlock_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_beta_ship_unlock_project_chain
+				ag_project = ag_beta_ship_unlock_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_beta_ship_unlock_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_beta_psionic_source_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_beta_psionic_source_project_chain
+				ag_project = ag_beta_psionic_source_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_beta_psionic_source_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_gamma_ship_unlock_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_gamma_ship_unlock_project_chain
+				ag_project = ag_gamma_ship_unlock_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_gamma_ship_unlock_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_delta_ship_unlock_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_delta_ship_unlock_project_chain
+				ag_project = ag_delta_ship_unlock_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_delta_ship_unlock_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_disable_ancient_shield_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_disable_ancient_shield_project_chain
+				ag_project = ag_disable_ancient_shield_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_disable_ancient_shield_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_repair_starfish_ship_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_repair_starfish_ship_project_chain
+				ag_project = ag_repair_starfish_ship_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_repair_starfish_ship_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_repair_starlight_2_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_repair_starlight_2_project_chain
+				ag_project = ag_repair_starlight_2_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_repair_starlight_2_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_reverse_engineering_wandering_ship_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_reverse_engineering_wandering_ship_project_chain
+				ag_project = ag_reverse_engineering_wandering_ship_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_reverse_engineering_wandering_ship_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_wandering_ship_unlock_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_wandering_ship_unlock_project_chain
+				ag_project = ag_wandering_ship_unlock_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_wandering_ship_unlock_project_id clear_current_research = $clear_current_research|no$ }
+	}
+
+	else_if = {
+		limit = { check_variable = { which = ag_current_research value = @ag_kag_annihilator_project_id } }
+		if = {
+			limit = { always = $clear_current_research|no$ }
+			ag_clean_event_chains = {
+				ag_evnet_chain = ag_kag_annihilator_project_chain
+				ag_project = ag_kag_annihilator_project
+			}
+		}
+		ag_save_current_progress_1 = { ag_current_research = @ag_kag_annihilator_project_id clear_current_research = $clear_current_research|no$ }
+	}
+	
+	##############################################################################################################
+	##############################################################################################################
+	##############################################################################################################
+}
+ag_clean_event_chains = {
+	if = {
+		limit = {
+			OR = {
+				has_country_flag = ag_current_area_phy
+				has_country_flag = ag_current_area_soc
+				has_country_flag = ag_current_area_eng
+			}
+		}
+		if = { limit = { has_special_project = $ag_project$ } abort_special_project = { type = $ag_project$ } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc }
+		if = { limit = { has_special_project = $ag_project$_phy } abort_special_project = { type = $ag_project$_phy } }
+		if = { limit = { has_special_project = $ag_project$_soc } abort_special_project = { type = $ag_project$_soc } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_eng }
+		if = { limit = { has_special_project = $ag_project$_phy } abort_special_project = { type = $ag_project$_phy } }
+		if = { limit = { has_special_project = $ag_project$_eng } abort_special_project = { type = $ag_project$_eng } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_soc_eng }
+		if = { limit = { has_special_project = $ag_project$_soc } abort_special_project = { type = $ag_project$_soc } }
+		if = { limit = { has_special_project = $ag_project$_eng } abort_special_project = { type = $ag_project$_eng } }
+	}
+	else_if = {
+		limit = { has_country_flag = ag_current_area_phy_soc_eng }
+		if = { limit = { has_special_project = $ag_project$_phy } abort_special_project = { type = $ag_project$_phy } }
+		if = { limit = { has_special_project = $ag_project$_soc } abort_special_project = { type = $ag_project$_soc } }
+		if = { limit = { has_special_project = $ag_project$_eng } abort_special_project = { type = $ag_project$_eng } }
+	}
+	if = { limit = { has_event_chain = $ag_evnet_chain$ } end_event_chain = $ag_evnet_chain$ }
+}
+ag_save_current_progress_1 = {
+	# Update if project in loaded page.
+	if = {
+		limit = { check_variable = { which = ag_research_1_id value = $ag_current_research$ } }
+		set_variable = { which = ag_research_1_total_progress value = ag_total_progress }
+		set_variable = { which = ag_research_1_progress value = ag_total_progress }
+		divide_variable = { which = ag_research_1_progress value = ag_research_1_required_progress }
+		multiply_variable = { which = ag_research_1_progress value = 100 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_2_id value = $ag_current_research$ } }
+		set_variable = { which = ag_research_2_total_progress value = ag_total_progress }
+		set_variable = { which = ag_research_2_progress value = ag_total_progress }
+		divide_variable = { which = ag_research_2_progress value = ag_research_2_required_progress }
+		multiply_variable = { which = ag_research_2_progress value = 100 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_3_id value = $ag_current_research$ } }
+		set_variable = { which = ag_research_3_total_progress value = ag_total_progress }
+		set_variable = { which = ag_research_3_progress value = ag_total_progress }
+		divide_variable = { which = ag_research_3_progress value = ag_research_3_required_progress }
+		multiply_variable = { which = ag_research_3_progress value = 100 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_4_id value = $ag_current_research$ } }
+		set_variable = { which = ag_research_4_total_progress value = ag_total_progress }
+		set_variable = { which = ag_research_4_progress value = ag_total_progress }
+		divide_variable = { which = ag_research_4_progress value = ag_research_4_required_progress }
+		multiply_variable = { which = ag_research_4_progress value = 100 }
+	}
+	# Save variables.
+	if = { limit = { check_variable = { which = ag_current_seq value = 1 } } ag_save_current_progress_2 = { ag_seq = 1 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 2 } } ag_save_current_progress_2 = { ag_seq = 2 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 3 } } ag_save_current_progress_2 = { ag_seq = 3 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 4 } } ag_save_current_progress_2 = { ag_seq = 4 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 5 } } ag_save_current_progress_2 = { ag_seq = 5 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 6 } } ag_save_current_progress_2 = { ag_seq = 6 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 7 } } ag_save_current_progress_2 = { ag_seq = 7 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 8 } } ag_save_current_progress_2 = { ag_seq = 8 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 9 } } ag_save_current_progress_2 = { ag_seq = 9 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 10 } } ag_save_current_progress_2 = { ag_seq = 10 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 11 } } ag_save_current_progress_2 = { ag_seq = 11 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 12 } } ag_save_current_progress_2 = { ag_seq = 12 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 13 } } ag_save_current_progress_2 = { ag_seq = 13 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 14 } } ag_save_current_progress_2 = { ag_seq = 14 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 15 } } ag_save_current_progress_2 = { ag_seq = 15 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 16 } } ag_save_current_progress_2 = { ag_seq = 16 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 17 } } ag_save_current_progress_2 = { ag_seq = 17 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 18 } } ag_save_current_progress_2 = { ag_seq = 18 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 19 } } ag_save_current_progress_2 = { ag_seq = 19 clear_current_research = $clear_current_research$ } }
+	else_if = { limit = { check_variable = { which = ag_current_seq value = 20 } } ag_save_current_progress_2 = { ag_seq = 20 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 21 } } ag_save_current_progress_2 = { ag_seq = 21 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 22 } } ag_save_current_progress_2 = { ag_seq = 22 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 23 } } ag_save_current_progress_2 = { ag_seq = 23 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 24 } } ag_save_current_progress_2 = { ag_seq = 24 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 25 } } ag_save_current_progress_2 = { ag_seq = 25 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 26 } } ag_save_current_progress_2 = { ag_seq = 26 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 27 } } ag_save_current_progress_2 = { ag_seq = 27 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 28 } } ag_save_current_progress_2 = { ag_seq = 28 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 29 } } ag_save_current_progress_2 = { ag_seq = 29 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 30 } } ag_save_current_progress_2 = { ag_seq = 30 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 31 } } ag_save_current_progress_2 = { ag_seq = 31 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 32 } } ag_save_current_progress_2 = { ag_seq = 32 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 33 } } ag_save_current_progress_2 = { ag_seq = 33 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 34 } } ag_save_current_progress_2 = { ag_seq = 34 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 35 } } ag_save_current_progress_2 = { ag_seq = 35 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 36 } } ag_save_current_progress_2 = { ag_seq = 36 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 37 } } ag_save_current_progress_2 = { ag_seq = 37 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 38 } } ag_save_current_progress_2 = { ag_seq = 38 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 39 } } ag_save_current_progress_2 = { ag_seq = 39 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 40 } } ag_save_current_progress_2 = { ag_seq = 40 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 41 } } ag_save_current_progress_2 = { ag_seq = 41 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 42 } } ag_save_current_progress_2 = { ag_seq = 42 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 43 } } ag_save_current_progress_2 = { ag_seq = 43 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 44 } } ag_save_current_progress_2 = { ag_seq = 44 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 45 } } ag_save_current_progress_2 = { ag_seq = 45 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 46 } } ag_save_current_progress_2 = { ag_seq = 46 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 47 } } ag_save_current_progress_2 = { ag_seq = 47 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 48 } } ag_save_current_progress_2 = { ag_seq = 48 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 49 } } ag_save_current_progress_2 = { ag_seq = 49 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 50 } } ag_save_current_progress_2 = { ag_seq = 50 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 51 } } ag_save_current_progress_2 = { ag_seq = 51 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 52 } } ag_save_current_progress_2 = { ag_seq = 52 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 53 } } ag_save_current_progress_2 = { ag_seq = 53 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 54 } } ag_save_current_progress_2 = { ag_seq = 54 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 55 } } ag_save_current_progress_2 = { ag_seq = 55 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 56 } } ag_save_current_progress_2 = { ag_seq = 56 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 57 } } ag_save_current_progress_2 = { ag_seq = 57 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 58 } } ag_save_current_progress_2 = { ag_seq = 58 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 59 } } ag_save_current_progress_2 = { ag_seq = 59 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 60 } } ag_save_current_progress_2 = { ag_seq = 60 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 61 } } ag_save_current_progress_2 = { ag_seq = 61 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 62 } } ag_save_current_progress_2 = { ag_seq = 62 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 63 } } ag_save_current_progress_2 = { ag_seq = 63 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 64 } } ag_save_current_progress_2 = { ag_seq = 64 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 65 } } ag_save_current_progress_2 = { ag_seq = 65 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 66 } } ag_save_current_progress_2 = { ag_seq = 66 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 67 } } ag_save_current_progress_2 = { ag_seq = 67 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 68 } } ag_save_current_progress_2 = { ag_seq = 68 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 69 } } ag_save_current_progress_2 = { ag_seq = 69 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 70 } } ag_save_current_progress_2 = { ag_seq = 70 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 71 } } ag_save_current_progress_2 = { ag_seq = 71 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 72 } } ag_save_current_progress_2 = { ag_seq = 72 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 73 } } ag_save_current_progress_2 = { ag_seq = 73 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 74 } } ag_save_current_progress_2 = { ag_seq = 74 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 75 } } ag_save_current_progress_2 = { ag_seq = 75 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 76 } } ag_save_current_progress_2 = { ag_seq = 76 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 77 } } ag_save_current_progress_2 = { ag_seq = 77 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 78 } } ag_save_current_progress_2 = { ag_seq = 78 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 79 } } ag_save_current_progress_2 = { ag_seq = 79 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 80 } } ag_save_current_progress_2 = { ag_seq = 80 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 81 } } ag_save_current_progress_2 = { ag_seq = 81 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 82 } } ag_save_current_progress_2 = { ag_seq = 82 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 83 } } ag_save_current_progress_2 = { ag_seq = 83 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 84 } } ag_save_current_progress_2 = { ag_seq = 84 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 85 } } ag_save_current_progress_2 = { ag_seq = 85 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 86 } } ag_save_current_progress_2 = { ag_seq = 86 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 87 } } ag_save_current_progress_2 = { ag_seq = 87 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 88 } } ag_save_current_progress_2 = { ag_seq = 88 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 89 } } ag_save_current_progress_2 = { ag_seq = 89 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 90 } } ag_save_current_progress_2 = { ag_seq = 90 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 91 } } ag_save_current_progress_2 = { ag_seq = 91 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 92 } } ag_save_current_progress_2 = { ag_seq = 92 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 93 } } ag_save_current_progress_2 = { ag_seq = 93 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 94 } } ag_save_current_progress_2 = { ag_seq = 94 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 95 } } ag_save_current_progress_2 = { ag_seq = 95 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 96 } } ag_save_current_progress_2 = { ag_seq = 96 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 97 } } ag_save_current_progress_2 = { ag_seq = 97 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 98 } } ag_save_current_progress_2 = { ag_seq = 98 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 99 } } ag_save_current_progress_2 = { ag_seq = 99 clear_current_research = $clear_current_research$ } }
+	# else_if = { limit = { check_variable = { which = ag_current_seq value = 100 } } ag_save_current_progress_2 = { ag_seq = 100 clear_current_research = $clear_current_research$ } }
+}
+ag_save_current_progress_2 = {
+	set_variable = { which = ag_research_project_$ag_seq$_total_progress value = ag_total_progress }
+	set_variable = { which = ag_research_project_$ag_seq$_research_counter value = ag_research_project_counter }
+	if = {
+		limit = {
+			check_variable = {
+				which = ag_research_project_$ag_seq$_total_progress
+				value >= ag_research_project_$ag_seq$_required_progress
+			}
+		}
+		set_variable = { which = ag_research_project_$ag_seq$_status value = 3 }
+		if = {
+			limit = { check_variable = { which = ag_research_project_$ag_seq$ value = ag_research_1_id } }
+			set_variable = { which = ag_research_1_status value = 3 }
+		}
+		if = {
+			limit = { check_variable = { which = ag_research_project_$ag_seq$ value = ag_research_2_id } }
+			set_variable = { which = ag_research_2_status value = 3 }
+		}
+		if = {
+			limit = { check_variable = { which = ag_research_project_$ag_seq$ value = ag_research_3_id } }
+			set_variable = { which = ag_research_3_status value = 3 }
+		}
+		if = {
+			limit = { check_variable = { which = ag_research_project_$ag_seq$ value = ag_research_4_id } }
+			set_variable = { which = ag_research_4_status value = 3 }
+		}
+	}
+	# Clear current variable if needed.
+	if = {
+		limit = { always = $clear_current_research$ }
+		set_variable = { which = ag_current_research value = 0 }
+		set_variable = { which = ag_total_progress value = 0 }
+		set_variable = { which = ag_required_progress value = 0 }
+		set_variable = { which = ag_research_project_counter value = 0 }
+		set_variable = { which = ag_current_difficulty value = 0 }
+		set_variable = { which = ag_difficulty value = 0 }
+		set_variable = { which = ag_difficulty_alt value = 0 }
+		remove_country_flag = ag_current_area_phy
+		remove_country_flag = ag_current_area_soc
+		remove_country_flag = ag_current_area_eng
+		remove_country_flag = ag_current_area_phy_soc
+		remove_country_flag = ag_current_area_phy_eng
+		remove_country_flag = ag_current_area_soc_eng
+		remove_country_flag = ag_current_area_phy_soc_eng
+	}
+}
+
+# ag_modify_research_project_elem
+# Parameters
+# ag_research_project_id
+# ag_operation: set, add, subtract, multiply, divide
+# ag_variable: difficulty, required_progress, total_progress
+# ag_value
+ag_modify_research_project_elem = {
+	if = { limit = { check_variable = { which = ag_research_project_1 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_1_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_2 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_2_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_3 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_3_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_4 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_4_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_5 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_5_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_6 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_6_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_7 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_7_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_8 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_8_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_9 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_9_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_10 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_10_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_11 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_11_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_12 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_12_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_13 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_13_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_14 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_14_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_15 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_15_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_16 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_16_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_17 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_17_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_18 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_18_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_19 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_19_$ag_variable$ value = $ag_value$ } }
+	else_if = { limit = { check_variable = { which = ag_research_project_20 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_20_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_21 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_21_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_22 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_22_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_23 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_23_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_24 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_24_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_25 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_25_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_26 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_26_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_27 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_27_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_28 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_28_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_29 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_29_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_30 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_30_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_31 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_31_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_32 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_32_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_33 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_33_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_34 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_34_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_35 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_35_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_36 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_36_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_37 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_37_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_38 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_38_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_39 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_39_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_40 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_40_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_41 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_41_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_42 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_42_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_43 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_43_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_44 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_44_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_45 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_45_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_46 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_46_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_47 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_47_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_48 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_48_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_49 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_49_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_50 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_50_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_51 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_51_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_52 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_52_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_53 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_53_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_54 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_54_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_55 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_55_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_56 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_56_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_57 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_57_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_58 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_58_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_59 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_59_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_60 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_60_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_61 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_61_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_62 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_62_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_63 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_63_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_64 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_64_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_65 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_65_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_66 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_66_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_67 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_67_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_68 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_68_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_69 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_69_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_70 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_70_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_71 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_71_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_72 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_72_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_73 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_73_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_74 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_74_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_75 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_75_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_76 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_76_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_77 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_77_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_78 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_78_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_79 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_79_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_80 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_80_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_81 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_81_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_82 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_82_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_83 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_83_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_84 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_84_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_85 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_85_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_86 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_86_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_87 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_87_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_88 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_88_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_89 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_89_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_90 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_90_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_91 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_91_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_92 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_92_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_93 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_93_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_94 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_94_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_95 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_95_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_96 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_96_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_97 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_97_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_98 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_98_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_99 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_99_$ag_variable$ value = $ag_value$ } }
+	# else_if = { limit = { check_variable = { which = ag_research_project_100 value = $ag_research_project_id$ } } $ag_operation$_variable = { which = ag_research_project_100_$ag_variable$ value = $ag_value$ } }
+	if = {
+		limit = { check_variable = { which = ag_research_1_id value = $ag_research_project_id$ } }
+		$ag_operation$_variable = { which = ag_research_1_$ag_variable$ value = $ag_value$ }
+		set_variable = { which = ag_research_1_progress value = ag_research_1_total_progress }
+		divide_variable = { which = ag_research_1_progress value = ag_research_1_required_progress }
+		multiply_variable = { which = ag_research_1_progress value = 100 }
+		if = {
+			limit = { check_variable = { which = ag_current_research value = $ag_research_project_id$ } }
+			set_variable = { which = ag_$ag_variable$ value = ag_research_1_$ag_variable$ }
+			set_variable = { which = ag_current_difficulty value = ag_research_1_difficulty }
+		}
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_2_id value = $ag_research_project_id$ } }
+		$ag_operation$_variable = { which = ag_research_2_$ag_variable$ value = $ag_value$ }
+		set_variable = { which = ag_research_2_progress value = ag_research_2_total_progress }
+		divide_variable = { which = ag_research_2_progress value = ag_research_2_required_progress }
+		multiply_variable = { which = ag_research_2_progress value = 100 }
+		if = {
+			limit = { check_variable = { which = ag_current_research value = $ag_research_project_id$ } }
+			set_variable = { which = ag_$ag_variable$ value = ag_research_2_$ag_variable$ }
+			set_variable = { which = ag_current_difficulty value = ag_research_2_difficulty }
+		}
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_3_id value = $ag_research_project_id$ } }
+		$ag_operation$_variable = { which = ag_research_3_$ag_variable$ value = $ag_value$ }
+		set_variable = { which = ag_research_3_progress value = ag_research_3_total_progress }
+		divide_variable = { which = ag_research_3_progress value = ag_research_3_required_progress }
+		multiply_variable = { which = ag_research_3_progress value = 100 }
+		if = {
+			limit = { check_variable = { which = ag_current_research value = $ag_research_project_id$ } }
+			set_variable = { which = ag_$ag_variable$ value = ag_research_3_$ag_variable$ }
+			set_variable = { which = ag_current_difficulty value = ag_research_3_difficulty }
+		}
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_4_id value = $ag_research_project_id$ } }
+		$ag_operation$_variable = { which = ag_research_4_$ag_variable$ value = $ag_value$ }
+		set_variable = { which = ag_research_4_progress value = ag_research_4_total_progress }
+		divide_variable = { which = ag_research_4_progress value = ag_research_4_required_progress }
+		multiply_variable = { which = ag_research_4_progress value = 100 }
+		if = {
+			limit = { check_variable = { which = ag_current_research value = $ag_research_project_id$ } }
+			set_variable = { which = ag_$ag_variable$ value = ag_research_4_$ag_variable$ }
+			set_variable = { which = ag_current_difficulty value = ag_research_4_difficulty }
+		}
+	}
+}
+ag_iota_data_research_buff = {
+	random_list = {
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = required_progress
+				ag_value = 30
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = required_progress
+				ag_value = 25
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = required_progress
+				ag_value = 20
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = required_progress
+				ag_value = 15
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = required_progress
+				ag_value = 10
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = change
+				ag_variable = total_progress
+				ag_value = 30
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = change
+				ag_variable = total_progress
+				ag_value = 25
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = change
+				ag_variable = total_progress
+				ag_value = 20
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = change
+				ag_variable = total_progress
+				ag_value = 15
+			}
+		}
+		10 = {
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = change
+				ag_variable = total_progress
+				ag_value = 10
+			}
+		}
+		1 = {
+			modifier = {
+				factor = 0
+				always = $ag_no_change_difficulty|yes$
+			}
+			ag_modify_research_project_elem = {
+				ag_research_project_id = $ag_project_id$
+				ag_operation = subtract
+				ag_variable = difficulty
+				ag_value = 1
+			}
+		}
+	}
+}
+ag_reset_locate_ancient_system_project = {
+	if = {
+		limit = { check_variable = { which = ag_research_project_1 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 1 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_2 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 2 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_3 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 3 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_4 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 4 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_5 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 5 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_6 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 6 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_7 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 7 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_8 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 8 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_9 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 9 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_10 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 10 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_11 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 11 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_12 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 12 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_13 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 13 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_14 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 14 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_15 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 15 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_16 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 16 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_17 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 17 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_18 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 18 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_19 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 19 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_project_20 value = @ag_locate_ancient_system_project_id } }
+		ag_set_research_project_variables = { ag_seq = 20 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	}
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_21 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 21 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_22 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 22 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_23 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 23 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_24 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 24 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_25 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 25 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_26 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 26 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_27 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 27 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_28 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 28 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_29 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 29 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_30 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 30 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_31 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 31 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_32 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 32 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_33 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 33 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_34 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 34 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_35 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 35 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_36 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 36 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_37 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 37 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_38 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 38 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_39 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 39 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_40 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 40 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_41 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 41 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_42 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 42 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_43 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 43 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_44 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 44 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_45 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 45 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_46 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 46 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_47 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 47 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_48 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 48 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_49 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 49 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_50 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 50 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_51 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 51 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_52 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 52 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_53 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 53 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_54 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 54 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_55 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 55 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_56 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 56 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_57 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 57 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_58 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 58 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_59 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 59 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_60 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 60 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_61 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 61 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_62 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 62 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_63 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 63 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_64 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 64 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_65 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 65 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_66 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 66 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_67 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 67 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_68 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 68 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_69 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 69 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_70 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 70 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_71 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 71 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_72 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 72 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_73 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 73 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_74 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 74 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_75 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 75 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_76 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 76 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_77 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 77 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_78 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 78 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_79 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 79 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_80 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 80 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_81 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 81 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_82 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 82 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_83 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 83 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_84 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 84 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_85 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 85 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_86 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 86 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_87 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 87 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_88 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 88 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_89 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 89 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_90 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 90 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_91 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 91 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_92 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 92 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_93 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 93 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_94 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 94 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_95 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 95 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_96 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 96 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_97 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 97 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_98 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 98 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_99 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 99 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+	# else_if = {
+	# 	limit = { check_variable = { which = ag_research_project_100 value = @ag_locate_ancient_system_project_id } }
+	# 	ag_set_research_project_variables = { ag_seq = 100 ag_project_id = @ag_locate_ancient_system_project_id ag_progress = $ag_progress|5$ }
+	# }
+}
+ag_set_research_lvl = {
+	set_variable = { which = ag_current_progress_lvl value = 0 }
+	if = {
+		limit = { check_variable = { which = ag_research_$ag_research_frame$_progress value < 40 } }
+		set_variable = { which = ag_current_progress_lvl value = 1 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_frame$_progress value < 60 } }
+		set_variable = { which = ag_current_progress_lvl value = 2 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_frame$_progress value < 80 } }
+		set_variable = { which = ag_current_progress_lvl value = 3 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_research_$ag_research_frame$_progress value < 100 } }
+		set_variable = { which = ag_current_progress_lvl value = 4 }
+	}
+}
+ag_check_locate_ancient_system_project_state = {
+	if = {
+		limit = {
+			check_variable = { which = ag_research_1_id value = @ag_locate_ancient_system_project_id }
+			check_variable = { which = ag_research_1_status value = 3 }
+		}
+		ag_reset_locate_ancient_system_project = yes
+	}
+	if = {
+		limit = {
+			check_variable = { which = ag_research_2_id value = @ag_locate_ancient_system_project_id }
+			check_variable = { which = ag_research_2_status value = 3 }
+		}
+		ag_reset_locate_ancient_system_project = yes
+	}
+	if = {
+		limit = {
+			check_variable = { which = ag_research_3_id value = @ag_locate_ancient_system_project_id }
+			check_variable = { which = ag_research_3_status value = 3 }
+		}
+		ag_reset_locate_ancient_system_project = yes
+	}
+	if = {
+		limit = {
+			check_variable = { which = ag_research_4_id value = @ag_locate_ancient_system_project_id }
+			check_variable = { which = ag_research_4_status value = 3 }
+		}
+		ag_reset_locate_ancient_system_project = yes
+	}
+}
+
+ag_initialize_research_variables = {
+	set_variable = { which = ag_debug_mode_counter value = 0 }
+	set_variable = { which = ag_current_research value = 0 }
+	set_variable = { which = ag_total_progress value = 0 }
+	set_variable = { which = ag_required_progress value = 0 }
+	set_variable = { which = ag_research_project_counter value = 0 }
+	set_variable = { which = ag_current_difficulty value = 0 }
+	set_variable = { which = ag_difficulty value = 0 }
+	set_variable = { which = ag_difficulty_alt value = 0 }
+	set_variable = { which = ag_num_research_projects value = 0 }
+	set_variable = { which = ag_page_counter value = 1 }
+	set_variable = { which = ag_research_current_page value = 0 }
+	set_variable = { which = ag_research_total_pages value = 0 }
+	set_variable = { which = ag_research_1 value = 0 }
+	set_variable = { which = ag_research_1_status value = 0 }
+	set_variable = { which = ag_research_1_id value = 0 }
+	set_variable = { which = ag_research_1_difficulty value = 0 }
+	set_variable = { which = ag_research_1_requirement value = 0 }
+	set_variable = { which = ag_research_1_area value = 0 }
+	set_variable = { which = ag_research_1_progress value = 0 }
+	set_variable = { which = ag_research_2 value = 0 }
+	set_variable = { which = ag_research_2_status value = 0 }
+	set_variable = { which = ag_research_2_id value = 0 }
+	set_variable = { which = ag_research_2_difficulty value = 0 }
+	set_variable = { which = ag_research_2_requirement value = 0 }
+	set_variable = { which = ag_research_2_area value = 0 }
+	set_variable = { which = ag_research_2_progress value = 0 }
+	set_variable = { which = ag_research_3 value = 0 }
+	set_variable = { which = ag_research_3_status value = 0 }
+	set_variable = { which = ag_research_3_id value = 0 }
+	set_variable = { which = ag_research_3_difficulty value = 0 }
+	set_variable = { which = ag_research_3_requirement value = 0 }
+	set_variable = { which = ag_research_3_area value = 0 }
+	set_variable = { which = ag_research_3_progress value = 0 }
+	set_variable = { which = ag_research_4 value = 0 }
+	set_variable = { which = ag_research_4_status value = 0 }
+	set_variable = { which = ag_research_4_id value = 0 }
+	set_variable = { which = ag_research_4_difficulty value = 0 }
+	set_variable = { which = ag_research_4_requirement value = 0 }
+	set_variable = { which = ag_research_4_area value = 0 }
+	set_variable = { which = ag_research_4_progress value = 0 }
+}

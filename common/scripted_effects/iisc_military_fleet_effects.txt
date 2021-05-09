@@ -1,0 +1,1002 @@
+# prev = corp
+# this = shipyard (planet currently)
+iisc_create_corp_military_fleet = {
+	create_fleet = {
+		name = random
+		effect = {
+			set_owner = prevprev
+			set_name = random
+			set_fleet_stance = passive
+			iisc_build_military_ships = yes
+			iisc_set_military_fleet_orders = yes
+			set_location = prev
+			fleet_event = {
+				id = iisc_military.20
+				days = 1
+			}
+		}
+	}
+}
+
+# this = fleet
+iisc_build_military_ships = {
+	# TODO spawn other types of ships
+	# to remove the errors from the log
+	if = {
+		limit = {
+			owner = {
+				check_variable = {
+					which = iisc_budget_military
+					value >= @iisc_corp_battleship_cost
+				}
+				has_technology = tech_battleships
+				has_existing_ship_design = battleship
+			}
+		}
+		owner = {
+			iisc_subtract_corp_money = {
+				TYPE = military
+				AMOUNT = @iisc_corp_battleship_cost
+			}
+		}
+		create_ship = {
+			name = random
+			random_existing_design = battleship
+		}
+	}
+	if = {
+		limit = {
+			owner = {
+				has_technology = tech_cruisers
+				has_existing_ship_design = cruiser
+			}
+		}
+		owner = {
+			set_variable = {
+				which = iisc_loop_index
+				value = 2
+			}
+		}
+		while = {
+			limit = {
+				owner = {
+					check_variable = {
+						which = iisc_budget_military
+						value >= @iisc_corp_cruiser_cost
+					}
+					check_variable = {
+						which = iisc_loop_index
+						value > 0
+					}
+				}
+			}
+			owner = {
+				iisc_subtract_corp_money = {
+					TYPE = military
+					AMOUNT = @iisc_corp_cruiser_cost
+				}
+				subtract_variable = {
+					which = iisc_loop_index
+					value = 1
+				}
+			}
+			create_ship = {
+				name = random
+				random_existing_design = cruiser
+			}
+		}
+	}
+	if = {
+		limit = {
+			owner = {
+				has_technology = tech_destroyers
+				has_existing_ship_design = destroyer
+			}
+		}
+		owner = {
+			set_variable = {
+				which = iisc_loop_index
+				value = 4
+			}
+		}
+		while = {
+			limit = {
+				owner = {
+					check_variable = {
+						which = iisc_budget_military
+						value >= @iisc_corp_destroyer_cost
+					}
+					check_variable = {
+						which = iisc_loop_index
+						value > 0
+					}
+				}
+			}
+			owner = {
+				iisc_subtract_corp_money = {
+					TYPE = military
+					AMOUNT = @iisc_corp_destroyer_cost
+				}
+				subtract_variable = {
+					which = iisc_loop_index
+					value = 1
+				}
+			}
+			create_ship = {
+				name = random
+				random_existing_design = destroyer
+			}
+		}
+	}
+	owner = {
+		set_variable = {
+			which = iisc_loop_index
+			value = 8
+		}
+	}
+	while = {
+		limit = {
+			owner = {
+				check_variable = {
+					which = iisc_budget_military
+					value >= @iisc_corp_corvette_cost
+				}
+				check_variable = {
+					which = iisc_loop_index
+					value > 0
+				}
+			}
+		}
+		owner = {
+			iisc_subtract_corp_money = {
+				TYPE = military
+				AMOUNT = @iisc_corp_corvette_cost
+			}
+			subtract_variable = {
+				which = iisc_loop_index
+				value = 1
+			}
+		}
+		create_ship = {
+			name = random
+			random_existing_design = corvette
+		}
+	}
+	# cleanup
+	owner = {
+		set_variable = {
+			which = iisc_loop_index
+			value = 0
+		}
+	}
+}
+
+# this = fleet
+iisc_override_fleet_action = {
+	set_variable = {
+		which = iisc_inactive_fleet_action_id
+		value = iisc_fleet_action_id
+	}
+	set_variable = {
+		which = iisc_fleet_action_id
+		value = $ACTION_ID$
+	}
+	set_fleet_flag = iisc_overriden_fleet_action
+}
+
+# this = fleet
+resume_fleet_action = {
+	set_variable = {
+		which = iisc_fleet_action_id
+		value = iisc_inactive_fleet_action_id
+	}
+	set_variable = {
+		which = iisc_inactive_fleet_action_id
+		value = 0
+	}
+	remove_fleet_flag = iisc_overriden_fleet_action
+	set_fleet_flag = iisc_recalculate_military_fleets_order
+}
+
+# sets orders according to iisc_fleet_action_id
+# used when spawned and when idle
+# this = fleet
+iisc_set_military_fleet_orders = {
+	if = {
+		limit = {
+			exists = solar_system
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+		remove_fleet_flag = iisc_changed_orders
+		while = {
+			# do ... while basically
+			limit = {
+				iisc_should_recalculate_military_fleets_orders = yes
+			}
+			remove_fleet_flag = iisc_recalculate_military_fleets_order
+			# idle
+			if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 0
+					}
+				}
+				iisc_set_military_orders_0 = yes
+			}
+			# patrolling
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 1
+					}
+				}
+				iisc_set_military_orders_1 = yes
+			}
+			# escorting
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 2
+					}
+				}
+				iisc_set_military_orders_2 = yes
+			}
+			# temporary escorting
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 3
+					}
+				}
+				iisc_set_military_orders_3 = yes
+			}
+			# awaiting reinforcement
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 4
+					}
+				}
+				iisc_set_military_orders_4 = yes
+			}
+			# attacking target
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 5
+					}
+				}
+				iisc_set_military_orders_5 = yes
+			}
+			# going back to repair
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 8
+					}
+				}
+				iisc_set_military_orders_8 = yes
+			}
+			# going back to shipyard
+			else_if = {
+				limit = {
+					check_variable = {
+						which = iisc_fleet_action_id
+						value = 9
+					}
+				}
+				iisc_set_military_orders_9 = yes
+			}
+			if = {
+				limit = {
+					has_fleet_flag = iisc_recalculate_military_fleets_order
+				}
+				set_fleet_flag = iisc_changed_orders
+			}
+		}
+		iisc_carry_out_military_fleets_orders = yes
+	}
+	save_event_target_as = iisc_military_fleet
+	if = {
+		limit = {
+			exists = owner
+		}
+		owner = {
+			country_event = {
+				id = iisc_military.10
+				days = 30
+				random = 30
+			}
+		}
+	}
+}
+
+# this = fleet
+iisc_set_military_orders_0 = {
+	set_variable = {
+		which = iisc_fleet_action_id
+		value = 1
+	}
+	iisc_select_patrolling_destination = yes
+	set_fleet_flag = iisc_recalculate_military_fleets_order
+}
+
+# this = fleet
+iisc_set_military_orders_1 = {
+	# check for ennemies in solar_system
+	if = {
+		limit = {
+			exists = solar_system
+			iisc_has_local_hostile = yes
+		}
+		iisc_hunt_local_hostile_and_override = yes
+		set_fleet_flag = iisc_changed_dest
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	# check if should go back to get new ships
+	else_if = {
+		limit = {
+			has_fleet_flag = iisc_fleet_needs_new_ships
+		}
+		set_variable = {
+			which = iisc_fleet_action_id
+			value = 9
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	# check for allied convoy needing escort
+	else_if = {
+		limit = {
+			iisc_has_allied_convoy_needing_escort = yes
+		}
+		iisc_escort_closest_allied_convoy_fleet = yes
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	# check for allies needing escort
+	else_if = {
+		limit = {
+			iisc_has_allies_needing_escort = yes
+		}
+		iisc_escort_closest_allied_fleet = yes
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	# check for ennemies close to HQ
+	# else_if = {
+	# 	limit = {
+	# 		iisc_has_close_hostile = yes
+	# 	}
+	# 	iisc_hunt_close_hostile_and_override = yes
+	# 	set_fleet_flag = iisc_recalculate_military_fleets_order
+	# }
+}
+
+# this = fleet
+iisc_set_military_orders_2 = {
+	# log = "----------------------------"
+	# if = {
+	# 	limit = {
+	# 		exists = event_target:iisc_escort_target
+	# 	}
+	# 	log = "escort target exists :"
+	# 	event_target:iisc_escort_target = {
+	# 		log = "escort target exists : [This.GetName]"
+	# 	}
+	# }
+	if = {
+		limit = {
+			exists = solar_system
+			exists = event_target:iisc_escort_target
+			exists = event_target:iisc_escort_target.solar_system
+			solar_system = {
+				is_same_value = event_target:iisc_escort_target.solar_system
+			}
+			iisc_has_local_hostile = yes
+		}
+		iisc_hunt_local_hostile_and_override = yes
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	else_if = {
+		limit = {
+			NAND = {
+				exists = event_target:iisc_escort_target
+				event_target:iisc_escort_target = {
+					has_fleet_flag = iisc_is_escorted
+				}
+			}
+		}
+		# switch back to patrolling
+		set_variable = {
+			which = iisc_fleet_action_id
+			value = 1
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+}
+
+# this = fleet
+iisc_set_military_orders_3 = {
+	# check if should go back to get new ships
+	if = {
+		limit = {
+			has_fleet_flag = iisc_fleet_needs_new_ships
+		}
+		set_variable = {
+			which = iisc_fleet_action_id
+			value = 9
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+		if = {
+			limit = {
+				exists = event_target:iisc_temp_escort_target
+			}
+			event_target:iisc_temp_escort_target = {
+				remove_fleet_flag = iisc_is_escorted
+				remove_fleet_flag = iisc_escorted_by_@prev
+			}
+		}
+	}
+	# check for allied convoy needing escort
+	else_if = {
+		limit = {
+			iisc_has_allied_convoy_needing_escort = yes
+		}
+		if = {
+			limit = {
+				exists = event_target:iisc_temp_escort_target
+			}
+			event_target:iisc_temp_escort_target = {
+				remove_fleet_flag = iisc_is_escorted
+				remove_fleet_flag = iisc_escorted_by_@prev
+			}
+		}
+		iisc_escort_closest_allied_convoy_fleet = yes
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	else_if = {
+		limit = {
+			exists = solar_system
+			exists = event_target:iisc_temp_escort_target
+			exists = event_target:iisc_temp_escort_target.solar_system
+			solar_system = {
+				is_same_value = event_target:iisc_temp_escort_target.solar_system
+			}
+			iisc_has_local_hostile = yes
+		}
+		iisc_hunt_local_hostile_and_override = yes
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	else_if = {
+		limit = {
+			NAND = {
+				exists = event_target:iisc_temp_escort_target
+				event_target:iisc_temp_escort_target = {
+					has_fleet_flag = iisc_is_escorted
+				}
+			}
+		}
+		# switch back to patrolling
+		set_variable = {
+			which = iisc_fleet_action_id
+			value = 1
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+		if = {
+			limit = {
+				exists = event_target:iisc_temp_escort_target
+			}
+			event_target:iisc_temp_escort_target = {
+				remove_fleet_flag = iisc_is_escorted
+				remove_fleet_flag = iisc_escorted_by_@prev
+			}
+		}
+	}
+}
+
+# this = fleet
+iisc_set_military_orders_4 = {
+	#TODO
+}
+
+# this = fleet
+iisc_set_military_orders_5 = {
+	# resume normal operations if target gone
+	if = {
+		limit = {
+			has_fleet_flag = iisc_overriden_fleet_action
+			exists = event_target:iisc_attack_target
+			exists = event_target:iisc_attack_target.solar_system
+			check_variable = {
+				which = iisc_inactive_fleet_action_id
+				value = 2
+			}
+			exists = event_target:iisc_escort_target
+			exists = event_target:iisc_escort_target.solar_system
+			NOT = {
+				event_target:iisc_escort_target.solar_system = {
+					is_same_value = event_target:iisc_attack_target.solar_system
+				}
+			}
+		}
+		# resume operations
+		resume_fleet_action = yes
+	}
+	else_if = {
+		limit = {
+			# if the target doesn't exist or if it isn't hostile
+			NAND = {
+				exists = event_target:iisc_attack_target
+				event_target:iisc_attack_target.owner = {
+					is_hostile = prev.owner
+				}
+			}
+		}
+		if = {
+			limit = {
+				has_fleet_flag = iisc_overriden_fleet_action
+			}
+			resume_fleet_action = yes
+		}
+		else = {
+			set_variable = {
+				which = iisc_fleet_action_id
+				value = 1
+			}
+			set_fleet_flag = iisc_recalculate_military_fleets_order
+		}
+	}
+}
+
+# this = fleet
+iisc_set_military_orders_8 = {
+	#TODO
+}
+
+# this = fleet
+iisc_set_military_orders_9 = {
+	if = {
+		limit = {
+			exists = orbit
+			orbit = {
+				is_same_value = event_target:iisc_hq_planet
+			}
+		}
+		# reached shipyard, build ships and go back
+		iisc_build_military_ships = yes
+		remove_fleet_flag = iisc_fleet_needs_new_ships
+		set_variable = {
+			which = iisc_fleet_action_id
+			value = 1
+		}
+		set_fleet_flag = iisc_recalculate_military_fleets_order
+	}
+	# else_if = {
+	# 	limit = {
+	# 		NAND = {
+	# 			exists = event_target:iisc_military_target
+	# 			event_target:iisc_military_target = {
+	# 				is_same_value = event_target:iisc_hq_planet
+	# 			}
+	# 		}
+	# 	}
+	# 	# set destination to shipyard
+	# 	event_target:iisc_hq_planet = {
+	# 		save_event_target_as = iisc_military_target
+	# 	}
+	# 	set_fleet_flag = iisc_changed_dest
+	# }
+}
+
+# this = fleet
+iisc_carry_out_military_fleets_orders = {
+	# idle
+	if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 0
+			}
+		}
+		iisc_apply_military_orders_0 = yes
+	}
+	# patrolling
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 1
+			}
+		}
+		iisc_apply_military_orders_1 = yes
+	}
+	# escorting
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 2
+			}
+		}
+		iisc_apply_military_orders_2 = yes
+	}
+	# temporary escorting
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 3
+			}
+		}
+		iisc_apply_military_orders_3 = yes
+	}
+	# awaiting reinforcement
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 4
+			}
+		}
+		iisc_apply_military_orders_4 = yes
+	}
+	# attacking target
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 5
+			}
+		}
+		iisc_apply_military_orders_5 = yes
+	}
+	# going back to repair
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 8
+			}
+		}
+		iisc_apply_military_orders_8 = yes
+	}
+	# going back to shipyard
+	else_if = {
+		limit = {
+			check_variable = {
+				which = iisc_fleet_action_id
+				value = 9
+			}
+		}
+		iisc_apply_military_orders_9 = yes
+	}
+}
+
+# this = fleet
+iisc_apply_military_orders_0 = {
+	# chilling?
+	clear_fleet_actions = this
+	clear_orders = yes
+	remove_auto_move_target = yes
+}
+
+# this = fleet
+iisc_apply_military_orders_1 = {
+	if = {
+		limit = {
+			OR = {
+				has_fleet_flag = iisc_changed_orders
+				# reached destination
+				AND = {
+					exists = orbit
+					exists = event_target:iisc_patrol_target
+					orbit = {
+						is_same_value = event_target:iisc_patrol_target
+					}
+				}
+				is_fleet_idle = yes
+			}
+		}
+		# stop
+		clear_fleet_actions = this
+		clear_orders = yes
+		remove_auto_move_target = yes
+		iisc_select_patrolling_destination = yes
+		queue_actions = {
+			move_to = event_target:iisc_patrol_target
+			orbit_planet = event_target:iisc_patrol_target
+		}
+	}
+}
+
+# this = fleet
+iisc_apply_military_orders_2 = {
+	if = {
+		limit = {
+			OR = {
+				has_fleet_flag = iisc_changed_orders
+				is_fleet_idle = yes
+			}
+			exists = event_target:iisc_escort_target
+		}
+		# stop
+		remove_auto_move_target = yes
+		clear_fleet_actions = this
+		clear_orders = yes
+		# log = "escorting fleet:"
+		# event_target:iisc_escort_target = {
+		# 	log = "escorting fleet: name = [This.GetName]"
+		# }
+		auto_follow_fleet = {
+			target = event_target:iisc_escort_target
+			attack_fleet = no
+		}
+	}
+}
+
+# this = fleet
+iisc_apply_military_orders_3 = {
+	if = {
+		limit = {
+			OR = {
+				has_fleet_flag = iisc_changed_orders
+				is_fleet_idle = yes
+			}
+			exists = event_target:iisc_temp_escort_target
+		}
+		# stop
+		remove_auto_move_target = yes
+		clear_fleet_actions = this
+		clear_orders = yes
+		# log = "temp escorting fleet:"
+		# event_target:iisc_temp_escort_target = {
+		# 	log = "temp escorting fleet: name = [This.GetName]"
+		# }
+		auto_follow_fleet = {
+			target = event_target:iisc_temp_escort_target
+			attack_fleet = no
+		}
+	}
+}
+
+# this = fleet
+iisc_apply_military_orders_4 = {
+	#TODO
+}
+
+# this = fleet
+iisc_apply_military_orders_5 = {
+	if = {
+		limit = {
+			OR = {
+				has_fleet_flag = iisc_changed_orders
+				is_fleet_idle = yes
+			}
+		}
+		# stop
+		remove_auto_move_target = yes
+		clear_fleet_actions = this
+		clear_orders = yes
+		# log = "attacking fleet:"
+		# event_target:iisc_attack_target = {
+		# 	log = "attacking fleet: name = [This.GetName]"
+		# }
+		auto_follow_fleet = {
+			target = event_target:iisc_attack_target
+			attack_fleet = yes
+		}
+	}
+}
+
+# this = fleet
+iisc_apply_military_orders_8 = {
+	#TODO
+}
+
+# this = fleet
+iisc_apply_military_orders_9 = {
+	if = {
+		limit = {
+			OR = {
+				has_fleet_flag = iisc_changed_orders
+				is_fleet_idle = yes
+			}
+		}
+		# stop
+		remove_auto_move_target = yes
+		clear_fleet_actions = this
+		clear_orders = yes
+		auto_move_to_planet = {
+			target = event_target:iisc_hq_planet
+			clear_auto_move_on_arrival = yes
+		}
+	}
+}
+
+# this = fleet
+iisc_select_patrolling_destination = {
+	# log = "searching patrolling"
+	# if = {
+	# 	limit = {
+	# 		solar_system = {
+	# 			prev.owner = {
+	# 				intel_level = {
+	# 					level > none
+	# 					system = prev
+	# 				}
+	# 			}
+	# 		}
+	# 	}
+	# 	# log = "has intel"
+	# }
+	# if = {
+	# 	limit = {
+	# 		solar_system = {
+	# 			has_access_fleet = prev.owner
+	# 		}
+	# 	}
+	# 	# log = "has access"
+	# }
+	# if = {
+	# 	limit = {
+	# 		solar_system = {
+	# 			distance = {
+	# 				source = event_target:iisc_hq_planet
+	# 				max_jumps = @iisc_patrol_close_system
+	# 				type = hyperlane
+	# 			}
+	# 		}
+	# 	}
+	# 	# log = "has distance"
+	# }
+	random_system = {
+		limit = {
+			prev = {
+				owner = {
+					intel_level = {
+						level > none
+						system = prevprev
+					}
+				}
+			}
+			has_access_fleet = prev.owner
+			distance = {
+				source = event_target:iisc_hq_planet
+				max_jumps = @iisc_patrol_close_system
+				type = hyperlane
+			}
+		}
+		# log = "found patrolling system"
+		random_system_planet = {
+			# log = "found patrolling system planet"
+			save_event_target_as = iisc_patrol_target
+		}
+	}
+}
+
+# this = fleet
+iisc_escort_closest_allied_fleet = {
+	closest_system = {
+		limit = {
+			any_fleet_in_system = {
+				has_fleet_flag = iisc_fleet_needs_escort
+				exists = owner
+				owner = {
+					is_same_value = prevprevprev.owner
+				}
+			}
+		}
+		random_fleet_in_system = {
+			limit = {
+				has_fleet_flag = iisc_fleet_needs_escort
+				exists = owner
+				owner = {
+					is_same_value = prevprevprev.owner
+				}
+			}
+			remove_fleet_flag = iisc_fleet_needs_escort
+			set_fleet_flag = iisc_is_escorted
+			set_fleet_flag = iisc_escorted_by_@prevprev
+			save_event_target_as = iisc_temp_escort_target
+		}
+	}
+	set_variable = {
+		which = iisc_fleet_action_id
+		value = 3
+	}
+}
+
+# this = fleet
+iisc_escort_closest_allied_convoy_fleet = {
+	closest_system = {
+		limit = {
+			any_fleet_in_system = {
+				has_fleet_flag = iisc_fleet_needs_escort
+				has_fleet_flag = iisc_convoy
+				exists = owner
+				owner = {
+					is_same_value = prevprevprev.owner
+				}
+			}
+		}
+		random_fleet_in_system = {
+			limit = {
+				has_fleet_flag = iisc_fleet_needs_escort
+				has_fleet_flag = iisc_convoy
+				exists = owner
+				owner = {
+					is_same_value = prevprevprev.owner
+				}
+			}
+			remove_fleet_flag = iisc_fleet_needs_escort
+			set_fleet_flag = iisc_is_escorted
+			set_fleet_flag = iisc_escorted_by_@prevprev
+			save_event_target_as = iisc_escort_target
+		}
+	}
+	set_variable = {
+		which = iisc_fleet_action_id
+		value = 2
+	}
+}
+
+# this = fleet
+iisc_hunt_local_hostile_and_override = {
+	solar_system = {
+		random_fleet_in_system = {
+			limit = {
+				exists = owner
+				owner = {
+					is_hostile = prevprevprev.owner
+				}
+			}
+			save_event_target_as = iisc_attack_target
+		}
+	}
+	iisc_override_fleet_action = {
+		ACTION_ID = 5
+	}
+}
+
+# this = fleet
+iisc_hunt_close_hostile_and_override = {
+	closest_system = {
+		limit = {
+			has_access_fleet = prev.owner
+			prev.owner = {
+				intel_level = {
+					level > medium
+					system = prev
+				}
+			}
+			distance = {
+				source = event_target:iisc_hq_planet
+				max_jumps = @iisc_patrol_close_system
+				type = hyperlane
+			}
+			any_fleet_in_system = {
+				exists = owner
+				owner = {
+					is_hostile = prevprevprev.owner
+				}
+			}
+		}
+		random_fleet_in_system = {
+			limit = {
+				exists = owner
+				owner = {
+					is_hostile = prevprevprev.owner
+				}
+			}
+			save_event_target_as = iisc_attack_target
+		}
+	}
+	iisc_override_fleet_action = {
+		ACTION_ID = 5
+	}
+}

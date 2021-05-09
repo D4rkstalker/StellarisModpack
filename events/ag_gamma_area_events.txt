@@ -1,0 +1,5238 @@
+namespace = ag_gamma
+
+# Spawn Gamma Area(Hidden)
+country_event = {
+    id = ag_gamma.1
+    hide_window = yes
+	is_triggered_only = yes
+	
+    immediate = {
+		ag_spawn_ancient_system = { ag_system_to_spawn = "ag_ancient_gamma_init" }
+		ag_spawned_system_effect = yes
+		create_point_of_interest = {
+			id = ag_gamma_area
+			name = "ag_gamma_area"
+			desc = "ag_gamma_area_desc"
+			event_chain = ag_hidden_system_chain
+			location = event_target:ag_ancient_gamma_star
+		}
+		random_system = {
+			limit = {
+				has_star_flag = ag_ancient_gamma_system
+			}
+			every_system = {
+				limit = {
+					ag_is_ancient_system = no
+					distance = {
+						source = prev
+						min_distance >= 0
+						max_distance <= 40
+						type = euclidean
+						use_bypasses = no
+					}
+					NOR = {
+						is_same_value = prev
+						has_hyperlane_to = prev
+					}
+				}
+				random_list = {
+					20 = {
+					}
+					80 = {
+						add_hyperlane = { from = this to = prev }
+					}
+				}
+			}
+		}
+    }
+	
+	after = {
+		every_country = {
+			limit = { has_special_project = ag_located_gamma_area }
+			abort_special_project = {
+				type = "ag_located_gamma_area"
+				location = capital_scope
+			}
+		}
+	}
+}
+
+# on_entering_system_fleet, Notification for entering the Gamma Area first time
+fleet_event = {
+	id = ag_gamma.2
+	title = "ag_gamma.2.name"
+	desc = "ag_gamma.2.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ruined_system_room }
+	show_sound = event_mystic_reveal_light
+	location = root
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			has_star_flag = ag_ancient_gamma_system
+		}
+		owner = {
+			is_ai = no
+			NOT = {
+				has_country_flag = ag_gamma_area_entered
+			}
+		}
+		NOT = {
+			has_global_flag = ag_gamma_ringworld_unlocked
+		}
+		NOT = {
+			any_country = {
+				has_special_project = ag_gamma_station_explore
+			}
+		}
+	}
+	
+    immediate = {
+		owner = {
+			set_country_flag = ag_gamma_area_entered
+			remove_point_of_interest = ag_gamma_area
+			if = {
+				limit = {
+					NOT = {
+						has_event_chain = "ag_hidden_system_chain"
+					}
+				}
+				begin_event_chain = {
+					event_chain = "ag_hidden_system_chain"
+					target = root.owner
+				}
+			}
+			create_point_of_interest = {
+				id = ag_ancient_gamma_area_alt
+				name = "ag_gamma_area"
+				desc = "ag_ancient_coordinate"
+				event_chain = "ag_hidden_system_chain"
+				location = from
+			}
+		}
+		solar_system = {
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = ag_gamma_station_dirty }
+				save_event_target_as = ag_gamma_station_dirty
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.2.a"
+		owner = {
+			enable_special_project = {
+				name = "ag_gamma_station_explore"
+				location = event_target:ag_gamma_station_dirty
+				owner = root.owner
+			}
+		}
+	}
+	option = {
+		name = "ag_gamma.2.b"
+		custom_tooltip = "ag_gamma.2.b.tooltip"
+		owner = {
+			add_resource = { influence = 80 }
+		}
+	}
+}
+
+# FInished special project, unlocks ringworld
+ship_event = {
+	id = ag_gamma.3
+	title = "ag_gamma.3.name"
+	desc = "ag_gamma.3.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_space_station_room }
+	show_sound = event_power_down
+	location = root
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ag_gamma_ringworld_unlocked
+		event_target:ag_ancient_gamma_shielded_world = {
+			change_pc = pc_ag_ringworld_city
+			ag_set_ancient_ringworld = {
+				ag_picture = pc_ag_ringworld_city_0
+				ag_color = red
+				ag_type = habitable
+				ag_surface_type = city_dark
+			}
+			add_deposit = ag_ancient_city_blocker
+			add_deposit = ag_ancient_city_blocker
+			add_deposit = ag_ancient_city_blocker
+			add_deposit = ag_ancient_city_blocker
+			add_deposit = ag_ancient_city_blocker
+			set_variable = {
+				which = ag_num_city_blockers
+				value = 5
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.3.a"
+	}
+	option = {
+		name = "ag_gamma.3.b"
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_fanatic_xenophile
+					has_ethic = ethic_xenophile
+				}
+			}
+		}
+		owner = { add_resource = { unity = 1000 } }
+	}
+	option = {
+		name = "ag_gamma.3.c"
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_fanatic_xenophobe
+					has_ethic = ethic_xenophobe
+				}
+			}
+		}
+		owner = { add_resource = { influence = 40 } }
+	}
+}
+
+# on_colonized, Colonized Gamma Area's ringworld
+planet_event = {
+	id = ag_gamma.10
+	title = "ag_gamma.10.name"
+	desc = "ag_gamma.10.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_city_dark_room }
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_same_value = event_target:ag_ancient_gamma_shielded_world
+		NOT = {
+			has_global_flag = ag_gamma_guardian_awakened
+		}
+		NOT = {
+			has_planet_flag = ag_gamma_shielded_world_colonized
+		}
+	}
+	
+	immediate = {
+		set_planet_flag = ag_gamma_shielded_world_colonized
+		add_building = ag_ancient_gamma_nexus_0
+		add_modifier = {
+			modifier = "ag_ancient_gamma_stage_0_debuff"
+			days = -1
+		}
+	}
+
+	option = {
+		name = "ag_gamma.10.a"
+		# custom_tooltip = "ag_gamma.10.a.tooltip"
+	}
+}
+
+# Ancient Security Lock I
+country_event = {
+	id = ag_gamma.11
+	title = "ag_gamma.11.name"
+	desc = "ag_gamma.11.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_default
+	location = event_target:ag_ancient_gamma_shielded_world
+
+	mean_time_to_happen = {
+		years = 1
+	}
+	
+	trigger = {
+		is_ai = no
+		NOR = {
+			has_global_flag = ag_gamma_guardian_awakened
+			has_global_flag = ag_gamma_security_lock_1_breached
+		}
+		NOT = {
+			has_country_flag = ag_gamma_11_fired
+		}
+		exists = event_target:ag_ancient_gamma_shielded_world
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			owner = { is_same_value = root }
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			has_building = ag_ancient_gamma_nexus_0
+			has_ground_combat = no
+			num_pops > 0
+		}
+		# any_owned_planet = {
+		# 	is_same_value = event_target:ag_ancient_gamma_shielded_world
+		# 	has_planet_flag = ag_gamma_shielded_world_colonized
+		# 	has_building = ag_ancient_gamma_nexus_0
+		# 	has_ground_combat = no
+		# 	num_pops > 0
+		# }
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_11_fired
+	}
+	
+	option = {
+		name = "ag_gamma.11.a"
+		enable_special_project = {
+			name = "ag_gamma_security_lock_1"
+			location = event_target:ag_ancient_gamma_shielded_world
+			owner = root
+		}
+	}
+	option = {
+		name = "ag_gamma.11.b"
+		custom_tooltip = "ag_gamma.2.b.tooltip"
+		add_resource = { influence = 80 }
+	}
+	
+}
+
+# Ancient Security Lock I project completed
+country_event = {
+	id = ag_gamma.12
+	title = "ag_gamma.12.name"
+	desc = "ag_gamma.12.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_city_light_room }
+	show_sound = event_mystic_reveal
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ag_gamma_security_lock_1_breached
+		random_system = {
+			limit = {
+				has_star_flag = ag_ancient_gamma_system
+			}
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = ag_gamma_station_dirty }
+				save_event_target_as = ag_gamma_station_loc
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			}
+			create_ambient_object = {
+				type = "ag_gamma_station_active"
+			}
+			last_created_ambient_object = {
+				set_location = {
+					target = event_target:ag_gamma_station_loc
+					distance = 0
+					angle = 0
+				}
+				set_ambient_object_flag = ag_gamma_station_active
+			}
+			event_target:ag_gamma_station_loc = {
+				destroy_ambient_object = this
+			}
+		}
+		event_target:ag_ancient_gamma_shielded_world = {
+			remove_modifier = "ag_ancient_gamma_stage_0_debuff"
+			ag_set_ancient_ringworld = {
+				ag_picture = pc_ag_ringworld_city
+				ag_color = red
+				ag_type = habitable
+				ag_surface_type = city_bright
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.12.a"
+	}
+	
+}
+
+# Ancient Security Lock II
+country_event = {
+	id = ag_gamma.13
+	title = "ag_gamma.13.name"
+	desc = "ag_gamma.13.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_default
+	location = event_target:ag_ancient_gamma_shielded_world
+
+	mean_time_to_happen = {
+		years = 3
+	}
+	
+	trigger = {
+		is_ai = no
+		has_global_flag = ag_gamma_security_lock_1_breached
+		NOR = {
+			has_global_flag = ag_gamma_guardian_awakened
+			has_global_flag = ag_gamma_security_lock_2_breached
+		}
+		NOT = {
+			has_country_flag = ag_gamma_13_fired
+		}
+		exists = event_target:ag_ancient_gamma_shielded_world
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			owner = { is_same_value = root }
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			has_building = ag_ancient_gamma_nexus_0
+			has_ground_combat = no
+			num_pops > 0
+		}
+		# any_owned_planet = {
+		# 	is_same_value = event_target:ag_ancient_gamma_shielded_world
+		# 	has_planet_flag = ag_gamma_shielded_world_colonized
+		# 	has_building = ag_ancient_gamma_nexus_0
+		# 	has_ground_combat = no
+		# 	num_pops > 0
+		# }
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_13_fired
+	}
+	
+	option = {
+		name = "ag_gamma.13.a"
+		enable_special_project = {
+			name = "ag_gamma_security_lock_2"
+			location = event_target:ag_ancient_gamma_shielded_world
+			owner = root
+		}
+	}
+	option = {
+		name = "ag_gamma.13.b"
+		add_resource = { influence = 20 }
+	}
+	
+}
+
+# Ancient Security Lock II project completed
+country_event = {
+	id = ag_gamma.14
+	title = "ag_gamma.14.name"
+	desc = "ag_gamma.14.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_physics_research_room }
+	show_sound = event_mystic_reveal
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ag_gamma_security_lock_2_breached
+		set_country_flag = ag_ancient_nexus_upgrade_available
+	}
+	
+	option = {
+		name = "ag_gamma.14.a"
+	}
+	
+}
+
+# on_building_upgraded, Upgraded Ancient Tower
+planet_event = {
+	id = ag_gamma.15
+	title = "ag_gamma.15.name"
+	desc = "ag_gamma.15.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_busy_spaceport_room }
+	show_sound = event_dyson_sphere_build_complete
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_global_flag = ag_gamma_crisis_began }
+		owner = {
+			has_country_flag = ag_ancient_nexus_upgrade_available
+			NOT = { has_country_flag = ag_gamma_15_fired }
+		}
+		has_building = ag_ancient_gamma_nexus_1
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = ag_gamma_15_fired
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.15.a"
+	}
+	
+}
+
+# Gamma Installation Defensive System Crisis Init
+country_event = {
+    id = ag_gamma.20
+    hide_window = yes
+	
+	mean_time_to_happen = {
+		years = 800
+		modifier = {
+			factor = 0.5
+			has_global_flag = ag_gamma_security_lock_2_breached
+		}
+		modifier = {
+			factor = 0.5
+			event_target:ag_ancient_gamma_shielded_world = {
+				check_variable = {
+					which = ag_num_city_blockers
+					value < 5
+				}
+			}
+		}
+		modifier = {
+			factor = 0.5
+			event_target:ag_ancient_gamma_shielded_world = {
+				check_variable = {
+					which = ag_num_city_blockers
+					value < 4
+				}
+			}
+		}
+		modifier = {
+			factor = 0.5
+			event_target:ag_ancient_gamma_shielded_world = {
+				check_variable = {
+					which = ag_num_city_blockers
+					value < 3
+				}
+			}
+		}
+		modifier = {
+			factor = 0.5
+			event_target:ag_ancient_gamma_shielded_world = {
+				check_variable = {
+					which = ag_num_city_blockers
+					value < 2
+				}
+			}
+		}
+		modifier = {
+			factor = 0.5
+			event_target:ag_ancient_gamma_shielded_world = {
+				check_variable = {
+					which = ag_num_city_blockers
+					value < 1
+				}
+			}
+		}
+	}
+	
+	trigger = {
+		OR = {
+			has_global_flag = ag_gamma_security_lock_1_breached
+			has_global_flag = ag_gamma_security_lock_2_breached
+			has_global_flag = ag_gamma_security_lock_3_breached
+		}
+		NOT = {
+			has_global_flag = ag_gamma_guardian_awakened
+		}
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			has_ground_combat = no
+		}
+	}
+	
+	immediate = {
+		set_global_flag = ag_gamma_guardian_awakened
+		event_target:ag_ancient_gamma_shielded_world = {
+			add_modifier = {
+				modifier = "ag_ancient_gamma_abnormal_system"
+				days = -1
+			}
+			solar_system = {
+				random_system_planet = {
+					limit = {
+						is_same_value = event_target:ag_gamma_ring_1
+					}
+					create_ambient_object = {
+						type = "ag_gamma_station_small_object"
+					}
+					last_created_ambient_object = {
+						set_location = {
+							target = event_target:ag_gamma_ring_1
+							distance = 80
+							angle = 30
+						}
+						set_ambient_object_flag = ag_gamma_station_small_1
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				random_system_planet = {
+					limit = {
+						is_same_value = event_target:ag_gamma_ring_5
+					}
+					create_ambient_object = {
+						type = "ag_gamma_station_small_object"
+					}
+					last_created_ambient_object = {
+						set_location = {
+							target = event_target:ag_gamma_ring_5
+							distance = 80
+							angle = 150
+						}
+						set_ambient_object_flag = ag_gamma_station_small_2
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				random_system_planet = {
+					limit = {
+						is_same_value = event_target:ag_gamma_ring_9
+					}
+					create_ambient_object = {
+						type = "ag_gamma_station_small_object"
+					}
+					last_created_ambient_object = {
+						set_location = {
+							target = event_target:ag_gamma_ring_9
+							distance = 80
+							angle = 270
+						}
+						set_ambient_object_flag = ag_gamma_station_small_3
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+			}
+			owner = {
+				country_event = { id = ag_gamma.21 }
+				country_event = { id = ag_gamma.22 days = 90 }
+			}
+		}
+	}
+
+}
+
+# Notification for init
+country_event = {
+	id = ag_gamma.21
+	title = "ag_gamma.21.name"
+	desc = "ag_gamma.21.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_unknown_ships_room }
+	show_sound = event_yellow_alert
+	location = event_target:ag_ancient_gamma_star
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.21.a"
+	}
+	
+}
+
+# Gamma Installation Defensive System Crisis happens
+country_event = {
+    id = ag_gamma.22
+    hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = {
+			has_global_flag = ag_gamma_crisis_began
+		}
+	}
+	
+	immediate = {
+		set_global_flag = ag_gamma_crisis_began
+		ag_create_ancient_guardian = {
+			ag_country_name = "NAME_ag_ancient_gamma_guardian"
+			ag_country_type = ag_ancient_gamma_guardian
+		}
+		last_created_country = {
+			save_global_event_target_as = ag_ancient_gamma_guardian_country
+			set_country_flag = ag_ancient_gamma_guardian_country
+			ag_ancient_country_friendly_to_each_other = yes
+			if = {
+				limit = { NOT = { has_modifier = "ag_gamma_guradian_power_10" } }
+				add_modifier = { modifier = "ag_gamma_guradian_power_10" days = -1 }
+				country_event = { id = ag_gamma.221 days = 6 }
+			}
+		}
+		every_country = {
+			establish_communications_no_message = event_target:ag_ancient_gamma_guardian_country
+			if = {
+				limit = {
+					NOT = {
+						has_event_chain = ag_gamma_guardian_crisis_chain
+					}
+				}
+				begin_event_chain = {
+					event_chain = "ag_gamma_guardian_crisis_chain"
+					target = this
+				}
+			}
+		}
+		#awaken_guardians_of_the_galaxy = yes
+		event_target:ag_ancient_gamma_shielded_world = {
+			remove_modifier = "ag_ancient_gamma_abnormal_system"
+			if = {
+				limit = { num_pops > 0 }
+				every_owned_pop = { kill_pop = yes }
+				remove_all_districts = yes
+				destroy_colony = yes
+			}
+			planet_event = { id = ag_gamma.30 days = 270 }
+		}
+		random_system = {
+			limit = {
+				has_star_flag = ag_ancient_gamma_system
+			}
+			random_system_ambient_object = {
+				limit = {
+					has_ambient_object_flag = ag_gamma_station_active
+				}
+				save_event_target_as = ag_gamma_station_loc
+			}
+			random_system_ambient_object = {
+				limit = {
+					has_ambient_object_flag = ag_gamma_station_small_1
+				}
+				save_event_target_as = ag_gamma_station_small_1_loc
+			}
+			random_system_ambient_object = {
+				limit = {
+					has_ambient_object_flag = ag_gamma_station_small_2
+				}
+				save_event_target_as = ag_gamma_station_small_2_loc
+			}
+			random_system_ambient_object = {
+				limit = {
+					has_ambient_object_flag = ag_gamma_station_small_3
+				}
+				save_event_target_as = ag_gamma_station_small_3_loc
+			}
+			every_fleet_in_system = {
+				limit = {
+					owner = {
+						NOT = {
+							is_same_value = event_target:ag_ancient_gamma_guardian_country
+						}
+					}
+				}
+				destroy_fleet = this
+			}
+		}
+		if = {
+			limit = { exists = event_target:ag_gamma_station_loc }
+			create_fleet = {
+				name = "NAME_ag_gamma_station_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_fleet_flag = ag_gamma_station_hostile_fleet
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					create_ship = {
+						name = "NAME_ag_gamma_station_ship"
+						design = "NAME_ag_gamma_station_hostile"
+						prefix = no
+						effect = {
+							set_ship_flag = ag_gamma_station_protection_enabled
+							set_ship_flag = ag_gamma_station_protection_1
+							ag_set_disable_at_health = { ag_value = 0.75 }
+							ag_difficulty_bonus = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_gamma_station_loc
+						distance = -1
+						angle = 0
+					}
+				}
+			}
+			event_target:ag_gamma_station_loc = { destroy_ambient_object = this }
+		}
+		else = {
+			create_fleet = {
+				name = "NAME_ag_gamma_station_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_fleet_flag = ag_gamma_station_hostile_fleet
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					create_ship = {
+						name = "NAME_ag_gamma_station_ship"
+						design = "NAME_ag_gamma_station_hostile"
+						prefix = no
+						effect = {
+							set_ship_flag = ag_gamma_station_protection_enabled
+							set_ship_flag = ag_gamma_station_protection_1
+							ag_set_disable_at_health = { ag_value = 0.75 }
+							ag_difficulty_bonus = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_ancient_gamma_shielded_world.solar_system.star
+						distance = -1
+						angle = 0
+					}
+				}
+			}
+		}
+		if = {
+			limit = { exists = event_target:ag_gamma_station_small_1_loc }
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_1
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_gamma_station_small_1_loc
+						distance = -1
+						angle = 0
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+			event_target:ag_gamma_station_small_1_loc = { destroy_ambient_object = this }
+		}
+		else = {
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_1
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_ancient_gamma_shielded_world.solar_system.star
+						distance = 110
+						angle = 30
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+		}
+		if = {
+			limit = { exists = event_target:ag_gamma_station_small_2_loc }
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_2
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_gamma_station_small_2_loc
+						distance = -1
+						angle = 0
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+			event_target:ag_gamma_station_small_2_loc = { destroy_ambient_object = this }
+		}
+		else = {
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_2
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_ancient_gamma_shielded_world.solar_system.star
+						distance = 110
+						angle = 150
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+		}
+		if = {
+			limit = { exists = event_target:ag_gamma_station_small_3_loc }
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_3
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_gamma_station_small_3_loc
+						distance = -1
+						angle = 0
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+			event_target:ag_gamma_station_small_3_loc = { destroy_ambient_object = this }
+		}
+		else = {
+			create_fleet = {
+				name = "NAME_ag_gamma_guardian_fleet"
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+					garrison = yes
+				}
+				effect = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					set_owner = event_target:ag_ancient_gamma_guardian_country
+					save_global_event_target_as = ag_gamma_station_small_3
+					set_fleet_bombardment_stance = ag_ancient_bombardment
+					create_ship = {
+						name = "NAME_ag_gamma_station_small_ship"
+						design = "NAME_ag_gamma_station_small_moving_hostile"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+						}
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					while = {
+						count = @ag_gamma_assault_fleet_num_escorts
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+							ag_gamma_battlecruiser_spawn = yes
+						}
+					}
+					if = {
+						limit = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+						while = {
+							count = @ag_gamma_assault_fleet_extra_escorts_hard_2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					set_location = {
+						target = event_target:ag_ancient_gamma_shielded_world.solar_system.star
+						distance = 110
+						angle = 270
+					}
+					set_formation_scale = 5.0
+					set_fleet_stance = aggressive
+					set_aggro_range = 500
+					set_aggro_range_measure_from = self
+				}
+			}
+		}
+		ag_spawn_gamma_guardian_fleet_garrison = yes
+		event_target:ag_ancient_gamma_guardian_country = {
+			country_event = { id = ag_gamma.25 days = 30 random = 180 }
+			country_event = { id = ag_gamma.31 days = 0 }
+			country_event = { id = ag_gamma.31 days = 10 }
+			country_event = { id = ag_gamma.31 days = 25 }
+			country_event = { id = ag_gamma.31 days = 45 }
+			country_event = { id = ag_gamma.31 days = 70 }
+			country_event = { id = ag_gamma.31 days = 100 }
+			country_event = { id = ag_gamma.31 days = 150 }
+			country_event = { id = ag_gamma.31 days = 210 }
+		}
+		country_event = { id = ag_gamma.23 }
+		every_country = {
+			limit = {
+				NOT = {
+					is_same_value = root
+				}
+			}
+			country_event = { id = ag_gamma.24 }
+		}
+		event_target:ag_gamma_station_loc = {
+			create_ambient_object = {
+				type = "ag_gamma_installation_defensive_system_bright"
+				location = this
+			}
+			last_created_ambient_object = {
+				set_ambient_object_flag = ag_gamma_installation_defensive_system_bright
+				set_location = {
+					target = prev
+					distance = 0
+					angle = random
+				}
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.221
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this }
+	immediate = {
+		if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_10" }
+			remove_modifier = "ag_gamma_guradian_power_10"
+			add_modifier = { modifier = "ag_gamma_guradian_power_9" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_9" }
+			remove_modifier = "ag_gamma_guradian_power_9"
+			add_modifier = { modifier = "ag_gamma_guradian_power_8" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_8" }
+			remove_modifier = "ag_gamma_guradian_power_8"
+			add_modifier = { modifier = "ag_gamma_guradian_power_7" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_7" }
+			remove_modifier = "ag_gamma_guradian_power_7"
+			add_modifier = { modifier = "ag_gamma_guradian_power_6" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_6" }
+			remove_modifier = "ag_gamma_guradian_power_6"
+			add_modifier = { modifier = "ag_gamma_guradian_power_5" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_5" }
+			remove_modifier = "ag_gamma_guradian_power_5"
+			add_modifier = { modifier = "ag_gamma_guradian_power_4" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_4" }
+			remove_modifier = "ag_gamma_guradian_power_4"
+			add_modifier = { modifier = "ag_gamma_guradian_power_3" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_3" }
+			remove_modifier = "ag_gamma_guradian_power_3"
+			add_modifier = { modifier = "ag_gamma_guradian_power_2" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_2" }
+			remove_modifier = "ag_gamma_guradian_power_2"
+			add_modifier = { modifier = "ag_gamma_guradian_power_1" days = -1 }
+			country_event = { id = ag_gamma.221 days = 6 }
+		}
+		else_if = {
+			limit = { has_modifier = "ag_gamma_guradian_power_1" }
+			remove_modifier = "ag_gamma_guradian_power_1"
+		}
+	}
+}
+
+# Notification for crisis happens, for ringworld owner
+country_event = {
+	id = ag_gamma.23
+	title = "ag_gamma.23.name"
+	desc = "ag_gamma.23.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_fleet_evil_room }
+	show_sound = event_red_alert
+	location = event_target:ag_ancient_gamma_star
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.23.a"
+	}
+	
+}
+
+# Notification for crisis happens, for others
+country_event = {
+	id = ag_gamma.24
+	title = "ag_gamma.24.name"
+	desc = "ag_gamma.24.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_unknown_ships_room }
+	show_sound = event_red_alert
+	location = event_target:ag_ancient_gamma_star
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.24.a"
+	}
+	
+}
+
+# Small Station select system
+country_event = {
+    id = ag_gamma.25
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		NOR = {
+			has_global_flag = ag_gamma_25_fired
+			has_global_flag = ag_gamma_station_destroyed
+		}
+		any_country = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+			NAND = {
+				has_country_flag = ag_gamma_station_small_1_destroyed
+				has_country_flag = ag_gamma_station_small_2_destroyed
+				has_country_flag = ag_gamma_station_small_3_destroyed
+			}
+		}
+	}
+	
+	immediate = {
+		set_global_flag = ag_gamma_25_fired
+		random_system = {
+			limit = {
+				has_star_flag = ag_ancient_gamma_system
+			}
+			ag_gamma_small_station_1_find_target_action = yes
+			ag_gamma_small_station_2_find_target_action = yes
+			ag_gamma_small_station_3_find_target_action = yes
+		}
+		every_country = {
+			limit = {
+				NOT = {
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+				}
+			}
+			country_event = { id = ag_gamma.26 }
+		}
+	}
+}
+
+# Notification for small stations movement
+country_event = {
+	id = ag_gamma.26
+	title = "ag_gamma.26.name"
+	desc = "ag_gamma.26.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_star_chart_room }
+	show_sound = event_red_alert
+	location = event_target:ag_ancient_gamma_star
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.26.a"
+	}
+	
+}
+
+# Ancient fleet's action
+fleet_event = {
+    id = ag_gamma.27
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = this
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+	}
+	
+	immediate = {
+		ag_gamma_crisis_fleet_attack_action = yes
+	}
+}
+
+# on_fleet_destroyed_perp, Reset ancient fleet's target after battle
+country_event = {
+    id = ag_gamma.28
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+		has_country_flag = ag_ancient_gamma_guardian_country
+		fromfrom = {
+			has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+		}
+		fromfromfrom = {
+			any_owned_ship = {
+				is_ship_class = shipclass_military
+			}
+		}
+	}
+	
+	after = {
+		fromfrom = {
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = {
+							is_country_type = ag_ancient_gamma_guardian
+						}
+						has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					}
+					clear_orders = yes
+					clear_fleet_actions = this
+					if = {
+						limit = {
+							OR = {
+								AND = {
+									count_owned_ship = {
+										limit = {
+											is_ship_size = ag_gamma_battlecruiser_hostile
+										}
+										count > 0
+									}
+									count_owned_ship = {
+										limit = {
+											is_ship_size = ag_gamma_escort_hostile
+										}
+										count > 1
+									}
+								}
+								AND = {
+									OR = {
+										count_owned_ship = {
+											limit = {
+												is_ship_size = ag_gamma_battlecruiser_hostile
+											}
+											count <= 0
+										}
+										count_owned_ship = {
+											limit = {
+												is_ship_size = ag_gamma_escort_hostile
+											}
+											count <= 1
+										}
+									}
+									event_target:ag_ancient_gamma_guardian_country = {
+										NOT = {
+											any_owned_ship = {
+												OR = {
+													is_ship_size = ag_gamma_station_hostile
+													is_ship_size = ag_gamma_station_small_hostile
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						fleet_event = { id = ag_gamma.27 days = 2 random = 3 }
+					}
+					else = {
+						set_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+						ag_gamma_crisis_fleet_reinforcement_action = yes
+					}
+					fleet_event = { id = ag_gamma.34 days = 30 }
+				}
+			}
+		}
+	}
+}
+
+# on_fleet_auto_move_arrival, Reset target when ancient fleet orbiting stars
+country_event = {
+    id = ag_gamma.29
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+		has_country_flag = ag_ancient_gamma_guardian_country
+		from = {
+			has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+		}
+		fromfrom = {
+			OR = {
+				is_star = yes
+				NOT = { exists = owner }
+			}
+		}
+	}
+	
+	immediate = {
+		from = {
+			if = {
+				limit = {
+					NAND = {
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_battlecruiser_hostile
+							}
+							count > 0
+						}
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_escort_hostile
+							}
+							count > 1
+						}
+					}
+					event_target:ag_ancient_gamma_guardian_country = {
+						any_owned_ship = {
+							OR = {
+								is_ship_size = ag_gamma_station_hostile
+								is_ship_size = ag_gamma_station_small_hostile
+							}
+						}
+					}
+				}
+				set_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+			}
+			#继续作战
+			if = {
+				limit = {
+					NOT = {
+						has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+					}
+				}
+				clear_orders = yes
+				clear_fleet_actions = this
+				fleet_event = { id = ag_gamma.27 days = 1 random = 5 }
+			}
+			#补员
+			else = {
+				clear_orders = yes
+				clear_fleet_actions = this
+				fleet_event = { id = ag_gamma.33 days = 30 random = 30 }
+			}
+			fleet_event = { id = ag_gamma.34 days = 30 }
+		}
+	}
+}
+
+# Ancient fleet's Reinforcement cycle
+planet_event = {
+    id = ag_gamma.30
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+		any_country = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:ag_ancient_gamma_guardian_country = {
+					OR = {
+						AND = {
+							NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count < 1
+							}
+							num_ships > 320
+						}
+						AND = {
+							NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count = 1
+							}
+							num_ships > 400
+						}
+						AND = {
+							NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count = 2
+							}
+							num_ships > 480
+						}
+						AND = {
+							NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count > 2
+							}
+							num_ships > 560
+						}
+						AND = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count < 1
+							}
+							num_ships > 640
+						}
+						AND = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count = 1
+							}
+							num_ships > 800
+						}
+						AND = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count = 2
+							}
+							num_ships > 960
+						}
+						AND = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+								count > 2
+							}
+							num_ships > 1120
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					NOT = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_large_station_reinforcement_days random = 180 }
+			}
+			else = {
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_large_station_reinforcement_days random = 120 }
+			}
+		}
+		else = {
+			if = {
+				limit = {
+					is_same_value = event_target:ag_ancient_gamma_shielded_world
+					solar_system = {
+						any_ship_in_system = {
+							is_ship_size = ag_gamma_station_hostile
+						}
+					}
+				}
+				ag_gamma_guardian_fleet_spawn = {
+					ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+					ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+					ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+					ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+					ag_target_location = event_target:ag_ancient_gamma_shielded_world
+					ag_action_event = ag_gamma.27
+				}
+				if = {
+					limit = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+					random_list = {
+						20 = {
+						}
+						80 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_ancient_gamma_shielded_world
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+					random_list = {
+						75 = {
+						}
+						25 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_ancient_gamma_shielded_world
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_large_station_reinforcement_days random = 60 }
+			}
+			else_if = {
+				limit = {
+					is_same_value = event_target:ag_gamma_target_star_loc_1
+					solar_system = {
+						any_ship_in_system = {
+							is_ship_size = ag_gamma_station_small_hostile
+							exists = owner
+							owner = {
+								has_country_flag = ag_ancient_gamma_guardian_country
+							}
+						}
+					}
+				}
+				ag_gamma_guardian_fleet_spawn = {
+					ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+					ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+					ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+					ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+					ag_target_location = event_target:ag_gamma_target_star_loc_1
+					ag_action_event = ag_gamma.27
+				}
+				if = {
+					limit = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+					random_list = {
+						20 = {
+						}
+						80 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_1
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+					random_list = {
+						75 = {
+						}
+						25 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_1
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_small_station_reinforcement_days random = 60 }
+			}
+			else_if = {
+				limit = {
+					is_same_value = event_target:ag_gamma_target_star_loc_2
+					solar_system = {
+						any_ship_in_system = {
+							is_ship_size = ag_gamma_station_small_hostile
+							exists = owner
+							owner = {
+								has_country_flag = ag_ancient_gamma_guardian_country
+							}
+						}
+					}
+				}
+				ag_gamma_guardian_fleet_spawn = {
+					ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+					ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+					ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+					ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+					ag_target_location = event_target:ag_gamma_target_star_loc_2
+					ag_action_event = ag_gamma.27
+				}
+				if = {
+					limit = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+					random_list = {
+						20 = {
+						}
+						80 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_2
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+					random_list = {
+						75 = {
+						}
+						25 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_2
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_small_station_reinforcement_days random = 60 }
+			}
+			else_if = {
+				limit = {
+					is_same_value = event_target:ag_gamma_target_star_loc_3
+					solar_system = {
+						any_ship_in_system = {
+							is_ship_size = ag_gamma_station_small_hostile
+							exists = owner
+							owner = {
+								has_country_flag = ag_ancient_gamma_guardian_country
+							}
+						}
+					}
+				}
+				ag_gamma_guardian_fleet_spawn = {
+					ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+					ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+					ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+					ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+					ag_target_location = event_target:ag_gamma_target_star_loc_3
+					ag_action_event = ag_gamma.27
+				}
+				if = {
+					limit = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+					random_list = {
+						20 = {
+						}
+						80 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_3
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+					random_list = {
+						75 = {
+						}
+						25 = {
+							ag_gamma_guardian_fleet_spawn = {
+								ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+								ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+								ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+								ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+								ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+								ag_target_location = event_target:ag_gamma_target_star_loc_3
+								ag_action_event = ag_gamma.27
+							}
+						}
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_small_station_reinforcement_days random = 60 }
+			}
+			else_if = {
+				limit = {
+					NOR = {
+						is_same_value = event_target:ag_ancient_gamma_star
+						is_same_value = event_target:ag_gamma_target_star_loc_1
+						is_same_value = event_target:ag_gamma_target_star_loc_2
+						is_same_value = event_target:ag_gamma_target_star_loc_3
+					}
+					solar_system = {
+						any_ship_in_system = {
+							is_ship_size = ag_gamma_station_hostile
+						}
+					}
+				}
+				ag_spawn_gamma_guardian_fleet_jumped = yes
+				if = {
+					limit = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+					ag_spawn_gamma_guardian_fleet_jumped = yes
+					random_list = {
+						75 = {
+						}
+						25 = {
+							ag_spawn_gamma_guardian_fleet_jumped = yes
+						}
+					}
+				}
+				planet_event = { id = ag_gamma.30 days = @ag_ancient_gamma_guardian_large_station_jumped_reinforcement_days random = 120 }
+			}
+		}
+	}
+}
+country_event = {
+    id = ag_gamma.31
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+		any_country = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+	}
+	
+	immediate = {
+		ag_gamma_guardian_fleet_spawn = {
+			ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+			ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+			ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+			ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+			ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+			ag_target_location = event_target:ag_ancient_gamma_shielded_world
+			ag_action_event = ag_gamma.27
+		}
+	}
+
+}
+
+# on_planet_bombarded, Ancient fleet destroy a planet
+planet_event = {
+	id = ag_gamma.32
+	title = "ag_gamma.32.name"
+	desc = {
+		trigger = {
+			NOR = {
+				AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no }
+				ag_is_habitat = yes
+				has_modifier = "holy_planet"
+			}
+		}
+		text = "ag_gamma.32.a.desc"
+	}
+	desc = {
+		trigger = { AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no } }
+		text = "ag_gamma.32.b.desc"
+	}
+	desc = {
+		trigger = {
+			ag_is_habitat = yes
+		}
+		text = "ag_gamma.32.c.desc"
+	}
+	desc = {
+		trigger = {
+			OR = {
+				has_modifier = "holy_planet"
+				has_modifier = "ag_shattered_holy_planet"
+			}
+		}
+		text = "ag_gamma.32.d.desc"
+	}
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_nuclear_explosion_room }
+	show_sound = event_super_explosion
+	location = root
+
+	is_triggered_only = yes
+
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		any_country = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+		OR = {
+			planet_devastation >= 100
+			AND = {
+				num_pops < 2
+				owner = {
+					ag_is_common_country = yes
+				}
+			}
+		}
+		from = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = { exists = owner }
+			owner = { change_variable = { which = ag_num_planets_destroyed_by_gamma_crisis value = 1 } }
+		}
+		add_threat = { who = from amount = 2 }
+		add_planet_devastation = -100
+		if = {
+			limit = { num_pops > 0 }
+			every_owned_pop = { kill_pop = yes }
+		}
+		remove_all_buildings = yes
+		remove_all_districts = yes
+		clear_deposits = yes
+		if = {
+			limit = { is_colony = yes }
+			destroy_colony = yes
+		}
+		ag_remove_all_modifier_gamma = yes
+		ag_remove_all_modifier_common = yes
+		if = {
+			limit = {
+				NOR = {
+					AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no }
+					ag_is_habitat = yes
+					has_modifier = "holy_planet"
+				}
+			}
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			change_pc = pc_molten
+			add_modifier = {
+				modifier = "terraforming_candidate"
+				days = -1
+			}
+		}
+		else_if = {
+			limit = { AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no } }
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			ag_destroy_habitable_ringworld = yes
+		}
+		else_if = {
+			limit = { ag_is_habitat = yes }
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			remove_planet = yes
+		}
+		else_if = {
+			limit = {
+				has_modifier = "holy_planet"
+			}
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			change_pc = pc_shattered
+			remove_modifier = "holy_planet"
+			add_modifier = {
+				modifier = "ag_shattered_holy_planet"
+				days = -1
+			}
+		}
+		every_country = {
+			limit = {
+				NOT = {
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+				}
+				has_event_chain = ag_gamma_guardian_crisis_chain
+			}
+			add_event_chain_counter = {
+				event_chain = "ag_gamma_guardian_crisis_chain"
+				counter = "ag_gamma_crisis_destroyed_planets"
+				amount = 1
+			}
+		}
+		solar_system = {
+			every_fleet_in_system = {
+				limit = {
+					exists = owner
+					owner = {
+						has_country_flag = ag_ancient_gamma_guardian_country
+					}
+					has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					NOT = {
+						has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+					}
+					OR = {
+						AND = {
+							exists = orbit
+							orbit = {
+								is_same_value = root
+							}
+						}
+						AND = {
+							is_fleet_idle = yes
+							NAND = {
+								exists = orbit
+								orbit = {
+									NOT = {
+										is_star = yes
+									}
+									exists = owner
+									owner = {
+										is_hostile = event_target:ag_ancient_gamma_guardian_country
+									}
+								}
+							}
+						}
+					}
+				}
+				clear_orders = yes
+				clear_fleet_actions = this
+				fleet_event = { id = ag_gamma.27 days = 1 random = 2 }
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.32.a"
+	}
+
+}
+
+# Spawn new ships if ancient fleet takes heavy casualties
+fleet_event = {
+    id = ag_gamma.33
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = this
+		has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+		has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				solar_system = {
+					any_ship_in_system = {
+						OR = {
+							is_ship_size = ag_gamma_station_hostile
+							is_ship_size = ag_gamma_station_small_hostile
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					NOT = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+					}
+				}
+				if = {
+					limit = {
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_battlecruiser_hostile
+							}
+							count < 4
+						}
+					}
+					ag_gamma_battlecruiser_spawn = yes
+				}
+				if = {
+					limit = {
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_escort_hostile
+							}
+							count < 8
+						}
+					}
+					if = {
+						limit = {
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_escort_hostile
+								}
+								count < 7
+							}
+						}
+						while = {
+							count = 2
+							ag_gamma_escort_spawn = yes
+						}
+					}
+					else = {
+						ag_gamma_escort_spawn = yes
+					}
+				}
+				if = {
+					limit = {
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_battlecruiser_hostile
+							}
+							count > 3
+						}
+						count_owned_ship = {
+							limit = {
+								is_ship_size = ag_gamma_escort_hostile
+							}
+							count > 7
+						}
+					}
+					remove_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+					fleet_event = { id = ag_gamma.27 days = 10 random = 5 }
+					fleet_event = { id = ag_gamma.34 days = 30 }
+				}
+				else = {
+					fleet_event = { id = ag_gamma.33 days = 30 random = 30 }
+				}
+			}
+			else = {
+				if = {
+					limit = {
+						NOT = {
+							event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } }
+						}
+					}
+					if = {
+						limit = {
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_battlecruiser_hostile
+								}
+								count < 12
+							}
+						}
+						if = {
+							limit = {
+								count_owned_ship = {
+									limit = {
+										is_ship_size = ag_gamma_battlecruiser_hostile
+									}
+									count < 11
+								}
+							}
+							ag_gamma_battlecruiser_spawn = yes
+						}
+						ag_gamma_battlecruiser_spawn = yes
+					}
+					if = {
+						limit = {
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_escort_hostile
+								}
+								count < 16
+							}
+						}
+						if = {
+							limit = {
+								count_owned_ship = {
+									limit = {
+										is_ship_size = ag_gamma_escort_hostile
+									}
+									count < 13
+								}
+							}
+							while = {
+								count = 3
+								ag_gamma_escort_spawn = yes
+							}
+						}
+						else_if = {
+							limit = {
+								count_owned_ship = {
+									limit = {
+										is_ship_size = ag_gamma_escort_hostile
+									}
+									count < 14
+								}
+							}
+							while = {
+								count = 2
+								ag_gamma_escort_spawn = yes
+							}
+						}
+						else_if = {
+							limit = {
+								count_owned_ship = {
+									limit = {
+										is_ship_size = ag_gamma_escort_hostile
+									}
+									count < 15
+								}
+							}
+							ag_gamma_escort_spawn = yes
+						}
+						ag_gamma_escort_spawn = yes
+					}
+					if = {
+						limit = {
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_battlecruiser_hostile
+								}
+								count > 3
+							}
+							count_owned_ship = {
+								limit = {
+									is_ship_size = ag_gamma_escort_hostile
+								}
+								count > 7
+							}
+						}
+						remove_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+						fleet_event = { id = ag_gamma.27 days = 10 random = 5 }
+						fleet_event = { id = ag_gamma.34 days = 30 }
+					}
+					else = {
+						fleet_event = { id = ag_gamma.33 days = 30 random = 30 }
+					}
+				}
+			}
+		}
+		else = {
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+					}
+					ag_gamma_crisis_fleet_reinforcement_action = yes
+					fleet_event = { id = ag_gamma.34 days = 30 }
+				}
+			}
+		}
+	}
+}
+
+# checks ancient could get reinforcement or not
+fleet_event = {
+    id = ag_gamma.34
+    hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_global_flag = ag_gamma_station_destroyed }
+		exists = this
+		is_fleet_idle = yes
+		has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+		OR = {
+			AND = {
+				NOT = {
+					has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+				}
+				NAND = {
+					exists = orbit
+					orbit = {
+						NOT = {
+							is_star = yes
+						}
+						exists = owner
+						owner = {
+							is_hostile = event_target:ag_ancient_gamma_guardian_country
+						}
+					}
+				}
+			}
+			AND = {
+				has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+				NAND = {
+					exists = orbit
+					orbit = {
+						is_star = yes
+						solar_system = {
+							any_ship_in_system = {
+								OR = {
+									is_ship_size = ag_gamma_station_hostile
+									is_ship_size = ag_gamma_station_small_hostile
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+				}
+			}
+			clear_orders = yes
+			clear_fleet_actions = this
+			fleet_event = { id = ag_gamma.27 days = 1 random = 5 }
+		}
+		else = {
+			clear_orders = yes
+			clear_fleet_actions = this
+			ag_gamma_crisis_fleet_reinforcement_action = yes
+		}
+		fleet_event = { id = ag_gamma.34 days = 360 }
+	}
+}
+
+# Small station deployed
+fleet_event = {
+    id = ag_gamma.351
+    hide_window = yes
+	
+	fire_only_once = yes
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		has_global_flag = ag_gamma_25_fired
+		NOT = { has_global_flag = ag_gamma_station_small_1_deployed }
+		exists = event_target:ag_ancient_gamma_guardian_country
+		owner = { is_same_value = event_target:ag_ancient_gamma_guardian_country }
+		is_same_value = event_target:ag_gamma_station_small_1
+		any_owned_ship = { is_ship_size = ag_gamma_station_small_moving_hostile }
+		exists = event_target:ag_gamma_target_loc_1
+		solar_system = { is_same_value = event_target:ag_gamma_target_loc_1 }
+		exists = event_target:ag_gamma_target_star_loc_1
+		exists = orbit
+		orbit = { is_same_value = event_target:ag_gamma_target_star_loc_1 }
+	}
+	
+	immediate = {
+		solar_system = {
+			save_event_target_as = ag_ancient_gamma_small_station_system
+			ag_gamma_station_colony_effect = yes
+		}
+		event_target:ag_gamma_target_star_loc_1 = {
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			change_pc = pc_ag_void_star
+			solar_system = { set_star_class = sc_ag_void }
+			clear_deposits = yes
+			set_planet_size = 1
+			planet_event = { id = ag_gamma.30 days = 180 }
+			create_ambient_object = {
+				type = "ag_gamma_installation_defensive_system_dark"
+				location = this
+			}
+			last_created_ambient_object = {
+				set_ambient_object_flag = ag_gamma_installation_defensive_system_dark
+				set_location = {
+					target = prev
+					distance = 0
+					angle = random
+				}
+			}
+		}
+		every_country = {
+			limit = { NOT = { is_same_value = event_target:ag_ancient_gamma_guardian_country } }
+			country_event = { id = ag_gamma.36 }
+			if = {
+				limit = {
+					NOT = {
+						has_event_chain = "ag_gamma_guardian_crisis_chain"
+					}
+				}
+				begin_event_chain = {
+					event_chain = "ag_gamma_guardian_crisis_chain"
+					target = this
+				}
+			}
+			remove_point_of_interest = ag_gamma_target_system_1
+			create_point_of_interest = {
+				id = ag_gamma_small_station_system_1
+				name = "ag_gamma_small_station_system_1"
+				desc = "ag_gamma_small_station_system_1_desc"
+				event_chain = ag_gamma_guardian_crisis_chain
+				location = event_target:ag_gamma_target_star_loc_1
+			}
+		}
+		random_owned_ship = {
+			limit = { is_ship_size = ag_gamma_station_small_moving_hostile }
+			delete_ship = this
+		}
+		create_fleet = {
+			name = "NAME_ag_gamma_station_small_fleet"
+			settings = {
+				spawn_debris = no
+				is_boss = yes
+			}
+			effect = {
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				set_fleet_flag = ag_gamma_station_small_hostile_fleet
+				set_owner = event_target:ag_ancient_gamma_guardian_country
+				create_ship = {
+					name = "NAME_ag_gamma_station_small_ship"
+					design = "NAME_ag_gamma_station_small_hostile"
+					prefix = no
+					effect = {
+						ag_difficulty_bonus = yes
+					}
+				}
+				set_location = {
+					target = event_target:ag_gamma_target_star_loc_1
+					distance = -1
+					angle = 0
+				}
+			}
+		}
+		random_list = {
+			30 = {
+				while = {
+					count = 2
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_1
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			40 = {
+				while = {
+					count = 3
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_1
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			30 = {
+				while = {
+					count = 4
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_1
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+		}
+		event_target:ag_ancient_gamma_guardian_country = {
+			add_modifier = {
+				modifier = "ag_gamma_small_station_1_deployed_buff"
+				days = -1
+			}
+		}
+		set_global_flag = ag_gamma_station_small_1_deployed
+	}
+}
+fleet_event = {
+    id = ag_gamma.352
+    hide_window = yes
+	
+	fire_only_once = yes
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		has_global_flag = ag_gamma_25_fired
+		NOT = { has_global_flag = ag_gamma_station_small_2_deployed }
+		exists = event_target:ag_ancient_gamma_guardian_country
+		owner = { is_same_value = event_target:ag_ancient_gamma_guardian_country }
+		is_same_value = event_target:ag_gamma_station_small_2
+		any_owned_ship = { is_ship_size = ag_gamma_station_small_moving_hostile }
+		exists = event_target:ag_gamma_target_loc_2
+		solar_system = { is_same_value = event_target:ag_gamma_target_loc_2 }
+		exists = event_target:ag_gamma_target_star_loc_2
+		exists = orbit
+		orbit = { is_same_value = event_target:ag_gamma_target_star_loc_2 }
+	}
+	
+	immediate = {
+		solar_system = {
+			save_event_target_as = ag_ancient_gamma_small_station_system
+			ag_gamma_station_colony_effect = yes
+		}
+		event_target:ag_gamma_target_star_loc_2 = {
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			change_pc = pc_ag_void_star
+			solar_system = { set_star_class = sc_ag_void }
+			clear_deposits = yes
+			set_planet_size = 1
+			planet_event = { id = ag_gamma.30 days = 180 }
+			create_ambient_object = {
+				type = "ag_gamma_installation_defensive_system_dark"
+				location = this
+			}
+			last_created_ambient_object = {
+				set_ambient_object_flag = ag_gamma_installation_defensive_system_dark
+				set_location = {
+					target = prev
+					distance = 0
+					angle = random
+				}
+			}
+		}
+		every_country = {
+			limit = { NOT = { is_same_value = event_target:ag_ancient_gamma_guardian_country } }
+			country_event = { id = ag_gamma.36 }
+			if = {
+				limit = {
+					NOT = {
+						has_event_chain = "ag_gamma_guardian_crisis_chain"
+					}
+				}
+				begin_event_chain = {
+					event_chain = "ag_gamma_guardian_crisis_chain"
+					target = this
+				}
+			}
+			remove_point_of_interest = ag_gamma_target_system_2
+			create_point_of_interest = {
+				id = ag_gamma_small_station_system_2
+				name = "ag_gamma_small_station_system_2"
+				desc = "ag_gamma_small_station_system_2_desc"
+				event_chain = ag_gamma_guardian_crisis_chain
+				location = event_target:ag_gamma_target_star_loc_2
+			}
+		}
+		random_owned_ship = {
+			limit = { is_ship_size = ag_gamma_station_small_moving_hostile }
+			delete_ship = this
+		}
+		create_fleet = {
+			name = "NAME_ag_gamma_station_small_fleet"
+			settings = {
+				spawn_debris = no
+				is_boss = yes
+			}
+			effect = {
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				set_fleet_flag = ag_gamma_station_small_hostile_fleet
+				set_owner = event_target:ag_ancient_gamma_guardian_country
+				create_ship = {
+					name = "NAME_ag_gamma_station_small_ship"
+					design = "NAME_ag_gamma_station_small_hostile"
+					prefix = no
+					effect = {
+						ag_difficulty_bonus = yes
+					}
+				}
+				set_location = {
+					target = event_target:ag_gamma_target_star_loc_2
+					distance = -1
+					angle = 0
+				}
+			}
+		}
+		random_list = {
+			30 = {
+				while = {
+					count = 2
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_2
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			40 = {
+				while = {
+					count = 3
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_2
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			30 = {
+				while = {
+					count = 4
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_2
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+		}
+		event_target:ag_ancient_gamma_guardian_country = {
+			add_modifier = {
+				modifier = "ag_gamma_small_station_2_deployed_buff"
+				days = -1
+			}
+		}
+		set_global_flag = ag_gamma_station_small_2_deployed
+	}
+}
+fleet_event = {
+    id = ag_gamma.353
+    hide_window = yes
+	
+	fire_only_once = yes
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		has_global_flag = ag_gamma_25_fired
+		NOT = { has_global_flag = ag_gamma_station_small_3_deployed }
+		exists = event_target:ag_ancient_gamma_guardian_country
+		owner = { is_same_value = event_target:ag_ancient_gamma_guardian_country }
+		is_same_value = event_target:ag_gamma_station_small_3
+		any_owned_ship = { is_ship_size = ag_gamma_station_small_moving_hostile }
+		exists = event_target:ag_gamma_target_loc_3
+		solar_system = { is_same_value = event_target:ag_gamma_target_loc_3 }
+		exists = event_target:ag_gamma_target_star_loc_3
+		exists = orbit
+		orbit = { is_same_value = event_target:ag_gamma_target_star_loc_3 }
+	}
+	
+	immediate = {
+		solar_system = {
+			save_event_target_as = ag_ancient_gamma_small_station_system
+			ag_gamma_station_colony_effect = yes
+		}
+		event_target:ag_gamma_target_star_loc_3 = {
+			ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			change_pc = pc_ag_void_star
+			solar_system = { set_star_class = sc_ag_void }
+			clear_deposits = yes
+			set_planet_size = 1
+			planet_event = { id = ag_gamma.30 days = 180 }
+			create_ambient_object = {
+				type = "ag_gamma_installation_defensive_system_dark"
+				location = this
+			}
+			last_created_ambient_object = {
+				set_ambient_object_flag = ag_gamma_installation_defensive_system_dark
+				set_location = {
+					target = prev
+					distance = 0
+					angle = random
+				}
+			}
+		}
+		every_country = {
+			limit = { NOT = { is_same_value = event_target:ag_ancient_gamma_guardian_country } }
+			country_event = { id = ag_gamma.36 }
+			if = {
+				limit = {
+					NOT = {
+						has_event_chain = "ag_gamma_guardian_crisis_chain"
+					}
+				}
+				begin_event_chain = {
+					event_chain = "ag_gamma_guardian_crisis_chain"
+					target = this
+				}
+			}
+			remove_point_of_interest = ag_gamma_target_system_3
+			create_point_of_interest = {
+				id = ag_gamma_small_station_system_3
+				name = "ag_gamma_small_station_system_3"
+				desc = "ag_gamma_small_station_system_3_desc"
+				event_chain = ag_gamma_guardian_crisis_chain
+				location = event_target:ag_gamma_target_star_loc_3
+			}
+		}
+		random_owned_ship = {
+			limit = { is_ship_size = ag_gamma_station_small_moving_hostile }
+			delete_ship = this
+		}
+		create_fleet = {
+			name = "NAME_ag_gamma_station_small_fleet"
+			settings = {
+				spawn_debris = no
+				is_boss = yes
+			}
+			effect = {
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				set_fleet_flag = ag_gamma_station_small_hostile_fleet
+				set_owner = event_target:ag_ancient_gamma_guardian_country
+				create_ship = {
+					name = "NAME_ag_gamma_station_small_ship"
+					design = "NAME_ag_gamma_station_small_hostile"
+					prefix = no
+					effect = {
+						ag_difficulty_bonus = yes
+					}
+				}
+				set_location = {
+					target = event_target:ag_gamma_target_star_loc_3
+					distance = -1
+					angle = 0
+				}
+			}
+		}
+		random_list = {
+			30 = {
+				while = {
+					count = 2
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_3
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			40 = {
+				while = {
+					count = 3
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_3
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+			30 = {
+				while = {
+					count = 4
+					ag_gamma_guardian_fleet_spawn = {
+						ag_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+						ag_num_battlecruisers = @ag_gamma_assault_fleet_num_battlecruisers
+						ag_num_escorts = @ag_gamma_assault_fleet_num_escorts
+						ag_num_extra_battlecruisers = @ag_gamma_assault_fleet_extra_battlecruisers_hard_2
+						ag_num_extra_escorts = @ag_gamma_assault_fleet_extra_escorts_hard_2
+						ag_target_location = event_target:ag_gamma_target_star_loc_3
+						ag_action_event = ag_gamma.27
+					}
+				}
+			}
+		}
+		event_target:ag_ancient_gamma_guardian_country = {
+			add_modifier = {
+				modifier = "ag_gamma_small_station_3_deployed_buff"
+				days = -1
+			}
+		}
+		set_global_flag = ag_gamma_station_small_3_deployed
+	}
+}
+country_event = {
+	id = ag_gamma.36
+	title = "ag_gamma.36.name"
+	desc = "ag_gamma.36.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_black_hole_room }
+	show_sound = event_activating_unknown_technology
+	location = event_target:ag_ancient_gamma_small_station_system
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.36.a"
+	}
+}
+
+# on_ship_destroyed_perp, Deployed small station destroyed
+country_event = {
+    id = ag_gamma.40
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			has_country_flag = ag_ancient_gamma_guardian_country
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+		}
+		fromfromfrom = {
+			is_ship_size = ag_gamma_station_small_hostile
+		}
+	}
+	
+	immediate = {
+		country_event = { id = ag_gamma.41 }
+		every_country = {
+			limit = {
+				NOR = {
+					is_same_value = root
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+				}
+			}
+			country_event = { id = ag_gamma.42 }
+		}
+		fromfrom = {
+			solar_system = {
+				if = {
+					limit = {
+						any_system_planet = {
+							is_same_value = event_target:ag_gamma_target_star_loc_1
+						}
+					}
+					every_country = {
+						limit = {
+							NOT = {
+								is_same_value = event_target:ag_ancient_gamma_guardian_country
+							}
+							has_event_chain = ag_gamma_guardian_crisis_chain
+						}
+						remove_point_of_interest = ag_gamma_small_station_system_1
+					}
+					event_target:ag_ancient_gamma_guardian_country = {
+						if = {
+							limit = {
+								has_modifier = "ag_gamma_small_station_1_deployed_buff"
+							}
+							remove_modifier = "ag_gamma_small_station_1_deployed_buff"
+						}
+						if = {
+							limit = {
+								NOT = {
+									has_country_flag = ag_gamma_small_station_1_deployed_debuff_modified
+								}
+							}
+							set_country_flag = ag_gamma_small_station_1_deployed_debuff_modified
+							random_list = {
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_1_deployed_debuff"
+										days = 180
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_1_deployed_debuff"
+										days = 360
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_1_deployed_debuff"
+										days = 540
+									}
+								}
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_same_value = event_target:ag_gamma_target_star_loc_1
+						}
+						change_pc = pc_black_hole
+						solar_system = { set_star_class = sc_black_hole }
+						set_planet_size = 18
+						ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					}
+				}
+				else_if = {
+					limit = {
+						any_system_planet = {
+							is_same_value = event_target:ag_gamma_target_star_loc_2
+						}
+					}
+					every_country = {
+						limit = {
+							NOT = {
+								is_same_value = event_target:ag_ancient_gamma_guardian_country
+							}
+							has_event_chain = ag_gamma_guardian_crisis_chain
+						}
+						remove_point_of_interest = ag_gamma_small_station_system_2
+					}
+					event_target:ag_ancient_gamma_guardian_country = {
+						if = {
+							limit = {
+								has_modifier = "ag_gamma_small_station_2_deployed_buff"
+							}
+							remove_modifier = "ag_gamma_small_station_2_deployed_buff"
+						}
+						if = {
+							limit = {
+								NOT = {
+									has_country_flag = ag_gamma_small_station_2_deployed_debuff_modified
+								}
+							}
+							set_country_flag = ag_gamma_small_station_2_deployed_debuff_modified
+							random_list = {
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_2_deployed_debuff"
+										days = 180
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_2_deployed_debuff"
+										days = 360
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_2_deployed_debuff"
+										days = 540
+									}
+								}
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_same_value = event_target:ag_gamma_target_star_loc_2
+						}
+						change_pc = pc_black_hole
+						solar_system = { set_star_class = sc_black_hole }
+						set_planet_size = 18
+						ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					}
+				}
+				else_if = {
+					limit = {
+						any_system_planet = {
+							is_same_value = event_target:ag_gamma_target_star_loc_3
+						}
+					}
+					every_country = {
+						limit = {
+							NOT = {
+								is_same_value = event_target:ag_ancient_gamma_guardian_country
+							}
+							has_event_chain = ag_gamma_guardian_crisis_chain
+						}
+						remove_point_of_interest = ag_gamma_small_station_system_3
+					}
+					event_target:ag_ancient_gamma_guardian_country = {
+						if = {
+							limit = {
+								has_modifier = "ag_gamma_small_station_3_deployed_buff"
+							}
+							remove_modifier = "ag_gamma_small_station_3_deployed_buff"
+						}
+						if = {
+							limit = {
+								NOT = {
+									has_country_flag = ag_gamma_small_station_3_deployed_debuff_modified
+								}
+							}
+							set_country_flag = ag_gamma_small_station_3_deployed_debuff_modified
+							random_list = {
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_3_deployed_debuff"
+										days = 180
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_3_deployed_debuff"
+										days = 360
+									}
+								}
+								33 = {
+									add_modifier = {
+										modifier = "ag_gamma_small_station_3_deployed_debuff"
+										days = 540
+									}
+								}
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_same_value = event_target:ag_gamma_target_star_loc_3
+						}
+						change_pc = pc_black_hole
+						solar_system = { set_star_class = sc_black_hole }
+						set_planet_size = 18
+						ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					}
+				}
+				random_system_planet = {
+					limit = {
+						OR = {
+							AND = {
+								OR = {
+									is_colony = yes
+									is_capital = yes
+								}
+								num_pops > 0
+								has_modifier = "ag_ancient_gamma_station_in_system"
+							}
+							AND = {
+								is_planet_class = pc_molten
+								has_modifier = "terraforming_candidate"
+							}
+						}
+					}
+					if = {
+						limit = {
+							has_modifier = "mineral_poor"
+						}
+						remove_modifier = "mineral_poor"
+					}
+					if = {
+						limit = {
+							has_modifier = "mineral_rich"
+						}
+						remove_modifier = "mineral_rich"
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_modifier = "ultra_rich"
+							}
+						}
+						add_modifier = {
+							modifier = "ultra_rich"
+							days = -1
+						}
+					}
+				}
+				every_system_planet = {
+					limit = {
+						has_modifier = "ag_ancient_gamma_station_in_system"
+					}
+					remove_modifier = "ag_ancient_gamma_station_in_system"
+				}
+				random_system_ambient_object = {
+					limit = {
+						has_ambient_object_flag = ag_gamma_installation_defensive_system_dark
+					}
+					destroy_ambient_object = this
+				}
+			}
+		}
+		every_country = {
+			limit = {
+				NOT = {
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+				}
+				has_event_chain = ag_gamma_guardian_crisis_chain
+			}
+			add_event_chain_counter = {
+				event_chain = "ag_gamma_guardian_crisis_chain"
+				counter = "ag_gamma_station_small_deployed"
+				amount = -1
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.41
+	title = "ag_gamma.41.name"
+	desc = "ag_gamma.41.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_small_space_battle_room }
+	show_sound = event_space_battle
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.41.a"
+	}
+	option = {
+		name = "ag_gamma.41.b"
+	}
+	
+}
+country_event = {
+	id = ag_gamma.42
+	title = "ag_gamma.42.name"
+	desc = "ag_gamma.42.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_throne_room }
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.42.a"
+	}
+}
+
+# Ancient Station escape if badly damaged but didn't get killed
+fleet_event = {
+    id = ag_gamma.43
+    hide_window = yes
+	
+	trigger = {
+		NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } } }
+		any_combatant_fleet = {
+			has_fleet_flag = ag_gamma_station_hostile_fleet
+			NOT = { has_fleet_flag = ag_gamma_station_jump_cooldown }
+			exists = owner
+			owner = {
+				has_country_flag = ag_ancient_gamma_guardian_country
+				is_same_value = event_target:ag_ancient_gamma_guardian_country
+			}
+			any_owned_ship = {
+				is_ship_size = ag_gamma_station_hostile
+				NOT = { has_ship_flag = ag_gamma_station_protection_enabled }
+				has_hp_percentage < 0.25
+				has_hp_percentage > 0.10
+			}
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				any_galaxy_planet = {
+					is_same_value = event_target:ag_gamma_station_jump_loc_2
+				}
+			}
+			clear_global_event_target = ag_gamma_station_jump_loc_2
+		}
+		random_combatant_fleet = {
+			limit = {
+				exists = owner
+				owner = {
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+					has_country_flag = ag_ancient_gamma_guardian_country
+				}
+				NOT = { 
+					has_fleet_flag = ag_gamma_station_jump_cooldown
+				}
+				any_owned_ship = {
+					is_ship_size = ag_gamma_station_hostile
+					has_hp_percentage < 0.25
+					has_hp_percentage > 0.10
+				}
+			}
+			set_timed_fleet_flag = {
+				flag = ag_gamma_station_jump_cooldown
+				days = 1800
+			}
+			random_owned_ship = {
+				limit = {
+					is_ship_size = ag_gamma_station_hostile
+				}
+				repair_ship = yes
+			}
+			solar_system = {
+				save_event_target_as = ag_gamma_station_jump_loc_1
+				random_system_planet = {
+					limit = {
+						is_primary_star = yes
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				random_system_ambient_object = {
+					limit = {
+						has_ambient_object_flag = ag_gamma_installation_defensive_system_bright
+					}
+					destroy_ambient_object = this
+				}
+				ag_gamma_station_damage_ship_in_system = { ag_gamma_damage_percent = 25 }
+				if = {
+					limit = {
+						NOR = {
+							has_star_flag = ag_ancient_gamma_system
+							has_star_flag = ag_ancient_zeta_system
+							has_star_flag = ag_beta_station_system_1
+							has_star_flag = ag_beta_station_system_2
+							has_star_flag = ag_beta_station_system_3
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_planet_class = pc_ag_void_star
+						}
+						change_pc = pc_black_hole
+						solar_system = { set_star_class = sc_black_hole }
+						set_planet_size = 18
+					}
+				}
+				else = {
+					every_system_planet = {
+						limit = {
+							has_modifier = "ag_ancient_gamma_station_in_system"
+						}
+						remove_modifier = "ag_ancient_gamma_station_in_system"
+					}
+				}
+			}
+			random_system = {
+				limit = {
+					ag_is_normal_system = yes
+					NOR = {
+						ag_is_ancient_system = yes
+						is_same_value = event_target:ag_gamma_target_loc_1
+						is_same_value = event_target:ag_gamma_target_loc_2
+						is_same_value = event_target:ag_gamma_target_loc_3
+					}
+					any_system_planet = {
+						is_primary_star = yes
+						planet_size < 25
+					}
+					distance = {
+						source = event_target:ag_gamma_station_jump_loc_1
+						use_bypasses = no
+						min_jumps = 25
+						max_jumps = 6666
+					}
+				}
+				ag_gamma_station_damage_ship_in_system = { ag_gamma_damage_percent = 60 }
+				random_system_planet = {
+					limit = {
+						is_primary_star = yes
+					}
+					change_pc = pc_ag_void_star
+					solar_system = { set_star_class = sc_ag_void }
+					set_planet_size = 1
+					clear_deposits = yes
+					save_global_event_target_as = ag_gamma_station_jump_loc_2
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					random_list = {
+						10 = {
+							while = {
+								count = 2
+								ag_spawn_gamma_guardian_fleet_jumped_garrison = yes
+							}
+						}
+						70 = {
+							while = {
+								count = 3
+								ag_spawn_gamma_guardian_fleet_jumped_garrison = yes
+							}
+						}
+						20 = {
+							while = {
+								count = 4
+								ag_spawn_gamma_guardian_fleet_jumped_garrison = yes
+							}
+						}
+					}
+					ag_spawn_gamma_guardian_fleet_jumped = yes
+					planet_event = { id = ag_gamma.30 days = 30 }
+					create_ambient_object = {
+						type = "ag_gamma_installation_defensive_system_bright"
+						location = this
+					}
+					last_created_ambient_object = {
+						set_ambient_object_flag = ag_gamma_installation_defensive_system_bright
+						set_location = {
+							target = prev
+							distance = 0
+							angle = random
+						}
+					}
+				}
+				every_system_planet = {
+					add_modifier = {
+						modifier = "ag_ancient_gamma_station_in_system"
+						days = -1
+					}
+				}
+			}
+			set_location = {
+				target = event_target:ag_gamma_station_jump_loc_2
+				distance = -1
+				angle = 0
+			}
+		}
+		every_country = {
+			limit = {
+				NOR = {
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+					has_country_flag = ag_gamma_station_locator
+				}
+				has_event_chain = ag_gamma_guardian_crisis_chain
+			}
+			set_timed_country_flag = {
+				flag = ag_gamma_station_locator
+				days = 1798
+			}
+			country_event = { id = ag_gamma.44 }
+		}
+	}
+
+}
+country_event = {
+	id = ag_gamma.44
+	title = "ag_gamma.44.name"
+	desc = "ag_gamma.44.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_ship_in_orbit_room }
+	show_sound = event_red_alert
+	location = event_target:ag_gamma_minerals_loc
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		remove_point_of_interest = ag_gamma_station_loc
+		every_country = {
+			limit = {
+				is_same_value = event_target:ag_ancient_gamma_guardian_country
+				has_country_flag = ag_ancient_gamma_guardian_country
+			}
+			random_owned_fleet = {
+				limit = {
+					any_owned_ship = {
+						is_ship_size = ag_gamma_station_hostile
+					}
+				}
+				solar_system = {
+					save_event_target_as = ag_gamma_station_system
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.44.a"
+		create_point_of_interest = {
+			id = ag_gamma_station_loc
+			name = "ag_gamma_station_loc"
+			desc = "ag_gamma_station_loc_desc"
+			event_chain = ag_gamma_guardian_crisis_chain
+			location = event_target:ag_gamma_station_system
+		}
+	}
+	option = {
+		name = "ag_gamma.44.b"
+		create_point_of_interest = {
+			id = ag_gamma_station_loc
+			name = "ag_gamma_station_loc"
+			desc = "ag_gamma_station_loc_desc"
+			event_chain = ag_gamma_guardian_crisis_chain
+			location = event_target:ag_gamma_station_system
+		}
+	}
+	option = {
+		name = "ag_gamma.44.c"
+		trigger = {
+			owner_species = {
+				AND = {
+					has_trait = trait_intelligent
+					has_trait = trait_venerable
+				}
+			}
+		}
+		create_point_of_interest = {
+			id = ag_gamma_station_loc
+			name = "ag_gamma_station_loc"
+			desc = "ag_gamma_station_loc_desc"
+			event_chain = ag_gamma_guardian_crisis_chain
+			location = event_target:ag_gamma_station_system
+		}
+	}
+}
+
+# Give relic to ancient station's killer
+country_event = {
+	id = ag_gamma.45
+	title = "ag_gamma.45.name"
+	desc = "ag_gamma.45.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_space_walk_room }
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.45.a"
+		add_relic = ag_gamma_crisis_relic
+	}
+}
+
+# on_ship_destroyed_perp, Small station destroyed before it could deploy
+country_event = {
+    id = ag_gamma.46
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+		fromfromfrom = {
+			is_ship_size = ag_gamma_station_small_moving_hostile
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				fromfromfrom = {
+					fleet = {
+						is_same_value = event_target:ag_gamma_station_small_1
+					}
+				}
+			}
+			set_global_flag = ag_gamma_station_small_1_deployed
+			every_country = {
+				limit = {
+					has_event_chain = ag_gamma_guardian_crisis_chain
+				}
+				remove_point_of_interest = ag_gamma_target_system_1
+			}
+			event_target:ag_ancient_gamma_guardian_country = {
+				set_country_flag = ag_gamma_station_small_1_destroyed
+			}
+		}
+		if = {
+			limit = {
+				fromfromfrom = {
+					fleet = {
+						is_same_value = event_target:ag_gamma_station_small_2
+					}
+				}
+			}
+			set_global_flag = ag_gamma_station_small_2_deployed
+			every_country = {
+				limit = {
+					has_event_chain = ag_gamma_guardian_crisis_chain
+				}
+				remove_point_of_interest = ag_gamma_target_system_2
+			}
+			event_target:ag_ancient_gamma_guardian_country = {
+				set_country_flag = ag_gamma_station_small_2_destroyed
+			}
+		}
+		if = {
+			limit = {
+				fromfromfrom = {
+					fleet = {
+						is_same_value = event_target:ag_gamma_station_small_3
+					}
+				}
+			}
+			set_global_flag = ag_gamma_station_small_3_deployed
+			every_country = {
+				limit = {
+					has_event_chain = ag_gamma_guardian_crisis_chain
+				}
+				remove_point_of_interest = ag_gamma_target_system_3
+			}
+			event_target:ag_ancient_gamma_guardian_country = {
+				set_country_flag = ag_gamma_station_small_3_destroyed
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_perp, Ancient Station destroyed
+country_event = {
+    id = ag_gamma.50
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+		fromfromfrom = {
+			is_ship_size = ag_gamma_station_hostile
+		}
+	}
+	
+	immediate = {
+		set_global_flag = ag_gamma_station_destroyed
+		country_event = { id = ag_gamma.45 days = 30 }
+		country_event = { id = ag_gamma.51 }
+		every_country = {
+			limit = {
+				NOR = {
+					is_same_value = root
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+					has_country_flag = ag_ancient_gamma_guardian_country
+				}
+			}
+			country_event = { id = ag_gamma.52 }
+		}
+		every_country = {
+			limit = {
+				has_event_chain = ag_gamma_guardian_crisis_chain
+			}
+			remove_point_of_interest = ag_gamma_station_loc
+		}
+		every_country = {
+			limit = {
+				is_same_value = event_target:ag_ancient_gamma_guardian_country
+				has_country_flag = ag_ancient_gamma_guardian_country
+			}
+			every_owned_fleet = {
+				clear_orders = yes
+				clear_fleet_actions = this
+			}
+		}
+		fromfromfrom = {
+			solar_system = {
+				every_system_planet = {
+					limit = {
+						has_modifier = "ag_ancient_gamma_station_in_system"
+					}
+					remove_modifier = "ag_ancient_gamma_station_in_system"
+				}
+				if = {
+					limit = {
+						NOT = {
+							has_star_flag = ag_ancient_gamma_system
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_planet_class = pc_ag_void_star
+						}
+						change_pc = pc_black_hole
+						solar_system = { set_star_class = sc_black_hole }
+						set_planet_size = 18
+						ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					}
+				}
+				random_system_ambient_object = {
+					limit = {
+						has_ambient_object_flag = ag_gamma_installation_defensive_system_bright
+					}
+					destroy_ambient_object = this
+				}
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.51
+	title = "ag_gamma.51.name"
+	desc = "ag_gamma.51.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_small_space_battle_room }
+	show_sound = event_space_battle
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.51.a"
+	}
+}
+country_event = {
+	id = ag_gamma.52
+	title = "ag_gamma.52.name"
+	desc = "ag_gamma.52.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_throne_room }
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.52.a"
+	}
+}
+
+# on_ship_destroyed_perp, All Ancient Ship destroyed
+country_event = {
+    id = ag_gamma.53
+    hide_window = yes
+	
+	is_triggered_only = yes
+	fire_only_once = yes
+	
+	trigger = {
+		from = {
+			is_same_value = event_target:ag_ancient_gamma_guardian_country
+			has_country_flag = ag_ancient_gamma_guardian_country
+			count_owned_ship = {
+				count < 1
+			}
+		}
+	}
+	
+	immediate = {
+		country_event = { id = ag_gamma.54 }
+		every_country = {
+			limit = {
+				NOR = {
+					is_same_value = root
+					is_same_value = event_target:ag_ancient_gamma_guardian_country
+					has_country_flag = ag_ancient_gamma_guardian_country
+				}
+			}
+			country_event = { id = ag_gamma.55 }
+		}
+		every_country = {
+			if = {
+				limit = { 
+					has_modifier = ag_ancient_gamma_weakness
+				}
+				remove_modifier = "ag_ancient_gamma_weakness"
+			}
+			if = {
+				limit = {
+					has_modifier = ag_defender_of_the_galaxy_gamma_crisis
+				}
+				remove_modifier = "ag_defender_of_the_galaxy_gamma_crisis"
+			}
+			if = {
+				limit = {
+					has_special_project = ag_find_ancient_gamma_weakness
+				}
+				abort_special_project = {
+					type = "ag_find_ancient_gamma_weakness"
+					location = capital_scope
+				}
+			}
+		}
+		add_threat = {
+			who = from
+			amount = 50
+		}
+		set_global_flag = ag_gamma_crisis_ended
+		from = {
+			destroy_country = yes
+		}
+		every_ambient_object = {
+			limit = {
+				OR = {
+					has_ambient_object_flag = ag_gamma_installation_defensive_system_bright
+					has_ambient_object_flag = ag_gamma_installation_defensive_system_dark
+				}
+			}
+			destroy_ambient_object = this
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.54
+	title = "ag_gamma.54.name"
+	desc = "ag_gamma.54.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_small_space_battle_room }
+	show_sound = event_space_battle
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.54.a"
+		end_event_chain = ag_gamma_guardian_crisis_chain
+		hidden_effect = {
+			remove_point_of_interest = ag_gamma_target_system_1
+			remove_point_of_interest = ag_gamma_target_system_2
+			remove_point_of_interest = ag_gamma_target_system_3
+			remove_point_of_interest = ag_gamma_small_station_system_1
+			remove_point_of_interest = ag_gamma_small_station_system_2
+			remove_point_of_interest = ag_gamma_small_station_system_3
+			remove_point_of_interest = ag_gamma_station_loc
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.55
+	title = "ag_gamma.55.name"
+	desc = "ag_gamma.55.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_throne_room }
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.55.a"
+		end_event_chain = ag_gamma_guardian_crisis_chain
+		hidden_effect = {
+			remove_point_of_interest = ag_gamma_target_system_1
+			remove_point_of_interest = ag_gamma_target_system_2
+			remove_point_of_interest = ag_gamma_target_system_3
+			remove_point_of_interest = ag_gamma_station_loc
+		}
+	}
+}
+
+# on_ship_destroyed_victim, Give Gamma Installation Defensive System's weakness research project if player lost too many ships
+country_event = {
+	id = ag_gamma.60
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		from = { is_country_type = ag_ancient_gamma_guardian }
+		is_ai = no
+		NOT = { has_country_flag = ag_has_ancient_gamma_weakness }
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_ancient_gamma_guardian_killcount
+					value < 1
+				}
+			}
+			set_variable = {
+				which = ag_ancient_gamma_guardian_killcount
+				value = 1
+			}
+		}
+		fromfrom = {
+			root = {
+				ag_hostile_kill_counter = {
+					ag_variable_name = ag_ancient_gamma_guardian_killcount
+				}
+			}
+		}
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_ancient_gamma_guardian_killcount
+					value > 512
+				}
+				NOR = {
+					has_global_flag = ag_gamma_crisis_ended
+					has_country_flag = ag_has_ancient_gamma_weakness
+				}
+			}
+			set_variable = {
+				which = ag_ancient_gamma_guardian_killcount
+				value = 512
+			}
+			random_list = {
+				25 = {
+					country_event = { id = ag_gamma.61 days = 30 random = 30 }
+					set_country_flag = ag_has_ancient_gamma_weakness
+				}
+				75 = {
+				}
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.61
+	title = "ag_gamma.61.name"
+	desc = "ag_gamma.61.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_sabotaged_ship_room }
+	show_sound = event_yellow_alert
+	
+	is_triggered_only = yes
+
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+	}
+	
+	option = {
+		name = "ag_gamma.61.a"
+		enable_special_project = {
+			name = "ag_find_ancient_gamma_weakness"
+			location = capital_scope
+			owner = root
+		}
+	}
+	option = {
+		name = "ag_gamma.61.b"
+		add_resource = { influence = 120 }
+	}
+}
+country_event = {
+	id = ag_gamma.62
+	title = "ag_gamma.62.name"
+	desc = "ag_gamma.62.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_physics_research_room }
+	show_sound = event_laboratory_sound
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_gamma.62.a"
+		if = {
+			limit = {
+				NOT = {
+					has_modifier = ag_ancient_gamma_weakness
+				}
+			}
+			add_modifier = {
+				modifier = ag_ancient_gamma_weakness
+				days = -1
+			}
+		}
+	}
+}
+
+# Restart ancient databank after crisis destroyed
+country_event = {
+	id = ag_gamma.70
+	title = "ag_gamma.70.name"
+	desc = "ag_gamma.70.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_excavation_team_room }
+	show_sound = event_mystic_reveal
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	mean_time_to_happen = {
+		years = 3
+		modifier = { factor = 0.5 has_country_flag = ag_ancient_gamma_data_flag }
+	}
+	
+	trigger = {
+		has_global_flag = ag_gamma_crisis_ended
+		NOT = { has_country_flag = ag_gamma_70_fired }
+		exists = event_target:ag_ancient_gamma_shielded_world
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			owner = { is_same_value = root }
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			OR = {
+				has_building = ag_ancient_gamma_nexus_0
+				has_building = ag_ancient_gamma_nexus_1
+			}
+			has_ground_combat = no
+			ag_has_researcher = yes
+		}
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_70_fired
+		set_country_flag = ag_ancient_nexus_upgrade_available
+		random_list = {
+			10 = { set_variable = { which = ag_ancient_knowledge_common_var value = 1 } }
+			10 = { set_variable = { which = ag_ancient_knowledge_common_var value = 1.5 } }
+			10 = { set_variable = { which = ag_ancient_knowledge_common_var value = 2 } }
+			10 = { set_variable = { which = ag_ancient_knowledge_common_var value = 2.5 } }
+			10 = { set_variable = { which = ag_ancient_knowledge_common_var value = 3 } }
+		}
+		random_list = {
+			10 = { change_variable = { which = ag_ancient_knowledge_common_var value = 0.25 } }
+			10 = { change_variable = { which = ag_ancient_knowledge_common_var value = 0.125 } }
+			10 = { subtract_variable = { which = ag_ancient_knowledge_common_var value = 0.25 } }
+			10 = { subtract_variable = { which = ag_ancient_knowledge_common_var value = 0.125 } }
+			10 = { }
+		}
+	}
+	after = { set_variable = { which = ag_ancient_knowledge_common_var value = 0 } }
+	
+	option = {
+		name = "ag_gamma.70.a"
+		ag_add_ancient_knowledge = {
+			ag_value = ag_ancient_knowledge_common_var
+			ag_custom_tooltip = "ag_gain_ancient_knowledge_common.tooltip"
+			ag_notification_desc = ""
+		}
+	}
+}
+
+# Reward event: Ancient Station
+country_event = {
+	id = ag_gamma.72
+	title = "ag_gamma.72.name"
+	desc = {
+		trigger = {
+			owner = {
+				NOT = {
+					has_country_flag = ag_known_construction_section
+				}
+			}
+		}
+		text = "ag_gamma.72.a.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = ag_known_construction_section
+			}
+		}
+		text = "ag_gamma.72.b.desc"
+	}
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_finding_loot
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	mean_time_to_happen = {
+		years = 5
+		modifier = { factor = 0.5 has_country_flag = ag_ancient_gamma_data_flag }
+	}
+	
+	trigger = {
+		has_global_flag = ag_gamma_crisis_ended
+		has_country_flag = ag_gamma_70_fired
+		NOT = { has_country_flag = ag_gamma_72_fired }
+		exists = event_target:ag_ancient_gamma_shielded_world
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			owner = { is_same_value = root }
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			has_building = ag_ancient_gamma_nexus_1
+			has_ground_combat = no
+			ag_has_researcher = yes
+		}
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_72_fired
+	}
+	
+	option = {
+		name = "ag_gamma.72.a"
+		add_research_option = tech_ag_gamma_station
+		add_tech_progress = {
+			tech = tech_ag_gamma_station
+			progress = 0.10
+		}
+		ai_chance = {
+			factor = 1000
+		}
+	}
+	option = {
+		name = "ag_gamma.72.b"
+		add_resource = { influence = 100 }
+		ai_chance = {
+			factor = 0
+		}
+	}
+}
+
+# Construction Sections
+country_event = {
+	id = ag_gamma.73
+	title = "ag_gamma.73.name"
+	desc = {
+		trigger = {
+			NOT = {
+				has_country_flag = ag_known_construction_section
+			}
+		}
+		text = "ag_gamma.73.a.desc"
+	}
+	desc = {
+		trigger = {
+			has_country_flag = ag_known_construction_section
+		}
+		text = "ag_gamma.73.b.desc"
+	}
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_finding_loot
+	location = event_target:ag_ancient_gamma_shielded_world
+	
+	mean_time_to_happen = {
+		years = 5
+		modifier = { factor = 0.5 has_country_flag = ag_ancient_gamma_data_flag }
+		modifier = {
+			factor = 0.5
+			has_country_flag = ag_known_construction_section
+		}
+	}
+	
+	trigger = {
+		NOT = { has_global_flag = ag_gamma_construction_section_unlocked }
+		has_global_flag = ag_gamma_crisis_ended
+		has_country_flag = ag_gamma_70_fired
+		has_country_flag = ag_ancient_nexus_upgrade_available
+		NOT = { has_country_flag = ag_gamma_73_fired }
+		exists = event_target:ag_ancient_gamma_shielded_world
+		event_target:ag_ancient_gamma_shielded_world = {
+			exists = owner
+			owner = { is_same_value = root }
+			has_planet_flag = ag_gamma_shielded_world_colonized
+			has_building = ag_ancient_gamma_nexus_1
+			has_ground_combat = no
+			ag_has_researcher = yes
+		}
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_73_fired
+		event_target:ag_ancient_gamma_shielded_world = {
+			solar_system = {
+				random_system_planet = {
+					limit = {
+						has_planet_flag = ag_ancient_construction_section_0
+					}
+					save_event_target_as = ag_ancient_construction_section_loc
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.73.a"
+		enable_special_project = {
+			name = "ag_gamma_construction_section"
+			location = event_target:ag_ancient_construction_section_loc
+			owner = root
+		}
+		ai_chance = {
+			factor = 1000
+		}
+	}
+	option = {
+		name = "ag_gamma.73.b"
+		add_resource = { influence = 100 }
+		ai_chance = {
+			factor = 0
+		}
+	}
+}
+country_event = {
+	id = ag_gamma.74
+	title = "ag_gamma.74.name"
+	desc = "ag_gamma.74.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_ringworld_room }
+	show_sound = event_think_tank_build_complete
+	location = from
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ag_gamma_construction_section_unlocked
+		set_country_flag = ag_known_construction_section
+		event_target:ag_ancient_gamma_shielded_world = {
+			solar_system = {
+				ag_spawn_ancient_construction_section = yes
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_gamma.74.a"
+	}
+}
+
+# Ancient Station Megastructure
+# Stage 1/14
+country_event = {
+	id = ag_gamma.80
+	title = "ag_gamma.80.name"
+	desc = "ag_gamma.80.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_ringworld_build_start
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.80.a"
+	}
+	
+}
+# Stage 2/14
+country_event = {
+	id = ag_gamma.81
+	title = "ag_gamma.81.name"
+	desc = "ag_gamma.81.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.81.a"
+	}
+	
+}
+# Stage 3/14
+country_event = {
+	id = ag_gamma.82
+	title = "ag_gamma.82.name"
+	desc = "ag_gamma.82.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.82.a"
+	}
+	
+}
+# Stage 4/14
+country_event = {
+	id = ag_gamma.83
+	title = "ag_gamma.83.name"
+	desc = "ag_gamma.83.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.83.a"
+	}
+	
+}
+# Stage 5/14
+country_event = {
+	id = ag_gamma.84
+	title = "ag_gamma.84.name"
+	desc = "ag_gamma.84.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.84.a"
+	}
+	
+}
+# Stage 6/14
+country_event = {
+	id = ag_gamma.85
+	title = "ag_gamma.85.name"
+	desc = "ag_gamma.85.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.85.a"
+	}
+	
+}
+# Stage 7/14
+country_event = {
+	id = ag_gamma.86
+	title = "ag_gamma.86.name"
+	desc = "ag_gamma.86.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.86.a"
+	}
+	
+}
+# Stage 8/14
+country_event = {
+	id = ag_gamma.87
+	title = "ag_gamma.87.name"
+	desc = "ag_gamma.87.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.87.a"
+	}
+	
+}
+# Stage 9/14
+country_event = {
+	id = ag_gamma.88
+	title = "ag_gamma.88.name"
+	desc = "ag_gamma.88.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.88.a"
+	}
+	
+}
+# Stage 10/14
+country_event = {
+	id = ag_gamma.89
+	title = "ag_gamma.89.name"
+	desc = "ag_gamma.89.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.89.a"
+	}
+	
+}
+# Stage 11/14
+country_event = {
+	id = ag_gamma.90
+	title = "ag_gamma.90.name"
+	desc = "ag_gamma.90.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.90.a"
+	}
+	
+}
+# Stage 12/14
+country_event = {
+	id = ag_gamma.91
+	title = "ag_gamma.91.name"
+	desc = "ag_gamma.91.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.91.a"
+	}
+	
+}
+# Stage 13/14
+country_event = {
+	id = ag_gamma.92
+	title = "ag_gamma.92.name"
+	desc = "ag_gamma.92.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_upgrade_frame
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.92.a"
+	}
+	
+}
+# Stage 14/14
+country_event = {
+	id = ag_gamma.93
+	title = "ag_gamma.93.name"
+	desc = "ag_gamma.93.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_dyson_sphere_build_complete
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.93.a"
+	}
+	
+}
+# Stage 1/14 (others)
+country_event = {
+	id = ag_gamma.94
+	title = "ag_gamma.94.name"
+	desc = "ag_gamma.94.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_mega_structure_other_empire_build_complete
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.90.a"
+	}
+	
+}
+# Stage 14/14 (others)
+country_event = {
+	id = ag_gamma.95
+	title = "ag_gamma.95.name"
+	desc = "ag_gamma.95.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_mega_structure_other_empire_build_complete
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_gamma.95.a"
+	}
+	
+}
+
+# Unlocks ancient ships
+country_event = {
+	id = ag_gamma.100
+	title = "ag_gamma.100.name"
+	desc = "ag_gamma.100.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_mystic_reveal
+	
+	mean_time_to_happen = {
+		years = 5
+		modifier = {
+			factor = 0.5
+			has_country_flag = ag_has_ancient_code
+		}
+	}
+	
+	trigger = {
+		has_global_flag = ag_gamma_crisis_ended
+		has_country_flag = ag_gamma_70_fired
+		has_country_flag = ag_ancient_nexus_upgrade_available
+		NOR = {
+			has_country_flag = ag_gamma_ships_unlocked
+			has_country_flag = ag_gamma_100_fired
+		}
+		any_owned_ship = {
+			OR = {
+				is_ship_size = ag_gamma_station_0
+				is_ship_size = ag_gamma_battlecruiser_0
+				is_ship_size = ag_gamma_escort_0
+			}
+		}
+		event_target:ag_ancient_gamma_shielded_world = {
+			owner = {
+				is_same_value = root
+			}
+			has_building = ag_ancient_gamma_nexus_1
+		}
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_100_fired
+	}
+	
+	option = {
+		name = "ag_gamma.100.a"
+		custom_tooltip = "ag_gamma.100.a.tooltip"
+		hidden_effect = {
+			ag_give_research_project = { ag_project_id = @ag_gamma_ship_unlock_project_id }
+			if = {
+				limit = { is_ai = yes }
+				country_event = { id = ag_gamma.101 days = 1800 }
+			}
+		}
+		ai_chance = { factor = 1000 }
+	}
+	option = {
+		name = "ag_gamma.100.b"
+		add_resource = { influence = 80 }
+		ai_chance = { factor = 0 }
+	}
+	
+}
+country_event = {
+	id = ag_gamma.101
+	title = "ag_gamma.101.name"
+	desc = "ag_gamma.101.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_ancient_AI_room }
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = ag_gamma_ships_unlocked
+		set_country_flag = ag_has_ancient_code
+		country_event = { id = ag_gamma.102 days = 0 random = 60 }
+	}
+	
+	option = {
+		name = "ag_gamma.101.a"
+	}
+	
+}
+
+# Upgrade ships
+country_event = {
+    id = ag_gamma.102
+    hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_global_flag = ag_gamma_crisis_ended
+		has_country_flag = ag_gamma_ships_unlocked
+	}
+	
+	immediate = {
+		set_country_flag = ag_gamma_102_fired
+		if = {
+			limit = {
+				any_owned_ship = {
+					is_ship_size = ag_gamma_station_0
+				}
+			}
+			while = {
+				limit = {
+					any_owned_ship = {
+						is_ship_size = ag_gamma_station_0
+					}
+				}
+				random_owned_ship = {
+					limit = {
+						is_ship_size = ag_gamma_station_0
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					ag_gamma_station_player_spawn = {
+						ag_unlock_ship = yes
+						ag_owner = prev.owner
+						ag_location_target = prev
+					}
+					delete_ship = this
+				}
+			}
+			every_owned_starbase = {
+				limit = {
+					has_starbase_size = ag_gamma_station_1
+					NAND = {
+						has_starbase_building = titan_yards
+						has_starbase_building = colossus_yards
+					}
+				}
+				if = {
+					limit = { NOT = { has_starbase_building = titan_yards } }
+					set_starbase_building = {
+						slot = 1
+						building = titan_yards
+					}
+				}
+				if = {
+					limit = { NOT = { has_starbase_building = colossus_yards } }
+					set_starbase_building = {
+						slot = 2
+						building = colossus_yards
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				any_owned_ship = {
+					is_ship_size = ag_gamma_battlecruiser_0
+				}
+			}
+			while = {
+				limit = {
+					any_owned_ship = {
+						is_ship_size = ag_gamma_battlecruiser_0
+					}
+				}
+				random_owned_ship = {
+					limit = {
+						is_ship_size = ag_gamma_battlecruiser_0
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					fleet = {
+						if = {
+							limit = { exists = leader }
+							leader = {
+								save_global_event_target_as = ag_target_leader_on_fleet
+								prev = { save_global_event_target_as = ag_target_fleet_swap }
+								unassign_leader = this
+							}
+						}
+						create_ship = {
+							name = "NAME_ag_gamma_battlecruiser_ship"
+							design = "NAME_ag_gamma_battlecruiser_1"
+							prefix = no
+							effect = {
+								ag_difficulty_bonus = yes
+							}
+						}
+					}
+					delete_ship = this
+					if = {
+						limit = { exists = event_target:ag_target_fleet_swap }
+						event_target:ag_target_fleet_swap = {
+							assign_leader = event_target:ag_target_leader_on_fleet
+						}
+						clear_global_event_target = ag_target_fleet_swap
+						clear_global_event_target = ag_target_leader_on_fleet
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				any_owned_ship = {
+					is_ship_size = ag_gamma_escort_0
+				}
+			}
+			while = {
+				limit = {
+					any_owned_ship = {
+						is_ship_size = ag_gamma_escort_0
+					}
+				}
+				random_owned_ship = {
+					limit = {
+						is_ship_size = ag_gamma_escort_0
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					fleet = {
+						if = {
+							limit = { exists = leader }
+							leader = {
+								save_global_event_target_as = ag_target_leader_on_fleet
+								prev = { save_global_event_target_as = ag_target_fleet_swap }
+								unassign_leader = this
+							}
+						}
+						create_ship = {
+							name = "NAME_ag_gamma_escort_ship"
+							design = "NAME_ag_gamma_escort_1"
+							prefix = no
+							effect = {
+								ag_difficulty_bonus = yes
+							}
+						}
+					}
+					delete_ship = this
+					if = {
+						limit = { exists = event_target:ag_target_fleet_swap }
+						event_target:ag_target_fleet_swap = {
+							assign_leader = event_target:ag_target_leader_on_fleet
+						}
+						clear_global_event_target = ag_target_fleet_swap
+						clear_global_event_target = ag_target_leader_on_fleet
+					}
+				}
+			}
+		}
+	}
+}
+
+# Ancient Station's ftl drives
+# country_event = {
+# 	id = ag_gamma.105
+# 	title = "ag_gamma.105.name"
+# 	desc = "ag_gamma.105.desc"
+# 	diplomatic = yes
+# 	custom_gui = "ag_ancient_event_window"
+# 	custom_gui_option = "ag_ancient_event_option"
+# 	picture_event_data = { room = ag_event_ancient_AI_room }
+# 	show_sound = event_mystic_reveal
+	
+# 	mean_time_to_happen = {
+# 		years = 5
+# 	}
+	
+# 	trigger = {
+# 		has_global_flag = ag_gamma_crisis_ended
+# 		has_country_flag = ag_gamma_ships_unlocked
+# 		has_country_flag = ag_ancient_nexus_upgrade_available
+# 		exists = event_target:ag_ancient_gamma_shielded_world
+# 		event_target:ag_ancient_gamma_shielded_world = {
+# 			exists = owner
+# 			owner = { is_same_value = root }
+# 			has_building = ag_ancient_gamma_nexus_1
+# 		}
+# 		# any_owned_planet = {
+# 		# 	is_same_value = event_target:ag_ancient_gamma_shielded_world
+# 		# 	has_building = ag_ancient_gamma_nexus_1
+# 		# }
+# 		NOR = {
+# 			has_country_flag = ag_gamma_station_ftl_unlocked
+# 			has_country_flag = ag_gamma_105_fired
+# 		}
+# 		any_owned_ship = {
+# 			OR = {
+# 				is_ship_size = ag_gamma_station_0
+# 				is_ship_size = ag_gamma_station_1
+# 			}
+# 		}
+# 	}
+	
+# 	immediate = {
+# 		set_country_flag = ag_gamma_105_fired
+# 	}
+	
+# 	option = {
+# 		name = "ag_gamma.105.a"
+# 		enable_special_project = {
+# 			name = "ag_gamma_station_ftl_unlock"
+# 			location = capital_scope
+# 			owner = root
+# 		}
+# 		ai_chance = {
+# 			factor = 1000
+# 		}
+# 	}
+# 	option = {
+# 		name = "ag_gamma.105.b"
+# 		add_resource = { influence = 80 }
+# 		ai_chance = {
+# 			factor = 0
+# 		}
+# 	}
+# }
+# country_event = {
+# 	id = ag_gamma.106
+# 	title = "ag_gamma.106.name"
+# 	desc = "ag_gamma.106.desc"
+# 	diplomatic = yes
+# 	custom_gui = "ag_ancient_event_m_window"
+# 	custom_gui_option = "ag_ancient_event_m_option"
+# 	picture_event_data = { room = ag_event_ancient_AI_room }
+# 	show_sound = event_mystic_reveal
+	
+# 	is_triggered_only = yes
+	
+# 	immediate = {
+# 		set_country_flag = ag_gamma_station_ftl_unlocked
+# 	}
+	
+# 	option = {
+# 		name = "ag_gamma.106.a"
+# 	}
+# }
+
+# on_jump_drive, Ancient Station using jumpdrive
+ship_event = {
+    id = ag_gamma.110
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			is_ship_size = ag_gamma_station_0
+			is_ship_size = ag_gamma_station_1
+		}
+	}
+	
+	immediate = {
+		solar_system = {
+			set_star_flag = ag_gamma_station_in_system
+			random_system_planet = {
+				limit = { is_primary_star = yes }
+				if = {
+					limit = {
+						NOT = {
+							is_planet_class = pc_ag_void_star
+						}
+					}
+					change_pc = pc_ag_void_star
+					solar_system = { set_star_class = sc_ag_void }
+					set_planet_flag = ag_void_star_flag
+					set_planet_size = 1
+				}
+				root.fleet = {
+					set_location = {
+						target = prev
+						distance = -1
+						angle = 0
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+			}
+			every_system_planet = {
+				limit = {
+					OR = {
+						is_colony = yes
+						is_capital = yes
+					}
+					num_pops > 0
+					owner = { NOT = { is_same_value = root.owner } }
+				}
+				add_modifier = {
+					modifier = "ag_ancient_gamma_station_in_system"
+					days = -1
+				}
+			}
+		}
+		every_system = {
+			limit = {
+				has_star_flag = ag_gamma_station_in_system
+				NOT = { any_fleet_in_system = { has_fleet_flag = ag_gamma_station_player } }
+			}
+			remove_star_flag = ag_gamma_station_in_system
+			every_system_planet = {
+				if = {
+					limit = { has_modifier = "ag_ancient_gamma_station_in_system" }
+					remove_modifier = "ag_ancient_gamma_station_in_system"
+				}
+			}
+			random_system_planet = {
+				limit = { is_primary_star = yes }
+				if = {
+					limit = {
+						is_planet_class = pc_ag_void_star
+						has_planet_flag = ag_void_star_flag
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					change_pc = pc_black_hole
+					solar_system = { set_star_class = sc_black_hole }
+					set_planet_size = 18
+				}
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_victim, Player's Ancient Station destroyed
+country_event = {
+	id = ag_gamma.111
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		fromfrom = {
+			OR = {
+				is_ship_size = ag_gamma_station_0
+				is_ship_size = ag_gamma_station_1
+			}
+			solar_system = {
+				has_star_flag = ag_gamma_station_in_system
+			}
+		}
+	}
+	immediate = {
+		fromfrom.solar_system = {
+			remove_star_flag = ag_gamma_station_in_system
+			every_system_planet = {
+				if = {
+					limit = { has_modifier = "ag_ancient_gamma_station_in_system" }
+					remove_modifier = "ag_ancient_gamma_station_in_system"
+				}
+			}
+			random_system_planet = {
+				limit = { is_primary_star = yes }
+				if = {
+					limit = {
+						is_planet_class = pc_ag_void_star
+						has_planet_flag = ag_void_star_flag
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					change_pc = pc_black_hole
+					solar_system = { set_star_class = sc_black_hole }
+					set_planet_size = 18
+				}
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_perp, Counter for ships destroyed by ancient fleets
+country_event = {
+	id = ag_gamma.114
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = ag_ancient_gamma_guardian
+		from = { NOT = { is_country_type = ag_ancient_gamma_guardian } }
+	}
+
+	immediate = {
+		from = { change_variable = { which = ag_num_ships_destroyed_by_gamma_crisis value = 1 } }
+		every_country = {
+			limit = {
+				NOT = { is_same_value = event_target:ag_ancient_gamma_guardian_country }
+				has_event_chain = "ag_gamma_guardian_crisis_chain"
+			}
+			add_event_chain_counter = {
+				event_chain = "ag_gamma_guardian_crisis_chain"
+				counter = "ag_gamma_crisis_victims"
+				amount = 1
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_victim, counter for ancient fleets' ships killed
+country_event = {
+	id = ag_gamma.115
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		is_country_type = ag_ancient_gamma_guardian
+	}
+
+	immediate = {
+		from = {
+			add_event_chain_counter = {
+				event_chain = "ag_gamma_guardian_crisis_chain"
+				counter = "ag_gamma_crisis_kill_by_us"
+				amount = 1
+			}
+		}
+		every_country = {
+			limit = {
+				has_event_chain = "ag_gamma_guardian_crisis_chain"
+				NOT = { is_same_value = root.from }
+			}
+			add_event_chain_counter = {
+				event_chain = "ag_gamma_guardian_crisis_chain"
+				counter = "ag_gamma_crisis_kill_by_others"
+				amount = 1
+			}
+		}
+	}
+}
+
+# on_monthly_pulse, Failsafe for unexpected bugs or events make ancient fleet stoped
+event = {
+	id = ag_gamma.116
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_gamma_crisis_event_active = yes
+		NOT = {
+			has_global_flag = ag_gamma_station_destroyed
+		}
+		any_country = {
+			has_country_flag = ag_ancient_gamma_guardian_country
+		}
+	}
+	
+	immediate = {
+		event_target:ag_ancient_gamma_guardian_country = {
+			every_owned_fleet = {
+				limit = {
+					has_fleet_flag = ag_ancient_gamma_guardian_assault_fleet
+					is_fleet_idle = yes
+					NAND = {
+						exists = orbit
+						orbit = {
+							NOT = {
+								is_star = yes
+							}
+							exists = owner
+							owner = {
+								is_hostile = event_target:ag_ancient_gamma_guardian_country
+							}
+						}
+					}
+				}
+				clear_orders = yes
+				clear_fleet_actions = this
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = ag_ancient_gamma_guardian_need_reinforcement_flag
+						}
+					}
+					fleet_event = { id = ag_gamma.27 days = 1 random = 5 }
+				}
+				else = {
+					ag_gamma_crisis_fleet_reinforcement_action = yes
+				}
+			}
+		}
+	}
+}
+
+# on_ship_disabled, Gamma Station's protection
+ship_event = {
+	id = ag_gamma.121
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { has_ship_flag = ag_gamma_station_protection_enabled }
+	immediate = {
+		log = "Gamma Station Protection Triggered"
+		if = {
+			limit = { has_ship_flag = ag_gamma_station_protection_1 }
+			remove_ship_flag = ag_gamma_station_protection_1
+			set_ship_flag = ag_gamma_station_protection_2
+			set_disabled = no
+			ag_set_disable_at_health = { ag_value = 0.5 }
+			ag_subtract_disable_level = yes
+			random_list = {
+				75 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_ship = yes
+				}
+				25 = { }
+			}
+		}
+		else_if = {
+			limit = { has_ship_flag = ag_gamma_station_protection_2 }
+			remove_ship_flag = ag_gamma_station_protection_2
+			set_ship_flag = ag_gamma_station_protection_3
+			set_disabled = no
+			ag_set_disable_at_health = { ag_value = 0.25 }
+			ag_subtract_disable_level = yes
+			random_list = {
+				50 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_ship = yes
+				}
+				25 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_percentage = 0.75
+				}
+				25 = { }
+			}
+		}
+		else_if = {
+			limit = { always = yes }
+			remove_ship_flag = ag_gamma_station_protection_3
+			remove_ship_flag = ag_gamma_station_protection_enabled
+			set_disabled = no
+			ag_set_disable_at_health = { ag_value = -1 }
+			random_list = {
+				25 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_ship = yes
+				}
+				25 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_percentage = 0.75
+				}
+				25 = {
+					modifier = {
+						factor = 0
+						from.owner = {
+							OR = {
+								is_country_type = ag_zeta_crisis_country
+								is_country_type = ag_zeta_crisis_portal_holder
+								is_country_type = ag_zeta_crisis_relic_country
+							}
+						}
+					}
+					repair_percentage = 0.5
+				}
+				25 = { }
+			}
+		}
+		if = {
+			limit = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } } }
+			ship_event = { id = ag_gamma.122 days = 3600 }
+		}
+		else_if = {
+			limit = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 1.75 } check_variable = { which = ag_scaled_difficulty_temp value < 3.5 } } }
+			ship_event = { id = ag_gamma.122 days = 720 }
+		}
+		else_if = {
+			limit = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 3 } } }
+			ship_event = { id = ag_gamma.122 days = 360 }
+		}
+		else_if = {
+			limit = { always = yes }
+			ship_event = { id = ag_gamma.122 days = 1800 }
+		}
+	}
+}
+ship_event = {
+	id = ag_gamma.122
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this NOT = { has_ship_flag = ag_gamma_122_mutex } }
+	immediate = {
+		if = {
+			limit = { fleet = { is_in_combat = no } }
+			if = {
+				limit = { has_ship_flag = ag_gamma_station_protection_2 }
+				remove_ship_flag = ag_gamma_station_protection_2
+				set_ship_flag = ag_gamma_station_protection_3
+				ag_set_disable_at_health = { ag_value = 0.75 }
+				ag_subtract_disable_level = yes
+				set_timed_ship_flag = { flag = ag_gamma_122_mutex days = 350 }
+			}
+			else_if = {
+				limit = { has_ship_flag = ag_gamma_station_protection_1 }
+				remove_ship_flag = ag_gamma_station_protection_1
+				set_ship_flag = ag_gamma_station_protection_2
+				ag_set_disable_at_health = { ag_value = 0.5 }
+				ag_subtract_disable_level = yes
+				set_timed_ship_flag = { flag = ag_gamma_122_mutex days = 350 }
+				ship_event = { id = ag_gamma.122 days = 360 }
+			}
+			else_if = {
+				limit = { NOT = { has_ship_flag = ag_gamma_station_protection_enabled } }
+				set_ship_flag = ag_gamma_station_protection_enabled
+				set_ship_flag = ag_gamma_station_protection_1
+				ag_set_disable_at_health = { ag_value = 0.25 }
+				set_timed_ship_flag = { flag = ag_gamma_122_mutex days = 350 }
+				ship_event = { id = ag_gamma.122 days = 360 }
+			}
+		}
+		else = { ship_event = { id = ag_gamma.122 days = 360 } }
+	}
+}

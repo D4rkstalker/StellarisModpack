@@ -1,0 +1,327 @@
+namespace = vbp_tomb
+
+#Scheduling Sol to spawn on day 3 (Compatibility with my other primitive mods, general safety)
+# event = {
+# 	id = vbp_tomb.1
+# 	hide_window = yes
+# 	is_triggered_only = yes
+	
+# 	trigger = {
+# 		NOT = {
+# 			any_system = { has_star_flag = sol }
+# 		}
+# 	}
+	
+# 	immediate = {
+# 		random_planet = {
+# 			random_list = {
+# 				50 = { planet_event = { id = vbp_tomb.2 days = 3 } }
+# 				50 = { }
+# 			}
+# 		}
+# 		set_global_flag = vbp_tomb_scheduled
+# 	}
+# }
+
+# #Actually placing
+# planet_event = {
+# 	id = vbp_tomb.2
+# 	hide_window = yes
+# 	is_triggered_only = yes
+	
+# 	trigger = {
+# 		NOT = {
+# 			any_system = { has_star_flag = sol }
+# 		}
+# 	}
+	
+# 	immediate = {
+# 		spawn_system = {
+# 			initializer = vbp_tomb_sol
+# 		}
+# 	}
+# }
+
+#Surveying the primitives
+ship_event = {
+	id = vbp_tomb.3
+	title = vbp_tomb.3.name
+	desc = vbp_tomb.3.desc
+	
+	is_triggered_only = yes
+	show_sound = event_primitive_civilization
+	picture = GFX_evt_dead_city
+	location = FROM
+	
+	trigger = {
+		FROM = {
+			has_owner = yes
+			owner = {
+				has_country_flag = vbp_tomb_primitives
+			}
+		}
+	}
+	
+	option = {
+		name = INTERESTING
+		hidden_effect = { 
+			owner = {
+				country_event = { 
+					id = story.6 
+					days = 30 
+					scopes = { fromfrom = from.owner }
+				} 
+			}
+		}
+	}
+}
+
+#Triggering from ashes
+country_event = {
+	id = vbp_tomb.4
+	hide_window = yes
+
+	trigger = {
+		is_country_type = primitive
+		has_country_flag = vbp_tomb_primitives
+		NOT = { has_country_flag = recently_advanced }
+		years_passed >= 25
+	}
+
+	mean_time_to_happen = {
+		years = 200
+	}
+
+	immediate = {
+		set_timed_country_flag = {
+			flag = recently_advanced
+			days = 2160 #60yrs
+		}
+		remove_country_flag = vbp_tomb_primitives
+		random_list = {
+			50 = {
+				set_country_flag = machine_age
+				set_primitive_age = machine_age
+				change_country_flag = {
+					icon = {
+						category = "special"
+						file = "primitive.dds"
+					}
+					background= {
+						category = "backgrounds"
+						file = "new_dawn.dds"
+					}
+					colors={
+						"yellow"
+						"orange"
+						"null"
+						"null"
+					}
+				}
+
+			}
+			50 = {
+				set_country_flag = industrial_age
+				set_primitive_age = industrial_age
+				change_country_flag = {
+					icon = {
+						category = "special"
+						file = "primitive.dds"
+					}
+					background= {
+						category = "backgrounds"
+						file = "new_dawn.dds"
+					}
+					colors={
+						"beige"
+						"yellow"
+						"null"
+						"null"
+					}
+				}
+			}
+		}
+		capital_scope = {
+			remove_all_armies = yes
+			remove_all_buildings = yes
+			clear_blockers = yes
+			add_deposit = d_decrepit_dwellings
+			add_deposit = d_failing_infrastructure
+			remove_building = building_stone_palace
+			remove_building = building_primitive_dwellings
+			add_building = building_primitive_capital
+			add_building = building_urban_dwellings
+			add_building = building_primitive_farm
+			while = {
+				count = 2
+				create_pop = { species = owner }
+			}
+			observation_outpost_owner = {
+				country_event = { id = vbp_tomb.41 }
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = vbp_tomb.41
+	title = vbp_tomb.41.name
+	desc = vbp_tomb.41.desc
+	
+	is_triggered_only = yes
+	
+	picture = GFX_evt_metropolis
+	location = FROM
+
+	option = {
+		name = vbp_tomb.41.a
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+				has_civic = civic_hive_devouring_swarm
+				has_civic = civic_machine_terminator
+			}
+		}
+	}
+	
+	option = {
+		name = vbp_tomb.41.b
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+				has_civic = civic_hive_devouring_swarm
+				has_civic = civic_machine_terminator
+			}
+		}
+	}
+}
+
+#Enlightenment complete
+country_event = {
+	id = vbp_tomb.5
+	title = "observation.2000.name"
+	desc = "observation.2000.desc"
+	picture = GFX_evt_metropolis
+	show_sound = event_laboratory_sound
+	location = FROMFROM
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		FROMFROM = {
+			observation_outpost_owner = {
+				# Xenoist Faction Enlightenment Demand
+				set_timed_country_flag = {
+					flag = recent_enlightenment_timed
+					days = 7200 # 20 years
+				}
+			}
+			observation_outpost = {
+				dismantle = yes
+			}
+			remove_all_buildings = yes
+			owner = {
+				remove_country_flag = vbp_tomb_primitives
+				set_country_flag = early_space_age
+				country_event = { id = primitive.16 }
+				add_opinion_modifier = { who = root modifier = opinion_enlightened_us }
+				save_event_target_as = primitive_country
+				if = {
+					limit = {
+						root = { is_country_type = default }
+					}
+					if = {
+						limit = {
+							root = { has_valid_civic = "civic_inwards_perfection" }
+						}
+						set_subject_of = {
+							who = root
+							subject_type = tributary
+						}
+					}	
+					else = {
+						set_subject_of = {
+							who = root
+							subject_type = protectorate
+						}						
+					}			
+				}
+				if = {
+					limit = {
+						root = { is_country_type = awakened_fallen_empire }
+					}
+					if = {
+						limit = { 
+							root = { 
+								has_ethic = ethic_fanatic_xenophobe
+							}
+						}
+						set_subject_of = {
+							who = root
+							subject_type = thrall
+						}		
+					}	
+					if = {
+						limit = { 
+							root = { 
+								has_ethic = ethic_fanatic_xenophile
+							}
+						}
+						set_subject_of = {
+							who = root
+							subject_type = signatory
+						}		
+					}			
+					if = {
+						limit = { 
+							root = { 
+								has_ethic = ethic_fanatic_spiritualist
+							}
+						}
+						set_subject_of = {
+							who = root
+							subject_type = dominion
+						}		
+					}		
+					if = {
+						limit = { 
+							root = { 
+								has_ethic = ethic_fanatic_materialist
+							}
+						}
+						set_subject_of = {
+							who = root
+							subject_type = satellite
+						}		
+					}				
+				}				
+			}
+			solar_system = {
+				if = {
+					limit = {
+						starbase = { owner = { is_same_value = root } }
+					}
+					starbase = {
+						set_owner = event_target:primitive_country
+					}						
+				}
+				every_system_planet = {
+					limit = {
+						exists = owner
+						owner = { is_same_value = root }
+					}
+					set_owner = event_target:primitive_country			
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = "observation.2000.a"
+	}
+}

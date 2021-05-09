@@ -237,7 +237,7 @@ planet_event = {
 
 	trigger = {
 		has_planet_flag = primitive_robot_planet
-		any_pop = {
+		any_owned_pop = {
 			species = {
 				has_species_flag = primitive_robots_flag
 			}
@@ -335,7 +335,7 @@ planet_event = { #Recursive, spreads every other month as long as have biopops l
 	immediate = {
 		IF = {
 			limit = {
-				count_pops = {
+				count_owned_pop = {
 					limit = {
 						NOR = {
 							has_trait = trait_mechanical
@@ -345,7 +345,7 @@ planet_event = { #Recursive, spreads every other month as long as have biopops l
 					count < 6
 				}
 			}
-			random_pop = {
+			random_owned_pop = {
 				limit = {
 					NOR = {
 						has_trait = trait_mechanical
@@ -359,7 +359,7 @@ planet_event = { #Recursive, spreads every other month as long as have biopops l
 		else = {
 			while = {
 				count = 2
-				random_pop = {
+				random_owned_pop = {
 					limit = {
 						NOR = {
 							has_trait = trait_mechanical
@@ -470,6 +470,7 @@ ship_event = {
 		create_country = {
 			name = "NAME_Lost_Amoeba"
 			type = faction
+			auto_delete = yes
 			flag = {
     		    icon = {
     		        category = "pirate"
@@ -521,6 +522,7 @@ ship_event = {
 						spawn_debris = yes
 					}
 				}
+				save_event_target_as = lost_amoeba_country
 			}
 		}
 		root = {
@@ -534,6 +536,25 @@ ship_event = {
 				attack_fleet = no
 			}
 		}	
+	}
+	
+	after = {
+		hidden_effect = {
+			owner = {
+				set_country_flag = amoeba_encountered
+				every_country = {
+					limit = {
+						NOT = { is_same_value = event_target:lost_amoeba_country }
+						NOT = { has_communications = root.owner }
+						is_amoeba_country_type = yes
+					}
+					root.owner = {
+						establish_communications_no_message = prev
+						establish_communication_with_subjects_and_federation = { FLAG = amoeba_encountered }
+					}
+				}
+			}
+		}
 	}
 
 	option = {
@@ -549,23 +570,28 @@ ship_event = {
 				set_country_flag = amoeba_befriended # Achievement flag
 				set_variable = { which = amoebas_owned value = 1 }
 				country_event = { id = distar.51 days = 365 random = 60 } # grows up
-				random_list = {
-					66 = {
-						country_event = { id = anomalymod.22 days = 430 } # chance to pacify amoebas
-					}
-					33 = {
-					}
-				}
 				country_event = { id = distar.304 days = 36500 } # 100 years old
 				IF = {
 					limit = {
 						NOT = { has_country_flag = amoeba_encountered }
 					}
-					capital_scope = {
-						enable_special_project = {
-							name = "INVESTIGATE_SPACE_AMOEBA"
-							location = this
-							owner = root.owner
+					if = {
+						limit = { has_global_flag = expanded_spaceborne_installed }
+						capital_scope = {
+							enable_special_project = {
+								name = "AMOEBAS_PROJECT" # can pacify them later
+								location = this
+								owner = root.owner
+							}
+						}
+					}
+					else = {
+						capital_scope = {
+							enable_special_project = {
+								name = "AMOEBAS_PACIFICATION_PROJECT"
+								location = this
+								owner = root.owner
+							}
 						}
 					}
 					set_country_flag = amoeba_encountered
@@ -586,7 +612,7 @@ ship_event = {
 					}
 					capital_scope = {
 						enable_special_project = {
-							name = "INVESTIGATE_SPACE_AMOEBA"
+							name = "AMOEBAS_PROJECT"
 							location = this
 							owner = root.owner
 						}
@@ -607,19 +633,15 @@ ship_event = {
 			}
 		}
 		hidden_effect = {
-			owner = {
-				IF = {
-					limit = {
-						NOT = { has_country_flag = amoeba_encountered }
-					}
-					capital_scope = {
-						enable_special_project = {
-							name = "INVESTIGATE_SPACE_AMOEBA"
-							location = this
-							owner = root.owner
-						}
+			owner = { 
+				if = {
+					limit = { NOT = { has_country_flag = amoeba_encountered } }
+					add_modifier = {
+						modifier = amoeba_hunting_buff
+						days = -1
 					}
 					set_country_flag = amoeba_encountered
+					custom_tooltip = story.101.aa.amoebahunt
 				}
 			}
 		}
@@ -1443,7 +1465,6 @@ ship_event = {
 			}
 		}
 		name = "distar.170.a"
-		small_artifact_reward = yes
 		from = {
 			enable_special_project = {
 				name = "BRAINSLUG_PROJECT"
@@ -1460,7 +1481,14 @@ ship_event = {
 			}
 		}
 		name = NOTIME
-		small_artifact_reward = yes
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier4researchreward
+				min = @tier4researchmin
+				max = @tier4researchmax
+			}
+		}
 	}
 
 	option = {
@@ -1471,7 +1499,6 @@ ship_event = {
 		}
 		name = "distar.170.machi"
 		owner = {
-			small_artifact_reward = yes
 			add_monthly_resource_mult = {
 				resource = society_research
 				value = @tier4researchreward
@@ -1482,6 +1509,7 @@ ship_event = {
 	}
 	
 	after = {
+		small_artifact_reward = yes
 	}
 }
 
@@ -1873,6 +1901,7 @@ ship_event = {
 	is_triggered_only = yes
 
 	immediate = {
+		from = { add_deposit = d_the_zone }
 		owner = { country_event = { id = story.5 days = 30 } }
 	}
 
@@ -2143,7 +2172,7 @@ ship_event = {
 			create_species = {
 				name = "NAME_Caretaker"
 				class = ROBOT
-				portrait = "mammaliansynth"
+				portrait = "sd_mam_robot"
 				namelist = "AI"
 				traits = {
 					trait = trait_machine_unit
@@ -2159,7 +2188,7 @@ ship_event = {
 			create_species = {
 				name = "NAME_Caretaker"
 				class = ROBOT
-				portrait = "2dsynth_01"
+				portrait = "default_robot"
 				namelist = "AI"
 				traits = random
 				effect = {
@@ -2559,7 +2588,7 @@ country_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		#random_planet = {
+		#random_galaxy_planet = {
 		#	limit = {
 		#		#is_colonizable = no
 		#		has_owner = no
@@ -3330,8 +3359,8 @@ country_event = {
 
 	immediate = {
 		event_target:anomalous_star = {
-			surveyed = {
- 				set_surveyed = yes
+			set_surveyed = {
+ 				surveyed = yes
    				surveyor = root
  			}
 		}
@@ -3349,8 +3378,8 @@ country_event = {
 				clear_deposits = yes
 			}
 			add_deposit = d_energy_8
-			surveyed = {
- 				set_surveyed = yes
+			set_surveyed = {
+ 				surveyed = yes
    				surveyor = root
  			}
 		}
@@ -3977,9 +4006,12 @@ country_event = {
 			add_district = district_generator
 			add_building = building_system_capital
 			add_building = building_research_lab_1
-			add_building = building_foundry_1
-			add_building = building_foundry_1
-			add_building = building_factory_1
+			while = {
+				count = 4
+				add_district_and_planet_size_if_needed_effect = {
+					district = district_industrial
+				}
+			}
 			while = {
 				count = 10
 				create_army = {
@@ -4410,7 +4442,7 @@ country_event = { # First words
 		}
 	}
 	
-	option = { # Assimilator
+	option = { # Swarm
 		trigger = {
 			has_civic = civic_hive_devouring_swarm
 		}
@@ -4619,7 +4651,7 @@ country_event = { # Planetfall on planet X after being shoot into deep space. Re
 	}
 
 	immediate = {
-		random_planet = {
+		random_galaxy_planet = {
 			limit = {
 				is_colonizable = yes
 				has_owner = no
@@ -4697,8 +4729,8 @@ country_event = { # Planetfall on planet X after being shoot into deep space. Re
 			clear_blockers = yes
 			solar_system = {
 				every_system_planet = {
-					surveyed = {
-						set_surveyed = yes
+					set_surveyed = {
+						surveyed = yes
 						surveyor = root.owner
 					}
 				}
@@ -4722,8 +4754,12 @@ country_event = { # Planetfall on planet X after being shoot into deep space. Re
 			add_district = district_generator
 			add_building = building_capital
 			add_building = building_research_lab_1
-			add_building = building_foundry_1
-			add_building = building_factory_1
+			while = {
+				count = 2
+				add_district_and_planet_size_if_needed_effect = {
+					district = district_industrial
+				}
+			}
 			while = {
 				count = 2
 				create_army = {
@@ -5092,7 +5128,7 @@ country_event = { # More info about the molluscs
 				}
 				while = {
 					limit = {
-						count_pops = {
+						count_owned_pop = {
 							limit = { is_sapient = no }
 							count < 6
 						}
@@ -5552,6 +5588,93 @@ country_event = { # Alien Box researched
 	}
 }
 
+### Breathing Rift ###
+country_event = {
+	id = distar.3061
+	title = "distar.3061.name"
+	desc = {
+		trigger = {
+			hidden:owner = {
+				switch = {
+					trigger = has_country_flag
+					rift_spew_done = { text = distar.3061.desc.repeat }
+					default = { text = distar.3061.desc }
+				}
+			}
+		}
+	}
+	picture = GFX_evt_asteroid_field
+	show_sound = event_scanner
+	location = event_target:breathing_rift_object
+
+	is_triggered_only = yes
+
+	option = { # Excellent. Collect them swiftly.
+		name = distar.3061.a
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = @tier2materialreward
+			min = @tier2materialmin
+			max = @tier2materialmax
+		}
+		hidden_effect = {
+			random_list = {
+				25 = { country_event = { id = distar.3061 days = 100 random = 100 } }
+				25 = { country_event = { id = distar.3062 days = 100 random = 100 } }
+				49 = { country_event = { id = distar.3064 days = 100 random = 50 } }
+				1 = { country_event = { id = anomalymod.95 days = 100 random = 100 } }
+			}
+			set_country_flag = rift_spew_done
+		}
+	}
+}
+
+country_event = {
+	id = distar.3062
+	title = "distar.3062.name"
+	desc = {
+		trigger = {
+			hidden:owner = {
+				switch = {
+					trigger = has_country_flag
+					rift_spew_done = { text = distar.3062.desc.repeat }
+					default = { text = distar.3062.desc }
+				}
+			}
+		}
+	}
+	picture = GFX_evt_space_debris
+	show_sound = event_scanner
+	location = event_target:breathing_rift_object
+
+	is_triggered_only = yes
+
+	option = { # Excellent. Collect it swiftly.
+		name = distar.3062.a
+		add_monthly_resource_mult = {
+			resource = energy
+			value = @tier1materialreward
+			min = @tier1materialmin
+			max = @tier1materialmax
+		}
+		add_monthly_resource_mult = {
+			resource = engineering_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax
+		}
+		hidden_effect = {
+			random_list = {
+				25 = { country_event = { id = distar.3061 days = 100 random = 100 } }
+				25 = { country_event = { id = distar.3062 days = 100 random = 100 } }
+				49 = { country_event = { id = distar.3064 days = 100 random = 50 } }
+				1 = { country_event = { id = anomalymod.95 days = 100 random = 100 } }
+			}
+			set_country_flag = rift_spew_done
+		}
+	}
+}
+
 ##### THE ENIGMATIC CACHE ######
 
 event = {
@@ -5578,7 +5701,7 @@ event = {
 						is_megastructure_type = gateway_ruined
 						is_megastructure_type = gateway_restored
 						is_megastructure_type = gateway_final
-						OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+						is_megastructure_type = lgate_base
 					}
 				}
 			}
@@ -5604,7 +5727,7 @@ planet_event = {
 							is_megastructure_type = gateway_ruined
 							is_megastructure_type = gateway_restored
 							is_megastructure_type = gateway_final
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 					}
 				}
@@ -5614,7 +5737,7 @@ planet_event = {
 							is_megastructure_type = gateway_ruined
 							is_megastructure_type = gateway_restored
 							is_megastructure_type = gateway_final
-							OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+							is_megastructure_type = lgate_base
 						}
 					}
 					save_event_target_as = spawning_gateway
@@ -5960,7 +6083,7 @@ country_event = {
 		if = {
 			limit = {
 				any_owned_megastructure = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				OR = {
 					is_ai = no
@@ -5970,7 +6093,7 @@ country_event = {
 			}
 			random_owned_megastructure = {
 				limit = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				save_event_target_as = candidate_gateway
 			}
@@ -6022,7 +6145,7 @@ country_event = {
 		if = {
 			limit = {
 				any_owned_megastructure = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				has_technology = tech_lgate_activation
 				OR = {
@@ -6033,7 +6156,7 @@ country_event = {
 			}
 			random_owned_megastructure = {
 				limit = {
-					OR = { is_megastructure_type = lgate_base is_megastructure_type = lgate_disabled}
+					is_megastructure_type = lgate_base
 				}
 				save_event_target_as = candidate_gateway
 			}

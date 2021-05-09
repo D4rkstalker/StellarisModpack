@@ -19,6 +19,10 @@ alderson_disk_0 = {
 		has_technology = giga_tech_alderson_disk
 		has_ascension_perk = ap_slice_of_life
 		NOT = { has_global_flag = alderson_disabled }
+		OR = {
+			check_variable = { which = giga_alderson_cap value = 0 }						# No Cap
+			check_variable = { which = giga_current_alderson value < giga_alderson_cap }
+		}
 	}
 
 	possible = {
@@ -28,6 +32,7 @@ alderson_disk_0 = {
 		custom_tooltip = { fail_text = "requires_no_habitable_planets"						giga_any_hab_planets = no }
 		custom_tooltip = { fail_text = "requires_standard_star_class"						giga_is_standard_system = yes }
 		custom_tooltip = { fail_text = "requires_no_existing_megastructure"					has_no_non_gate_megastructure = yes }
+		custom_tooltip = { fail_text = "requires_no_crisis_system"							NOT = { any_system_planet = { has_planet_flag = crisis_vital_planet } } }
 		custom_tooltip = {
 			fail_text = "requires_not_capped"
 			from = {
@@ -108,17 +113,17 @@ alderson_disk_1 = {
 	on_build_complete = {
 		save_event_target_as = giga_system
 		from = { country_event = { id = giga_dialog.2503 } }	# Notification
-		every_system_planet = { limit = { is_primary_star = no } remove_planet = yes }
+		giga_remove_system_planets = yes
 		giga_remove_system_debris = yes
 		set_asteroid_belt = { radius = 0 }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 0   orbit_distance = 178.75	owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 45  orbit_distance = 180		owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 90  orbit_distance = 178.75	owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 135 orbit_distance = 180		owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 180 orbit_distance = 178.75	owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 225 orbit_distance = 180		owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 270 orbit_distance = 178.75	owner = from location = star }
-		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 315 orbit_distance = 180		owner = from location = star }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 0   orbit_distance = 178.75	owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 45  orbit_distance = 180		owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 90  orbit_distance = 178.75	owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 135 orbit_distance = 180		owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 180 orbit_distance = 178.75	owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 225 orbit_distance = 180		owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 270 orbit_distance = 178.75	owner = from }
+		spawn_megastructure = { name = "Alderson Section" type = "alderson_disk_2" orbit_angle = 315 orbit_distance = 180		owner = from }
 		remove_megastructure = fromfrom
 		create_ambient_object = {
 			type = "alderson_frame"
@@ -176,17 +181,30 @@ alderson_disk_2_gaia = {
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
-		solar_system.owner = { country_event = { id = giga_dialog.2504 } }	# Notification
+		from = {
+			country_event = { id = giga_dialog.2504 }	# Notification
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_94
+					}
+				}
+				set_country_flag = giga_achievement_94
+				set_timed_country_flag = { flag = giga_achievement_94_notification days = 30 }
+				giga_achievement_sound = yes
+			}
+		}
 
 		change_variable = { which = alderson_slices value = 1 }
 		if = {
 			limit = { check_variable = { which = alderson_slices value >= 8 } }
-			solar_system.owner = {
+			from = {
 				country_event = { id = giga_dialog.2507 }			# Fully completed Alderson
 				remove_country_flag = giga_started_alderson
 				change_variable = { which = completed_alderson value = 1 }
 			}
-			set_variable = { which = alderson_slices value = 0 }
+			clear_variable = alderson_slices
 		}
 
 		spawn_planet = {
@@ -195,10 +213,10 @@ alderson_disk_2_gaia = {
 			size = 15
 			init_effect = {
 				set_name = "Alderson Slice"
-				surveyed = { set_surveyed = yes surveyor = solar_system.owner }
+				set_surveyed = { surveyed = yes surveyor = solar_system.owner }
 				every_country = {
 					limit = { has_communications = root.owner }
-					prev = { surveyed = { set_surveyed = yes surveyor = prev } }
+					prev = { set_surveyed = { surveyed = yes surveyor = prev } }
 				}
 				clear_blockers = yes
 				save_event_target_as = alderson_section
@@ -249,14 +267,27 @@ alderson_disk_2_pc = {
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
-		solar_system.owner = { country_event = { id = giga_dialog.2505 } }	# Notification
+		from = {
+			country_event = { id = giga_dialog.2505 }	# Notification
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_94
+					}
+				}
+				set_country_flag = giga_achievement_94
+				set_timed_country_flag = { flag = giga_achievement_94_notification days = 30 }
+				giga_achievement_sound = yes
+			}
+		}
 
 		change_variable = { which = alderson_slices value = 1 }
 		if = {
 			limit = { check_variable = { which = alderson_slices value >= 8 } }
-			solar_system.owner = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
-			solar_system.owner = { remove_country_flag = giga_started_alderson }
-			set_variable = { which = alderson_slices value = 0 }
+			from = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
+			from = { remove_country_flag = giga_started_alderson }
+			clear_variable = alderson_slices
 		}
 
 		spawn_planet = {
@@ -265,10 +296,10 @@ alderson_disk_2_pc = {
 			size = 15
 			init_effect = {
 				set_name = "Alderson Slice"
-				surveyed = { set_surveyed = yes surveyor = solar_system.owner }
+				set_surveyed = { surveyed = yes surveyor = solar_system.owner }
 				every_country = {
 					limit = { has_communications = root.owner }
-					prev = { surveyed = { set_surveyed = yes surveyor = prev } }
+					prev = { set_surveyed = { surveyed = yes surveyor = prev } }
 				}
 				clear_blockers = yes
 				save_event_target_as = alderson_section
@@ -320,14 +351,27 @@ alderson_disk_2_ecu = {
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
-		solar_system.owner = { country_event = { id = giga_dialog.2506 } }	# Notification
+		from = {
+			country_event = { id = giga_dialog.2506 }	# Notification
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_94
+					}
+				}
+				set_country_flag = giga_achievement_94
+				set_timed_country_flag = { flag = giga_achievement_94_notification days = 30 }
+				giga_achievement_sound = yes
+			}
+		}
 
 		change_variable = { which = alderson_slices value = 1 }
 		if = {
 			limit = { check_variable = { which = alderson_slices value >= 8 } }
-			solar_system.owner = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
-			solar_system.owner = { remove_country_flag = giga_started_alderson }
-			set_variable = { which = alderson_slices value = 0 }
+			from = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
+			from = { remove_country_flag = giga_started_alderson }
+			clear_variable = alderson_slices
 		}
 
 		spawn_planet = {
@@ -336,10 +380,10 @@ alderson_disk_2_ecu = {
 			size = 15
 			init_effect = {
 				set_name = "Alderson Slice"
-				surveyed = { set_surveyed = yes surveyor = solar_system.owner }
+				set_surveyed = { surveyed = yes surveyor = solar_system.owner }
 				every_country = {
 					limit = { has_communications = root.owner }
-					prev = { surveyed = { set_surveyed = yes surveyor = prev } }
+					prev = { set_surveyed = { surveyed = yes surveyor = prev } }
 				}
 				clear_blockers = yes
 				save_event_target_as = alderson_section
@@ -390,14 +434,27 @@ alderson_disk_2_hive = {
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
-		solar_system.owner = { country_event = { id = giga_dialog.25061 } }	# Notification
+		from = {
+			country_event = { id = giga_dialog.25061 }	# Notification
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_94
+					}
+				}
+				set_country_flag = giga_achievement_94
+				set_timed_country_flag = { flag = giga_achievement_94_notification days = 30 }
+				giga_achievement_sound = yes
+			}
+		}
 
 		change_variable = { which = alderson_slices value = 1 }
 		if = {
 			limit = { check_variable = { which = alderson_slices value >= 8 } }
-			solar_system.owner = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
-			solar_system.owner = { remove_country_flag = giga_started_alderson }
-			set_variable = { which = alderson_slices value = 0 }
+			from = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
+			from = { remove_country_flag = giga_started_alderson }
+			clear_variable = alderson_slices
 		}
 
 		spawn_planet = {
@@ -406,10 +463,10 @@ alderson_disk_2_hive = {
 			size = 15
 			init_effect = {
 				set_name = "Alderson Slice"
-				surveyed = { set_surveyed = yes surveyor = solar_system.owner }
+				set_surveyed = { surveyed = yes surveyor = solar_system.owner }
 				every_country = {
 					limit = { has_communications = root.owner }
-					prev = { surveyed = { set_surveyed = yes surveyor = prev } }
+					prev = { set_surveyed = { surveyed = yes surveyor = prev } }
 				}
 				clear_blockers = yes
 				save_event_target_as = alderson_section
@@ -460,14 +517,27 @@ alderson_disk_2_machine = {
 	ai_weight = { factor = 10 } # If we can build it, we will build it
 	on_build_complete = {
 		save_event_target_as = giga_system
-		solar_system.owner = { country_event = { id = giga_dialog.25062 } }	# Notification
+		from = {
+			country_event = { id = giga_dialog.25062 }	# Notification
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_94
+					}
+				}
+				set_country_flag = giga_achievement_94
+				set_timed_country_flag = { flag = giga_achievement_94_notification days = 30 }
+				giga_achievement_sound = yes
+			}
+		}
 
 		change_variable = { which = alderson_slices value = 1 }
 		if = {
 			limit = { check_variable = { which = alderson_slices value >= 8 } }
-			solar_system.owner = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
-			solar_system.owner = { remove_country_flag = giga_started_alderson }
-			set_variable = { which = alderson_slices value = 0 }
+			from = { country_event = { id = giga_dialog.2507 } }			# Fully completed Alderson
+			from = { remove_country_flag = giga_started_alderson }
+			clear_variable = alderson_slices
 		}
 
 		spawn_planet = {
@@ -476,10 +546,10 @@ alderson_disk_2_machine = {
 			size = 15
 			init_effect = {
 				set_name = "Alderson Slice"
-				surveyed = { set_surveyed = yes surveyor = solar_system.owner }
+				set_surveyed = { surveyed = yes surveyor = solar_system.owner }
 				every_country = {
 					limit = { has_communications = root.owner }
-					prev = { surveyed = { set_surveyed = yes surveyor = prev } }
+					prev = { set_surveyed = { surveyed = yes surveyor = prev } }
 				}
 				clear_blockers = yes
 				save_event_target_as = alderson_section
@@ -592,7 +662,7 @@ alderson_disk_2_construction_gaia_restored_left_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_gaia location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_gaia coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -613,7 +683,7 @@ alderson_disk_2_construction_gaia_restored_center_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_gaia location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_gaia coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -634,7 +704,7 @@ alderson_disk_2_construction_gaia_restored_right_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_gaia location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_gaia coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -655,7 +725,7 @@ alderson_disk_2_construction_pc_restored_left_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_pc location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_pc coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -676,7 +746,7 @@ alderson_disk_2_construction_pc_restored_center_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_pc location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_pc coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -697,7 +767,7 @@ alderson_disk_2_construction_pc_restored_right_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_pc location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_pc coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -718,7 +788,7 @@ alderson_disk_2_construction_ecu_restored_left_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_ecu location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_ecu coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -739,7 +809,7 @@ alderson_disk_2_construction_ecu_restored_center_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_ecu location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_ecu coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -760,7 +830,7 @@ alderson_disk_2_construction_ecu_restored_right_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_ecu location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_ecu coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -781,7 +851,7 @@ alderson_disk_2_construction_hive_restored_left_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_hive location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_hive coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -802,7 +872,7 @@ alderson_disk_2_construction_hive_restored_center_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_hive location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_hive coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -823,7 +893,7 @@ alderson_disk_2_construction_hive_restored_right_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_hive location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_hive coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -844,7 +914,7 @@ alderson_disk_2_construction_machine_restored_left_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_machine location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_machine coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -865,7 +935,7 @@ alderson_disk_2_construction_machine_restored_center_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_machine location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_machine coords_from = prev } }
 				remove_planet = yes
 			}
 		}
@@ -886,7 +956,7 @@ alderson_disk_2_construction_machine_restored_right_complete = {
 			class = pc_giga_empty_space
 			location = fromfrom
 			init_effect = {
-				prev = { spawn_megastructure = { type = alderson_disk_2_machine location = prev } }
+				prev = { spawn_megastructure = { type = alderson_disk_2_machine coords_from = prev } }
 				remove_planet = yes
 			}
 		}

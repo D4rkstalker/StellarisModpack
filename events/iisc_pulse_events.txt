@@ -1,0 +1,262 @@
+namespace = iisc_pulse
+# yearly pulse
+# check if spawn corp is needed
+# check connection to other corps
+country_event = {
+	id = iisc_pulse.10
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		iisc_can_have_space_corp = yes
+	}
+	immediate = {
+		change_variable = {
+			which = iisc_years_until_next_corp_creation
+			value = -1
+		}
+		country_event = {
+			id = iisc_pulse.11
+			days = 5
+			random = 350
+		}
+	}
+}
+
+# called from iisc_pulse.11
+# spawn a corp
+# check connection to other corps
+country_event = {
+	id = iisc_pulse.11
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		iisc_count_corps = yes
+		iisc_calc_corp_cap = yes
+		if = {
+			limit = {
+				iisc_should_create_corp = yes
+			}
+			iisc_create_corp = yes
+			last_created_country = {
+				save_event_target_as = iisc_last_created_corp
+			}
+			change_variable = {
+				which = iisc_number_of_corps
+				value = 1
+			}
+			iisc_randomize_space_corps_spawn_delay = yes
+			if = {
+				limit = {
+					NOT = {
+						has_country_flag = iisc_hide_corp_creation
+					}
+				}
+				random_list = {
+					# different images TODO
+					1 = {
+						country_event = {
+							id = iisc_pulse.18
+						}
+					}
+				}
+			}
+		}
+		set_variable = {
+			which = iisc_corp_cap
+			value = 0
+		}
+		every_subject = {
+			limit = {
+				is_country_type = iisc_space_corporation
+				overlord = {
+					any_owned_planet = {
+						has_planet_flag = iisc_hq_of_@prevprev
+					}
+				}
+			}
+			iisc_get_hq = yes
+			# performance intensive?
+			# gives connected path to the **other** corp
+			every_country = {
+				limit = {
+					is_country_type = iisc_space_corporation
+					NOT = {
+						is_same_value = prev
+					}
+					has_communications = prev
+					NOT = {
+						has_country_flag = iisc_corp_connected_@prev
+					}
+					# performance intensive?
+					any_owned_fleet = {
+						can_access_system = event_target:iisc_hq_planet.solar_system
+					}
+				}
+				set_country_flag = iisc_corp_connected_@prev
+			}
+		}
+	}
+}
+
+# called from iisc_pulse.11
+# spawn a corp
+country_event = {
+	id = iisc_pulse.18
+	is_triggered_only = yes
+	picture = GFX_evt_tradestation_interior
+	title = "iisc_pulse.18.title"
+	desc = "iisc_pulse.18.desc"
+	option = {
+		name = OK
+	}
+}
+
+# fires itself every 30 days (doesn't use monthly_pulse)
+# trigger event for corps randomly in the month
+# hq set
+country_event = {
+	id = iisc_pulse.20
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					NOT = {
+						exists = event_target:iisc_hq_planet
+					}
+					has_global_flag = iisc_stopped
+				}
+			}
+			iisc_destroy_corp = yes
+		}
+		else = {
+			if = {
+				limit = {
+					NOT = {
+						has_global_flag = iisc_paused
+					}
+				}
+				iisc_handle_corp_connection_to_overlord = yes
+				country_event = {
+					id = iisc_pulse.21
+					days = 1
+					random = 28
+				}
+				country_event = {
+					id = iisc_pulse.22
+					days = 1
+				}
+			}
+			country_event = {
+				id = iisc_pulse.20
+				days = 30
+			}
+		}
+	}
+}
+
+# build ships if necessary
+# checks if enough research to get a tech
+# once per 30 days
+# triggered by iisc_pulse.20
+# hq set
+country_event = {
+	id = iisc_pulse.21
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		exists = event_target:iisc_hq_planet
+		NOR = {
+			has_global_flag = iisc_stopped
+			has_global_flag = iisc_paused
+		}
+	}
+	immediate = {
+		iisc_handle_corp_connection_to_overlord = yes
+		# build ships
+		if = {
+			limit = {
+				iisc_should_build_science_ship = yes
+			}
+			iisc_create_science_ship_fleet = yes
+		}
+		if = {
+			limit = {
+				iisc_should_build_builder = yes
+			}
+			iisc_create_iisc_builder_fleet = yes
+		}
+		if = {
+			limit = {
+				iisc_should_start_convoy = yes
+			}
+			iisc_launch_convoy_if_possible = yes
+		}
+		if = {
+			limit = {
+				iisc_should_reinforce_a_fleet = yes
+			}
+			random_owned_fleet = {
+				limit = {
+					# fleet_power > 0
+					is_ship_class = shipclass_military
+					fleet_power < 1000
+				}
+				set_fleet_flag = iisc_fleet_needs_new_ships
+			}
+		}
+		else_if = {
+			limit = {
+				iisc_should_create_military_fleet = yes
+			}
+			event_target:iisc_hq_planet = {
+				iisc_create_corp_military_fleet = yes
+			}
+		}
+		# handle deposits
+		if = {
+			limit = {
+				has_country_flag = iisc_should_reset_hq_deposit_authority
+			}
+			remove_country_flag = iisc_should_reset_hq_deposit_authority
+			event_target:iisc_hq_planet = {
+				iisc_reset_hq_deposit_authority = yes
+			}
+		}
+		if = {
+			limit = {
+				iisc_should_build_hq_deposit = yes
+			}
+			iisc_build_hq_deposit_if_possible = yes
+		}
+		iisc_copy_techs_from_overlord_if_needed = yes
+		# check for tech
+		iisc_corps_load_research_points = yes
+		iisc_set_tech_costs = yes
+		iisc_get_random_physics_tech_if_possible = yes
+		iisc_get_random_society_tech_if_possible = yes
+		iisc_get_random_engineering_tech_if_possible = yes
+	}
+}
+
+# compute income and taxes
+# once per month
+# triggered by iisc_pulse.20
+# hq set
+country_event = {
+	id = iisc_pulse.22
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		exists = event_target:iisc_hq_planet
+		NOR = {
+			has_global_flag = iisc_stopped
+			has_global_flag = iisc_paused
+		}
+	}
+	immediate = {
+		iisc_handle_corp_connection_to_overlord = yes
+		iisc_compute_and_tax_space_corp_income = yes
+	}
+}

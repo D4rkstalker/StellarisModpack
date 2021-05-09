@@ -1,0 +1,556 @@
+############################
+#
+# Spying Events
+#
+############################
+
+namespace = expandedspy
+
+@OperationBribeCost1 = -400
+@OperationBribeCost2 = -600
+@OperationBribeCost3 = -800
+@OperationBribeThreshold1 = 400
+@OperationBribeThreshold2 = 600
+@OperationBribeThreshold3 = 800
+
+@StealTechnologyAmount = 1000 #Amount of science research in every discipline which will be granted if the operation cannot steal a Technology
+@StealTechnologyTimer = 2160 #days (6 years) until Steal Technology can be repeated. Referenced in tooltip strings "operation.1026.tooltip.cooldown" and "operation_steal_technology_too_recent".
+@SabotageStarbaseTimer = 1440 #days (4 years) until Sabotage Starbase can be repeated against this target.
+@CrisisBeaconTimer = 1440 #days (4 years) until Crisis Beacon can be attempted again. Referenced in tooltip string "operation_crisis_beacon_too_recent".
+
+# Number of days before a single event should (ideally) stand a chance of coming up again.
+@RandomOperationEventTimer = 600
+@RandomOperationEventTimerLong = 1000
+
+###############################
+# AWAKEN THE WORM
+###############################
+# this = operation
+# from = operation.target (country)
+
+# Finding an 'in'
+espionage_operation_event = {
+    id = expandedspy.1
+    title = operation.3000.name
+    espionage_operation = yes
+    desc = {
+        text = expandedspy.1.desc.cover
+        trigger = {
+			has_espionage_operation_flag = awaken_worm_cover
+        }
+    }
+	desc = {
+        text = expandedspy.1.desc.sneak
+        trigger = {
+			has_espionage_operation_flag = awaken_worm_sneak
+        }
+    }
+	desc = {
+        text = expandedspy.1.desc.hack
+        trigger = {
+			has_espionage_operation_flag = awaken_worm_hack
+        }
+    }
+	desc = {
+        text = expandedspy.1.desc.infiltrate
+        trigger = {
+			has_espionage_operation_flag = awaken_worm_infiltrate
+        }
+    }
+    picture = GFX_evt_smugglers_in_bar
+    show_sound = event_default
+    is_triggered_only = yes
+
+    immediate = {
+		if = {
+			limit = {
+				target = {
+					is_unfriendly = no
+					is_xenophobe = no
+					NOT = { has_valid_civic = civic_closed_collective }
+					NOT = { has_valid_civic = civic_closed_network }
+					NOT = { is_at_war_with = root.owner }
+					NOT = { has_closed_borders = root.owner }
+					opinion_level = { who = root.owner level >= poor }
+				}
+				owner = {
+					is_unfriendly = no
+					is_xenophobe = no
+					NOT = { has_valid_civic = civic_closed_collective }
+					NOT = { has_valid_civic = civic_closed_network }
+				}
+			}
+			set_espionage_operation_flag = awaken_worm_cover
+		}
+		else = {
+			random_list = {
+				1 = { set_espionage_operation_flag = awaken_worm_sneak }
+				1 = { set_espionage_operation_flag = awaken_worm_hack }
+				1 = {
+					modifier = { factor = 0 target = { is_gestalt = yes } }
+					modifier = { factor = 0 target = { is_unfriendly = yes } }
+					set_espionage_operation_flag = awaken_worm_infiltrate
+				}
+			}
+		}
+		if = {
+            limit = {
+                target = { has_country_flag = target_of_operation_awaken_worm }
+            }
+            set_espionage_operation_progress_locked = yes
+			target = { save_event_target_as = target_country }
+			espionage_operation_event = { id = expandedspy.9 }
+        }
+    }
+
+    option = {
+        name = ACKNOWLEDGED
+    }
+}
+
+# Suitable Planet Found
+espionage_operation_event = {
+    id = expandedspy.2
+    title = operation.1021.name
+    espionage_operation = yes
+    desc = {
+        text = expandedspy.2.desc.no_worms
+        trigger = {
+			owner = { has_country_flag = cannot_worm_any_planets }
+        }
+    }
+	desc = {
+        text = expandedspy.2.desc.worm.infiltrate
+        trigger = {
+			event_target:hidden_worm_planet = { NOT = { has_planet_flag = checked_for_worms@root.target } }
+			owner = { NOT = { has_country_flag = cannot_worm_any_planets } }
+			OR = {
+				has_espionage_operation_flag = awaken_worm_cover
+				has_espionage_operation_flag = awaken_worm_infiltrate
+			}
+        }
+    }
+	desc = {
+        text = expandedspy.2.desc.worm.hack
+        trigger = {
+			event_target:hidden_worm_planet = { NOT = { has_planet_flag = checked_for_worms@root.target } }
+			owner = { NOT = { has_country_flag = cannot_worm_any_planets } }
+			NOR = {
+				has_espionage_operation_flag = awaken_worm_cover
+				has_espionage_operation_flag = awaken_worm_infiltrate
+			}
+        }
+    }
+	desc = {
+        text = expandedspy.2.desc.worm.race
+        trigger = {
+			event_target:hidden_worm_planet = { has_planet_flag = checked_for_worms@root.target }
+			owner = { NOT = { has_country_flag = cannot_worm_any_planets } }
+        }
+    }
+    picture = GFX_evt_society_researchs
+    show_sound = event_default
+    is_triggered_only = yes
+
+    immediate = {
+		if = {
+            limit = {
+                target = {
+					NOT = {
+						any_owned_planet = {
+							has_planet_flag = has_hidden_worm
+							is_artificial = no
+						}
+					}
+				}
+            }
+            set_espionage_operation_progress_locked = yes
+			target = {
+				every_owned_planet = {
+					limit = {
+						has_planet_flag = has_hidden_worm
+						is_artificial = no
+					}
+					set_planet_flag = has_no_worms@root.owner
+				}
+			}
+            owner = {
+                set_country_flag = cannot_worm_any_planets
+                country_event = { id = expandedspy.3 }
+            }
+        }
+		else = {
+			target = {
+				random_owned_planet = {
+					limit = {
+						has_planet_flag = has_hidden_worm
+						is_artificial = no
+					}
+					set_timed_planet_flag = { flag = has_hidden_worm@root.owner days = @SabotageStarbaseTimer }
+					save_event_target_as = hidden_worm_planet
+				}
+			}
+		}
+		if = {
+            limit = {
+                target = { has_country_flag = target_of_operation_awaken_worm }
+            }
+            set_espionage_operation_progress_locked = yes
+			target = { save_event_target_as = target_country }
+			espionage_operation_event = { id = expandedspy.9 }
+        }
+	}
+
+    option = {
+		name = OK
+		trigger = { owner = { NOT = { has_country_flag = cannot_worm_any_planets } } }
+	}
+	
+	option = {
+		name = expandedspy.2.b
+		custom_tooltip = expandedspy.2.b.tooltip
+		trigger = {
+			owner = {
+				is_ai = no
+				NOT = { has_country_flag = cannot_worm_any_planets }
+			}
+		}
+		hidden_effect = {
+			 owner = {
+                country_event = { id = expandedspy.4 }
+            }
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		trigger = { owner = { has_country_flag = cannot_worm_any_planets } }
+	}
+}
+
+# Operation invalid (No Worms) | from = operation
+country_event = {
+    id = expandedspy.3
+    title = expandedspy.3.name
+    desc = expandedspy.3.desc
+    picture = GFX_evt_society_research
+    show_sound = event_default
+    is_triggered_only = yes
+
+    option = {
+        name = OK
+    }
+
+    after = {
+        destroy_espionage_operation = from
+    }
+}
+
+# Operation Canceled
+country_event = {
+    id = expandedspy.4
+    title = expandedspy.4.name
+    desc = expandedspy.4.desc
+    picture = GFX_evt_society_research
+    show_sound = event_default
+    is_triggered_only = yes
+
+    option = {
+        name = OK
+    }
+
+    after = {
+        destroy_espionage_operation = from
+		hidden_effect = {
+			set_timed_country_flag = { flag = recently_awoke_worm@from.target days = @SabotageStarbaseTimer }
+		}
+    }
+}
+
+# Drawing up plans
+espionage_operation_event = {
+    id = expandedspy.5
+    title = operation.2002.name
+    espionage_operation = yes
+    desc = {
+        trigger = {
+			owner = { NOT = { has_country_flag = cannot_worm_planet } }
+        }
+        text = expandedspy.5.desc
+    }
+	desc = {
+        trigger = {
+			owner = { has_country_flag = cannot_worm_planet }
+			exists = event_target:hidden_worm_planet
+			event_target:hidden_worm_planet = { NOT = { has_planet_flag = has_hidden_worm } } #worm was removed
+        }
+        text = expandedspy.5.desc.abort
+    }
+	desc = {
+        trigger = {
+			owner = { has_country_flag = cannot_worm_planet }
+			OR = {
+				NOT = { exists = event_target:hidden_worm_planet }
+				event_target:hidden_worm_planet = { has_planet_flag = has_hidden_worm }
+			}
+        }
+        text = expandedspy.5.desc.abort_vague
+    }
+    picture = GFX_evt_desert
+    show_sound = event_default
+    is_triggered_only = yes
+
+    immediate = {
+        set_espionage_operation_progress_locked = yes
+		random_galaxy_planet = {
+			limit = { has_planet_flag = has_hidden_worm@root.owner }
+			save_event_target_as = hidden_worm_planet
+		}
+		if = {
+			limit = {
+				OR = {
+					NOT = { exists = event_target:hidden_worm_planet }
+					event_target:hidden_worm_planet = { NOT = { has_planet_flag = has_hidden_worm } } #worm was removed
+					event_target:hidden_worm_planet = { NOT = { exists = owner } } #planet cracked or abandoned
+					event_target:hidden_worm_planet = { owner = { NOT = { is_same_value = root.target } } } #planet changed hands
+				}
+			}
+			owner = { set_country_flag = cannot_worm_planet }
+		}
+		if = {
+            limit = {
+                target = { has_country_flag = target_of_operation_awaken_worm }
+            }
+            set_espionage_operation_progress_locked = yes
+			target = { save_event_target_as = target_country }
+			espionage_operation_event = { id = expandedspy.9 }
+        }
+    }
+
+    option = {
+        name = LAUNCH_OPERATION
+		trigger = { owner = { NOT = { has_country_flag = cannot_worm_planet } } }
+        hidden_effect = {
+			target = { save_event_target_as = target_country }
+            owner = {
+                country_event = { id = expandedspy.7 days = 1 }
+            }
+        }
+    }
+	
+	option = {
+        name = UNFORTUNATE
+		trigger = { owner = { has_country_flag = cannot_worm_planet } }
+        hidden_effect = {
+            owner = {
+                country_event = { id = expandedspy.6 }
+            }
+        }
+    }
+
+    after = {
+        set_espionage_operation_progress_locked = no
+    }
+}
+
+# Operation Canceled
+country_event = {
+    id = expandedspy.6
+    title = expandedspy.4.name
+    desc = expandedspy.6.desc
+    picture = GFX_evt_society_research
+    show_sound = event_default
+    is_triggered_only = yes
+
+    option = {
+        name = OK
+    }
+
+    after = {
+        destroy_espionage_operation = from
+    }
+}
+
+# Finalé setup | from = operation
+country_event = {
+    id = expandedspy.7
+    hide_window = yes
+    is_triggered_only = yes
+
+    immediate = {
+		if = {
+			limit = {
+				event_target:target_country = {
+					NOT = { has_country_flag = target_of_operation_awaken_worm }
+				}
+			}
+			random_list = {
+				3 = {
+					modifier = {
+						factor = 1.5
+						root = {
+							relative_encryption_decryption = {
+								target = from.target
+								value > 1.3
+							}
+						}
+					}
+					from = { set_espionage_operation_flag = smooth_exit }
+				}
+				2 = {
+					modifier = {
+						factor = 2
+						espionage_operation_disguise_disadvantage = yes
+					}
+					modifier = {
+						factor = 0.3
+						from = {
+							OR = {
+								has_espionage_asset_technology = yes
+								has_espionage_asset_sabotage = yes
+								has_espionage_asset_criminal = yes
+							}
+						}
+					}
+					#'Messy' exit (no flag needed)
+				}
+			}
+			country_event = { id = expandedspy.8 days = 3 }
+			event_target:target_country = {
+				set_timed_country_flag = { flag = target_of_operation_awaken_worm days = 1080 }
+			}
+		}
+		else = {
+			from = { espionage_operation_event = { id = expandedspy.9 } }
+		}
+    }
+}
+
+# Finalé | fromfrom = operation
+country_event = {
+    id = expandedspy.8
+    title = expandedspy.8.name
+    desc = {
+        trigger = {
+            fromfrom = {
+				has_espionage_operation_flag = smooth_exit
+            }
+        }
+        text = expandedspy.8.desc.smooth
+    }
+	desc = {
+        trigger = {
+            fromfrom = {
+               NOT = { has_espionage_operation_flag = smooth_exit }
+            }
+        }
+        text = expandedspy.8.desc.messy
+    }
+	
+	picture = GFX_evt_unspeakable_horror
+    show_sound = event_espionage_concluded
+    is_triggered_only = yes
+
+    trigger = {
+        exists = fromfrom
+    }
+	
+	immediate = {
+		random_galaxy_planet = {
+			limit = { has_planet_flag = has_hidden_worm@root }
+			save_event_target_as = hidden_worm_planet
+		}
+		if = {
+			limit = { fromfrom = { has_espionage_operation_flag = smooth_exit } }
+			event_target:hidden_worm_planet = {
+				planet_event = { id = expandedrelics.5 }
+			}
+		}
+		else = {
+			event_target:hidden_worm_planet = {
+				planet_event = { id = expandedrelics.6 }
+			}
+			set_timed_country_flag = { flag = resolution_breached_fired_cracker days = 3600 }
+		}
+		if = {
+			limit = { NOT = { has_global_flag = tech_hidden_worm_can_spread } }
+			every_playable_country = {
+				limit = {
+					NOR = {
+						is_same_value = ROOT
+						is_same_value = fromfrom.target
+					}
+				}
+				country_event = { id = expandedrelics.7 days = 30 }
+			}
+		}
+		if = {
+			limit = {
+				any_playable_country = {
+					count_espionage_operation = {
+						limit = {
+							has_espionage_type = operation_awaken_worm
+							target = { is_same_value = event_target:target_country }
+						}
+						count >= 1
+					}
+				}
+			}
+			every_playable_country = {
+				limit = {
+					count_espionage_operation = {
+						limit = {
+							has_espionage_type = operation_awaken_worm
+							target = { is_same_value = event_target:target_country }
+						}
+						count >= 1
+					}
+				}
+				random_espionage_operation = {
+					limit = {
+						has_espionage_type = operation_awaken_worm
+						target = { is_same_value = event_target:target_country } #Redundant only so long as operations are limited to one at a time
+					}
+					espionage_operation_event = { id = expandedspy.9 days = 2 } # Worm has been recently activated
+				}
+			}
+		}
+	}
+	
+	option = { #We're done here (smooth)
+        name = operation.1026.a.smooth
+        trigger = {
+            fromfrom = { has_espionage_operation_flag = smooth_exit }
+        }
+        fromfrom.spynetwork = {
+            add_spy_network_level = -60
+        }
+    }
+	option = { #We're done here (messy)
+        name = expandedspy.8.a.messy
+        trigger = {
+            fromfrom = { NOT = { has_espionage_operation_flag = smooth_exit } }
+        }
+        fromfrom.spynetwork = {
+            add_spy_network_level = -70
+        }
+    }
+}
+
+espionage_operation_event = {
+	id = expandedspy.9
+	title = expandedspy.8.name
+	desc = expandedspy.9.desc
+	picture = GFX_evt_society_research
+	show_sound = event_default
+
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+	
+	after = {
+		destroy_espionage_operation = root
+	}
+}

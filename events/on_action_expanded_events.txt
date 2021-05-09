@@ -6,6 +6,8 @@
 
 namespace = actionexp
 
+# 6 is free
+
 # Planet is turned into tomb world by special bombing stance
 planet_event = {
 	id = actionexp.1
@@ -13,32 +15,37 @@ planet_event = {
 
 	is_triggered_only = yes
 	
-	immediate = {
-		while = {
-			count = 5
-			random_pop = { kill_pop = yes }
-		}
-		if = {
-			limit = { exists = owner }
-			owner = {
-				add_static_war_exhaustion = {
-					attacker = from
-					location = root
-					value_for_planet_destruction = 0.5
-				}
-				country_event = { id = actionexp.2 } 
+	trigger = {
+		has_orbital_bombardment_stance = asteroid
+		from = {
+			OR = {
+				is_country_type = default
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
 			}
+		}
+		habitable_planet = yes
+	}
+
+	immediate = {
+		owner = {
+			add_static_war_exhaustion = {
+				attacker = from
+				location = root
+				value_for_planet_destruction = 0.5
+			}
+			country_event = { id = actionexp.2 }
 		}
 		from = { country_event = { id = actionexp.3 } }
 		remove_all_buildings = yes
+		destroy_colony = yes
+		change_pc = pc_barren
 		reroll_deposits = yes
 		remove_modifier = "natural_beauty"
 		remove_modifier = "atmospheric_aphrodisiac"
 		remove_modifier = "atmospheric_hallucinogen"
-		remove_modifier = "lush_planet"		
+		remove_modifier = "lush_planet"
 		remove_modifier = "dangerous_wildlife"
-		destroy_colony = yes
-		change_pc = pc_barren
 		add_modifier = {
 			modifier = "terraforming_candidate"
 			days = -1
@@ -86,19 +93,18 @@ planet_event = {
 	is_triggered_only = yes
 	
 	trigger = {
-		planet_devastation >= 10
+		planet_devastation >= 25
 		NOT = { has_planet_flag = recent_crater }
-		#free_district_slots > 0
-		FROM = {
-			has_technology = tech_asteroid_strike
-			NOT = { has_policy_flag = orbital_bombardment_selective }
-		}
+		has_orbital_bombardment = yes
+		has_orbital_bombardment_stance = asteroid
 	}
 	
 	immediate = {
-		save_event_target_as = asteroid_planet
-		from = {
-			country_event = { id = actionexp.6 }
+		set_global_flag = tech_asteroid_strike_can_spread
+		set_timed_planet_flag = { flag = recent_crater days = 720 }
+		if = {
+			limit = { free_district_slots > 0 }
+			add_deposit = d_crater
 		}
 	}
 }
@@ -111,60 +117,6 @@ planet_event = {
 	
 	immediate = {
 		set_planet_flag = has_been_terraformed
-	}
-}
-
-country_event = {
-	id = actionexp.6
-	title = "actionexp.4.name"
-	desc = actionexp.4.desc
-	picture = GFX_evt_asteroid_approaching_planet
-	show_sound = event_ship_thrusters
-	location = FROM
-	
-	is_triggered_only = yes
-	
-	option = {
-		name = actionexp.4.a
-		custom_tooltip = actionexp.4.a.tooltip
-		hidden_effect = {
-			set_global_flag = tech_asteroid_strike_can_spread
-			event_target:asteroid_planet = {
-				set_timed_planet_flag = {
-					flag = recent_crater
-					days = 540
-				}
-				if = {
-					limit = { free_district_slots > 0 }
-					add_deposit = d_crater
-				}
-				add_planet_devastation = 25
-				random_planet_army = { remove_army = yes }
-				random_planet_army = { remove_army = yes }
-				if = {
-					limit  = { num_pops > 5 }
-					while = {
-						count = 5
-						random_pop = { kill_pop = yes }
-					}
-				}
-				else_if = {
-					limit = { habitable_structure = no }
-					planet_event = { id = actionexp.1 days = 3 }
-				}
-			}
-		}
-	}
-	option = {
-		name = actionexp.4.b
-		hidden_effect = {
-			event_target:asteroid_planet = {
-				set_timed_planet_flag = {
-					flag = recent_crater
-					days = 600
-				}
-			}
-		}
 	}
 }
 

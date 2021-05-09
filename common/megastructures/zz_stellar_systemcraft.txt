@@ -20,11 +20,16 @@ war_system_0 = {
 		has_technology = giga_tech_war_system_1
 		has_ascension_perk = ap_systemcraft
 		NOT = { has_global_flag = systemcraft_disabled }
+		OR = {
+			check_variable = { which = giga_systemcraft_cap value = 0 }						# No Cap
+			check_variable = { which = giga_current_systemcraft value < giga_systemcraft_cap }
+		}
 	}
 
 	possible = {
 		custom_tooltip = { fail_text = "requires_no_habitable_planets"		NOT = { any_system_planet = { is_colony = yes } } }
 		custom_tooltip = { fail_text = "requires_inside_border"				is_inside_border = from }
+		custom_tooltip = { fail_text = "requires_no_crisis_system"			NOT = { any_system_planet = { has_planet_flag = crisis_vital_planet } } }
 		custom_tooltip = {
 			fail_text = "requires_not_capped"
 			from = {
@@ -90,7 +95,7 @@ war_system_1 = {
 			save_event_target_as = giga_planet
 			change_pc = pc_giga_empty_space
 		}
-		every_system_planet = { limit = { is_star = no } remove_planet = yes }
+		giga_remove_system_planets = yes
 		giga_remove_system_debris = yes
 		set_asteroid_belt = { radius = 0 }
 		from = { country_event = { id = giga_dialog.2803 } }	# Notification
@@ -123,8 +128,8 @@ war_system_2 = {
 		}
 		custom_tooltip = {
 			fail_text = "requires_behemoth_planetcraft_1_moon_2"
-			count_system_ships = { limit = { is_ship_size = giga_planet_behemoth }	count >= 1 }
-			count_system_ships = { limit = { is_ship_size = giga_massive_planet }	count >= 2 }
+			count_ship_in_system = { limit = { is_ship_size = giga_planet_behemoth }	count >= 1 }
+			count_ship_in_system = { limit = { is_ship_size = giga_massive_planet }		count >= 2 }
 		}
 	}
 
@@ -144,6 +149,7 @@ war_system_2 = {
 			random_owned_ship = {
 				limit = { is_ship_size = giga_planet_behemoth }
 				delete_ship = this
+				root.from = { subtract_variable = { which = giga_current_warplanet value = 1 } }
 			}
 		}
 		while = {
@@ -163,6 +169,7 @@ war_system_2 = {
 				random_owned_ship = {
 					limit = { is_ship_size = giga_massive_planet }
 					delete_ship = this
+					root.from = { subtract_variable = { which = giga_current_warmoon value = 1 } }
 				}
 			}
 		}
@@ -209,7 +216,7 @@ war_system_3 = {
 		}
 		custom_tooltip = {
 			fail_text = "requires_moon_2"
-			count_system_ships = { limit = { is_ship_size = giga_massive_planet } count >= 2 }
+			count_ship_in_system = { limit = { is_ship_size = giga_massive_planet } count >= 2 }
 		}
 	}
 
@@ -231,6 +238,7 @@ war_system_3 = {
 				random_owned_ship = {
 					limit = { is_ship_size = giga_massive_planet }
 					delete_ship = this
+					root.from = { subtract_variable = { which = giga_current_warmoon value = 1 } }
 				}
 			}
 		}
@@ -277,7 +285,7 @@ war_system_4 = {
 		}
 		custom_tooltip = {
 			fail_text = "requires_behemoth_planetcraft_2"
-			count_system_ships = { limit = { is_ship_size = giga_planet_behemoth } count >= 2 }
+			count_ship_in_system = { limit = { is_ship_size = giga_planet_behemoth } count >= 2 }
 		}
 	}
 
@@ -299,6 +307,7 @@ war_system_4 = {
 				random_owned_ship = {
 					limit = { is_ship_size = giga_planet_behemoth }
 					delete_ship = this
+					root.from = { subtract_variable = { which = giga_current_warplanet value = 1 } }
 				}
 			}
 		}
@@ -345,8 +354,8 @@ war_system_5 = {
 		custom_tooltip = { fail_text = "requires_systemcraft_crew"		from = { has_country_flag = systemcraft_crew_required } }
 		custom_tooltip = {
 			fail_text = "requires_behemoth_planetcraft_1_moon_1"
-			count_system_ships = { limit = { is_ship_size = giga_planet_behemoth }	count >= 1 }
-			count_system_ships = { limit = { is_ship_size = giga_massive_planet }	count >= 1 }
+			count_ship_in_system = { limit = { is_ship_size = giga_planet_behemoth }	count >= 1 }
+			count_ship_in_system = { limit = { is_ship_size = giga_massive_planet }	count >= 1 }
 		}
 	}
 
@@ -368,6 +377,7 @@ war_system_5 = {
 			random_owned_ship = {
 				limit = { is_ship_size = giga_massive_planet }
 				delete_ship = this
+				root.from = { subtract_variable = { which = giga_current_warmoon value = 1 } }
 			}
 		}
 
@@ -386,6 +396,7 @@ war_system_5 = {
 			random_owned_ship = {
 				limit = { is_ship_size = giga_planet_behemoth }
 				delete_ship = this
+				root.from = { subtract_variable = { which = giga_current_warplanet value = 1 } }
 			}
 		}
 	}
@@ -399,10 +410,32 @@ war_system_5 = {
 
 	on_build_complete = {
 		save_event_target_as = giga_system
+		if = {
+			limit = {
+				NOT = {
+					any_system_planet = {
+						is_star = yes
+						NOT = { is_planet_class = pc_giga_empty_space }
+					}
+				}
+			}
+			set_star_class = sc_empty_space
+		}
 		fromfrom.planet = { save_event_target_as = giga_planet }
 		from = {
 			country_event = { id = giga_dialog.2807 }	# Notification
 			giga_system_craft = yes
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_91
+					}
+				}
+				set_country_flag = giga_achievement_91
+				set_timed_country_flag = { flag = giga_achievement_91_notification days = 30 }
+				giga_achievement_sound = yes
+			}
 		}
 		last_created_fleet = { set_location = fromfrom }
 
@@ -414,25 +447,44 @@ war_system_5 = {
 			random_list = {
 				30 = {}
 				70 = {
-					random_country = {
+					if = {
 						limit = {
-							relative_power = { who = root.from category = fleet value <= equivalent }
-							is_at_war_with = root.from
-							is_ai = yes
-							NOR = {
-								has_civic = civic_machine_terminator
-								has_civic = civic_hive_devouring_swarm
-								has_civic = civic_fanatic_purifiers
-							}
-							OR = {
-								is_country_type = fallen_empire
-								is_country_type = awakened_fallen_empire
-								ehof_default_country = yes
+							any_country = {
+								relative_power = { who = root.from category = fleet value <= equivalent }
+								is_at_war_with = root.from
+								is_ai = yes
+								NOR = {
+									has_civic = civic_machine_terminator
+									has_civic = civic_hive_devouring_swarm
+									has_civic = civic_fanatic_purifiers
+								}
+								OR = {
+									is_country_type = fallen_empire
+									is_country_type = awakened_fallen_empire
+									ehof_default_country = yes
+								}
 							}
 						}
-						save_event_target_as = systemcraft_surrender_empire
+						random_country = {
+							limit = {
+								relative_power = { who = root.from category = fleet value <= equivalent }
+								is_at_war_with = root.from
+								is_ai = yes
+								NOR = {
+									has_civic = civic_machine_terminator
+									has_civic = civic_hive_devouring_swarm
+									has_civic = civic_fanatic_purifiers
+								}
+								OR = {
+									is_country_type = fallen_empire
+									is_country_type = awakened_fallen_empire
+									ehof_default_country = yes
+								}
+							}
+							save_event_target_as = systemcraft_surrender_empire
+						}
+						from = { country_event = { id = giga_dialog.2809 days = 1 } }		# Country surrenders
 					}
-					from = { country_event = { id = giga_dialog.2809 days = 1 } }		# Country surrenders
 				}
 			}
 		}

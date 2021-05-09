@@ -16,25 +16,55 @@ orbital_elysium_0 = {
 	}
 
 	potential = {
+		NOT = { has_global_flag = giga_habitats_disabled }
 		has_ascension_perk = ap_voidborn
 		has_technology = giga_tech_orbital_elysium
-		NOT = { has_global_flag = elysium_disabled }
 	}
 
 	possible = {
 		custom_tooltip = { fail_text = "requires_inside_border"		is_inside_border = from }
-		custom_tooltip = {
-			fail_text = "requires_not_capped"
-			from = {
-				OR = {
-					check_variable = { which = giga_elysium_cap value = 0 }						# No Cap
-					check_variable = { which = giga_current_elysium value < giga_elysium_cap }
+		custom_tooltip = { fail_text = "requires_more_pops"
+			OR = {
+				has_global_flag = giga_habitats_system_3
+				has_global_flag = giga_habitats_system_10
+				has_global_flag = giga_habitats_system_25
+				has_global_flag = giga_habitats_unlimited
+				AND = {
+					OR = {
+						has_global_flag = giga_habitats_pop_25
+						has_global_flag = giga_habitats_pop_50
+						has_global_flag = giga_habitats_pop_100
+					}
+					from = { check_variable = { which = habitat_count value < allowed_habitats } }
+				}
+			}
+		}
+		custom_tooltip = { fail_text = "requires_more_systems"
+			OR = {
+				has_global_flag = giga_habitats_pop_25
+				has_global_flag = giga_habitats_pop_50
+				has_global_flag = giga_habitats_pop_100
+				has_global_flag = giga_habitats_unlimited
+				AND = {
+					OR = {
+						has_global_flag = giga_habitats_system_3
+						has_global_flag = giga_habitats_system_10
+						has_global_flag = giga_habitats_system_25
+					}
+					from = { check_variable = { which = habitat_count value < allowed_habitats } }
 				}
 			}
 		}
 	}
 
 	placement_rules = {
+		planet_possible = {
+			custom_tooltip = { fail_text = "requires_surveyed_planet"			is_surveyed = { who = prev.from status = yes } }
+			custom_tooltip = { fail_text = "requires_no_anomaly"				has_anomaly = no }
+			custom_tooltip = { fail_text = "requires_not_star"					is_star = no }
+			custom_tooltip = { fail_text = "requires_no_existing_megastructure"	planet_has_no_megastructure = yes }
+			custom_tooltip = { fail_text = "requires_no_existing_megastructure"	NOT = { has_planet_flag = has_orbital_elysium } }
+		}
 	}
 
 	ai_weight = {
@@ -84,6 +114,7 @@ orbital_elysium_0 = {
 		save_event_target_as = giga_system
 		fromfrom.planet = {
 			save_event_target_as = giga_planet
+			set_planet_flag = has_orbital_elysium
 			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
 		}
 		from = {
@@ -91,6 +122,18 @@ orbital_elysium_0 = {
 			country_event = { id = giga_dialog.1101 }	# Notification
 			change_variable = { which = giga_orbital_elysiums value = 1 }
 			change_variable = { which = giga_current_elysium value = 1 }
+			change_variable = { which = habitat_count value = 1 }
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = giga_achievements_disabled
+						has_country_flag = giga_achievement_63
+					}
+				}
+				set_country_flag = giga_achievement_63
+				set_timed_country_flag = { flag = giga_achievement_63_notification days = 30 }
+				giga_achievement_sound = yes
+			}
 		}
 		spawn_planet = {
 			class = "pc_gigaorbital_ring"
@@ -101,7 +144,7 @@ orbital_elysium_0 = {
 
 			init_effect = {
 				set_name = "Orbital Elysium"
-				surveyed = { set_surveyed = yes surveyor = from }
+				set_surveyed = { surveyed = yes surveyor = from }
 				add_modifier = { modifier = "orbital_elysium" days = -1 }
 				set_all_comms_surveyed = yes
 				clear_blockers = yes

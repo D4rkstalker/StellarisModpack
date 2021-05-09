@@ -1,0 +1,4106 @@
+namespace = ag_ancient
+
+# Set a global flag for this mod
+event = {
+    id = ag_ancient.1
+	hide_window = yes
+	is_triggered_only = yes
+	fire_only_once = yes
+	
+	immediate = {
+		set_global_flag = has_ancient_empire_mod
+		# Initial Settings
+		set_global_flag = ag_system_spawn_in_home
+		set_global_flag = ag_ancient_empire_mod_shipyard_building
+		ag_initialize_research_variables = yes
+		event_target:global_event_country = {
+			set_variable = { which = ag_scaled_difficulty value = 0 }
+			set_variable = { which = ag_scaled_difficulty_tooltip value = 1 }
+			set_variable = { which = ag_zero_variable value = 0 }
+			set_variable = { which = ag_one_variable value = 1 }
+		}
+	}
+}
+
+# on_yearly_pulse, Count Construction Sections
+event = {
+    id = ag_ancient.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			has_global_flag = ag_beta_area_spawned
+			has_global_flag = ag_gamma_area_spawned
+			has_global_flag = ag_delta_area_spawned
+			has_global_flag = ag_zeta_area_spawned
+			has_global_flag = ag_theta_area_spawned
+			has_global_flag = ag_iota_area_spawned
+		}
+	}
+	
+	immediate = {
+		every_system = {
+			limit = { ag_is_ancient_system = yes }
+			random_system_planet = {
+				limit = { is_primary_star = yes }
+				set_variable = {
+					which = ag_construction_section_counter
+					value = 0
+				}
+				prev = {
+					every_system_planet = {
+						limit = { has_planet_flag = ag_ancient_construction_section }
+						prevprev = {
+							change_variable = {
+								which = ag_construction_section_counter
+								value = 1
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# on_entering_battle, Destroy enigmatic fortress/caravaneers
+country_event = {
+	id = ag_ancient.3
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		ag_is_crisis_country = yes
+		from = {
+			OR = {
+				is_country_type = guardian_fortress
+				is_country_type = caravaneer_home
+				is_country_type = caravaneer_fleet
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { from = { is_country_type = guardian_fortress } }
+			set_country_flag = fortress_solved
+			save_event_target_as = leviathan_destroyer_country
+			fromfromfrom = {
+				if = {
+					limit = { root = { is_country_type = ag_ancient_gamma_guardian } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_zeta_crisis_country } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_ancient_primitive_crisis } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = orange }
+				}
+				solar_system = {
+					save_event_target_as = leviathan_destroyed_system
+					random_system_planet = {
+						limit = { is_star = yes }
+						create_ambient_object = {
+							type = "dead_enigmatic_fortress_object"
+							location = solar_system
+						}
+						last_created_ambient_object = {
+							save_global_event_target_as = fortress_ambient
+							set_location = {
+								target = prev
+								distance = 110
+								angle = 110
+							}
+						}
+					}
+				}
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = root
+							is_same_value = root.from
+						}
+					}
+					if = {
+						limit = {
+							is_country_type = default
+							has_event_chain = curator_poi_chain
+							event_target:leviathan_destroyed_system = {
+								is_point_of_interest = {
+									id = curator_poi_fortress
+									event_chain = curator_poi_chain
+									owner = prev
+								}
+							}
+						}
+						remove_point_of_interest = curator_poi_fortress
+						end_curator_chain = yes
+					}
+					country_event = { id = leviathans.5 }
+				}
+				delete_fleet = this
+			}
+		}
+		else_if = {
+			limit = { from = { is_country_type = caravaneer_fleet } }
+			fromfromfrom = {
+				if = {
+					limit = { root = { is_country_type = ag_ancient_gamma_guardian } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_zeta_crisis_country } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_ancient_primitive_crisis } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = orange }
+				}
+				if = {
+					limit = { root.from = { has_country_flag = caravaneer_fleet1_country } }
+					every_country = {
+						limit = {
+							ag_is_common_country = yes
+							has_communications = root.from
+						}
+						country_event = { id = cara.1003 }
+					}
+				}
+				else_if = {
+					limit = { root.from = { has_country_flag = caravaneer_fleet2_country } }
+					every_country = {
+						limit = {
+							ag_is_common_country = yes
+							has_communications = root.from
+						}
+						country_event = { id = cara.2003 }
+					}
+				}
+				else_if = {
+					limit = { root.from = { has_country_flag = caravaneer_fleet3_country } }
+					every_country = {
+						limit = {
+							ag_is_common_country = yes
+							has_communications = root.from
+						}
+						country_event = { id = cara.3003 }
+					}
+				}
+				destroy_fleet = this
+			}
+		}
+		else_if = {
+			limit = { from = { is_country_type = caravaneer_home } }
+			set_country_flag = destroyed_caravaneer_home
+			fromfromfrom = {
+				if = {
+					limit = { root = { is_country_type = ag_ancient_gamma_guardian } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_zeta_crisis_country } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				}
+				else_if = {
+					limit = { root = { is_country_type = ag_ancient_primitive_crisis } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = orange }
+				}
+				clear_global_event_target = caravaneer_home_system
+				clear_global_event_target = caravaneer_home_star
+				every_playable_country = {
+					limit = {
+						ag_is_common_country = yes
+						has_communications = root.from
+					}
+					country_event = { id = cara.920 }
+				}
+				destroy_fleet = this
+			}
+		}
+	}
+}
+
+# on_yearly_pulse, Delayed ships unlock
+event = {
+    id = ag_ancient.4
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		any_country = {
+			OR = {
+				has_country_flag = ag_gamma_102_fired
+				has_country_flag = ag_delta_62_fired
+				has_country_flag = ag_beta_125_fired
+				has_country_flag = ag_wanderer_103_fired
+			}
+			any_owned_ship = {
+				ag_is_ancient_ship_locked = yes
+			}
+		}
+	}
+	
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					has_country_flag = ag_beta_125_fired
+					has_country_flag = ag_gamma_102_fired
+					has_country_flag = ag_delta_62_fired
+					has_country_flag = ag_wanderer_103_fired
+				}
+				any_owned_ship = {
+					ag_is_ancient_ship_locked = yes
+				}
+			}
+			
+			### Beta Area ###
+			
+			if = {
+				limit = {
+					has_country_flag = ag_beta_125_fired
+					any_owned_ship = {
+						is_ship_size = ag_beta_station_type1_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_beta_station_type1_0
+						}
+					}
+					random_owned_ship = {
+						limit = { is_ship_size = ag_beta_station_type1_0 }
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							create_ship = {
+								name = "NAME_ag_beta_station_type1_ship"
+								design = "NAME_ag_beta_station_type1_1"
+								prefix = no
+								effect = {
+									ag_difficulty_bonus = yes
+								}
+							}
+						}
+						delete_ship = this
+					}
+				}
+			}
+			
+			### Gamma Area ###
+			
+			if = {
+				limit = {
+					has_country_flag = ag_gamma_102_fired
+					any_owned_ship = {
+						is_ship_size = ag_gamma_station_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_gamma_station_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_gamma_station_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = xl }
+						ag_gamma_station_player_spawn = {
+							ag_unlock_ship = yes
+							ag_owner = prev.owner
+							ag_location_target = prev
+						}
+						delete_ship = this
+					}
+				}
+				every_owned_starbase = {
+					limit = {
+						has_starbase_size = ag_gamma_station_1
+						NAND = {
+							has_starbase_building = titan_yards
+							has_starbase_building = colossus_yards
+						}
+					}
+					if = {
+						limit = { NOT = { has_starbase_building = titan_yards } }
+						set_starbase_building = {
+							slot = 1
+							building = titan_yards
+						}
+					}
+					if = {
+						limit = { NOT = { has_starbase_building = colossus_yards } }
+						set_starbase_building = {
+							slot = 2
+							building = colossus_yards
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_country_flag = ag_gamma_102_fired
+					any_owned_ship = {
+						is_ship_size = ag_gamma_battlecruiser_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_gamma_battlecruiser_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_gamma_battlecruiser_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							if = {
+								limit = { exists = leader }
+								leader = {
+									save_global_event_target_as = ag_target_leader_on_fleet
+									prev = { save_global_event_target_as = ag_target_fleet_swap }
+									unassign_leader = this
+								}
+							}
+							create_ship = {
+								name = "NAME_ag_gamma_battlecruiser_ship"
+								design = "NAME_ag_gamma_battlecruiser_1"
+								prefix = no
+								effect = {
+									ag_difficulty_bonus = yes
+								}
+							}
+						}
+						delete_ship = this
+						if = {
+							limit = { exists = event_target:ag_target_fleet_swap }
+							event_target:ag_target_fleet_swap = {
+								assign_leader = event_target:ag_target_leader_on_fleet
+							}
+							clear_global_event_target = ag_target_fleet_swap
+							clear_global_event_target = ag_target_leader_on_fleet
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_country_flag = ag_gamma_102_fired
+					any_owned_ship = {
+						is_ship_size = ag_gamma_escort_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_gamma_escort_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_gamma_escort_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							if = {
+								limit = { exists = leader }
+								leader = {
+									save_global_event_target_as = ag_target_leader_on_fleet
+									prev = { save_global_event_target_as = ag_target_fleet_swap }
+									unassign_leader = this
+								}
+							}
+							create_ship = {
+								name = "NAME_ag_gamma_escort_ship"
+								design = "NAME_ag_gamma_escort_1"
+								prefix = no
+								effect = {
+									ag_difficulty_bonus = yes
+								}
+							}
+						}
+						delete_ship = this
+						if = {
+							limit = { exists = event_target:ag_target_fleet_swap }
+							event_target:ag_target_fleet_swap = {
+								assign_leader = event_target:ag_target_leader_on_fleet
+							}
+							clear_global_event_target = ag_target_fleet_swap
+							clear_global_event_target = ag_target_leader_on_fleet
+						}
+					}
+				}
+			}
+			
+			### Delta Area ###
+			
+			if = {
+				limit = {
+					has_country_flag = ag_delta_62_fired
+					any_owned_ship = {
+						is_ship_size = ag_delta_titan_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_delta_titan_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_delta_titan_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							if = {
+								limit = { exists = leader }
+								leader = {
+									save_global_event_target_as = ag_target_leader_on_fleet
+									prev = { save_global_event_target_as = ag_target_fleet_swap }
+									unassign_leader = this
+								}
+							}
+							ag_create_delta_titan_player = { ag_unlock_ship = yes ag_owner = $ag_owner$ }
+						}
+						delete_ship = this
+						if = {
+							limit = { exists = event_target:ag_target_fleet_swap }
+							event_target:ag_target_fleet_swap = {
+								assign_leader = event_target:ag_target_leader_on_fleet
+							}
+							clear_global_event_target = ag_target_fleet_swap
+							clear_global_event_target = ag_target_leader_on_fleet
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_country_flag = ag_delta_62_fired
+					any_owned_ship = {
+						is_ship_size = ag_delta_platform_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_delta_platform_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_delta_platform_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							create_ship = {
+								name = "NAME_ag_delta_platform_ship"
+								design = "NAME_ag_delta_platform_1"
+								prefix = no
+								effect = {
+									ag_difficulty_bonus = yes
+								}
+							}
+						}
+						delete_ship = this
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_country_flag = ag_delta_62_fired
+					any_owned_ship = {
+						is_ship_size = ag_delta_platform_00
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_delta_platform_00
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_delta_platform_00
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						create_fleet = {
+							name = "NAME_ag_delta_platform_fleet"
+							settings = {
+								can_upgrade = no 
+								can_change_composition = no 
+								can_change_leader = no 
+								spawn_debris = no 
+							}
+							effect = {
+								set_fleet_flag = ag_delta_platform_player
+								set_owner = from
+								create_ship = {
+									name = "NAME_ag_delta_platform_ship"
+									design = "NAME_ag_delta_platform_10"
+									prefix = no
+									effect = {
+										ag_difficulty_bonus = yes
+									}
+								}
+								set_location = {
+									target = prev
+									distance = -1
+									angle = 0
+								}
+							}
+						}
+						delete_ship = this
+					}
+				}
+			}
+			
+			### Wanderer ###
+			
+			if = {
+				limit = {
+					has_country_flag = ag_wanderer_103_fired
+					any_owned_ship = {
+						is_ship_size = ag_ancient_wandering_ship_0
+					}
+				}
+				while = {
+					limit = {
+						any_owned_ship = {
+							is_ship_size = ag_ancient_wandering_ship_0
+						}
+					}
+					random_owned_ship = {
+						limit = {
+							is_ship_size = ag_ancient_wandering_ship_0
+						}
+						ag_spawn_buff_effect = { ag_color = red ag_scale = l }
+						fleet = {
+							if = {
+								limit = { exists = leader }
+								leader = {
+									save_global_event_target_as = ag_target_leader_on_fleet
+									prev = { save_global_event_target_as = ag_target_fleet_swap }
+									unassign_leader = this
+								}
+							}
+							ag_create_ancient_wandering_ship_player = { ag_unlock_ship = yes ag_owner = $ag_owner$ }
+						}
+						delete_ship = this
+						if = {
+							limit = { exists = event_target:ag_target_fleet_swap }
+							event_target:ag_target_fleet_swap = {
+								assign_leader = event_target:ag_target_leader_on_fleet
+							}
+							clear_global_event_target = ag_target_fleet_swap
+							clear_global_event_target = ag_target_leader_on_fleet
+						}
+					}
+				}
+			}
+
+		}
+	}
+}
+
+# on_monthly_pulse, Set flags for fleet with ancient ship make them could special orbital bombardment stance
+event = {
+	id = ag_ancient.5
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					any_owned_fleet = {
+						NOT = { has_fleet_flag = ag_has_ancient_ship_in_fleet }
+						any_owned_ship = {
+							OR = {
+								ag_is_ancient_ship = yes
+								ag_is_ancient_ship_unlocked = yes
+							}
+						}
+					}
+					any_owned_fleet = {
+						has_fleet_flag = ag_has_ancient_ship_in_fleet
+						NOT = {
+							any_owned_ship = {
+								OR = {
+									ag_is_ancient_ship = yes
+									ag_is_ancient_ship_unlocked = yes
+								}
+							}
+						}
+					}
+				}
+			}
+			every_owned_fleet = {
+				limit = {
+					has_fleet_flag = ag_has_ancient_ship_in_fleet
+					NOT = {
+						any_owned_ship = {
+							OR = {
+								ag_is_ancient_ship = yes
+								ag_is_ancient_ship_unlocked = yes
+							}
+						}
+					}
+				}
+				remove_fleet_flag = ag_has_ancient_ship_in_fleet
+			}
+			every_owned_fleet = {
+				limit = {
+					NOT = { has_fleet_flag = ag_has_ancient_ship_in_fleet }
+					any_owned_ship = {
+						OR = {
+							ag_is_ancient_ship = yes
+							ag_is_ancient_ship_unlocked = yes
+						}
+					}
+				}
+				set_fleet_flag = ag_has_ancient_ship_in_fleet
+			}
+		}
+	}
+}
+
+# on_planet_bombarded, Orbital bombardment's side effects caused by ancient ships
+planet_event = {
+	id = ag_ancient.6
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		owner = {
+			NOR = {
+				is_country_type = swarm
+				is_country_type = ai_empire
+				is_country_type = cybrex_empire
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+				
+				is_country_type = ag_ancient_primitive_crisis
+				is_country_type = ag_zeta_crisis_country
+				is_country_type = ag_ancient_psi_guardian
+			}
+		}
+		num_pops > 0
+		has_orbital_bombardment_stance = ag_ancient_bombardment
+	}
+	
+	immediate = {
+		from = {
+			random_list = {
+				20 = { change_variable = { which = ag_ancient_bombardment_charge value = 1 } }
+				80 = { }
+			}
+			if = {
+				limit = { check_variable = { which = ag_ancient_bombardment_charge value > 10 } }
+				random_list = {
+					80 = { set_variable = { which = ag_ancient_bombardment_charge value = 10 } }
+					20 = {
+						set_variable = { which = ag_ancient_bombardment_charge value = 0 }
+						prev = {
+							random_list = {
+								10 = { add_planet_devastation = 15 }
+								10 = { add_planet_devastation = 14 }
+								10 = { add_planet_devastation = 13 }
+								10 = { add_planet_devastation = 12 }
+								10 = { add_planet_devastation = 11 }
+								10 = { add_planet_devastation = 10 }
+								10 = { add_planet_devastation = 9 }
+								10 = { add_planet_devastation = 8 }
+								10 = { add_planet_devastation = 7 }
+								10 = { add_planet_devastation = 6 }
+								10 = { add_planet_devastation = 5 }
+								10 = { }
+							}
+							random_list = {
+								75 = {
+									remove_modifier = "ag_ancient_bombardment_effect_1"
+									add_modifier = { modifier = "ag_ancient_bombardment_effect_1" days = 5 }
+								}
+								20 = {
+									remove_modifier = "ag_ancient_bombardment_effect_1"
+									add_modifier = { modifier = "ag_ancient_bombardment_effect_1" days = 10 }
+								}
+								5 = {
+									remove_modifier = "ag_ancient_bombardment_effect_1"
+									add_modifier = { modifier = "ag_ancient_bombardment_effect_1" days = 30 }
+								}
+								
+							}
+							if = {
+								limit = { num_pops > 10 }
+								random_list = {
+									25 = { }
+									25 = {
+										add_planet_devastation = 3
+										while = { count = 3 random_owned_pop = { kill_pop = yes } }
+									}
+									25 = {
+										add_planet_devastation = 5
+										while = { count = 5 random_owned_pop = { kill_pop = yes } }
+									}
+									25 = {
+										add_planet_devastation = 7
+										while = { count = 7 random_owned_pop = { kill_pop = yes } }
+									}
+								}
+							}
+							if = {
+								limit = {
+									OR = {
+										habitable_planet = yes
+										AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no }
+										ag_is_habitat = yes
+									}
+								}
+								set_variable = { which = ag_ancient_bomb_crater_counter value = 0 }
+								if = {
+									limit = { ag_is_habitat = yes }
+									every_deposit = {
+										limit = { is_deposit_type = ag_ancient_bomb_crater_habitat }
+										prev = { change_variable = { which = ag_ancient_bomb_crater_counter value = 1 } }
+									}
+									if = {
+										limit = { ag_can_add_ancient_bombardment_blocker_deposit = yes }
+										random_list = {
+											50 = { }
+											50 = { add_deposit = ag_ancient_bomb_crater_habitat }
+										}
+									}
+								}
+								else_if = {
+									limit = { AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no } }
+									every_deposit = {
+										limit = { is_deposit_type = ag_ancient_bomb_crater_ringworld }
+										prev = { change_variable = { which = ag_ancient_bomb_crater_counter value = 1 } }
+									}
+									if = {
+										limit = { ag_can_add_ancient_bombardment_blocker_deposit = yes }
+										random_list = {
+											50 = { }
+											50 = { add_deposit = ag_ancient_bomb_crater_ringworld }
+										}
+									}
+								}
+								else_if = {
+									limit = { always = yes }
+									every_deposit = {
+										limit = { is_deposit_type = ag_ancient_bomb_crater_default }
+										prev = { change_variable = { which = ag_ancient_bomb_crater_counter value = 1 } }
+									}
+									if = {
+										limit = { ag_can_add_ancient_bombardment_blocker_deposit = yes }
+										random_list = {
+											50 = { }
+											50 = { add_deposit = ag_ancient_bomb_crater_default }
+										}
+									}
+								}
+							}
+							if = {
+								limit = {
+									OR = {
+										habitable_planet = yes
+										AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no }
+										ag_is_habitat = yes
+									}
+									has_army = yes
+									num_pops > 1
+								}
+								random_list = {
+									75 = { }
+									25 = { random_planet_army = { remove_army = yes } }
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				planet_devastation >= 100
+				ag_has_planetary_shield = no
+				from = { ag_is_ancient_country = no }
+				solar_system = {
+					any_ship_in_system = {
+						ag_is_ancient_ship_unlocked = yes
+						fleet = {
+							NOT = { has_fleet_flag = ag_planet_killer_cooldown }
+							exists = orbit
+							orbit = { is_same_value = root }
+						}
+					}
+				}
+			}
+			from = {
+				country_event = { id = ag_ancient.7 }
+			}
+		}
+	}
+}
+
+# Notification for the victim country
+country_event = {
+	id = ag_ancient.7
+	title = "ag_ancient.7.name"
+	desc = "ag_ancient.7.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_burning_settlement_room }
+	show_sound = event_yellow_alert
+	location = from
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		save_event_target_as = ag_source_country
+	}
+	
+	option = {
+		name = "ag_ancient.7.a"
+		custom_tooltip = "ag_ancient.7.a.tooltip"
+		hidden_effect = {
+			add_threat = { who = root amount = 3 }
+			from = {
+				owner = {
+					add_opinion_modifier = {
+						modifier = ag_opinion_ancient_ship_destroyed_my_planet
+						who = root
+					}
+					add_static_war_exhaustion = {
+						attacker = root
+						location = root.from
+						value_for_planet_destruction = 1.0
+					}
+					create_message = {
+						type = "PLANET_DESTROYED"
+						localization = "ag_planet_destroyed_ancient_ships_desc"
+						days = 30
+						target = root.from.owner
+						variable = {
+							type = name
+							localization = "ag_attacker"
+							scope = event_target:ag_source_country
+						}
+						variable = {
+							type = name
+							localization = "ag_victim_planet"
+							scope = root.from
+						}
+					}
+				}
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = root.from.owner
+							is_same_value = root
+							is_country_type = fallen_empire
+							AND = {
+								has_federation = yes
+								is_in_federation_with = root
+							}
+						}
+						OR = {
+							has_communications = root.from.owner
+							has_communications = root
+						}
+					}
+					add_opinion_modifier = {
+						modifier = ag_opinion_ancient_ship_destroyed_planet
+						who = root
+					}
+				}
+				add_planet_devastation = -100
+				if = {
+					limit = {
+						num_pops > 0
+					}
+					every_owned_pop = {
+						kill_pop = yes
+					}
+				}
+				remove_all_buildings = yes
+				remove_all_districts = yes
+				clear_deposits = yes
+				destroy_colony = yes
+				ag_remove_all_modifier_common = yes
+				if = {
+					limit = {
+						NOR = {
+							AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no }
+							ag_is_habitat = yes
+							has_modifier = "holy_planet"
+						}
+					}
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					change_pc = pc_molten
+					add_modifier = {
+						modifier = "terraforming_candidate"
+						days = -1
+					}
+				}
+				else_if = {
+					limit = { AND = { ag_is_ringworld = yes ag_is_unhabitable_ringworld = no } }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					ag_destroy_habitable_ringworld = yes
+				}
+				else_if = {
+					limit = { ag_is_habitat = yes }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					remove_planet = yes
+				}
+				else_if = {
+					limit = { has_modifier = "holy_planet" }
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					change_pc = pc_shattered
+					remove_modifier = "holy_planet"
+					add_modifier = {
+						modifier = "ag_shattered_holy_planet"
+						days = -1
+					}
+					if = {
+						limit = {
+							NOT = { has_global_flag = ag_holy_guardian_to_awaken }
+							any_country = {
+								has_ai_personality_behaviour = holy_planets
+								NOT = { is_at_war_with = event_target:ag_source_country }
+							}
+						}
+						save_event_target_as = ag_destroyed_holy_planet
+						set_global_flag = ag_holy_guardian_to_awaken
+						random_country = {
+							limit = {
+								has_ai_personality_behaviour = holy_planets
+								NOT = {
+									is_at_war_with = event_target:ag_source_country
+								}
+							}
+							save_event_target_as = ag_holy_guardian_empire
+						}
+						event_target:ag_source_country = {
+							country_event = { id = ag_ancient.8 }
+							country_event = { id = ag_ancient.1000 days = 2 random = 5 }
+						}
+					}
+				}
+			}
+			if = {
+				limit = { has_ascension_perk = ap_become_the_crisis }
+				complete_crisis_objective = crisobj_destroy_worlds
+			}
+		}
+	}
+	option = {
+		name = "ag_ancient.7.b"
+		hidden_effect = {
+			from = {
+				solar_system = {
+					random_fleet_in_system = {
+						limit = {
+							NOT = {
+								has_fleet_flag = ag_planet_killer_cooldown
+							}
+							any_owned_ship = {
+								has_ship_flag = ag_lost_ancient_ship
+							}
+							exists = orbit
+							orbit = {
+								is_same_value = root.from
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = ag_planet_killer_cooldown
+							days = 180
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Destroy Holy Planet
+country_event = {
+	id = ag_ancient.8
+	title = "ag_ancient.8.name"
+	desc = "ag_ancient.8.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_exploding_planet_room }
+	show_sound = event_air_raid_siren
+	location = fromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_ancient.8.a"
+	}
+}
+
+# on_tech_increased, Gravity Weapon's Technologies' Gateway
+country_event = {
+    id = ag_ancient.11
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_revision_gravity_theory
+	}
+	
+	immediate = {
+		random_list = {
+			50 = {
+				modifier = {
+					factor = 0
+					has_ascension_perk = ap_technological_ascendancy
+				}
+			}
+			50 = {
+				change_variable = {
+					which = ag_improve_weapon_type_gravity_damage_count
+					value = 1
+				}
+			}
+		}
+		random_list = {
+			50 = {
+				modifier = {
+					factor = 0
+					has_ascension_perk = ap_technological_ascendancy
+				}
+			}
+			50 = {
+				change_variable = {
+					which = ag_improve_weapon_type_gravity_fire_rate_count
+					value = 1
+				}
+			}
+		}
+	}
+}
+
+# on_tech_increased, Gravity Weapon's Damage Technology
+country_event = {
+    id = ag_ancient.12
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_improve_weapon_type_gravity_damage
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_improve_weapon_type_gravity_damage_count
+					value > 0
+				}
+			}
+			subtract_variable = {
+				which = ag_improve_weapon_type_gravity_damage_count
+				value = 1
+			}
+		}
+	}
+}
+
+# on_tech_increased, Gravity Weapon's Fire Rate Technology
+country_event = {
+    id = ag_ancient.13
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_improve_weapon_type_gravity_fire_rate
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_improve_weapon_type_gravity_fire_rate_count
+					value > 0
+				}
+			}
+			subtract_variable = {
+				which = ag_improve_weapon_type_gravity_fire_rate_count
+				value = 1
+			}
+		}
+	}
+}
+
+# on_tech_increased, Psionic Weapon's Technologies' Gateway
+country_event = {
+    id = ag_ancient.14
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_revision_psionic_theory
+	}
+	
+	immediate = {
+		random_list = {
+			50 = {
+				modifier = {
+					factor = 0
+					has_ascension_perk = ap_technological_ascendancy
+				}
+			}
+			50 = {
+				change_variable = {
+					which = ag_improve_weapon_type_psionic_damage_count
+					value = 1
+				}
+			}
+		}
+		random_list = {
+			50 = {
+				modifier = {
+					factor = 0
+					has_ascension_perk = ap_technological_ascendancy
+				}
+			}
+			50 = {
+				change_variable = {
+					which = ag_improve_weapon_type_psionic_fire_rate_count
+					value = 1
+				}
+			}
+		}
+	}
+}
+
+# on_tech_increased, Psionic Weapon's Damage Technology
+country_event = {
+    id = ag_ancient.15
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_improve_weapon_type_psionic_damage
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_improve_weapon_type_psionic_damage_count
+					value > 0
+				}
+			}
+			subtract_variable = {
+				which = ag_improve_weapon_type_psionic_damage_count
+				value = 1
+			}
+		}
+	}
+}
+
+# on_tech_increased, Psionic Weapon's Fire Rate Technology
+country_event = {
+    id = ag_ancient.16
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		last_increased_tech = tech_ag_improve_weapon_type_psionic_fire_rate
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_improve_weapon_type_psionic_fire_rate_count
+					value > 0
+				}
+			}
+			subtract_variable = {
+				which = ag_improve_weapon_type_psionic_fire_rate_count
+				value = 1
+			}
+		}
+	}
+}
+
+# on_entering_battle, Gravity Weapon's special ability
+country_event = {
+	id = ag_ancient.21
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		ag_is_ancient_country = yes
+		NOR = {
+			is_country_type = ag_ancient_zeta_guardian
+			is_country_type = ag_ancient_psi_guardian
+		}
+	}
+	
+	immediate = {
+		fromfrom = {
+			every_owned_ship = {
+				root.fromfromfrom = {
+					every_owned_ship = {
+						limit = {
+							# NOT = { has_ship_flag = ag_ancient_21_target }
+							OR = {
+								is_ship_class = shipclass_military
+								is_ship_class = shipclass_military_station
+							}
+						}
+						# set_timed_ship_flag = {
+						# 	flag = ag_ancient_21_target
+						# 	days = 2
+						# }
+						random_list = {
+							181 = {
+								modifier = {
+									factor = 2
+									event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } }
+								}
+							}
+							# 211 Totally, 181 Available
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_1_1"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_1_2"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_1_3"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_2_1"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_2_2"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_2_3"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								modifier = {
+									factor = 0
+									ag_is_special_ship = yes
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_3_1"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								modifier = {
+									factor = 0
+									ag_is_special_ship = yes
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_3_2"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									ag_is_special_ship = yes
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_3_3"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_4_1"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_4_2"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_4_3"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_5_1"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_5_2"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								add_modifier = {
+									modifier = "ag_ancient_gravity_weapon_effect_5_3"
+									days = @ag_ancient_gravity_weapon_unlocked_effect_days
+								}
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+										ag_is_special_ship = yes
+										has_hp <= 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp_percent = 6
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+										ag_is_special_ship = yes
+										has_hp <= 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp_percent = 4
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_special_ship = yes
+										has_hp <= 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp_percent = 2
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+										ag_is_special_ship = yes
+										has_hp > 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp = 100.0
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+										ag_is_special_ship = yes
+										has_hp > 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp = 80.0
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_special_ship = yes
+										has_hp > 4000
+									}
+								}
+								#ag_spawn_explosion_effect = { ag_scale = m ag_color = red }
+								reduce_hp = 60.0
+							}
+							1 = {
+								modifier = {
+									factor = 0
+									event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } }
+								}
+								modifier = {
+									factor = 0
+									prevprev.owner = { is_ai = no }
+								}
+								modifier = {
+									factor = 0.25
+									NOR = {
+										event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } }
+										event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 1.75 } check_variable = { which = ag_scaled_difficulty_temp value < 3.5 } }
+										event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 2 } }
+									}
+								}
+								modifier = {
+									factor = 0.5
+									event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 1.75 } check_variable = { which = ag_scaled_difficulty_temp value < 3.5 } }
+								}
+								modifier = { factor = 1.26 has_hp_percentage < 0.75 }
+								modifier = { factor = 1.26 has_hp_percentage < 0.50 }
+								modifier = { factor = 1.26 has_hp_percentage < 0.25 }
+								modifier = { factor = 1.13 has_hp > 1000000 }
+								modifier = { factor = 1.13 has_hp > 2000000 }
+								modifier = { factor = 1.13 has_hp > 5000000 }
+								modifier = { factor = 1.13 has_hp > 10000000 }
+								modifier = { factor = 1.13 has_hp > 20000000 }
+								modifier = { factor = 1.13 has_hp > 50000000 }
+								modifier = { factor = 1.67 has_hp > 100000000 }
+								modifier = { factor = 1.67 has_hp > 200000000 }
+								modifier = { factor = 1.75 has_hp > 500000000 }
+								modifier = {
+									factor = 0
+									OR = {
+										event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } }
+										ag_is_ancient_ship = yes
+										ag_is_ancient_ship_locked = yes
+										ag_is_ancient_ship_unlocked = yes
+										ag_is_zeta_crisis_ship = yes
+										ag_is_special_ship = yes
+										owner = { is_same_value = event_target:ag_ancient_zeta_guardian_country }
+									}
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								random_list = {
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 5 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 10 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 15 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 20 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 25 } }
+								}
+								# destroy_ship = this
+								# owner = { change_variable = { which = ag_ships_killed_counter_ancients value = 1 } }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_perp, Gravity Weapon's special ability
+country_event = {
+	id = ag_ancient.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		ag_is_ancient_country = yes
+		NOR = {
+			is_country_type = ag_ancient_zeta_guardian
+			is_country_type = ag_ancient_psi_guardian
+		}
+	}
+	
+	immediate = {
+		fromfromfrom = {
+			if = {
+				limit = {
+					exists = fleet
+					fleet = {
+						any_owned_ship = {
+							NOR = {
+								is_same_value = root.fromfromfrom
+								ag_is_special_ship = yes
+							}
+							is_disabled = no
+							has_hp > 0
+							OR = {
+								is_ship_class = shipclass_military
+								is_ship_class = shipclass_military_station
+								is_ship_class = shipclass_starbase
+							}
+						}
+					}
+				}
+				fleet = {
+					every_owned_ship = {
+						limit = {
+							NOR = {
+								# has_ship_flag = ag_ancient_22_target
+								is_same_value = root.fromfromfrom
+								ag_is_special_ship = yes
+							}
+							is_disabled = no
+							has_hp > 0
+							OR = {
+								is_ship_class = shipclass_military
+								is_ship_class = shipclass_military_station
+								is_ship_class = shipclass_starbase
+							}
+						}
+						# set_timed_ship_flag = {
+						# 	flag = ag_ancient_22_target
+						# 	days = 2
+						# }
+						random_list = {
+							200 = {
+							}
+							# 100 Totally, 50 Available
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp <= 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp_percent = 5
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp <= 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp_percent = 4
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp <= 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp_percent = 3
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp <= 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp_percent = 2
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp <= 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp_percent = 1
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp > 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp = 500
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp > 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp = 400
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp > 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp = 300
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp > 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp = 200
+							}
+							10 = {
+								modifier = {
+									factor = 0
+									has_hp > 10000
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								reduce_hp = 100
+							}
+							1 = {
+								modifier = {
+									factor = 0
+									OR = {
+										ag_is_special_ship = yes
+										NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 2 } } }
+										AND = {
+											has_hp_percentage >= 0.9
+											has_hp <= 450000 
+										}
+									}
+								}
+								modifier = { factor = 1.26 has_hp_percentage < 0.75 }
+								modifier = { factor = 1.26 has_hp_percentage < 0.50 }
+								modifier = { factor = 1.26 has_hp_percentage < 0.25 }
+								modifier = { factor = 1.13 has_hp > 1000000 }
+								modifier = { factor = 1.13 has_hp > 2000000 }
+								modifier = { factor = 1.13 has_hp > 5000000 }
+								modifier = { factor = 1.13 has_hp > 10000000 }
+								modifier = { factor = 1.13 has_hp > 20000000 }
+								modifier = { factor = 1.13 has_hp > 50000000 }
+								modifier = { factor = 1.67 has_hp > 100000000 }
+								modifier = { factor = 1.67 has_hp > 200000000 }
+								modifier = { factor = 1.75 has_hp > 500000000 }
+								modifier = {
+									factor = 0
+									owner = { is_same_value = event_target:ag_ancient_zeta_guardian_country }
+								}
+								ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+								random_list = {
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 5 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 10 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 15 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 20 } }
+									20 = { remove_modifier = "ag_weapon_inhibition_modifier" add_modifier = { modifier = "ag_weapon_inhibition_modifier" days = 25 } }
+								}
+								# destroy_ship = this
+								# owner = { change_variable = { which = ag_ships_killed_counter_ancients value = 1 } }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# on_entering_battle, Ancient ships could kill enemy's admiral when entering battle
+country_event = {
+	id = ag_ancient.23
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } } }
+		ag_is_ancient_country = yes
+		from = {
+			NOR = {
+				is_country_type = extradimensional
+				is_country_type = extradimensional_2
+				is_country_type = extradimensional_3
+				is_country_type = swarm
+				is_country_type = feral_prethoryn
+				is_country_type = feral_prethoryn_infighting
+				is_country_type = ai_empire
+				is_country_type = cybrex_empire
+			}
+		}
+		fromfromfrom = { exists = leader }
+	}
+
+	immediate = {
+		random_list = {
+			95 = { }
+			5 = {
+				modifier = {
+					factor = 0.1
+					NOR = {
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value < 1 } }
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 1.75 } check_variable = { which = ag_scaled_difficulty_temp value < 3.5 } }
+						event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 2 } }
+					}
+				}
+				modifier = {
+					factor = 0.5
+					event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 1.75 } check_variable = { which = ag_scaled_difficulty_temp value < 3.5 } }
+				}
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 1 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 2 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 3 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 4 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 5 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 6 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 7 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 8 } } }
+				modifier = { factor = 0.84 fromfromfrom = { leader = { has_skill > 9 } } }
+				modifier = {
+					factor = 0.5
+					fromfromfrom.leader = {
+						OR = {
+							has_trait = leader_trait_cautious
+							has_trait = leader_trait_foredoomed_to_a_rendezvous
+							has_trait = leader_trait_dragonslayer
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					fromfromfrom.leader = {
+						OR = {
+							has_trait = leader_trait_admiral_chosen
+							has_trait = leader_trait_great_khan
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					fromfromfrom = { any_owned_ship = { ag_ship_has_subsystem = { ag_owner = root.from ag_subsystem_id = 5 } } }
+				}
+				fromfromfrom = {
+					ag_spawn_explosion_effect = { ag_scale = xl ag_color = red }
+					leader = { save_event_target_as = ag_target_leader }
+					root.from = {
+						create_message = {
+							type = "LEADER_DEATH"
+							localization = "ag_leader_kill_by_ancients_message_desc"
+							days = 30
+							target = root.fromfromfrom
+							variable = {
+								type = name
+								localization = "ag_target_fleet"
+								scope = root.fromfromfrom
+							}
+							variable = {
+								type = name
+								localization = "ag_target_leader"
+								scope = event_target:ag_target_leader
+							}
+						}
+						# change_variable = {
+						# 	which = ag_admirals_killed_counter_ancients
+						# 	value = 1
+						# }
+					}
+				}
+				event_target:ag_target_leader = {
+					kill_leader = {
+						type = admiral
+						show_notification = no
+					}
+				}
+			}
+		}
+	}
+}
+
+# on_ship_destroyed_victim, Ancient Ships' abilities in Calamity Difficulty
+country_event = {
+	id = ag_ancient.24
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 2 } }
+		ag_is_ancient_country = yes
+		NOR = {
+			is_country_type = ag_ancient_zeta_guardian
+			is_country_type = ag_ancient_psi_guardian
+		}
+	}
+
+	immediate = {
+		fromfromfrom = {
+			fleet = {
+				every_owned_ship = {
+					limit = {
+						NOR = {
+							is_same_value = root.fromfromfrom
+							ag_is_special_ship = yes
+						}
+						is_disabled = no
+						has_hp > 0
+						OR = {
+							is_ship_class = shipclass_military
+							is_ship_class = shipclass_military_station
+							is_ship_class = shipclass_starbase
+						}
+					}
+					random_list = {
+						40 = { }
+						10 = {
+							reduce_hp_percent = 4
+							ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+						}
+						10 = {
+							reduce_hp_percent = 3
+							ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+						}
+						10 = {
+							reduce_hp_percent = 2
+							ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+						}
+						10 = {
+							reduce_hp_percent = 1
+							ag_spawn_buff_effect = { ag_color = red ag_scale = m }
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# on_entering_battle, Ancient Ships' abilities in Calamity Difficulty
+country_event = {
+	id = ag_ancient.25
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty_temp value > 2 } }
+		OR = {
+			ag_is_ancient_country = yes
+			is_country_type = ag_zeta_crisis_country
+			is_country_type = ag_zeta_crisis_portal_holder
+			is_country_type = ag_zeta_crisis_relic_country
+		}
+		from = {
+			NOR = {
+				ag_is_ancient_country = yes
+				is_country_type = ag_zeta_crisis_country
+				is_country_type = ag_zeta_crisis_portal_holder
+				is_country_type = ag_zeta_crisis_relic_country
+			}
+		}
+	}
+
+	immediate = {
+		fromfromfrom = {
+			every_owned_ship = {
+				random_list = {
+					90 = {
+						modifier = {
+							factor = 0.55
+							NOR = {
+								ag_is_ancient_ship = yes
+								ag_is_ancient_ship_unlocked = yes
+								ag_is_zeta_crisis_ship = yes
+							}
+						}
+					}
+					3 = {
+						if = {
+							limit = {
+								NOT = {
+									has_ship_flag = ag_ancient_ship_enter_battle_debuff_unavailable
+								}
+								NAND = {
+									has_ship_flag = ag_ancient_ship_debuffed_1
+									has_ship_flag = ag_ancient_ship_debuffed_2
+									has_ship_flag = ag_ancient_ship_debuffed_3
+									has_ship_flag = ag_ancient_ship_debuffed_4
+									has_ship_flag = ag_ancient_ship_debuffed_5
+									has_ship_flag = ag_ancient_ship_debuffed_6
+									has_ship_flag = ag_ancient_ship_debuffed_7
+									has_ship_flag = ag_ancient_ship_debuffed_8
+									has_ship_flag = ag_ancient_ship_debuffed_9
+									has_ship_flag = ag_ancient_ship_debuffed_10
+								}
+							}
+							add_modifier = {
+								modifier = ag_ancient_ship_enter_battle_debuff_hard_2
+								days = 10
+							}
+							if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_1 } } set_ship_flag = ag_ancient_ship_debuffed_1 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_2 } } set_ship_flag = ag_ancient_ship_debuffed_2 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_3 } } set_ship_flag = ag_ancient_ship_debuffed_3 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_4 } } set_ship_flag = ag_ancient_ship_debuffed_4 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_5 } } set_ship_flag = ag_ancient_ship_debuffed_5 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_6 } } set_ship_flag = ag_ancient_ship_debuffed_6 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_7 } } set_ship_flag = ag_ancient_ship_debuffed_7 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_8 } } set_ship_flag = ag_ancient_ship_debuffed_8 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_9 } } set_ship_flag = ag_ancient_ship_debuffed_9 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_10 } } set_ship_flag = ag_ancient_ship_debuffed_10 }
+							ship_event = { id = ag_ancient.26 days = 10 }
+						}
+					}
+					3 = {
+						if = {
+							limit = {
+								NOT = {
+									has_ship_flag = ag_ancient_ship_enter_battle_debuff_unavailable
+								}
+								NAND = {
+									has_ship_flag = ag_ancient_ship_debuffed_1
+									has_ship_flag = ag_ancient_ship_debuffed_2
+									has_ship_flag = ag_ancient_ship_debuffed_3
+									has_ship_flag = ag_ancient_ship_debuffed_4
+									has_ship_flag = ag_ancient_ship_debuffed_5
+									has_ship_flag = ag_ancient_ship_debuffed_6
+									has_ship_flag = ag_ancient_ship_debuffed_7
+									has_ship_flag = ag_ancient_ship_debuffed_8
+									has_ship_flag = ag_ancient_ship_debuffed_9
+									has_ship_flag = ag_ancient_ship_debuffed_10
+								}
+							}
+							add_modifier = {
+								modifier = ag_ancient_ship_enter_battle_debuff_hard_2
+								days = 15
+							}
+							if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_1 } } set_ship_flag = ag_ancient_ship_debuffed_1 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_2 } } set_ship_flag = ag_ancient_ship_debuffed_2 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_3 } } set_ship_flag = ag_ancient_ship_debuffed_3 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_4 } } set_ship_flag = ag_ancient_ship_debuffed_4 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_5 } } set_ship_flag = ag_ancient_ship_debuffed_5 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_6 } } set_ship_flag = ag_ancient_ship_debuffed_6 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_7 } } set_ship_flag = ag_ancient_ship_debuffed_7 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_8 } } set_ship_flag = ag_ancient_ship_debuffed_8 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_9 } } set_ship_flag = ag_ancient_ship_debuffed_9 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_10 } } set_ship_flag = ag_ancient_ship_debuffed_10 }
+							ship_event = { id = ag_ancient.26 days = 15 }
+						}
+					}
+					3 = {
+						if = {
+							limit = {
+								NOT = {
+									has_ship_flag = ag_ancient_ship_enter_battle_debuff_unavailable
+								}
+								NAND = {
+									has_ship_flag = ag_ancient_ship_debuffed_1
+									has_ship_flag = ag_ancient_ship_debuffed_2
+									has_ship_flag = ag_ancient_ship_debuffed_3
+									has_ship_flag = ag_ancient_ship_debuffed_4
+									has_ship_flag = ag_ancient_ship_debuffed_5
+									has_ship_flag = ag_ancient_ship_debuffed_6
+									has_ship_flag = ag_ancient_ship_debuffed_7
+									has_ship_flag = ag_ancient_ship_debuffed_8
+									has_ship_flag = ag_ancient_ship_debuffed_9
+									has_ship_flag = ag_ancient_ship_debuffed_10
+								}
+							}
+							add_modifier = {
+								modifier = ag_ancient_ship_enter_battle_debuff_hard_2
+								days = 20
+							}
+							if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_1 } } set_ship_flag = ag_ancient_ship_debuffed_1 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_2 } } set_ship_flag = ag_ancient_ship_debuffed_2 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_3 } } set_ship_flag = ag_ancient_ship_debuffed_3 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_4 } } set_ship_flag = ag_ancient_ship_debuffed_4 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_5 } } set_ship_flag = ag_ancient_ship_debuffed_5 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_6 } } set_ship_flag = ag_ancient_ship_debuffed_6 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_7 } } set_ship_flag = ag_ancient_ship_debuffed_7 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_8 } } set_ship_flag = ag_ancient_ship_debuffed_8 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_9 } } set_ship_flag = ag_ancient_ship_debuffed_9 }
+							else_if = { limit = { NOT = { has_ship_flag = ag_ancient_ship_debuffed_10 } } set_ship_flag = ag_ancient_ship_debuffed_10 }
+							ship_event = { id = ag_ancient.26 days = 20 }
+						}
+					}
+					1 = {
+						modifier = {
+							factor = 0
+							root.fromfrom = {
+								any_owned_ship = {
+									OR = {
+										is_ship_size = ag_zeta_crisis_avatar_t1
+										is_ship_size = ag_zeta_crisis_avatar_t2
+										is_ship_size = ag_zeta_crisis_avatar_t3
+										is_ship_size = ag_zeta_crisis_avatar_t4
+										is_ship_size = ag_zeta_crisis_avatar_t5
+									}
+								}
+							}
+						}
+						set_timed_ship_flag = {
+							flag = ag_ancient_ship_enter_battle_debuff_unavailable
+							days = 30
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Remove flags for debuff
+ship_event = {
+	id = ag_ancient.26
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { exists = this }
+
+	immediate = {
+		if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_10 } remove_ship_flag = ag_ancient_ship_debuffed_10 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_9 } remove_ship_flag = ag_ancient_ship_debuffed_9 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_8 } remove_ship_flag = ag_ancient_ship_debuffed_8 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_7 } remove_ship_flag = ag_ancient_ship_debuffed_7 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_6 } remove_ship_flag = ag_ancient_ship_debuffed_6 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_5 } remove_ship_flag = ag_ancient_ship_debuffed_5 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_4 } remove_ship_flag = ag_ancient_ship_debuffed_4 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_3 } remove_ship_flag = ag_ancient_ship_debuffed_3 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_2 } remove_ship_flag = ag_ancient_ship_debuffed_2 }
+		else_if = { limit = { has_ship_flag = ag_ancient_ship_debuffed_1 } remove_ship_flag = ag_ancient_ship_debuffed_1 }
+	}
+}
+
+# on_ship_destroyed_victim, mod ship's debuff for killer
+country_event = {
+	id = ag_ancient.27
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		ag_is_mod_country = yes
+		from = { ag_is_mod_country = no }
+		fromfrom = {
+			NOR = {
+				is_ship_size = ag_zeta_crisis_avatar_t1
+				is_ship_size = ag_zeta_crisis_avatar_t2
+				is_ship_size = ag_zeta_crisis_avatar_t3
+				is_ship_size = ag_zeta_crisis_avatar_t4
+				is_ship_size = ag_zeta_crisis_avatar_t5
+				is_ship_size = ag_ancient_monitor_drone_hostile
+			}
+			ag_is_mod_ship = yes
+		}
+	}
+	immediate = {
+		random_list = {
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_shield_damage_mult } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_armor_damage_mult } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_armor_damage_mult } }
+			10 = { ag_ship_killed_modifier_check_eq = { ag_modifier = ship_shield_penetration_mult } }
+			10 = { ag_ship_killed_modifier_check_eq = { ag_modifier = ship_armor_penetration_mult } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_weapon_range_mult } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_weapon_damage } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_tracking_mult } }
+			10 = { ag_ship_killed_modifier_check = { ag_modifier = ship_accuracy_mult } }
+		}
+	}
+}
+
+# Could use Construction Sections when controlled them
+country_event = {
+	id = ag_ancient.31
+	title = "ag_ancient.31.name"
+	desc = "ag_ancient.31.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_m_option"
+	picture_event_data = { room = ag_event_fallen_empire_room }
+	show_sound = event_mystic_reveal
+
+	mean_time_to_happen = { years = 5 }
+
+	trigger = {
+		NOT = {
+			has_country_flag = ag_known_construction_section
+		}
+		any_planet_within_border = {
+			OR = {
+				has_planet_flag = ag_ancient_construction_section
+				has_planet_flag = ag_ancient_resource_section
+			}
+		}
+	}
+
+	option = {
+		name = "ag_ancient.31.a"
+		hidden_effect = {
+			set_country_flag = ag_known_construction_section
+		}
+	}
+}
+
+# on_ship_destroyed_perp, Small chance for special technologies when destroy ancient ships
+country_event = {
+	id = ag_ancient.41
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_special_project = ag_ancient_debris_project }
+		OR = {
+			has_technology = tech_corvette_hull_2
+			has_technology = tech_destroyer_hull_2
+			has_technology = tech_cruiser_hull_2
+			has_technology = tech_battleship_hull_2
+			has_technology = tech_titan_hull_2
+			has_technology = tech_ag_aura_battleship_hull_2
+		}
+		from = { NOT = { has_ascension_perk = ap_enigmatic_engineering } }
+		fromfromfrom = {
+			OR = {
+				ag_is_ancient_ship = yes
+				ag_is_ancient_ship_locked = yes
+				ag_is_ancient_ship_unlocked = yes
+			}
+		}
+	}
+
+	immediate = {
+		random_list = {
+			1 = {
+				if = {
+					limit = { fromfromfrom.solar_system = { NOT = { any_system_ambient_object = { has_ambient_object_flag = ag_ancient_debris_object } } } }
+					fromfromfrom.solar_system = {
+						save_event_target_as = ag_debris_system
+						create_ambient_object = {
+							type = "ag_ancient_debris_object"
+							location = root.fromfromfrom
+						}
+						last_created_ambient_object = {
+							save_event_target_as = ag_ancient_debris_object
+							set_ambient_object_flag = ag_ancient_debris_object
+						}
+					}
+					enable_special_project = {
+						name = ag_ancient_debris_project
+						location = event_target:ag_ancient_debris_object
+						owner = root
+					}
+				}
+			}
+			499 = { }
+		}
+	}
+}
+
+# on_monthly_pulse, Effects for Defender of the Galaxy
+event = {
+	id = ag_ancient.51
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			AND = {
+				has_global_flag = ag_gamma_crisis_began
+				NOT = { has_global_flag = ag_gamma_crisis_ended }
+			}
+			AND = {
+				has_global_flag = ag_zeta_crisis_stage_3
+				NOT = { has_global_flag = ag_zeta_crisis_ended }
+			}
+		}
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				has_ascension_perk = ap_defender_of_the_galaxy
+				OR = {
+					AND = {
+						has_global_flag = ag_gamma_crisis_began
+						NOT = { has_global_flag = ag_gamma_crisis_ended }
+						NOT = { has_modifier = ag_defender_of_the_galaxy_gamma_crisis }
+					}
+					AND = {
+						has_global_flag = ag_zeta_crisis_stage_3
+						NOT = { has_global_flag = ag_zeta_crisis_ended }
+						NOT = { has_modifier = ag_defender_of_the_galaxy_zeta_crisis }
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_global_flag = ag_gamma_crisis_began
+					NOT = { has_global_flag = ag_gamma_crisis_ended }
+					NOT = { has_modifier = ag_defender_of_the_galaxy_gamma_crisis }
+				}
+				add_modifier = {
+					modifier = ag_defender_of_the_galaxy_gamma_crisis
+					days = -1
+				}
+			}
+			if = {
+				limit = {
+					has_global_flag = ag_zeta_crisis_stage_3
+					NOT = { has_global_flag = ag_zeta_crisis_ended }
+					NOT = { has_modifier = ag_defender_of_the_galaxy_zeta_crisis }
+				}
+				add_modifier = {
+					modifier = ag_defender_of_the_galaxy_zeta_crisis
+					days = -1
+				}
+			}
+		}
+	}
+}
+
+# on_monthly_pulse, Effects for Galactic Contender
+event = {
+	id = ag_ancient.52
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			has_ascension_perk = ap_galactic_contender
+			NOT = { has_modifier = ag_galactic_contender_ancients }
+		}
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				has_ascension_perk = ap_galactic_contender
+				NOT = { has_modifier = ag_galactic_contender_ancients }
+			}
+			add_modifier = {
+				modifier = ag_galactic_contender_ancients
+				days = -1
+			}
+		}
+	}
+}
+
+# Archaeological Exploration to Ancient Ruins
+planet_event = {
+	id = ag_ancient.61
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			random_list = {
+				30 = { country_event = { id = ag_ancient.62 } }				# Random research points
+				25 = { country_event = { id = ag_ancient.63 } }				# Research Speed Bonus
+				25 = { country_event = { id = ag_ancient.64 } }				# Random Resources
+				15 = { country_event = { id = ag_ancient_knowledge.25 } }	# Ancient Knowledge
+				10 = { country_event = { id = ag_ancient.65 } }				# Random Technology
+				1 = { country_event = { id = ag_ancient.66 } }				# Class 5 Singularity
+				1 = { country_event = { id = ag_ancient.67 } }				# Matter Generator
+				1 = { country_event = { id = ag_ancient.68 } }				# Fabrication Facility
+				1 = { country_event = { id = ag_ancient.69 } }				# Unknown Building
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.62
+	title = "ag_ancient.62.name"
+	desc = "ag_ancient.62.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.62.a"
+		locked_random_list = {
+			10 = { add_monthly_resource_mult = { resource = physics_research value = 64 min = 500 max = 10000 } }
+			10 = { add_monthly_resource_mult = { resource = society_research value = 64 min = 500 max = 10000 } }
+			10 = { add_monthly_resource_mult = { resource = engineering_research value = 64 min = 500 max = 10000 } }
+			10 = {
+                add_monthly_resource_mult = { resource = physics_research value = 64 min = 500 max = 8000 }
+                add_monthly_resource_mult = { resource = society_research value = 64 min = 500 max = 8000 }
+			}
+			10 = {
+                add_monthly_resource_mult = { resource = physics_research value = 64 min = 500 max = 8000 }
+                add_monthly_resource_mult = { resource = engineering_research value = 64 min = 500 max = 8000 }
+			}
+			10 = {
+                add_monthly_resource_mult = { resource = society_research value = 64 min = 500 max = 8000 }
+                add_monthly_resource_mult = { resource = engineering_research value = 64 min = 500 max = 8000 }
+			}
+			10 = {
+                add_monthly_resource_mult = { resource = physics_research value = 64 min = 500 max = 6000 }
+                add_monthly_resource_mult = { resource = society_research value = 64 min = 500 max = 6000 }
+                add_monthly_resource_mult = { resource = engineering_research value = 64 min = 500 max = 6000 }
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.63
+	title = "ag_ancient.63.name"
+	desc = "ag_ancient.63.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	after = {
+		remove_country_flag = ag_ancient_ruins_research_buff_2
+		remove_country_flag = ag_ancient_ruins_research_buff_3
+		remove_country_flag = ag_ancient_ruins_research_buff_4
+		remove_country_flag = ag_ancient_ruins_research_buff_5
+	}
+
+	option = {
+		name = "ag_ancient.63.a"
+		hidden_effect = {
+			if = { limit = { has_modifier = ag_ancient_ruins_research_buff_1 }
+				remove_modifier = ag_ancient_ruins_research_buff_1
+			}
+			if = { limit = { has_modifier = ag_ancient_ruins_research_buff_2 }
+				set_country_flag = ag_ancient_ruins_research_buff_2
+				remove_modifier = ag_ancient_ruins_research_buff_2
+			}
+			if = { limit = { has_modifier = ag_ancient_ruins_research_buff_3 }
+				set_country_flag = ag_ancient_ruins_research_buff_3
+				remove_modifier = ag_ancient_ruins_research_buff_3
+			}
+			if = { limit = { has_modifier = ag_ancient_ruins_research_buff_4 }
+				set_country_flag = ag_ancient_ruins_research_buff_4
+				remove_modifier = ag_ancient_ruins_research_buff_4
+			}
+			if = { limit = { has_modifier = ag_ancient_ruins_research_buff_5 }
+				set_country_flag = ag_ancient_ruins_research_buff_5
+				remove_modifier = ag_ancient_ruins_research_buff_5
+			}
+		}
+		locked_random_list = {
+			15 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_2
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_1 days = 360 }
+			}
+			10 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_2
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_1 days = 540 }
+			}
+			5 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_2
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_1 days = 720 }
+			}
+			15 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_2 days = 360 }
+			}
+			10 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_2 days = 540 }
+			}
+			5 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_3
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_2 days = 720 }
+			}
+			15 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_3 days = 360 }
+			}
+			10 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_3 days = 540 }
+			}
+			5 = {
+				modifier = {
+					factor = 0
+					OR = {
+						has_country_flag = ag_ancient_ruins_research_buff_4
+						has_country_flag = ag_ancient_ruins_research_buff_5
+					}
+				}
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_3 days = 720 }
+			}
+			15 = {
+				modifier = { factor = 0 has_country_flag = ag_ancient_ruins_research_buff_5 }
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_4 days = 360 }
+			}
+			10 = {
+				modifier = { factor = 0 has_country_flag = ag_ancient_ruins_research_buff_5 }
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_4 days = 540 }
+			}
+			5 = {
+				modifier = { factor = 0 has_country_flag = ag_ancient_ruins_research_buff_5 }
+				add_modifier = { modifier = ag_ancient_ruins_research_buff_4 days = 720 }
+			}
+			15 = { add_modifier = { modifier = ag_ancient_ruins_research_buff_5 days = 360 } }
+			10 = { add_modifier = { modifier = ag_ancient_ruins_research_buff_5 days = 540 } }
+			5 = { add_modifier = { modifier = ag_ancient_ruins_research_buff_5 days = 720 } }
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.64
+	title = "ag_ancient.64.name"
+	desc = "ag_ancient.64.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.64.a"
+		locked_random_list = {
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { energy = 8000 } }
+					10 = { add_resource = { energy = 7000 } }
+					10 = { add_resource = { energy = 6000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { minerals = 8000 } }
+					10 = { add_resource = { minerals = 7000 } }
+					10 = { add_resource = { minerals = 6000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { alloys = 3000 } }
+					10 = { add_resource = { alloys = 2500 } }
+					10 = { add_resource = { alloys = 2000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { consumer_goods = 4000 } }
+					10 = { add_resource = { consumer_goods = 3500 } }
+					10 = { add_resource = { consumer_goods = 3000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { volatile_motes = 1500 } }
+					10 = { add_resource = { volatile_motes = 1250 } }
+					10 = { add_resource = { volatile_motes = 1000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { exotic_gases = 1500 } }
+					10 = { add_resource = { exotic_gases = 1250 } }
+					10 = { add_resource = { exotic_gases = 1000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { rare_crystals = 1500 } }
+					10 = { add_resource = { rare_crystals = 1250 } }
+					10 = { add_resource = { rare_crystals = 1000 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { sr_living_metal = 800 } }
+					10 = { add_resource = { sr_living_metal = 750 } }
+					10 = { add_resource = { sr_living_metal = 700 } }
+					10 = { add_resource = { sr_living_metal = 650 } }
+					10 = { add_resource = { sr_living_metal = 600 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { sr_dark_matter = 800 } }
+					10 = { add_resource = { sr_dark_matter = 750 } }
+					10 = { add_resource = { sr_dark_matter = 700 } }
+					10 = { add_resource = { sr_dark_matter = 650 } }
+					10 = { add_resource = { sr_dark_matter = 600 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { sr_zro = 800 } }
+					10 = { add_resource = { sr_zro = 750 } }
+					10 = { add_resource = { sr_zro = 700 } }
+					10 = { add_resource = { sr_zro = 650 } }
+					10 = { add_resource = { sr_zro = 600 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { nanites = 800 } }
+					10 = { add_resource = { nanites = 750 } }
+					10 = { add_resource = { nanites = 700 } }
+					10 = { add_resource = { nanites = 650 } }
+					10 = { add_resource = { nanites = 600 } }
+				}
+			}
+			10 = {
+				locked_random_list = {
+					10 = { add_resource = { minor_artifacts = 23 } }
+					10 = { add_resource = { minor_artifacts = 19 } }
+					10 = { add_resource = { minor_artifacts = 17 } }
+					10 = { add_resource = { minor_artifacts = 13 } }
+					10 = { add_resource = { minor_artifacts = 11 } }
+				}
+			}
+			10 = { add_resource = { energy = 4000 minerals = 4000 } }
+			10 = { add_resource = { minerals = 4000 alloys = 1500 } }
+			10 = { add_resource = { energy = 4000 consumer_goods = 2000 } }
+			10 = { add_resource = { volatile_motes = 750 exotic_gases = 750 } }
+			10 = { add_resource = { volatile_motes = 750 rare_crystals = 750 } }
+			10 = { add_resource = { exotic_gases = 750 rare_crystals = 750 } }
+			10 = { add_resource = { volatile_motes = 500 exotic_gases = 500 rare_crystals = 500 } }
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.65
+	title = "ag_ancient.65.name"
+	desc = "ag_ancient.65.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.65.a"
+		locked_random_list = {
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.50
+                    area = physics
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = physics_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.40
+                    area = physics
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = physics_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.30
+                    area = physics
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = physics_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.50
+                    area = society
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = society_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.40
+                    area = society
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = society_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.30
+                    area = society
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = society_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.50
+                    area = engineering
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = engineering_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.40
+                    area = engineering
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = engineering_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+			10 = {
+                add_random_research_option = {
+                    add_progress = 0.30
+                    area = engineering
+                    ignore_prereqs = no
+                    fail_effects = {
+                        add_monthly_resource_mult = {
+                            resource = engineering_research
+                            value = 64
+                            min = 500
+                            max = 8000
+                        }
+                    }
+                }
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.66
+	title = "ag_ancient.66.name"
+	desc = "ag_ancient.66.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.66.a"
+		custom_tooltip = "ag_ancient.66.a.tooltip"
+		hidden_effect = { change_variable = { which = ag_class_5_singularity_counter value = 1 } }
+	}
+}
+country_event = {
+	id = ag_ancient.67
+	title = "ag_ancient.67.name"
+	desc = "ag_ancient.67.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.67.a"
+		custom_tooltip = "ag_ancient.67.a.tooltip"
+		hidden_effect = { change_variable = { which = ag_matter_generator_counter value = 1 } }
+	}
+}
+country_event = {
+	id = ag_ancient.68
+	title = "ag_ancient.68.name"
+	desc = "ag_ancient.68.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.68.a"
+		custom_tooltip = "ag_ancient.68.a.tooltip"
+		hidden_effect = { change_variable = { which = ag_fabrication_facility_counter value = 1 } }
+	}
+}
+country_event = {
+	id = ag_ancient.69
+	title = "ag_ancient.69.name"
+	desc = "ag_ancient.69.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_archaeological_dig_room }
+	show_sound = event_default
+	location = from
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "ag_ancient.69.a"
+		custom_tooltip = "ag_ancient.69.a.tooltip"
+		hidden_effect = { change_variable = { which = ag_ancient_unknown_building_counter value = 1 } }
+	}
+}
+
+# Destroy star with superweapon
+planet_event = {
+	id = ag_ancient.201
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		from = { random_owned_ship = { save_event_target_as = ag_target_ship } }
+		from.owner = {
+			switch = {
+				trigger = galaxy_size
+				huge = { add_resource = { sr_dark_matter = 1000 } }
+				large = { add_resource = { sr_dark_matter = 1500 } }
+				medium = { add_resource = { sr_dark_matter = 2000 } }
+				small = { add_resource = { sr_dark_matter = 2500 } }
+				tiny = { add_resource = { sr_dark_matter = 3000 } }
+			}
+			if = {
+				limit = { NOT = { has_country_flag = ag_fired_ancient_star_killer } }
+				set_country_flag = ag_fired_ancient_star_killer
+				country_event = { id = ag_ancient.204 }
+			}
+		}
+		ag_ancient_planet_killer_hit_explosion = yes
+		change_pc = pc_black_hole
+		solar_system = { set_star_class = sc_black_hole }
+		if = { limit = { planet_size > 29 } set_planet_size = 15 }
+		else_if = { limit = { planet_size > 19 } set_planet_size = 10 }
+		else_if = { limit = { always = yes } set_planet_size = 7 }
+		prevent_anomaly = yes
+		clear_deposits = yes
+		while = {
+			count = 4
+			random_list = {
+				50 = { }
+				50 = { add_deposit = d_dark_matter_deposit_1 }
+				50 = { add_deposit = d_dark_matter_deposit_2 }
+				50 = { add_deposit = d_dark_matter_deposit_3 }
+				1 = { add_deposit = d_dark_matter_deposit_10 }
+			}
+			random_list = {
+				100 = { }
+				25 = { add_deposit = d_physics_1 }
+				25 = { add_deposit = d_physics_2 }
+				25 = { add_deposit = d_physics_3 }
+				25 = { add_deposit = d_physics_4 }
+			}
+		}
+		solar_system = {
+			set_asteroid_belt = { radius = 0 }
+			ag_destroy_megastructure = yes
+			every_system_planet = {
+				limit = { NOT = { is_same_value = root } }
+				prevent_anomaly = yes
+				if = {
+					limit = { is_star = yes ag_is_compact_star = no }
+					change_pc = pc_black_hole
+					solar_system = { set_star_class = sc_black_hole }
+					if = { limit = { planet_size > 29 } set_planet_size = 15 }
+					else_if = { limit = { planet_size > 19 } set_planet_size = 10 }
+					else_if = { limit = { always = yes } set_planet_size = 7 }
+					clear_deposits = yes
+					while = {
+						count = 3
+						random_list = {
+							75 = { }
+							50 = { add_deposit = d_dark_matter_deposit_1 }
+							50 = { add_deposit = d_dark_matter_deposit_2 }
+							50 = { add_deposit = d_dark_matter_deposit_3 }
+						}
+						random_list = {
+							100 = { }
+							25 = { add_deposit = d_physics_1 }
+							25 = { add_deposit = d_physics_2 }
+							25 = { add_deposit = d_physics_3 }
+							25 = { add_deposit = d_physics_4 }
+						}
+					}
+				}
+				else_if = {
+					limit = { is_asteroid = yes }
+					remove_planet = yes
+				}
+				else_if = {
+					limit = { is_planet_class = pc_gas_giant }
+					clear_deposits = yes
+					if = { limit = { planet_size > 25 } change_planet_size = -10 }
+					else_if = { limit = { planet_size > 15 } change_planet_size = -5 }
+				}
+				else_if = {
+					limit = {
+						exists = owner
+						owner = { is_country_type = ag_zeta_crisis_country }
+						OR = {
+							is_planet_class = pc_ag_shrouded
+							is_planet_class = pc_ag_ringworld_shrouded
+						}
+					}
+					add_planet_devastation = 50
+				}
+			}
+			if = {
+				limit = { exists = starbase }
+				every_fleet_in_system = {
+					limit = {
+						any_owned_ship = {
+							is_ship_class = shipclass_starbase
+							NOR = {
+								is_ship_size = starbase_ag_zeta_crisis
+								is_ship_size = ag_gamma_station_hostile
+								is_ship_size = ag_gamma_station_0
+								is_ship_size = ag_gamma_station_1
+								is_ship_size = ag_gamma_station_small_hostile
+								is_ship_size = ag_gamma_station_small_moving_hostile
+								is_ship_size = juggernaut
+							}
+						}
+					}
+					destroy_fleet = this
+				}
+			}
+			every_fleet_in_system = {
+				limit = {
+					exists = this
+					NOR = {
+						is_same_value = from
+						any_owned_ship = {
+							is_ship_class = shipclass_starbase
+							NOR = {
+								is_ship_size = starbase_ag_zeta_crisis
+								is_ship_size = ag_gamma_station_hostile
+								is_ship_size = ag_gamma_station_0
+								is_ship_size = ag_gamma_station_1
+								is_ship_size = ag_gamma_station_small_hostile
+								is_ship_size = ag_gamma_station_small_moving_hostile
+								is_ship_size = juggernaut
+							}
+						}
+					}
+				}
+				if = {
+					limit = {
+						exists = owner
+						owner = { NOT = { is_same_value = from.owner } }
+						ag_is_ancient_ship = no
+						ag_is_zeta_crisis_ship = no
+					}
+					ag_destroy_fleet = {
+						ag_killer_country = root.from.owner
+						ag_killer_fleet = root.from
+						ag_killer_ship = event_target:ag_target_ship
+					}
+				}
+				else = { set_mia = yes }
+			}
+			if = {
+				limit = { NOT = { exists = space_owner } }
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = root.owner
+							is_country_type = fallen_empire
+						}
+						has_communications = root.owner
+					}
+					add_opinion_modifier = {
+						modifier = ag_opinion_destroyed_system
+						who = root.owner
+					}
+				}
+			}
+			else = {
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = root.owner
+							is_country_type = fallen_empire
+						}
+						has_communications = root.owner
+					}
+					if = {
+						limit = { is_same_value = prev.space_owner }
+						add_opinion_modifier = {
+							modifier = ag_opinion_destroyed_my_system
+							who = root.owner
+						}
+					}
+					else = {
+						add_opinion_modifier = {
+							modifier = ag_opinion_destroyed_system
+							who = root.owner
+						}
+					}
+				}
+			}
+		}
+		from = { fleet_event = { id = ag_ancient.202 } }
+	}
+}
+fleet_event = {
+	id = ag_ancient.202
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		random_owned_ship = { save_event_target_as = ag_target_ship }
+		solar_system = {
+			if = {
+				limit = { exists = owner owner = { has_country_flag = ag_ship_subsystem_enabled_501_18 } }
+				every_neighbor_system = {
+					limit = { NAND = { exists = space_owner space_owner = { is_same_value = root.owner } } }
+					star = {
+						ag_spawn_explosion_effect = { ag_scale = red ag_scale = xl }
+						prevent_anomaly = yes
+						random_list = {
+							10 = { }
+							10 = { change_planet_size = 1 }
+							10 = { change_planet_size = 2 }
+							10 = { change_planet_size = 3 }
+							10 = { change_planet_size = 4 }
+							10 = { change_planet_size = 5 }
+							10 = { change_planet_size = 6 }
+							10 = { change_planet_size = 7 }
+							10 = { change_planet_size = 8 }
+							10 = { change_planet_size = 9 }
+							10 = { change_planet_size = 10 }
+						}
+						clear_deposits = yes
+						random_list = {
+							75 = { }
+							50 = { add_deposit = d_dark_matter_deposit_1 }
+							50 = { add_deposit = d_dark_matter_deposit_2 }
+							50 = { add_deposit = d_dark_matter_deposit_3 }
+						}
+						random_list = {
+							100 = { }
+							25 = { add_deposit = d_physics_1 }
+							25 = { add_deposit = d_physics_2 }
+							25 = { add_deposit = d_physics_3 }
+							25 = { add_deposit = d_physics_4 }
+						}
+					}
+					every_system_planet = {
+						limit = { OR = { is_colony = yes is_under_colonization = yes } }
+						random_list = {
+							60 = { planet_event = { id = ag_ancient.203 } }
+							10 = { add_planet_devastation = 100 every_owned_pop = { random_list = { 85 = { } 15 = { kill_pop = yes } } } }
+							10 = { add_planet_devastation = 99 every_owned_pop = { random_list = { 86 = { } 14 = { kill_pop = yes } } } }
+							10 = { add_planet_devastation = 98 every_owned_pop = { random_list = { 87 = { } 13 = { kill_pop = yes } } } }
+							10 = { add_planet_devastation = 97 every_owned_pop = { random_list = { 88 = { } 12 = { kill_pop = yes } } } }
+							10 = { add_planet_devastation = 96 every_owned_pop = { random_list = { 89 = { } 11 = { kill_pop = yes } } } }
+							10 = { add_planet_devastation = 95 every_owned_pop = { random_list = { 90 = { } 10 = { kill_pop = yes } } } }
+						}
+					}
+					every_fleet_in_system = {
+						ag_destroy_fleet = {
+							ag_killer_country = root.owner
+							ag_killer_fleet = root
+							ag_killer_ship = event_target:ag_target_ship
+						}
+					}
+				}
+			}
+			every_system_planet = {
+				limit = {
+					OR = {
+						colonizeable_planet = yes
+						ag_is_ringworld = yes
+						ag_is_habitat = yes
+						is_planet_class = pc_ai
+						is_planet_class = pc_infested
+						is_planet_class = pc_barren
+						is_planet_class = pc_barren_cold
+						is_planet_class = pc_frozen
+						is_planet_class = pc_molten
+						is_planet_class = pc_toxic
+						is_planet_class = pc_hothouse
+						is_planet_class = pc_shielded
+						is_planet_class = pc_habitat_shielded
+					}
+				}
+				if = {
+					limit = {
+						NOR = {
+							ag_is_ringworld = yes
+							ag_is_habitat = yes
+							is_planet_class = pc_shielded
+							is_planet_class = pc_habitat_shielded
+						}
+					}
+					if = { limit = { planet_size > 49 } set_planet_size = 20 }
+					else_if = { limit = { planet_size > 25 } change_planet_size = -20 }
+					else_if = { limit = { planet_size > 20 } change_planet_size = -15 }
+					else_if = { limit = { planet_size > 15 } change_planet_size = -10 }
+					else_if = { limit = { planet_size > 10 } change_planet_size = -5 }
+					else_if = { limit = { planet_size > 5 } change_planet_size = -5 }
+					else_if = { limit = { always = yes } set_planet_size = 1 }
+				}
+				planet_event = { id = ag_ancient.203 }
+			}
+		}
+	}
+}
+planet_event = {
+	id = ag_ancient.203
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = { has_observation_outpost = yes }
+			observation_outpost_owner = {
+				country_event = { id = planet_destruction.1000 days = 1 }
+			}
+		}
+		# Contingency Machine World
+		if = {
+			limit = { is_planet_class = pc_ai NOT = { has_planet_flag = machine_lair } }
+			set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_cracked
+			planet_event = { id = crisis.2040 }
+		}
+		# Contingency Final Machine World
+		if = {
+			limit = { is_planet_class = pc_ai has_planet_flag = machine_lair }
+			set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_cracked
+			from.owner = { save_event_target_as = final_machine_world_destroyer }
+			stop_crisis_sound = yes
+			planet_event = { id = crisis.2046 }
+		}
+		# Swarm Situation Log counter
+		if = {
+			limit = { exists = owner owner = { is_country_type = swarm } }
+			every_country = {
+				limit = { has_event_chain = "prethoryn_scourge_chain" }
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds"
+					amount = -1
+				}
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds_cleansed"
+					amount = 1
+				}
+			}
+		}
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_rulesofwar_reverence_for_life"
+					is_active_resolution = "resolution_rulesofwar_independent_tribunals"
+					is_active_resolution = "resolution_rulesofwar_last_resort_doctrine"
+					is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
+				}
+			}
+			from.owner = { set_timed_country_flag = { flag = resolution_breached_fired_cracker days = 3600 } }
+		}
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+					ag_is_common_country = yes
+				}
+			}
+			# Generate threat
+			if = {
+				limit = { is_colony = yes }
+				add_threat = { who = from.owner amount = 3 }
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = from.owner
+							is_same_value = root.owner
+							AND = {
+								has_federation = yes
+								is_in_federation_with = from.owner
+							}
+						}
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							AND = {
+								has_federation = yes
+								is_in_federation_with = root.owner
+							}
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								OR = {
+									is_egalitarian = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					if = {
+						limit = { root = { is_colony = no } }
+						add_opinion_modifier = {
+							modifier = opinion_cracked_an_uninhabited_world
+							who = from.owner
+						}
+					}
+					else = {
+						add_opinion_modifier = {
+							modifier = opinion_cracked_a_world
+							who = from.owner
+						}
+					}
+				}
+			}
+			else = { add_threat = { who = from.owner amount = 1 } }
+			# modifiers for victim
+			owner = {
+				if = {
+					limit = { root = { is_colony = no } }
+					add_opinion_modifier = {
+						modifier = opinion_cracked_my_uninhabited_world
+						who = from.owner
+					}
+				}
+				else = {
+					add_opinion_modifier = {
+						modifier = opinion_cracked_my_world
+						who = from.owner
+					}
+				}
+				if = {
+					limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+					add_modifier = { modifier = "colossus_victim" days = 10800 }
+				}
+			}
+			if = {
+				limit = { exists = owner owner = { is_country_type = primitive } }
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								NOR = {
+									is_xenophobe = yes
+									is_homicidal = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_cracked_a_primitive_world
+						who = from.owner
+					}
+				}
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								is_xenophile = yes
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_cracked_a_primitive_world_phile
+						who = from.owner
+					}
+				}
+			}
+		}
+		# Add war exhaustion to planet owner
+		if = {
+			limit = { exists = owner }
+			owner = {
+				add_static_war_exhaustion = {
+					attacker = from.fleet.owner
+					location = root
+					value_for_planet_destruction = 1.0
+				}
+			}
+		}
+		every_owned_pop = { kill_pop = yes }
+		remove_all_buildings = yes
+		remove_all_districts = yes
+		clear_deposits = yes
+		# destroy habitats and ringworlds
+		if = {
+			limit = { OR = { ag_is_habitat = yes is_planet_class = pc_habitat_shielded } }
+			spawn_habitat_cracker_effect = yes
+			remove_planet = yes
+		}
+		else_if = {
+			limit = {
+				ag_is_ringworld = yes
+				NOR = {
+					is_planet_class = pc_ag_ringworld_shrouded
+					is_planet_class = pc_ringworld_habitable_damaged
+					is_planet_class = pc_ringworld_seam_damaged
+					is_planet_class = pc_ringworld_tech_damaged
+				}
+			}
+			spawn_ringworld_cracker_effect = yes
+			change_pc = pc_ringworld_habitable_damaged
+		}
+		else_if = {
+			limit = { always = yes }
+			change_pc = pc_shattered
+			if = {
+				limit = {
+					NOR = {
+						is_planet_class = pc_molten
+						is_planet_class = pc_toxic
+						is_planet_class = pc_barren
+						is_planet_class = pc_barren_cold
+						is_planet_class = pc_frozen
+					}
+				}
+				random_list = {
+					25 = { while = { count = 4 add_deposit = d_minerals_4 } }
+					25 = { while = { count = 3 add_deposit = d_minerals_4 } }
+					25 = { while = { count = 2 add_deposit = d_minerals_4 } }
+					25 = { add_deposit = d_minerals_4 }
+				}
+			}
+			else = {
+				while = {
+					count = 2
+					random_list = {
+						100 = { }
+						25 = { add_deposit = d_minerals_1 }
+						25 = { add_deposit = d_minerals_2 }
+						25 = { add_deposit = d_minerals_3 }
+						25 = { add_deposit = d_minerals_4 }
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				solar_system = { has_star_flag = sol }
+				from.owner = { NOT = { species_portrait = human } }
+				OR = {
+					has_planet_flag = planet_earth
+					has_planet_flag = nuked_earth
+					AND = {
+						exists = owner
+						owner = {
+							is_primitive = yes
+							species_portrait = human
+						}
+					}
+				}
+			}
+			random_list = {
+				50 = { }
+				50 = {
+					solar_system = { save_event_target_as = sol_sys }
+					from.owner = { country_event = { id = planet_destruction.111 } }
+				}
+			}
+		}
+		if = {
+			limit = { has_modifier = "holy_planet" }
+			remove_modifier = "holy_planet"
+			add_modifier = { modifier = "ag_shattered_holy_planet" days = -1 }
+			if = {
+				limit = {
+					NOT = { has_global_flag = ag_holy_guardian_to_awaken }
+					any_country = {
+						has_ai_personality_behaviour = holy_planets
+						NOT = { is_at_war_with = root.owner }
+					}
+				}
+				root.owner = { save_event_target_as = ag_source_country }
+				save_event_target_as = ag_destroyed_holy_planet
+				set_global_flag = ag_holy_guardian_to_awaken
+				random_country = {
+					limit = {
+						has_ai_personality_behaviour = holy_planets
+						NOT = { is_at_war_with = event_target:ag_source_country }
+					}
+					save_event_target_as = ag_holy_guardian_empire
+				}
+				event_target:ag_source_country = {
+					country_event = { id = ag_ancient.1000 days = 2 random = 5 }
+				}
+			}
+		}
+		from.owner = {
+			if = {
+				limit = { has_ascension_perk = ap_become_the_crisis }
+				complete_crisis_objective = crisobj_destroy_worlds
+			}
+		}
+	}
+}
+country_event = {
+	id = ag_ancient.204
+	title = "ag_ancient.204.name"
+	desc = "ag_ancient.204.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_black_hole_room }
+	show_sound = event_activating_unknown_technology
+	location = from
+	is_triggered_only = yes
+	option = {
+		name = "ag_ancient.204.a"
+		trigger = {
+			NOR = {
+				has_valid_civic = civic_fanatic_purifiers
+				has_valid_civic = civic_machine_terminator
+			}
+		}
+	}
+	option = {
+		name = "ag_ancient.204.b"
+		trigger = {
+			OR = {
+				has_valid_civic = civic_fanatic_purifiers
+				has_valid_civic = civic_machine_terminator
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = 60
+			min = 600
+			max = 3000
+		}
+	}
+}
+
+# Holy Guardian's communication after holy planet destroyed
+country_event = {
+	id = ag_ancient.1000
+	title = "ag_ancient.1000.name"
+	desc = "ag_ancient.1000.desc"
+	show_sound = event_ship_bridge
+	location = event_target:ag_holy_guardian_empire.capital_scope
+
+	is_triggered_only = yes
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:ag_holy_guardian_empire
+		planet_background = event_target:ag_holy_guardian_empire
+		graphical_culture = event_target:ag_holy_guardian_empire
+		city_level = event_target:ag_holy_guardian_empire
+		room = event_target:ag_holy_guardian_empire.ruler
+	}
+
+	after = {
+		hidden_effect = {
+			event_target:ag_holy_guardian_empire = {
+				country_event = { id = ag_ancient.1001 }
+			}
+		}
+	}
+
+	option = { name = "ag_ancient.1000.a" }
+	option = { name = "ag_ancient.1000.b" }
+	option = {
+		name = "planet_destruction.610.spiri"
+		trigger = {
+			OR = {
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.mater"
+		trigger = {
+			OR = {
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.milit"
+		trigger = {
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.pacif"
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.autho"
+		trigger = {
+			OR = {
+				has_ethic = ethic_authoritarian
+				has_ethic = ethic_fanatic_authoritarian
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.egali"
+		trigger = {
+			OR = {
+				has_ethic = ethic_egalitarian
+				has_ethic = ethic_fanatic_egalitarian
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.phile"
+		trigger = {
+			OR = {
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.phobe"
+		trigger = {
+			OR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+	}
+	option = {
+		name = "planet_destruction.610.gesta"
+		trigger = { has_ethic = ethic_gestalt_consciousness }
+	}
+	option = {
+		name = "planet_destruction.610.devou"
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+	}
+	option = {
+		name = "planet_destruction.610.termi"
+		trigger = { has_valid_civic = civic_machine_terminator }
+	}
+	option = {
+		name = "planet_destruction.610.purif"
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+	}
+}
+
+# Holy Guardian awakes
+country_event = {
+	id = ag_ancient.1001
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = sleepers_awake_happened
+		set_country_flag = sleepers_awake_first_sleeper
+		set_country_type = awakened_fallen_empire
+		change_government = {
+			civics = {
+				civic = civic_revanchist_fervor
+				civic = civic_ancient_caches_of_technology
+			}
+		}
+		add_resource = {
+			energy = 500000
+			minerals = 500000
+			food = 500000
+			influence = 1000
+			unity = 500000
+			alloys = 500000
+			consumer_goods = 500000
+			volatile_motes = 500000
+			exotic_gases = 500000
+			rare_crystals = 500000
+			sr_living_metal = 500000
+			sr_zro = 500000
+			sr_dark_matter = 500000
+			nanites = 500000
+			minor_artifacts = 1000
+		}
+		add_modifier = {
+			modifier = "ag_holy_guardian_power"
+			days = 3600
+		}
+		capital_scope = {
+			prev = {
+				create_leader = {
+					class = admiral
+					species = owner_main_species
+					name = random
+					skill = 10
+					traits = {
+						trait = leader_trait_cautious
+						trait = leader_trait_unyielding
+						trait = leader_trait_admiral_chosen
+					}
+				}
+			}
+			create_fleet = {
+				name = "NAME_holy_guardian_revenge_fleet_chosen"
+				settings = {
+					uses_naval_capacity = no
+				}
+				effect = {
+					set_owner = prev.owner
+					assign_leader = last_created_leader
+					while = {
+						count = 2
+						create_ship = {
+							name = random
+							design = "NAME_Eternal"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					while = {
+						count = 20
+						create_ship = {
+							name = random
+							design = "NAME_Avatar"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					while = {
+						count = 40
+						create_ship = {
+							name = random
+							design = "NAME_Zealot"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					random_list = {
+						25 = {
+							set_location = {
+								target = prev
+								distance = 30
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 45
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 60
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 75
+								angle = random 
+							}				
+						}				
+					}
+				}
+			}
+		}
+		while = {
+			count = 7
+			country_event = { id = ag_ancient.1002 }
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+				NOT = { has_communications = root }
+			}
+			establish_communications_no_message = root
+			root = { save_event_target_as = contact_empire }
+			country_event = { id = action.1 }
+		}
+		# For War in Heavens
+		random_list = {
+			40 = {
+				random_country = {
+					limit = {
+						NOT = {
+							is_same_value = root
+						}
+						is_country_type = fallen_empire
+						has_ethic = ethic_fanatic_materialist
+					}
+					set_country_flag = sleepers_awake_ancient_rival
+					set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+					set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+					root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+					every_country = {
+						limit = { is_country_type = default }
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+					}	
+				}
+			}
+			20 = {
+				random_country = {
+					limit = {
+						NOT = {
+							is_same_value = root
+						}
+						is_country_type = fallen_empire
+						NOR = {
+							has_ethic = ethic_gestalt_consciousness
+							has_ethic = ethic_fanatic_materialist
+						}
+					}
+					set_country_flag = sleepers_awake_ancient_rival
+					set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+					set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+					root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+					every_country = {
+						limit = {
+							is_country_type = default
+						}
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+					}
+				}
+			}
+			40 = {
+			}
+		}
+		every_country = {
+			limit = {
+				is_ai = no
+			}
+			country_event = { id = fallen_empires_awakening.2 }
+		}
+		observer_event = { id = observer.73 }
+		country_event = { id = ag_ancient.1003 days = 5 random = 5 }
+	}
+}
+
+# Extra fleets for Holy Guardian
+country_event = {
+	id = ag_ancient.1002
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		capital_scope = {
+			prev = {
+				random_list = {
+					33 = {
+						create_leader = {
+							class = admiral
+							species = owner_main_species
+							name = random
+							skill = 5
+							traits = {
+								trait = leader_trait_cautious
+								trait = leader_trait_admiral_psionic
+							}
+						}
+					}
+					33 = {
+						create_leader = {
+							class = admiral
+							species = owner_main_species
+							name = random
+							skill = 5
+							traits = {
+								trait = leader_trait_unyielding
+								trait = leader_trait_admiral_psionic
+							}
+						}
+					}
+					33 = {
+						create_leader = {
+							class = admiral
+							species = owner_main_species
+							name = random
+							skill = 5
+							traits = {
+								trait = leader_trait_aggressive
+								trait = leader_trait_admiral_psionic
+							}
+						}
+					}
+				}
+			}
+			create_fleet = {
+				name = "NAME_holy_guardian_revenge_fleet"
+				settings = {
+					uses_naval_capacity = no
+				}
+				effect = {
+					set_owner = prev.owner
+					assign_leader = last_created_leader
+					while = {
+						count = 1
+						create_ship = {
+							name = random
+							design = "NAME_Eternal"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					while = {
+						count = 10
+						create_ship = {
+							name = random
+							design = "NAME_Avatar"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					while = {
+						count = 20
+						create_ship = {
+							name = random
+							design = "NAME_Zealot"
+							graphical_culture = owner
+							effect = {
+								add_modifier = {
+									modifier = "ag_ship_no_upkeep"
+									days = -1
+								}
+							}
+						}
+					}
+					random_list = {
+						25 = {
+							set_location = {
+								target = prev
+								distance = 30
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 45
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 60
+								angle = random 
+							}				
+						}
+						25 = {
+							set_location = {
+								target = prev
+								distance = 75
+								angle = random 
+							}				
+						}				
+					}
+				}
+			}
+		}
+	}
+}
+
+# Holy Guardian declears war to player
+country_event = {
+	id = ag_ancient.1003
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		declare_war = {
+			target = event_target:ag_source_country
+			name = "NAME_Holy_World_War"
+			attacker_war_goal = wg_subjugation
+		}
+		add_opinion_modifier = {
+			modifier = ag_opinion_destroyed_holy_planet
+			who = event_target:ag_source_country
+		}
+	}
+}

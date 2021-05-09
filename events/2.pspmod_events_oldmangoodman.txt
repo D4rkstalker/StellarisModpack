@@ -66,25 +66,18 @@ fleet_event = {
 				pspmod_coprean_digsite_spawn_rules = yes
 				any_system_planet = { is_planet_class = pc_gas_giant }
 			}
-			min_steps = 2
-			max_steps = 15
+			min_steps = 1
+			max_steps = 20
 			random_system_planet = {
 				limit = {
 					has_anomaly = no
-					is_capital = no
 					is_planet_class = pc_gas_giant #현재로서는 평범한 거대 가스 행성으로 보이지만
-					NOR = { 
-						exists = archaeological_site
-						has_planet_flag = precursor_world
-						has_planet_flag = pspmod_coprean_colony
-					}
+					NOT = { exists = archaeological_site }
 				}
 				save_event_target_as = pspmod_coprean_colony_2
 			}
 		}
-		event_target:pspmod_coprean_colony_2 = {
-			create_archaeological_site = PSP_coprean_constitution_site_2
-		}
+		event_target:pspmod_coprean_colony_2 = { create_archaeological_site = PSP_coprean_constitution_site_2 }
 	}
 
 	after = {
@@ -225,21 +218,16 @@ fleet_event = {
 					}
 				}
 			}
-			min_steps = 2
-			max_steps = 15
+			min_steps = 1
+			max_steps = 20
 			random_system_planet = {
 				limit = {
 					has_anomaly = no
-					is_capital = no
 					OR = {
 						is_planet_class = pc_asteroid #좌표를 따라 우리는 소행성대 속의 한 외행성에 다다랐습니다.
 						is_planet_class = pc_ice_asteroid
 					}
-					NOR = { 
-						exists = archaeological_site
-						has_planet_flag = precursor_world
-						has_planet_flag = pspmod_coprean_colony
-					}
+					NOT = { exists = archaeological_site }
 				}
 				save_event_target_as = pspmod_coprean_colony_3
 			}
@@ -323,6 +311,20 @@ fleet_event = {
 
 	immediate = {
 		from = { set_site_progress_locked = yes }
+		owner = {
+			if = {
+				limit = { NOT = { exists = event_target:pspmod_coprean_home_planet } }
+				random_system_within_border = {
+					limit = { any_system_planet = { has_planet_flag = pspmod_coprean_colony } }
+					spawn_system = {
+						max_jumps = 0
+						min_distance = 5
+						max_distance = 20
+						initializer = "pspmod_coprean_home_system"
+					}
+				}
+			}
+		}
 	}
 
 	after = {
@@ -331,19 +333,6 @@ fleet_event = {
 
 	option = {
 		name = pspmod_coprean_constitution.9.a
-		hidden_effect = {
-			random_planet = {
-				limit = { has_planet_flag = pspmod_coprean_colony }
-				spawn_system = {
-					min_jumps = 0
-					max_jumps = 0
-					min_distance = 5
-					max_distance = 20
-					initializer = pspmod_coprean_home_system
-				}
-			}
-			pspmod_coprean_constitution_duplicated_home_system_hide_effect = yes
-		}
 		owner = {
 			add_resource = { society_research = 500 }
 			create_point_of_interest = {
@@ -514,17 +503,13 @@ country_event = {
 
 	option = {
 		name = pspmod_coprean_constitution.16.a
-		trigger = {
-			NOT = { has_ethic = ethic_gestalt_consciousness } 
-		}
+		trigger = { NOT = { has_ethic = ethic_gestalt_consciousness } }
 		ruler = { add_experience = 500 }
 		add_resource = { influence = 200 }
 	}
 	option = {
 		name = pspmod_coprean_constitution.16.b
-		trigger = {
-			NOT = { has_ethic = ethic_gestalt_consciousness } 
-		}
+		trigger = { NOT = { has_ethic = ethic_gestalt_consciousness } }
 		ruler = { add_experience = 500 }
 		add_resource = { influence = 200 }
 		custom_tooltip = pspmod_coprean_constitution.16.b.tooltip
@@ -535,9 +520,7 @@ country_event = {
 	}
 	option = {
 		name = pspmod_coprean_constitution.16.gestalt
-		trigger = {
-			has_ethic = ethic_gestalt_consciousness 
-		}
+		trigger = { has_ethic = ethic_gestalt_consciousness }
 		ruler = { add_experience = 500 }
 		add_resource = { influence = 200 }
 		custom_tooltip = pspmod_coprean_constitution.16.b.tooltip
@@ -548,324 +531,232 @@ country_event = {
 	}
 	option = {
 		name = pspmod_coprean_constitution.16.c
-		trigger = {
-			NOT = { has_ethic = ethic_gestalt_consciousness } 
-		}
+		trigger = { NOT = { has_ethic = ethic_gestalt_consciousness } }
 		remove_modifier = mod_pspmod_precursor_coprean_secrets
-		if = {
-			limit = { NOT = { has_country_flag = synthetic_empire } }
-			custom_tooltip = pspmod_coprean_constitution.16.hive.tooltip
-			hidden_effect = {
-				create_country = {
-					type = default
-					origin = origin_default
-					ignore_initial_colony_error = yes
-					ethos = { ethic = ethic_gestalt_consciousness }
+		hidden_effect = {
+			if = {
+				limit = { is_mechanical_empire = no }
+				custom_tooltip = pspmod_coprean_constitution.16.hive.tooltip
+
+				set_origin = origin_default
+
+				add_resource = { influence = 250 } #cost to reform government
+				clear_ethos = yes
+				country_add_ethic = ethic_gestalt_consciousness
+				change_government = {
 					authority = auth_hive_mind
-					effect = { save_event_target_as = pspmod_ethos_and_auth_copy_target }
+					civics = { civic = civic_pspmod_possessive_consciousness_hive }
+					cooldown = no
 				}
-				copy_ethos_and_authority = event_target:pspmod_ethos_and_auth_copy_target
-				event_target:pspmod_ethos_and_auth_copy_target = {
-					destroy_country = yes
-				}
-				pspmod_coprean_constitution_16_hive_effect = yes
-				owner.species = {
-					create_species = {
-						is_mod = yes
-						name = this
-						namelist = this.prev
-						plural = this
-						class = this
-						portrait = this
-						traits = {
-							trait = "trait_hive_mind"
-						}
-						traits = this
-					}
-				}
-				every_owned_pop = {
-					limit = { is_same_species = owner.species }
-					change_species = last_created
-					set_citizenship_type = { type = citizenship_full }
-					set_living_standard = { type = living_standard_hive_mind }
-					set_population_controls = { type = no }
-				}
+				give_technology = { tech = tech_hive_node message = no }
 				every_owned_pop = {
 					limit = { NOT = { has_trait = trait_hive_mind } }
-					species = {
-						create_species = {
-							is_mod = no
-							name = this
-							namelist = this.prevprev
-							plural = this
-							class = this
-							portrait = this
-							traits = {
-								trait = "trait_hive_mind"
-							}
-							traits = this
-						}
+					modify_species = { add_trait = trait_hive_mind }
+				}
+				every_owned_ship = {
+					limit = {
+						is_ship_class = shipclass_colonizer
+						species = { NOT = { has_trait = trait_hive_mind } }
 					}
-					change_species = last_created
+					change_species = last_created_species
+				}
+				every_owned_army = {
+					limit = {
+						exists = species
+						exists = planet
+						species = { NOT = { has_trait = trait_hive_mind } }
+						army_type = assault_army
+					}
+					modify_army = {
+						name = random
+						type = "machine_defense"
+						species = last_created_species
+					}
+				}
+				every_owned_army = {
+					limit = {
+						exists = species
+						exists = planet
+						species = { NOT = { has_trait = trait_hive_mind } }
+						army_type = defense_army
+					}
+					modify_army = {
+						name = random
+						type = "machine_defense"
+						species = last_created_species
+					}
+				}
+				every_owned_leader = {
+					limit = { species = { NOT = { has_trait = trait_hive_mind } } }
+					change_species = last_created_species
+					change_leader_portrait = species
+				}
+				every_pool_leader = {
+					limit = { species = { NOT = { has_trait = trait_hive_mind } } }
+					change_species = last_created_species
+					change_leader_portrait = species
+				}
+			
+				#to reset ruler traits
+				clone_leader = {
+					target = ruler
+					class = ruler
+					traits = { trait = leader_trait_ruler_hive_mind }
+					effect = { save_event_target_as = pspmod_coprean_constitution_16_new_hive_ruler_target }
+				}
+				ruler = { kill_leader = { show_notification = no } }
+				assign_leader = event_target:pspmod_coprean_constitution_16_new_hive_ruler_target
+
+				pspmod_coprean_constitution_16_hive_effect = yes
+
+				else = {
+					custom_tooltip = pspmod_coprean_constitution.16.machine.tooltip
+
+					set_origin = origin_default
+
+					add_resource = { influence = 250 } #cost to reform government
+					clear_ethos = yes
+					country_add_ethic = ethic_gestalt_consciousness
+					change_government = {
+						authority = auth_machine_intelligence
+						civics = { civic = civic_pspmod_possessive_consciousness_machine }
+						cooldown = no
+					}
+
 					if = {
-						limit = { has_trait = trait_mechanical }
-						change_species = owner.species
+						limit = { has_country_flag = synthetic_age }
+						remove_country_flag = synthetic_age
 					}
-					set_citizenship_type = { type = citizenship_full }
-					set_living_standard = { type = living_standard_hive_mind }
-					set_population_controls = { type = no }
-				}
-				change_government = {
-					civics = { 
-						civic = civic_hive_natural_neural_network
-						civic = civic_pspmod_possessive_consciousness_hive
-						civic = civic_hive_ascetic
+					remove_country_flag = flesh_weakened
+					remove_country_flag = synthetic_empire
+				
+					if = {
+						limit = { NOT = { has_technology = tech_bio_reactor } }
+						give_technology = { tech = tech_bio_reactor message = no }
 					}
-					cooldown = no
-				}
-				every_owned_army = {
-					limit = {
-						exists = species
-						exists = planet
-						species = { NOT = { has_trait = trait_hive_mind } }
-						army_type = assault_army
-					}
-					modify_army = {
-						name = random
-						type = "assault_army"
-						species = last_created_species
-					}
-				}
-				every_owned_army = {
-					limit = {
-						exists = species
-						exists = planet
-						species = { NOT = { has_trait = trait_hive_mind } }
-						army_type = defense_army
-					}
-					modify_army = {
-						name = random
-						type = "defense_army"
-						species = last_created_species
-					}
-				}
-			}
-		}
-		if = {
-			limit = { has_country_flag = synthetic_empire }
-			custom_tooltip = pspmod_coprean_constitution.16.machine.tooltip
-			hidden_effect = {
-				create_country = {
-					type = default
-					origin = origin_default
-					ignore_initial_colony_error = yes
-					ethos = { ethic = ethic_gestalt_consciousness }
-					authority = auth_machine_intelligence
-					effect = { save_event_target_as = pspmod_ethos_and_auth_copy_target }
-				}
-				copy_ethos_and_authority = event_target:pspmod_ethos_and_auth_copy_target
-				event_target:pspmod_ethos_and_auth_copy_target = {
-					destroy_country = yes
-				}
-				pspmod_coprean_constitution_16_machine_effect = yes
-				owner.species = {
-					create_species = {
-						is_mod = yes
-						name = this
-						namelist = this.prev
-						plural = this
-						class = MACHINE
-						portrait = this
-						traits = {
-							trait = "trait_machine_unit"
+					every_owned_pop = {
+						limit = { NOT = { has_trait = trait_machine_unit } }
+						if = {
+							limit = { has_trait = trait_mechanical }
+							modify_species = { remove_trait = trait_mechanical }
 						}
-						traits = this
+						modify_species = { add_trait = trait_machine_unit }
 					}
-				}
-				every_owned_pop = {
-					limit = { is_same_species = owner.species }
-					change_species = last_created
-					modify_species = {
-						remove_trait = trait_mechanical
+					every_owned_ship = {
+						limit = {
+							is_ship_class = shipclass_colonizer
+							species = { has_trait = trait_mechanical }
+						}
+						change_species = last_created_species
 					}
-					pspmod_species_modify_clear_trait_pc_preference = yes
-					set_citizenship_type = { type = citizenship_full_machine }
-					set_living_standard = { type = living_standard_hive_mind }
-					set_population_controls = { type = no }
-				}
-				every_owned_pop = {
-					limit = { NOT = { has_trait = trait_machine_unit } }
-					species = {
-						create_species = {
-							is_mod = no
-							name = this
-							namelist = this.prevprev
-							plural = this
-							class = "MACHINE"
-							portrait = this
-							traits = {
-								trait = "trait_machine_unit"
+					every_owned_army = {
+						limit = {
+							exists = species
+							exists = planet
+							species = { has_trait = trait_mechanical }
+							army_type = assault_army
+						}
+						modify_army = {
+							name = random
+							type = "machine_defense"
+							species = last_created_species
+						}
+					}
+					every_owned_army = {
+						limit = {
+							exists = species
+							exists = planet
+							species = { has_trait = trait_mechanical }
+							army_type = defense_army
+						}
+						modify_army = {
+							name = random
+							type = "machine_defense"
+							species = last_created_species
+						}
+					}
+					every_owned_leader = {
+						limit = { species = { has_trait = trait_mechanical } }
+						change_species = last_created_species
+						change_leader_portrait = species
+					}
+					every_pool_leader = {
+						limit = { species = { has_trait = trait_mechanical } }
+						change_species = last_created_species
+						change_leader_portrait = species
+					}
+					every_owned_leader = {
+						limit = {
+							species = { has_trait = trait_machine_unit }
+							OR = {
+								has_trait = leader_trait_admiral_synthetic
+								has_trait = leader_trait_general_synthetic
+								has_trait = leader_trait_governor_synthetic
+								has_trait = leader_trait_scientist_synthetic
+								has_trait = leader_trait_ruler_synthetic
 							}
-							traits = this
+						}
+						switch = {
+							trigger = leader_class
+							admiral = { remove_trait = leader_trait_admiral_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							general = { remove_trait = leader_trait_general_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							governor = { remove_trait = leader_trait_governor_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							scientist = { remove_trait = leader_trait_scientist_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							ruler = { remove_trait = leader_trait_ruler_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
 						}
 					}
-					change_species = last_created
-					modify_species = {
-						remove_trait = trait_mechanical
+				
+					#to reset ruler traits
+					clone_leader = {
+						target = ruler
+						class = ruler
+						traits = { trait = leader_trait_ruler_machine_intelligence }
+						effect = { save_event_target_as = pspmod_coprean_constitution_16_new_machine_ruler_target }
 					}
-					pspmod_species_modify_clear_trait_pc_preference = yes
-					set_citizenship_type = { type = citizenship_full_machine }
-					set_living_standard = { type = living_standard_hive_mind }
-					set_population_controls = { type = no }
-				}
-				change_government = {
-					civics = {
-						civic = civic_machine_predictive_analysis
-						civic = civic_pspmod_possessive_consciousness_machine
-						civic = civic_machine_built_to_last
+					ruler = { kill_leader = { show_notification = no } }
+					assign_leader = event_target:pspmod_coprean_constitution_16_new_machine_ruler_target
+				
+					every_pool_leader = {
+						limit = {
+							species = { has_trait = trait_machine_unit }
+							OR = {
+								has_trait = leader_trait_admiral_synthetic
+								has_trait = leader_trait_general_synthetic
+								has_trait = leader_trait_governor_synthetic
+								has_trait = leader_trait_scientist_synthetic
+								has_trait = leader_trait_ruler_synthetic
+							}
+						}
+						switch = {
+							trigger = leader_class
+							admiral = { remove_trait = leader_trait_admiral_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							general = { remove_trait = leader_trait_general_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							governor = { remove_trait = leader_trait_governor_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							scientist = { remove_trait = leader_trait_scientist_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+							ruler = { remove_trait = leader_trait_ruler_synthetic remove_ruler_trait = leader_trait_ruler_synthetic }
+						}
 					}
-					cooldown = no
+
+					pspmod_coprean_constitution_16_machine_effect = yes
 				}
-				every_owned_army = {
+
+				ruler = {
+					if = {
+						limit = { NOT = { has_trait = leader_trait_ruler_psionic } }
+						add_trait = leader_trait_ruler_psionic
+					}
+					set_name = "Name_coprean_innovo"
+				}
+				every_country = {
 					limit = {
-						exists = species
-						exists = planet
-						species = { NOT = { has_trait = trait_hive_mind } }
-						army_type = assault_army
+						NOT = { is_same_value = root }
+						has_communications = root
 					}
-					modify_army = {
-						name = random
-						type = "robotic_army"
-						species = last_created_species
+					add_opinion_modifier = {
+						who = root
+						modifier = triggered_opinion_pspmod_ture_identity
 					}
 				}
-				every_owned_army = {
-					limit = {
-						exists = species
-						exists = planet
-						species = { NOT = { has_trait = trait_hive_mind } }
-						army_type = defense_army
-					}
-					modify_army = {
-						name = random
-						type = "robotic_defense_army"
-						species = last_created_species
-					}
-				}
-			}
-		}
-		hidden_effect = {
-			every_owned_ship = {
-				limit = {
-					is_ship_class = shipclass_colonizer
-					species = { has_trait = trait_mechanical }
-				}
-				change_species = last_created
-			}
-			every_owned_leader = {
-				change_species = last_created
-				change_leader_portrait = species
-			}
-			every_pool_leader = {
-				change_species = last_created
-				change_leader_portrait = species
-			}
-			every_owned_leader = {
-				limit = {
-					OR = {
-						has_trait = leader_trait_admiral_synthetic
-						has_trait = leader_trait_general_synthetic
-						has_trait = leader_trait_governor_synthetic
-						has_trait = leader_trait_scientist_synthetic
-						has_trait = leader_trait_ruler_synthetic
-					}
-				}
-				if = {
-					limit = { leader_class = admiral }
-					remove_trait = leader_trait_admiral_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = general }
-					remove_trait = leader_trait_general_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = governor }
-					remove_trait = leader_trait_governor_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = scientist }
-					remove_trait = leader_trait_scientist_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = ruler }
-					remove_trait = leader_trait_ruler_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-			}
-			every_pool_leader = {
-				limit = {
-					OR = {
-						has_trait = leader_trait_admiral_synthetic
-						has_trait = leader_trait_general_synthetic
-						has_trait = leader_trait_governor_synthetic
-						has_trait = leader_trait_scientist_synthetic
-						has_trait = leader_trait_ruler_synthetic
-					}
-				}
-				if = {
-					limit = { leader_class = admiral }
-					remove_trait = leader_trait_admiral_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = general }
-					remove_trait = leader_trait_general_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = governor }
-					remove_trait = leader_trait_governor_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = scientist }
-					remove_trait = leader_trait_scientist_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-				if = {
-					limit = { leader_class = ruler }
-					remove_trait = leader_trait_ruler_synthetic
-					remove_ruler_trait = leader_trait_ruler_synthetic
-				}
-			}
-			add_opinion_modifier = {
-				who = root
-				modifier = triggered_opinion_pspmod_ture_identity
-			}
-			ruler = {
-				if = {
-					limit = { NOT = { has_trait = leader_trait_ruler_psionic } }
-					add_trait = leader_trait_ruler_psionic
-				}
-				if = {
-					limit = {
-						root = { has_authority = auth_hive_mind }
-						NOT = { has_trait = leader_trait_ruler_hive_mind }
-					}
-					add_trait = leader_trait_ruler_hive_mind
-				}
-				if = {
-					limit = {
-						root = { has_authority = auth_machine_intelligence }
-						NOT = { has_trait = leader_trait_ruler_machine_intelligence }
-					}
-					add_trait = leader_trait_ruler_machine_intelligence
-				}
-				set_name = "Name_coprean_innovo"
 			}
 		}
 	}

@@ -12,7 +12,7 @@ country_event = {
 		set_country_flag = ehof_already_cheated
 		save_event_target_as = ehof_cheating
 		set_variable = { which = ehof_phase value = 1 }
-		every_planet = { surveyed = { set_surveyed = yes surveyor = event_target:ehof_cheating } }
+		every_galaxy_planet = { set_surveyed = { surveyed = yes surveyor = event_target:ehof_cheating } }
 		give_technology = { tech = tech_condensed_qe message = no }
 		give_technology = { tech = tech_abstract_1 message = no }
 		give_technology = { tech = tech_ehof_phase_01 message = no }
@@ -28,7 +28,7 @@ country_event = {
 				orbit_angle = 0
 				orbit_distance = 0
 				owner = event_target:ehof_cheating
-				location = event_target:ehof_cheatspyorb
+				coords_from = event_target:ehof_cheatspyorb
 			}
 			closest_system = {
 				limit = {
@@ -76,7 +76,7 @@ country_event = {
 				set_country_flag = ehof_already_cheated
 				save_event_target_as = ehof_cheating
 				set_variable = { which = ehof_phase value = 1 }
-				every_planet = { surveyed = { set_surveyed = yes surveyor = event_target:ehof_cheating } }
+				every_galaxy_planet = { set_surveyed = { surveyed = yes surveyor = event_target:ehof_cheating } }
 
 				capital_scope.solar_system = {
 					random_system_planet = { save_event_target_as = ehof_cheatspyorb }
@@ -85,7 +85,7 @@ country_event = {
 						orbit_angle = 0
 						orbit_distance = 0
 						owner = event_target:ehof_cheating
-						location = event_target:ehof_cheatspyorb
+						coords_from = event_target:ehof_cheatspyorb
 					}
 					closest_system = {
 						limit = {
@@ -127,16 +127,9 @@ country_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		every_system = {
+		random_system_within_border = {
 			limit = { any_system_planet = { has_planet_flag = cant_build_here } }
-			spawn_megastructure = {
-				type = "ehof_megastructure_phase1_idle"
-				orbit_angle = 0
-				orbit_distance = 0
-				owner = starbase.owner
-				location = star
-				init_effect = { set_megastructure_flag = ehof_phase_01 }
-			}
+			spawn_megastructure = { type = "ehof_megastructure_phase1_idle" owner = root }
 		}
 	}
 }
@@ -147,11 +140,56 @@ country_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		set_global_flag = galactic_crisis_happened
-		set_global_flag = extradimensional_invasion_happened
-		set_global_flag = extradimensional_invasion_defeated
 		set_global_flag = ehof_cheating
-		country_event = { id = compound_spawn.000 }
+		random_country = {
+			limit = { is_country_type = global_event }
+			set_global_flag = compound_invasion_happened
+			country_event = { id = compound_spawn.001 days = 2 }			# Spawn systems
+
+			if = {
+				limit = {
+					NOR = {
+						has_global_flag = compound_capped_1					# Spawn after vanilla crisis (Dealt with in trigger)
+						has_global_flag = compound_capped_2					# Spawn with vanilla crisis  (Dealt with in trigger)
+					}
+				}
+				if = {		limit = { has_global_flag = compound_capped_4 } set_variable = { which = giga_spawn_crisis_compound value = 2 } }	# 2 additional crisis
+				else_if = {	limit = { has_global_flag = compound_capped_3 } set_variable = { which = giga_spawn_crisis_compound value = 1 } }	# 1 additional crisis
+				else_if = {
+					limit = { has_global_flag = compound_capped_s }
+					random_list = {
+						1 = { set_variable = { which = giga_spawn_crisis_compound value = 0 } }
+						1 = { set_variable = { which = giga_spawn_crisis_compound value = 1 } }
+						1 = { set_variable = { which = giga_spawn_crisis_compound value = 2 } }
+					}
+				}
+
+				while = {
+					limit = { check_variable = { which = giga_spawn_crisis_compound value > 0 } }
+					subtract_variable = { which = giga_spawn_crisis_compound value = 1 }
+					random_list = {
+						1 = {	### Prethoryn Scourge (Swarm)
+							modifier = { factor = 0 has_global_flag = prethoryn_invasion_happened }
+							modifier = { factor = 0 has_global_flag = giga_spawned_scourge }
+							country_event = { id = crisis.10 days = 100 random = 400 }
+							set_global_flag = giga_spawned_scourge
+						}
+						1 = {	### Unbidden (Extradimensionals)
+							modifier = { factor = 0 has_global_flag = extradimensional_invasion_happened }
+							modifier = { factor = 0 has_global_flag = giga_spawned_unbidden }
+							country_event = { id = crisis.1000 days = 100 random = 400 }
+							set_global_flag = giga_spawned_unbidden
+						}
+						1 = {	### Contingency (AI)
+							modifier = { factor = 0 has_global_flag = ai_invasion_happened }
+							modifier = { factor = 0 has_global_flag = giga_spawned_contingency }
+							country_event = { id = crisis.2005 days = 100 random = 400 }
+							set_global_flag = giga_spawned_contingency
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -174,7 +212,6 @@ country_event = {
 				orbit_angle = 0
 				orbit_distance = 0
 				owner = root
-				location = solar_system
 				init_effect = { set_megastructure_flag = ehof_phase_04 }
 			}
 		}
@@ -197,8 +234,7 @@ country_event = {
 	is_triggered_only = yes
 
 	immediate = {
-		if = { limit = { exists = event_target:current_system_creator } clear_global_event_target = current_system_creator }
-		save_global_event_target_as = current_system_creator
-		ehof_generate_system = yes
+		set_global_flag = ehof_can_roll_advanced
+		country_event = { id = ehof_systems.000 }
 	}
 }

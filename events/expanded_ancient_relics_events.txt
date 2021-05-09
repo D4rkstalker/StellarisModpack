@@ -72,106 +72,151 @@ country_event = {
 	}
 }
 
-# Discover worm while bombarding (hidden)
+# worm rampage stopped
+
 planet_event = {
 	id = expandedrelics.3
-	hide_window = yes
+	title = "expandedrelics.3.name"
+	desc = expandedrelics.3.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = ROOT
 	
 	is_triggered_only = yes
-
+	
 	trigger = {
-		planet_devastation >= 33
-		has_planet_flag = has_hidden_worm
-		NOR = {
-			has_planet_flag = recently_asked_worm
-			habitable_structure = no
-		}
-		exists = FROM
-		FROM = {
-			has_technology = tech_hidden_worm
-		}
-		OR = {
-			FROM = { is_ai = no }
-			AND = {
-				FROM = { has_country_flag = ai_worm_timer }
-				owner = {
-					OR = {
-						is_rival = FROM
-						FROM = { is_rival = PREV }
-					}
-				}
-			}
-		}
+		is_colonizable = yes # worm hasn't finished eating
+		exists = owner
 	}
-
+	
 	immediate = {
-		if = {
-			limit = { exists = FROM }
-			save_event_target_as = wormed_planet
-			FROM = { country_event = { id = expandedrelics.4 } }
+		remove_planet_flag = worm_on_the_attack
+		remove_modifier = planet_active_worm
+		add_planet_devastation = 25
+	}
+	
+	option = {
+		name = EXCELLENT
+		tooltip = { add_planet_devastation = 25 }
+		owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value =  @tier2unityreward
+				min = @tier2unitymin
+				max = @tier2unitymax
+			}
 		}
 	}
 }
 
-# Discover worm while bombarding
-country_event = {
+planet_event = {
 	id = expandedrelics.4
 	title = "expandedrelics.4.name"
 	desc = expandedrelics.4.desc
 	picture = GFX_evt_unspeakable_horror
-	show_sound = event_bad_omen
-	location = FROM
+	show_sound = event_dangerous_animals
+	location = ROOT
 	
 	is_triggered_only = yes
 	
+	trigger = {
+		is_colonizable = yes # worm hasn't finished eating
+		exists = owner
+	}
+	
 	immediate = {
-		FROM = { set_timed_planet_flag = { flag = recently_asked_worm days = 1800 } }
-		set_timed_country_flag = { flag = ai_worm_timer days = 7200 }
 	}
 	
 	option = {
-		name = expandedrelics.4.a
-		custom_tooltip = expandedrelics.4.a.tooltip
-		hidden_effect = {
-			country_event = { id = expandedrelics.5 days = 15 }
-			FROM = { planet_event = { id = expandedrelics.6 days = 15 } }
-			if = {
-				limit = { NOT = { has_global_flag = tech_hidden_worm_can_spread } }
-				every_country = {
-					limit = {
-						NOR = {
-							is_same_value = ROOT
-							FROM = {
-								exists = owner
-								owner = { is_same_value = PREVPREV }
-							}
-						}
-					}
-					country_event = { id = expandedrelics.7 days = 30 }
-				}
+		name = TERRIBLE
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
 			}
 		}
 	}
-	option = {
-		name = expandedrelics.4.b
-		custom_tooltip = expandedrelics.4.b.tooltip
-	}
 }
 
-# worm activated (bombarder)
-country_event = {
+# worm rampage continues
+
+# worm activated (owner, perp undetected)
+planet_event = {
 	id = expandedrelics.5
 	title = "expandedrelics.5.name"
 	desc = expandedrelics.5.desc
 	picture = GFX_evt_unspeakable_horror
 	show_sound = event_dangerous_animals
-	location = FROMFROM
+	location = ROOT
 	
 	is_triggered_only = yes
 	
+	immediate = {
+		remove_planet_flag = has_hidden_worm
+		set_planet_flag = worm_on_the_attack
+		add_modifier = { modifier = planet_active_worm days = -1 }
+		owner = { abort_special_project = { type = WORM_REMOVAL_PROJECT location = ROOT }  }
+		# fires worm events
+		# pops and armies killed, devastation added
+		planet_event = { id = expandedrelics.8 days = 60 random = 360 }
+		# planet becomes arid or arctic, if not already
+		planet_event = { id = expandedrelics.9 days = 720 random = 1800 } # 2 - 7 years
+		# planet becomes bleak
+		planet_event = { id = expandedrelics.11 days = 720 random = 1800 } # 2 - 7 years
+		# planet becomes barren
+		planet_event = { id = expandedrelics.12 days = 2880 random = 1440 } # 8 - 12 years
+		# add threat for worm activation
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		add_planet_devastation = 40
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		owner = {
+			if = {
+				limit = { is_at_war_with = from }
+				add_static_war_exhaustion = {
+					attacker = from
+					location = root
+					value_for_planet_destruction = 0.75
+				}
+			}
+		}
+	}
+	
 	option = {
-		name = EXCELLENT
-		custom_tooltip = expandedrelics.5.a.tooltip
+		name = TERRIBLE
+		tooltip = {
+			add_modifier = { modifier = planet_active_worm days = -1 }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			add_planet_devastation = 40
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			owner = {
+				if = {
+					limit = { is_at_war_with = from }
+					add_static_war_exhaustion = {
+						attacker = from
+						location = root
+						value_for_planet_destruction = 0.75
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -189,6 +234,7 @@ planet_event = {
 	immediate = {
 		remove_planet_flag = has_hidden_worm
 		set_planet_flag = worm_on_the_attack
+		add_modifier = { modifier = planet_active_worm days = -1 }
 		owner = { abort_special_project = { type = WORM_REMOVAL_PROJECT location = ROOT }  }
 		# fires worm events
 		# pops and armies killed, devastation added
@@ -242,20 +288,53 @@ planet_event = {
 				who = from
 			}
 		}
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		add_planet_devastation = 40
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
+		owner = {
+			if = {
+				limit = { is_at_war_with = from }
+				add_static_war_exhaustion = {
+					attacker = from
+					location = root
+					value_for_planet_destruction = 0.75
+				}
+			}
+		}
 	}
 	
 	option = {
-		name = TERRIBLE
-		add_modifier = { modifier = planet_active_worm days = -1 }
-		random_pop = { kill_pop = yes }
-		random_pop = { kill_pop = yes }
-		add_planet_devastation = 40
-		random_planet_army = { remove_army = yes }
-		owner = {
-			add_static_war_exhaustion = {
-				attacker = from
-				location = root
-				value_for_planet_destruction = 0.75
+		name = expandedrelics.6.a
+		tooltip = {
+			add_modifier = { modifier = planet_active_worm days = -1 }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			add_planet_devastation = 40
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			owner = {
+				if = {
+					limit = { is_at_war_with = from }
+					add_static_war_exhaustion = {
+						attacker = from
+						location = root
+						value_for_planet_destruction = 0.75
+					}
+				}
 			}
 		}
 	}
@@ -273,12 +352,15 @@ country_event = {
 	is_triggered_only = yes
 	
 	trigger = {
-		NOT = { has_global_flag = tech_hidden_worm_can_spread }
+		#NOT = { has_global_flag = tech_hidden_worm_can_spread }
+	}
+	
+	immediate = {
+		hidden_effect = { set_global_flag = tech_hidden_worm_can_spread }
 	}
 	
 	option = {
 		name = expandedrelics.7.a
-		hidden_effect = { set_global_flag = tech_hidden_worm_can_spread }
 	}
 }
 
@@ -294,9 +376,12 @@ planet_event = {
 	}
 	
 	immediate = {
-		random_pop = { kill_pop = yes }
-		random_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
+		random_owned_pop = { kill_pop = yes }
 		add_planet_devastation = 20
+		random_planet_army = { remove_army = yes }
+		random_planet_army = { remove_army = yes }
 		random_planet_army = { remove_army = yes }
 		planet_event = { id = expandedrelics.8 days = 60 random = 360 }
 	}
@@ -479,6 +564,10 @@ country_event = {
 			FROM = {
 				remove_modifier = planet_active_worm
 				change_pc = pc_barren
+				add_modifier = {
+					modifier = "terraforming_candidate"
+					days = -1
+				}
 				set_deposit = d_society_5
 			}
 		}
@@ -560,6 +649,7 @@ ship_event = {
 		FROMFROM = {
 			remove_planet_flag = has_hidden_worm
 			set_planet_flag = worm_on_the_attack
+			add_modifier = { modifier = planet_active_worm days = -1 }
 			# fires worm events
 			# pops and armies killed, devastation added
 			planet_event = { id = expandedrelics.8 days = 60 random = 360 }
@@ -571,6 +661,7 @@ ship_event = {
 			planet_event = { id = expandedrelics.12 days = 2880 random = 1440 } # 8 - 12 years
 			if = {
 				limit = { NOT = { has_global_flag = tech_hidden_worm_can_spread } }
+				save_event_target_as = hidden_worm_planet
 				every_country = {
 					limit = {
 						NOT = {
@@ -580,22 +671,40 @@ ship_event = {
 					country_event = { id = expandedrelics.7 days = 30 }
 				}
 			}
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			random_owned_pop = { kill_pop = yes }
+			add_planet_devastation = 40
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
+			random_planet_army = { remove_army = yes }
 		}
 	}
 
 	option = {
 		name = OOPS
-		FROMFROM = {
-			add_modifier = { modifier = planet_active_worm days = -1 }
-			random_pop = { kill_pop = yes }
-			random_pop = { kill_pop = yes }
-			add_planet_devastation = 40
-			random_planet_army = { remove_army = yes }
+		tooltip = {
+			FROMFROM = {
+				add_modifier = { modifier = planet_active_worm days = -1 }
+				random_owned_pop = { kill_pop = yes }
+				random_owned_pop = { kill_pop = yes }
+				random_owned_pop = { kill_pop = yes }
+				random_owned_pop = { kill_pop = yes }
+				random_owned_pop = { kill_pop = yes }
+				add_planet_devastation = 40
+				random_planet_army = { remove_army = yes }
+				random_planet_army = { remove_army = yes }
+				random_planet_army = { remove_army = yes }
+				random_planet_army = { remove_army = yes }
+				random_planet_army = { remove_army = yes }
+			}
 		}
 	}
 }
-
-# wormed stopped (requires tech and a lot for time and resources, special project requiring army transports, which are killed after)
 
 # worm cancels terraforming
 
@@ -768,14 +877,7 @@ country_event = {
 		else_if = {
 			limit = {
 				NOT = { has_technology = tech_wormhole_stabilization }
-				OR = {
-					has_seen_any_bypass = wormhole 
-					any_relation = {
-						is_country_type = default
-						has_communications = ROOT
-						has_technology = tech_wormhole_stabilization
-					}				
-				}
+				can_research_technology = tech_wormhole_stabilization
 			}
 			give_technology = { tech = tech_wormhole_stabilization }
 		}
@@ -788,7 +890,7 @@ country_event = {
 		else_if = {
 			limit = {
 				NOT = { has_technology = tech_habitat_1 }
-				host_has_dlc = "Utopia"
+				can_research_technology = tech_habitat_1
 			}
 			give_technology = { tech = tech_habitat_1 }
 		}
@@ -1698,7 +1800,7 @@ planet_event = {
 	immediate = {
 		while = {
 			count = 5
-			random_pop = {
+			random_owned_pop = {
 				limit = { NOT = { has_modifier = memorex_dazed } }
 				add_modifier = { modifier = memorex_dazed days = 3600 }
 			}
@@ -1821,7 +1923,7 @@ planet_event = {
 	
 	option = {
 		name = UNFORTUNATE
-		random_pop = {
+		random_owned_pop = {
 			if = {
 				limit = { is_robot_pop = yes }
 				kill_pop = yes
@@ -1837,7 +1939,7 @@ planet_event = {
 	}
 	option = {
 		name = expandedrelics.57.b
-		random_pop = {
+		random_owned_pop = {
 			if = {
 				limit = { is_robot_pop = yes }
 				kill_pop = yes
@@ -1918,7 +2020,7 @@ planet_event = {
 		hidden_effect = {
 			while = {
 				count = 3
-				random_pop = {
+				random_owned_pop = {
 					if = {
 						limit = { is_robot_pop = yes }
 						kill_pop = yes
@@ -1940,7 +2042,7 @@ planet_event = {
 		hidden_effect = {
 			while = {
 				count = 3
-				random_pop = {
+				random_owned_pop = {
 					if = {
 						limit = { is_robot_pop = yes }
 						kill_pop = yes
@@ -1983,7 +2085,7 @@ planet_event = {
 		hidden_effect = {
 			while = {
 				count = 20
-				random_pop = {
+				random_owned_pop = {
 					if = {
 						limit = { is_robot_pop = yes }
 						kill_pop = yes
@@ -2005,7 +2107,7 @@ planet_event = {
 		hidden_effect = {
 			while = {
 				count = 20
-				random_pop = {
+				random_owned_pop = {
 					if = {
 						limit = { is_robot_pop = yes }
 						kill_pop = yes
@@ -2113,6 +2215,7 @@ planet_event = {
 	
 	trigger = {
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 	}
 	
 	immediate = {
@@ -2203,6 +2306,7 @@ event = {
 			any_planet_within_border = {
 				is_planet_class = pc_asteroid
 				NOT = { exists = archaeological_site }
+				NOT = { has_planet_flag = suppress_archaeological_sites }
 				has_deposit = no
 				NOT = {
 					solar_system = {
@@ -2220,6 +2324,7 @@ event = {
 				any_planet_within_border = {
 					is_planet_class = pc_asteroid
 					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
 					has_deposit = no
 					NOT = {
 						solar_system = {
@@ -2234,6 +2339,7 @@ event = {
 						limit = {
 							is_planet_class = pc_asteroid
 							NOT = { exists = archaeological_site }
+							NOT = { has_planet_flag = suppress_archaeological_sites }
 							has_deposit = no
 							NOT = {
 								solar_system = {
@@ -2273,6 +2379,7 @@ planet_event = {
 		exists = space_owner # check that system is still owned
 		NOT = { has_global_flag = command_center_found }
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 		NOT = {
 			any_system = {
 				any_system_planet = {
@@ -2336,6 +2443,7 @@ country_event = {
 				is_planet_class = pc_relic
 			}
 			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
    		}
 		NOT = {
 			any_system = {
@@ -2365,6 +2473,7 @@ country_event = {
 							is_planet_class = pc_relic
 						}
 						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = suppress_archaeological_sites }
 					}
 					planet_event = { id = expandedrelics.208 days = 125 random = 60 }
 				}
@@ -2392,6 +2501,7 @@ planet_event = {
 	
 	trigger = {
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 	}
 	
 	immediate = {
@@ -2453,6 +2563,7 @@ planet_event = {
 	
 	trigger = {
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 	}
 	
 	immediate = {
@@ -2477,6 +2588,7 @@ planet_event = {
 	
 	trigger = {
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 		NOT = { has_planet_flag = has_been_terraformed }
 		NOT = { has_global_flag = site_strange_fossils_found }
 		is_homeworld = no
@@ -2527,6 +2639,7 @@ planet_event = {
 		last_district_changed = district_mining
 		NOT=  { has_global_flag = ancient_battle_site_found }
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 		NOT = {
 			any_system = {
 				any_system_planet = {
@@ -2568,6 +2681,7 @@ planet_event = {
 	
 	trigger = {
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 	}
 
     option = {
@@ -2596,6 +2710,7 @@ country_event = {
 			has_deposit = no
 			is_barren = yes
 			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
 			solar_system = {
 				any_system_planet = { has_deposit_for = shipclass_research_station }
 			}
@@ -2641,6 +2756,7 @@ country_event = {
 			has_deposit = no
 			is_barren = yes
 			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
 			solar_system = {
 				any_system_planet = { has_deposit_for = shipclass_research_station }
 			}
@@ -2662,6 +2778,7 @@ country_event = {
 				has_deposit = no
 				is_barren = yes
 				NOT = { exists = archaeological_site }
+				NOT = { has_planet_flag = suppress_archaeological_sites }
 				solar_system = {
 					any_system_planet = { has_deposit_for = shipclass_research_station }
 				}
@@ -2724,6 +2841,7 @@ planet_event = {
 	trigger = {
 		is_planet_class = pc_relic
 		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 		NOT = { has_global_flag = site_target_from_orbit_found }
 		NOT = {
 			any_system = {
@@ -2765,6 +2883,7 @@ planet_event = {
 		}
 		NOT = { exists = archaeological_site }
 		NOT = { has_global_flag = site_deja_vu_dig_found }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
 		NOT = {
 			any_system = {
 				any_system_planet = {
@@ -3453,182 +3572,8 @@ country_event = {
 		hidden_effect = {
 			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
 		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_planetary_shield_generator }
-			}
-			give_technology = { tech = tech_planetary_shield_generator }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_synchronized_defences }
-			}
-			give_technology = { tech = tech_synchronized_defences }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_experimental_subspace_navigation }
-			}
-			give_technology = { tech = tech_experimental_subspace_navigation }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_selected_lineages }
-				NOT = { has_authority = auth_machine_intelligence }
-			}
-			give_technology = { tech = tech_selected_lineages }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_selected_lineages_machine }
-				has_authority = auth_machine_intelligence
-				has_global_flag = expanded_megastructures_installed
-			}
-			give_technology = { tech = tech_selected_lineages_machine }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_space_defense_station_improvement }
-			}
-			give_technology = { tech = tech_space_defense_station_improvement }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_gene_banks }
-			}
-			give_technology = { tech = tech_gene_banks }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_starbase_hull_1 }
-				has_global_flag = starbase_expanded_installed
-			}
-			give_technology = { tech = tech_starbase_hull_1 }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_wormhole_stabilization }
-				OR = {
-					has_seen_any_bypass = wormhole 
-					any_relation = {
-						is_country_type = default
-						has_communications = ROOT
-						has_technology = tech_wormhole_stabilization
-					}				
-				}
-			}
-			give_technology = { tech = tech_wormhole_stabilization }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_construction_templates }
-			}
-			give_technology = { tech = tech_construction_templates }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_arcane_deciphering }
-				has_resource = { type = minor_artifacts amount > 0 }
-				has_ancrel = yes
-			}
-			give_technology = { tech = tech_arcane_deciphering }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_habitat_1 }
-				host_has_dlc = "Utopia"
-			}
-			give_technology = { tech = tech_habitat_1 }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_hyperlane_mapping_mod }
-				has_global_flag = expanded_megastructures_installed
-			}
-			give_technology = { tech = tech_hyperlane_mapping_mod }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				NOT = { has_technology = tech_matter_generator }
-				has_global_flag = expanded_megastructures_installed
-			}
-			give_technology = { tech = tech_matter_generator }
-
-			break = yes
-		}
-		if = {
-			limit = {
-				host_has_dlc = "Synthetic Dawn Story Pack"
-				NOR = {
-					has_ethic = ethic_gestalt_consciousness
-					has_country_flag = synthetic_empire
-					has_policy_flag = ai_full_rights
-					has_country_flag = no_machine_uprising
-					has_policy_flag = robots_outlawed
-				}
-				OR = {
-					has_technology = tech_combat_computers_3
-					has_technology = tech_synthetic_workers
-				}
-			}
-			custom_tooltip = fallen_empires_tasks.2.three_laws.tooltip
-			hidden_effect = { set_country_flag = no_machine_uprising }
-			add_modifier = {
-				modifier = fallen_empire_gift_databanks
-				days = 1800
-			}
-		}
-		if = {
-			limit = {
-				has_event_chain = l_cluster_chain
-				NOT = {
-					has_global_flag = l_cluster_opened
-					has_completed_event_chain_counter = {
-						event_chain = l_cluster_chain
-						counter = clues
-					}
-				}
-			}
-			generate_lcluster_clue = yes
-			add_modifier = {
-				modifier = fallen_empire_gift_databanks
-				days = 1800
-			}
-
-			break = yes
-		}
-
-		# Just give databanks instead
-		add_modifier = {
-			modifier = fallen_empire_gift_databanks
-			days = 3600
-		}
+		event_target:materialist_fallen_empire = { save_event_target_as = FallenEmpireTaskOrigin } # needed for scripted effect to work
+		give_fe_tech_gift = yes
 	}
 	# resources
 	option = {
@@ -3651,14 +3596,36 @@ country_event = {
 	option = {
 		name = expandedrelics.270.d
 		response_text = expandedrelics.270.d.response
+		is_dialog_only = yes
 		trigger = {
-			is_subject_type = satellite # only one mat fe, so if you are a satellite, you are theirs
+			NOT = { has_country_flag = fe_mat_asked_for_freedom }
+			OR = {
+				is_subject_type = satellite
+				is_subject_type = scion_satellite
+				is_subject_type = scion
+			}
+			event_target:materialist_fallen_empire = { is_overlord_to = ROOT }
+		}
+		hidden_effect = { set_country_flag = fe_mat_asked_for_freedom }
+	}
+	option = {
+		name = expandedrelics.270.e
+		response_text = expandedrelics.270.e.response
+		trigger = {
+			has_country_flag = fe_mat_asked_for_freedom
+			OR = {
+				is_subject_type = satellite
+				is_subject_type = scion_satellite
+				is_subject_type = scion
+			}
+			event_target:materialist_fallen_empire = { is_overlord_to = ROOT }
 		}
 		event_target:materialist_fallen_empire = {
 			add_opinion_modifier = { who = root modifier = opinion_accepted_fallen_empire_demand }
 		}
 		hidden_effect = {
 			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
+			remove_country_flag = fe_mat_asked_for_freedom
 		}
 		set_subject_of = {
 			who = none
@@ -3859,6 +3826,7 @@ fleet_event = {
 					has_anomaly = no
 					has_deposit = no
 					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
 				}
 				NOT = {
 					any_system_planet = {
@@ -3873,6 +3841,7 @@ fleet_event = {
 					has_anomaly = no
 					has_deposit = no
 					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
 				}
 				create_archaeological_site = site_mega_engineering_2
 			}
@@ -4152,16 +4121,17 @@ fleet_event = {
 	is_triggered_only = yes
 	
 	trigger = {
+		exists = owner
 		FROM = {
 			has_star_flag = mega_engineering_system_2
 		}
-		FromFrom = {
+		owner = {
 			NOT = { has_country_flag = mega_engineering_2_flag }
 		}
 	}
 	
 	immediate = {
-		FromFrom = {
+		owner = {
 			set_country_flag = mega_engineering_2_flag
 		}
 	}
@@ -4169,7 +4139,7 @@ fleet_event = {
 	option = {
 		name = ONSCREEN
 		hidden_effect = {
-			FromFrom = {
+			owner = {
 				country_event = { id = expandedrelics.289 }
 			}
 		}
@@ -4307,7 +4277,7 @@ country_event = {
 		else_if = {
 			limit = {
 				NOT = { has_technology = tech_titans }
-				host_has_dlc = "Apocalypse"
+				can_research_technology = tech_titans
 			}
 			add_research_option = tech_titans
 			add_tech_progress = {
@@ -4937,11 +4907,7 @@ fleet_event = {
 				if = {
 					limit = {
 						NOT = { has_technology = tech_colonization_3 }
-						OR = {
-							is_machine_empire = no
-							has_civic = civic_machine_assimilator
-							has_civic = civic_machine_servitor
-						}
+						can_research_technology = tech_colonization_3
 					}
 					give_technology = { tech = tech_colonization_3 }
 				}

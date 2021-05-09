@@ -1,0 +1,377 @@
+namespace = vbp_habitat
+
+# Surveying
+ship_event = {
+    id = vbp_habitat.1
+    title = vbp_habitat.1.name
+    desc = vbp_habitat.1.desc
+
+    is_triggered_only = yes
+
+    location = FROM
+    picture = GFX_evt_satellite_in_orbit
+    show_sound = event_default
+
+    trigger = {
+		FROM = {
+			has_owner = yes
+			owner = {
+				has_country_flag = vbp_voidbound_civilisation
+			}
+		}
+    }
+
+    option = {
+		name = INTERESTING
+		hidden_effect = { 
+			owner = {
+				country_event = { 
+					id = story.6 
+					days = 30 
+					scopes = { fromfrom = from.owner }
+				} 
+			}
+		}
+	}
+}
+
+# Successful integration
+country_event = {
+    id = vbp_habitat.2
+    title = vbp_habitat.2.name
+    desc = vbp_habitat.2.desc
+
+    is_triggered_only = yes
+
+    location = FROM
+    picture = GFX_evt_satellite_in_orbit
+    show_sound = event_celebration
+
+    immediate = {
+        FROM = {
+            set_owner = root
+            remove_all_buildings = yes
+            add_modifier = { modifier = infiltration_happiness days = 7300 }
+            IF = {
+                limit = {
+                    ROOT = { is_regular_empire = yes }
+                }
+                add_building = building_capital
+            }
+            ELSE_IF = {
+                limit = {
+                    root = { is_hive_empire = yes }
+                }
+                add_building = building_hive_capital
+            }
+            ELSE_IF = {
+                limit = {
+                    root = { is_machine_empire = yes }
+                }
+                add_building = building_machine_capital
+            }
+            add_district = district_hab_housing
+            add_district = district_hab_science
+            IF = {
+                limit = {
+                    root = { is_gestalt = no }
+                }
+                add_district = district_hab_cultural
+                add_district = district_hab_commercial
+            }
+            ELSE = {
+                add_district = district_hab_energy
+            }
+        }
+    }
+
+    option = {
+        name = EXCELLENT
+    }
+
+    option = {
+        name = vbp_habitat.2.assimilator
+
+        exclusive_trigger = {
+            has_valid_civic = civic_machine_assimilator
+        }
+    }
+
+    option = {
+        name = vbp_habitat.2.servitor
+
+        exclusive_trigger = {
+            has_valid_civic = civic_machine_servitor
+        }
+    }
+}
+
+# Habitat extinction
+country_event = {
+    id = vbp_habitat.3
+    hide_window = yes
+
+    mean_time_to_happen = {
+        years = 150
+    }
+
+    trigger = {
+        is_country_type = primitive
+        has_country_flag = vbp_voidbound_civilisation
+    }
+
+    immediate = {
+        capital_scope = {
+            save_event_target_as = habitat
+            remove_all_buildings = yes
+            every_owned_pop = {
+                kill_pop = yes
+            }
+            while = {
+                count = 3
+                add_deposit = d_vbp_ruined_section
+            }
+            if = {
+                limit = { has_observation_outpost = yes }
+                observation_outpost_owner = {
+                    country_event = { id = vbp_habitat.4 }
+                }
+                observation_outpost = {
+                    dismantle = yes
+                }
+            }
+        }
+    }
+}
+
+# Pop-up
+country_event = {
+    id = vbp_habitat.4
+    title = vbp_habitat.4.name
+    desc = vbp_habitat.4.desc
+
+    is_triggered_only = yes
+    location = event_target:habitat
+    picture = GFX_evt_space_station
+    show_sound = event_life_support_fail
+
+    option = {
+        name = OK
+    }
+}
+
+# Station exlodes
+country_event = {
+    id = vbp_habitat.5
+    hide_window = yes
+
+    mean_time_to_happen = {
+        years = 200
+    }
+
+    trigger = {
+        is_country_type = primitive
+        has_country_flag = vbp_voidbound_civilisation
+    }
+
+    immediate = {
+        capital_scope = {
+            solar_system = {
+                random_system_planet = {
+                    limit = { has_planet_flag = vbp_habitat_site }
+                }
+                save_event_target_as = habitat_site
+            }
+            if = {
+                limit = { has_observation_outpost = yes }
+                observation_outpost_owner = {
+                    country_event = { id = vbp_habitat.6 }
+                }
+                observation_outpost = {
+                    dismantle = yes
+                }
+            }
+            remove_planet = yes
+        }
+    }
+}
+
+# Player notified
+country_event = {
+    id = vbp_habitat.6
+    title = vbp_habitat.6.name
+    desc = vbp_habitat.6.desc
+
+    is_triggered_only = yes
+    location = event_target:habitat_site
+    picture = GFX_evt_large_explosion
+    show_sound = event_super_explosion
+
+    option = {
+        name = OK
+    }
+}
+
+# Uplift concerns
+country_event = {
+    id = vbp_habitat.7
+    hide_window = yes
+    
+    mean_time_to_happen = {
+        months = 36
+    }
+
+    trigger = {
+        is_country_type = primitive
+        has_country_flag = vbp_voidbound_civilisation
+        NOT = { has_country_flag = vbp_habitat_integration_tension_roll }
+        capital_scope = {
+            has_observation_outpost = yes
+            observation_outpost = {
+                has_mission = vbp_negotiate_habitat_integration
+            }
+        }
+    }
+
+    immediate = {
+        set_country_flag = vbp_habitat_integration_tension_roll
+        random_list = {
+            80 = {}
+            20 = {
+                set_country_flag = vbp_habitat_integration_tension
+                capital_scope = {
+                    save_event_target_as = habitat
+                    observation_outpost = {
+                        add_mission_progress = -0.20
+                    }
+                    observation_outpost_owner = {
+                        country_event = {
+                            id = vbp_habitat.8
+                        }
+                    }
+                }
+                random_list = {
+                    50 = {}
+                    50 = { set_country_flag = vbp_scheduled_detonation }
+                }
+                modifier = {
+                    factor = 2
+                    is_xenophobe = yes
+                }
+                modifier = {
+                    factor = 2
+                    is_militarist = yes
+                }
+                modifier = {
+                    factor = 5
+                    capital_scope = {
+                        observation_outpost_owner = {
+                            is_gestalt = yes
+                        }
+                    }
+                }
+                modifier = {
+                    factor = 1.5
+                    capital_scope = {
+                        observation_outpost_owner = {
+                            OR = {
+                                is_xenophobe = yes
+                                is_militarist = yes
+                            }
+                        }
+                    }
+                }
+                modifier = {
+                    factor = 0.5
+                    is_pacifist = yes
+                }
+                modifier = {
+                    factor = 0.5
+                    is_xenophile = yes
+                }
+            }
+        }
+    }
+}
+
+country_event = {
+    id = vbp_habitat.8
+    title = vbp_habitat.8.name
+    desc = vbp_habitat.8.desc
+
+    is_triggered_only = yes
+    location = event_target:habitat
+    picture = GFX_evt_smugglers_in_bar
+    show_sound = event_planetary_riot
+
+    option = {
+        name = OK
+
+        tooltip = {
+            event_target:habitat = {
+                observation_outpost = {
+                    add_mission_progress = -0.20
+                }
+            }
+        }
+    }
+}
+
+# Habitat self-destruct in defiance
+country_event = {
+    id = vbp_habitat.9
+    hide_window = yes
+    
+    mean_time_to_happen = {
+        months = 36
+    }
+
+    trigger = {
+        is_country_type = primitive
+        has_country_flag = vbp_voidbound_civilisation
+        has_country_flag = vbp_scheduled_detonation
+        capital_scope = {
+            has_observation_outpost = yes
+            observation_outpost = {
+                has_mission = vbp_negotiate_habitat_integration
+            }
+        }
+    }
+
+    immediate = {
+        capital_scope = {
+            solar_system = {
+                random_system_planet = {
+                    limit = { has_planet_flag = vbp_habitat_site }
+                }
+                save_event_target_as = habitat_site
+            }
+            if = {
+                limit = { has_observation_outpost = yes }
+                observation_outpost_owner = {
+                    country_event = { id = vbp_habitat.10 }
+                }
+                observation_outpost = {
+                    dismantle = yes
+                }
+            }
+            remove_planet = yes
+        }
+    }
+}
+
+# Player notified
+country_event = {
+    id = vbp_habitat.10
+    title = vbp_habitat.10.name
+    desc = vbp_habitat.10.desc
+
+    is_triggered_only = yes
+    location = event_target:habitat_site
+    picture = GFX_evt_large_explosion
+    show_sound = event_super_explosion
+
+    option = {
+        name = UNFORTUNATE
+    }
+}

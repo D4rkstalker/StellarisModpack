@@ -1,3 +1,5 @@
+//	领土opacity/边宽/渐变opacity/战争迷雾
+
 Includes = {
 	"constants.fxh"
 	"terra_incognita.fxh"
@@ -182,13 +184,13 @@ PixelShader =
 
 			float vMid = lerp( vMinMidDistance, vMaxMidDistance, vCamDistFactor );
 
-			float vEpsilon = 0.005f + vCamDistFactor * 0.005f; // EG=0.005
+			float vEpsilon = 0.005f + vCamDistFactor * 0.005f; //未知
 			float vOffset = -0.000f;
 			float vAlpha = smoothstep( vMid + vEpsilon, vMid - vEpsilon, vDist + vOffset );
 
-			float vAlphaMin = 0.25f + 0.25f * vCamDistFactor; // EG=0.1f+0.5f * vCamDistFactor-领土颜色透明度
+			float vAlphaMin = 0.35f + 0.2f * vCamDistFactor; //领土opacity	[0.25/0.25]=过于透明
 
-			float vEdgeWidth = 0.025f + 0.35f * vCamDistFactor / 4.0; // EG=3.5
+			float vEdgeWidth = 0.02f + 0.4f * vCamDistFactor / 4.0; //边宽
 			const float vEdgeSharpness = 100.0f;
 			float vBlackBorderWidth = vEdgeWidth * 0.25f;
 			const float vBlackBorderSharpness = 25.0f;
@@ -198,13 +200,17 @@ PixelShader =
 			//vAlphaEdge is the saturated part at the outer edge
 			float vAlphaEdge = saturate( (vDist-vMid + vEdgeWidth)*vEdgeSharpness );
 			//vAlphaFill is the soft gradient inside the blobs
-			float vAlphaFill = max( vAlphaMin, saturate( vMid + (vDist-0.7f + vEdgeWidth*10.0f)*2.0f ) * 0.6f ); // EG=(vDist-0.8f + vEdgeWidth*8.0f)*2.0f ) * 0.6f )-渐变
+			float vAlphaFill = max( vAlphaMin, saturate( vMid + (vDist-0.4f + vEdgeWidth*8.0f)*2.0f ) * 0.5f );	//渐变opacity
 
-			float4 vColor = vAlphaEdge * clamp( PrimaryColor, float4(0.2, 0.2, 0.2, 1.0), float4(0.9, 0.9, 0.9, 1.0)) * 1.9f + ( 1 - vAlphaEdge ) * SecondaryColor;
+			float4 vColor = vAlphaEdge * clamp( PrimaryColor, float4(0.2, 0.2, 0.2, 1.0), float4(0.9, 0.9, 0.9, 1.0)) * 1.9f + ( 1 - vAlphaEdge ) * PrimaryColor;	//无需SecondaryColor
 
 			//Add a black edge that becomes more visible the further away from the camera it is
 			vColor *= 1.0f - ( 0.25f * saturate( (vDist-vMid + vBlackBorderWidth)*vBlackBorderSharpness ) );
 			vColor[3] = saturate(vAlphaEdge + vAlphaFill) * vAlphaOuterEdge;
+
+			// Fade out based on Terra Incognita	战争迷雾
+			float2 vTIUV = ( v.vPos.xy + GALAXY_SIZE * 0.5f ) / GALAXY_SIZE;
+			vColor.a *= tex2D( TerraIncognitaTexture, vTIUV ).a;
 
 			return vColor;
 		}
@@ -228,7 +234,7 @@ PixelShader =
 		float4 main( VS_OUTPUT_STAR_PIN v ) : PDX_COLOR
 		{
 			float4 vColor = vStarPinColor;
-			vColor.a *= 0; //清除高度线
+			vColor.a *= 0; //[vanilla]=[0.2f]	清除高度线
 
 			vColor = ApplyTerraIncognita( vColor, v.vPos.xz, 4.f, TerraIncognitaTexture );
 
