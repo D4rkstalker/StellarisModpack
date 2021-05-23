@@ -1,0 +1,92 @@
+#	Example:
+#
+#	example_effect = {
+#		add_resource = { energy = -100 }
+#	}
+#
+#
+#	In a script file:
+#
+#	effect = {
+#		example_effect = yes
+#	}
+#
+SPT_white_peace_effects = { # Removes some war exhaustion for peacing out without requesting anythng
+	tooltip = { event_target:SPT_target = { custom_tooltip = action.39.message } }
+	hidden_effect = {
+		event_target:SPT_negotiating_war_leader = {
+			add_static_war_exhaustion = {
+				attacker = event_target:SPT_target
+				location = capital_scope
+				value_for_planet_destruction = -0.05
+			}
+		}
+	}
+}
+
+SPT_status_quo_effects = { # Cedes owned claimed systems to occupiers
+	event_target:SPT_target = {
+		every_system = {
+			limit = {
+				exists = starbase
+				starbase.owner = { is_war_participant = { war = event_target:SPT_ongoing_war side = this  } }
+				starbase.controller = {
+					has_claim = prev
+					NOT = { is_country = prev.starbase.owner }
+				}
+				count_system_planet = {
+					count = all
+					limit = {
+						OR = {
+							is_colony = no
+							AND = {
+								is_colony = yes
+								controller = { NOT = { is_country = event_target:SPT_target } }
+							}
+						}
+					}
+				}
+			}
+			starbase = { set_owner = controller }
+		}
+	}
+	tooltip = { event_target:SPT_target = { custom_tooltip = action.39.name } }
+}
+
+SPT_cede_claims_effects = { # Cedes claims to war leader only. It's no benefitial to separate peace if you're also going to cede your claims to secondary participants
+	event_target:SPT_target = {
+		every_system_within_border = {
+			limit = {
+				exists = starbase
+				event_target:SPT_negotiating_war_leader = { has_claim = prev }
+			}
+			starbase = { set_owner = event_target:SPT_negotiating_war_leader }
+		}
+	}
+}
+
+SPT_break_treaties_effects = { # Cedes claims to war leader only. It's no benefitial to separate peace if you're also going to cede your claims to secondary participants
+	#tooltip = {	event_target:SPT_target = { event_target:SPT_enemy_war_leader = { custom_tooltip = ACTION_BREAK_DEFENSIVE_PACT_DESC	} } }
+	event_target:SPT_enemy_war_leader = {
+		end_all_treaties_with = event_target:SPT_target
+		add_opinion_modifier = { modifier = opinion_broke_defensive_pact who = event_target:SPT_target }
+	}
+	event_target:SPT_target = {
+		if = {
+			limit = { has_defensive_pact = event_target:SPT_enemy_war_leader }
+			tooltip = { custom_tooltip = ACTION_BREAK_DEFENSIVE_PACT_DESC }
+		}
+		if = {
+			limit = { is_guaranteeing = event_target:SPT_enemy_war_leader }
+			tooltip = { custom_tooltip = ACTION_BREAK_GUARANTEE_TYPE_DESC }
+		}
+		if = {
+			limit = { is_in_federation_with = event_target:SPT_enemy_war_leader }
+			leave_alliance = {
+				override_requirements = yes
+				apply_opinion_penalty = yes
+			}
+		}
+		end_all_treaties_with = event_target:SPT_enemy_war_leader
+	}
+}

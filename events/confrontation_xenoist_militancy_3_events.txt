@@ -1,0 +1,318 @@
+namespace = confrontations_xenoist_militancy_desperate
+
+pop_faction_event = {
+    id = confrontations_xenoist_militancy_desperate.1
+    hide_window = yes
+
+    is_triggered_only = yes
+
+    immediate = {
+        random_list = {
+            25 = {
+                # Coup
+                pop_faction_event = { id = confrontations_xenoist_militancy_desperate.2 }
+            }
+            25 = {
+                # Putsch
+                pop_faction_event = { id = confrontations_xenoist_militancy_desperate.3 }
+            }
+            25 = {
+                # Use an furious event
+                pop_faction_event = { id = confrontations_xenoist_militancy_furious.1 }
+            }
+            20 = {
+                # Use an upset event
+                pop_faction_event = { id = confrontations_xenoist_militancy_upset.1 }
+            }
+            5 = {
+                # Use a peaceful event
+                pop_faction_event = { id = confrontations_xenoist_militancy_peaceful.1 }
+            }
+        }
+    }
+}
+
+# Coup
+pop_faction_event = {
+    id = confrontations_xenoist_militancy_desperate.2
+    title = confrontations_xenoist_militancy_desperate.2
+    desc = confrontations_xenoist_militancy_desperate.2.desc
+    hide_window = no
+
+    is_triggered_only = yes
+
+    picture = GFX_evt_open_revolt
+    show_sound = event_super_explosion
+
+    immediate = {
+        owner = {
+            # Shift ethics
+            if = {
+                limit = {
+                    NOT = {
+                        has_ethic = "ethic_fanatic_xenophile"
+                    }
+                }
+                shift_ethic = ethic_xenophile
+            }
+
+            # Kill leader if he isnt the owner of faction
+            random_owned_leader = {
+                limit = {
+                    leader_class = ruler
+                }
+                if = {
+                    limit = {
+                        NOT = {
+                            leader_of_faction = root
+                        }            
+                    }
+                    kill_leader = { }
+                }
+            }
+
+            owner = { country_event = { id = confrontations_xenoist.2 } }
+        }
+    }
+
+    option = {
+        name = confrontations_xenoist_militancy_desperate.2.a
+
+        owner = {
+
+            add_resource = {
+                ideological_purity_current_value = -25
+            }
+
+            add_modifier = {
+                modifier = xenoist_coup_continue_modifier
+                years = 3
+            }
+
+            # Kill rulers of wrong ethic
+            if = {
+                limit = {
+                    count_owned_pop = {
+                        count >= 3
+                        limit = {
+                            NOT = { pop_has_ethic = ethic_xenophile }
+                            is_pop_category = ruler
+                        }
+                    }
+                }
+                random_owned_pop = {
+                    limit = {
+                        NOT = { pop_has_ethic = ethic_xenophile }
+                        is_pop_category = ruler
+                    }
+                    kill_pop = yes
+                }
+                random_owned_pop = {
+                    limit = {
+                        NOT = { pop_has_ethic = ethic_xenophile }
+                        is_pop_category	= ruler
+                    }
+                    kill_pop = yes
+                }
+                random_owned_pop = {
+                    limit = {
+                        NOT = { pop_has_ethic = ethic_xenophile }
+                        is_pop_category	= ruler
+                    }
+                    kill_pop = yes
+                }
+            }
+            else = {
+                random_owned_pop = {
+                    limit = {
+                        NOT = { pop_has_ethic = ethic_xenophile }
+                        is_pop_category	= ruler
+                    }
+                    kill_pop = yes
+                }
+                random_owned_pop = {
+                    limit = {
+                        NOT = { pop_has_ethic = ethic_xenophile }
+                        is_pop_category	= ruler
+                    }
+                    kill_pop = yes
+                }
+            }
+
+            # Inform others
+            # every_relation = {
+            #     limit = {
+            #         is_ai = no
+            #         is_country_type = default
+            #         has_communications = prev
+            #         has_intel_level = {
+            #             who = prev
+            #             category = government
+            #             level >= 1
+            #         }
+            #     }
+            #     country_event = { id = factions.2000 }
+            # }
+        }
+    }
+}
+
+# Putsch
+pop_faction_event = {
+    id = confrontations_xenoist_militancy_desperate.3
+    title = confrontations_xenoist_militancy_desperate.3
+    desc = confrontations_xenoist_militancy_desperate.3.desc
+    hide_window = no
+
+    is_triggered_only = yes
+
+    picture = GFX_evt_alien_propaganda
+    show_sound = event_air_raid_siren
+
+    immediate = {
+        owner = {
+            # Assign event_target:putsch_leader
+            every_owned_leader = {
+                limit = {
+                    OR = {
+                        leader_of_faction = gov_xenoist
+                        leader_of_faction = xenoist
+                        leader_of_faction = xenoist_radicals
+                    }
+                }
+                save_event_target_as = putsch_leader
+            }
+
+            # Kill all leaders who arent the putsch leader
+            every_owned_leader = {
+                limit = { NOT = { is_same_value = event_target:putsch_leader }}
+                kill_leader = { }
+            }
+
+            # Assign event_target:putsch_leader to ruler
+            assign_leader = event_target:putsch_leader
+
+            # Governor for each sector
+            every_owned_sector = {
+                owner = {
+                    create_leader = {
+                        name = random
+                        class = governor
+                        skill = 1
+                        species = owner_main_species
+                        traits = {
+                            trait = random_trait
+                        }
+                        effect = {
+                            save_event_target_as = new_governor
+                        }
+                    }
+                }
+
+                assign_leader = event_target:new_governor
+            }
+
+            # Scientist for every science ship
+            every_owned_ship = {
+                limit = {
+                    is_ship_class = shipclass_science_ship
+                }
+                owner = {
+                    create_leader = {
+                        name = random
+                        class = scientist
+                        skill = 1
+                        species = owner_main_species
+                        traits = {
+                            trait = random_trait
+                        }
+                        effect = {
+                            save_event_target_as = new_science_ship_scientist
+                        }
+                    }
+                }
+                fleet = {
+                    assign_leader = event_target:new_science_ship_scientist
+                }
+            }
+            # Scientist for each category
+            create_leader = {
+                name = random
+                class = scientist
+                skill = 1
+                species = owner_main_species
+                traits = {
+                    trait = random_trait
+                }
+                effect = {
+                    save_event_target_as = new_scientist
+                }
+            }
+            create_leader = {
+                name = random
+                class = scientist
+                skill = 1
+                species = owner_main_species
+                traits = {
+                    trait = random_trait
+                }
+                effect = {
+                    save_event_target_as = new_scientist
+                }
+            }
+            create_leader = {
+                name = random
+                class = scientist
+                skill = 1
+                species = owner_main_species
+                traits = {
+                    trait = random_trait
+                }
+                effect = {
+                    save_event_target_as = new_scientist
+                }
+            }
+
+            # Create an admiral
+            random_owned_fleet = {
+                limit = {
+                    is_civilian = no
+                }
+                owner = {
+                    create_leader = {
+                        name = random
+                        class = admiral
+                        skill = 1
+                        species = owner_main_species
+                        traits = {
+                            trait = random_trait
+                        }
+
+                        effect = {
+                            save_event_target_as = new_admiral
+                        }
+                    }
+                }
+
+                assign_leader = event_target:new_admiral
+            }
+        }
+
+        owner = { country_event = { id = confrontations_xenoist.2 } }
+    }
+
+    option = {
+        name = confrontations_xenoist_militancy_desperate.3.a
+
+        owner = {
+            add_resource = {
+                ideological_purity_current_value = -25
+            }
+
+            add_modifier = {
+                modifier = xenoist_putsch_continue_modifier
+                years = 3
+            }
+        }
+    }
+}

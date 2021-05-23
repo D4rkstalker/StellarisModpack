@@ -1,0 +1,1145 @@
+############################
+#
+# Separate Peace Treaties Events
+#
+# Written by Markellus
+# Later, try using #DIPLOMATIC = YES events to make more sense.
+############################
+
+namespace = SPT
+
+### Any Country is in Desire For Peace
+country_event = {
+	id = SPT.00
+	hide_window = yes
+
+	trigger = {
+		is_at_war = yes
+		OR = {
+			off_war_exhaustion_sum > 0.50
+			def_war_exhaustion_sum > 0.50
+		}
+		NOT = { is_subject_type = vassal }
+		NOT = { has_country_flag = SPT_negotiating_peace }
+		NOT = { has_country_flag = SPT_ignored_peace_offer }
+
+		any_war = {
+			is_total_war = no
+
+			# These two lines down here are a different way to check for war leader, because is_war_leader would check if the country is a leader in ANY WAR.
+			NOT = { attacker = { is_country = root } }
+			NOT = { defender = { is_country = root } }
+
+			OR = {
+				AND = {
+					NOT = { attacker = { is_in_federation_with = root } }
+					NOT = { defender = { is_in_federation_with = root } }
+				}
+				root.federation = { has_federation_law = treaties_separate_yes }
+			}
+
+			any_war_participant = {
+				is_war_leader = yes
+				is_at_war_with = root
+				NOT = { has_country_flag = SPT_negotiating_peace }
+				NOT = { has_country_flag = SPT_ignoring_all_peace_offers }
+				OR = {
+					is_ai = yes
+					any_envoy = { has_envoy_task = { task = spy_network target = root } }
+				}
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		days = 90
+	}
+
+	immediate = {
+		set_country_flag = SPT_negotiating_peace
+		save_event_target_as = SPT_target
+		random_war = {
+			limit = {
+				is_total_war = no
+
+				# These two lines down here are a different way to check for war leader, because is_war_leader would check if the country is a leader in ANY WAR.
+				NOT = { attacker = { is_country = root } }
+				NOT = { defender = { is_country = root } }
+
+				any_war_participant = {
+					is_war_leader = yes
+					is_at_war_with = root
+					NOT = { has_country_flag = SPT_negotiating_peace }
+					NOT = { has_country_flag = SPT_ignoring_all_peace_offers }
+					OR = {
+						is_ai = yes
+						any_envoy = { has_envoy_task = { task = spy_network target = root } }
+					}
+				}
+			}
+			save_event_target_as = SPT_ongoing_war
+
+			# These two lines down here are a different way to check for war leader, because is_war_leader would check if the country is a leader in ANY WAR.
+			if = {
+				limit = { attacker = { is_at_war_with = root } }
+				attacker = { save_event_target_as = SPT_negotiating_war_leader }
+				defender = { save_event_target_as = SPT_enemy_war_leader }
+			}
+			else = {
+				defender = { save_event_target_as = SPT_negotiating_war_leader }
+				attacker = { save_event_target_as = SPT_enemy_war_leader }
+			}
+		}
+		if = {
+			limit = { exists = event_target:SPT_negotiating_war_leader }
+			event_target:SPT_negotiating_war_leader = {
+				set_country_flag = SPT_negotiating_peace
+				country_event = { id = SPT.01 }
+			}
+		}
+	}
+}
+
+### Separate Peace Fires
+country_event = {
+	id = SPT.01
+	title = "observation.3103.name"
+	desc = "PT_WAR_GREETING_03"
+	picture = GFX_evt_towel
+	show_sound = event_radio_chatter_02
+
+	is_triggered_only = yes
+
+	option = {
+		name = ONSCREEN
+		country_event = { id = SPT.02 }
+		ai_chance = {
+			factor = 50
+		}
+	}
+	option = {
+		name = galactic_features.350.b # Ignore transmission
+		remove_country_flag = SPT_negotiating_peace
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			set_timed_country_flag = {
+				flag = SPT_ignored_peace_offer
+				days = 360
+			}
+		}
+		ai_chance = {
+			factor = 20
+		}
+	}
+	option = {
+		name = distar.5062.b # Close all channels
+		remove_country_flag = SPT_negotiating_peace
+		event_target:SPT_target = { remove_country_flag = SPT_negotiating_peace }
+		set_timed_country_flag = {
+			flag = SPT_ignoring_all_peace_offers
+			days = 3600
+		}
+		ai_chance = {
+			factor = 0
+		}
+	}
+}
+
+# Diplomatic Peace Treaty View --- MAIN EVENT ---
+country_event = {
+	id = SPT.02
+	title = ACTION_OFFER_PEACE_DIPLOMACY_VIEW_TITLE
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 03_PEACE_PROPOSE
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 04_PEACE_PROPOSE
+	}
+	# Machine Empire
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = MECH_PEACE_PROPOSE_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = MECH_PEACE_PROPOSE_02
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = E_PEACE_PROPOSE_02
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = S_PEACE_PROPOSE
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = ORG_TO_MECH_PEACE_PROPOSE_01
+	}
+	# Hivemind
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_hive_mind
+			}
+		}
+		text = E_PEACE_PROPOSE
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_hive_mind
+			}
+		}
+		text = ORG_TO_MECH_PEACE_PROPOSE_02
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_hive_mind
+			}
+		}
+		text = A_PEACE_PROPOSE
+	}
+	# Megacorp
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_PROPOSE_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_PROPOSE_02
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_PROPOSE_03
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_PROPOSE_04
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_PROPOSE_05
+	}
+	# Fanatic Purifiers
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				has_ai_personality = fanatic_purifiers
+			}
+		}
+		text = FP_PEACE_PROPOSE
+	}
+
+	diplomatic_title = event_target:SPT_target.GetName
+
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:SPT_target
+		planet_background = event_target:SPT_target
+		graphical_culture = event_target:SPT_target
+		room = event_target:SPT_target.ruler
+	}
+	immediate = {
+		# Calculates warscore and willingness to surrender
+		event_target:SPT_target = {
+			set_variable = {
+				which = SPT_willingness_to_surrender
+				value = -50 # Base unwillingness to surrender
+			}
+			set_variable = {
+				which = SPT_white_peace_value
+				value = 0 # This value is detracted for the purpose of cede claims/status quo.
+			}
+			set_variable = {
+				which = SPT_status_quo_value
+				value = 0 # This value is detracted for the purpose of cede claims/status quo.
+			}
+			set_variable = {
+				which = SPT_cede_claims_value
+				value = -25 # This value is detracted for the purpose of cede claims/status quo.
+			}
+			set_variable = {
+				which = SPT_break_treaties_value
+				value = -25 # This value is detracted for the purpose of break treaties.
+			}
+			# Adds a little for every occupied system
+			every_system_within_border = {
+				limit = {
+					exists = starbase
+					starbase.controller = { NOT = { is_country = event_target:SPT_target } }
+					NOT = {
+						any_system_planet = {
+							is_colony = yes
+							controller = { is_country = event_target:SPT_target }
+						}
+					}
+				}
+				event_target:SPT_target = { change_variable = { which = SPT_willingness_to_surrender value = 2 } }
+
+				# Now, this will subtract -5 for systems that are fully occupied, as long as it's a Status Quo peace offer
+				if = {
+					limit = {
+						starbase.controller = { has_claim = prev }
+						starbase.controller = { is_war_participant = { war = event_target:SPT_ongoing_war side = event_target:SPT_negotiating_war_leader } }
+						any_system_planet = {
+							is_colony = yes
+							controller = { NOT = { is_country = event_target:SPT_target } }
+						}
+					}
+					event_target:SPT_target = { change_variable = { which = SPT_status_quo_value value = -10 } }
+				}
+			}
+
+			# Now, this will subtract -50 for systems that aren't fully occupied, as long as it's a Cede Claims peace offer
+			every_system_within_border = {
+				limit = {
+					exists = starbase
+					event_target:SPT_negotiating_war_leader = { has_claim = prev }
+					OR = {
+						starbase.controller = { NOT = { is_war_participant = { war = event_target:SPT_ongoing_war side = event_target:SPT_negotiating_war_leader } } }
+						any_system_planet = {
+							is_colony = yes
+							controller = { is_country = event_target:SPT_target }
+						}
+					}
+				}
+				event_target:SPT_target = { change_variable = { which = SPT_cede_claims_value value = -50 } }
+			}
+			# Adds moderate amount for every occupied planet
+			every_owned_planet = {
+				limit = { is_occupied_flag = yes }
+				event_target:SPT_target = { change_variable = { which = SPT_willingness_to_surrender value = 10 } }
+			}
+			# Adds a heavy amount if capital is occupied by enemy in this war
+			if = {
+				limit = { capital_scope.controller = { is_war_participant = { war = event_target:SPT_ongoing_war side = event_target:SPT_negotiating_war_leader } } }
+				change_variable = { which = SPT_willingness_to_surrender value = 50 }
+			}
+			# Fleet power comparisons
+			if = {
+				limit = { relative_power = { who = event_target:SPT_negotiating_war_leader category = fleet value >= overwhelming } }
+				change_variable = { which = SPT_willingness_to_surrender value = -25 }
+			}
+			if = {
+				limit = { relative_power = { who = event_target:SPT_negotiating_war_leader category = fleet value >= superior } }
+				change_variable = { which = SPT_willingness_to_surrender value = -25 }
+			}
+			if = {
+				limit = { relative_power = { who = event_target:SPT_negotiating_war_leader category = fleet value <= inferior } }
+				change_variable = { which = SPT_willingness_to_surrender value = 25 }
+			}
+			if = {
+				limit = { relative_power = { who = event_target:SPT_negotiating_war_leader category = fleet value <= pathetic } }
+				change_variable = { which = SPT_willingness_to_surrender value = 25 }
+			}
+			# If war exhaustion gets out of hand
+			if = {
+				limit = {
+					OR = {
+						off_war_exhaustion_sum >= 0.75
+						def_war_exhaustion_sum >= 0.75
+					}
+				}
+				change_variable = { which = SPT_willingness_to_surrender value = 25 }
+				change_variable = { which = SPT_white_peace_value value = 25 }
+			}
+			if = {
+				limit = {
+					OR = {
+						off_war_exhaustion_sum >= 1
+						def_war_exhaustion_sum >= 1
+					}
+				}
+				change_variable = { which = SPT_willingness_to_surrender value = 25 }
+				change_variable = { which = SPT_white_peace_value value = 25 }
+			}
+			# Is in federation with war leader
+			if = {
+				limit = { is_in_federation_with = event_target:SPT_enemy_war_leader }
+				change_variable = { which = SPT_willingness_to_surrender value = -100 }
+				change_variable = { which = SPT_break_treaties_value value = -50 }
+			}
+			# Completely occupied
+			if = {
+				limit = {
+					count_system_within_border = {
+						count = all						
+						limit = {
+							exists = starbase
+							starbase.controller = { NOT = { is_country = event_target:SPT_target } }
+							NOT = { 
+								any_system_planet = { 
+									is_colony = yes
+									controller = { is_country = event_target:SPT_target } 
+								} 
+							}
+						}
+					}
+				}
+				change_variable = { which = SPT_willingness_to_surrender value = 100 }
+			}
+
+			# Adds a little value for every claimed and controlled system by the target of the peace deal --- JUST IN CASE OF STATU QUO PEACE
+			event_target:SPT_ongoing_war = {
+				every_war_participant = {
+					limit = { is_war_participant = { war = event_target:SPT_ongoing_war side = event_target:SPT_negotiating_war_leader } }
+					every_system_within_border = {
+						limit = {
+							exists = starbase
+							event_target:SPT_target = { has_claim = prev }
+							starbase.controller = { is_country = event_target:SPT_target }
+							count_system_planet = {
+								count = all
+								limit = {
+									is_colony = yes
+									controller = { is_country = event_target:SPT_target }
+								}
+							}
+						}
+						event_target:SPT_target = { change_variable = { which = SPT_status_quo_value value = 10 } }
+					}
+				}
+			}
+
+			# Now it adds the base variable for each peace option
+			change_variable = { which = SPT_break_treaties_value value = SPT_willingness_to_surrender }
+			change_variable = { which = SPT_cede_claims_value value = SPT_willingness_to_surrender }
+			change_variable = { which = SPT_status_quo_value value = SPT_willingness_to_surrender }
+			change_variable = { which = SPT_white_peace_value value = SPT_willingness_to_surrender }
+
+			# Removes offer peace flags to avoid bugs
+			remove_country_flag = SPT_flag_offered_white_peace
+			remove_country_flag = SPT_flag_offered_status_quo
+			remove_country_flag = SPT_flag_offered_claims
+			remove_country_flag = SPT_flag_offered_break_treaties
+		}
+	}
+	option = { # No Peace
+		name = "leviathans.509.e"
+		remove_country_flag = SPT_negotiating_peace
+		remove_country_flag = SPT_rejected_first_offer
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			set_timed_country_flag = {
+				flag = SPT_ignored_peace_offer
+				days = 360
+			}
+		}
+		ai_chance = {
+			factor = 0
+		}
+	}
+	option = { # White Peace
+		name = "WHITE_PEACE"
+		tooltip = { SPT_white_peace_effects = yes }
+		event_target:SPT_target = { set_country_flag = SPT_flag_offered_white_peace }
+		if = {
+			limit = { event_target:SPT_target = { is_ai = yes } }
+			hidden_effect = { country_event = { id = SPT.03 } }
+		}
+		else = { event_target:SPT_target = { country_event = { id = SPT.04 days = 10 } } }
+		tooltip = {
+				custom_tooltip_with_params = {
+				description = AI_ACCEPTANCE
+				description_parameters = {
+					"VALUE" = [event_target:SPT_target.SPT_white_peace_value]
+				}
+			}
+		}
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Don't be mistaken by the name. This is actually a Status Quo peace.
+		name = "SEND_WHITEPEACE"
+		tooltip = { SPT_status_quo_effects = yes }
+		event_target:SPT_target = { set_country_flag = SPT_flag_offered_status_quo }
+		if = {
+			limit = { event_target:SPT_target = { is_ai = yes } }
+			hidden_effect = { country_event = { id = SPT.03 } }
+		}
+		else = { event_target:SPT_target = { country_event = { id = SPT.04 days = 10 } } }
+		tooltip = {
+				custom_tooltip_with_params = {
+				description = AI_ACCEPTANCE
+				description_parameters = {
+					"VALUE" = [event_target:SPT_target.SPT_status_quo_value]
+				}
+			}
+		}
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Cede Claims
+		name = "claims"
+		trigger = { has_claim = event_target:SPT_target }
+		tooltip = { SPT_cede_claims_effects = yes }
+		event_target:SPT_target = { set_country_flag = SPT_flag_offered_claims }
+		if = {
+			limit = { event_target:SPT_target = { is_ai = yes } }
+			hidden_effect = { country_event = { id = SPT.03 } }
+		}
+		else = { event_target:SPT_target = { country_event = { id = SPT.04 days = 10 } } }
+		tooltip = {
+				custom_tooltip_with_params = {
+				description = AI_ACCEPTANCE
+				description_parameters = {
+					"VALUE" = [event_target:SPT_target.SPT_cede_claims_value]
+				}
+			}
+		}
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Break Treaties
+		name = "ALLIANCE_VIEW_LEAVE_ALLIANCE_BUTTON"
+		trigger = {
+			event_target:SPT_enemy_war_leader = {
+				OR = {
+					is_guaranteeing = event_target:SPT_target
+					has_defensive_pact = event_target:SPT_target
+					is_in_federation_with = event_target:SPT_target
+				}
+			}
+		}
+		tooltip = { SPT_break_treaties_effects = yes }
+		event_target:SPT_target = { set_country_flag = SPT_flag_offered_break_treaties }
+		if = {
+			limit = { event_target:SPT_target = { is_ai = yes } } # Must remove flags after the event is done!
+			hidden_effect = { country_event = { id = SPT.03 } }
+		}
+		else = { event_target:SPT_target = { country_event = { id = SPT.04 days = 10 } } }
+		tooltip = {
+				custom_tooltip_with_params = {
+				description = AI_ACCEPTANCE
+				description_parameters = {
+					"VALUE" = [event_target:SPT_target.SPT_break_treaties_value]
+				}
+			}
+		}
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+}
+
+### AI RAPID RESPONSE - War Leader Demands
+country_event = {
+	id = SPT.03
+	title = "RESPONSE_TO_PEACE_OFFER"
+	######## Accepted Peace Descriptions
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 01_PEACE_ACCEPT
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 02_PEACE_ACCEPT
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 03_PEACE_ACCEPT
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 05_PEACE_ACCEPT
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 04_EMBASSY_ACCEPT_HOSTILE
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 02_EMBASSY_ACCEPT_HOSTILE
+	}
+	# Machine Empire
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = MECH_PEACE_ACCEPT_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = MECH_PEACE_ACCEPT_02
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = FALLEN_MACHINE_EMPIRE_PEACE_ACCEPT
+	}
+	# Hivemind
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_hive_mind
+			}
+		}
+		text = HM_OFFER_TRADE_DEAL_ACCEPT
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_hive_mind
+				}
+			}
+		text = HM_INSULT_FRIENDLY
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_hive_mind
+			}
+		}
+		text = HM_END_RIVALRY_ACCEPT_HOSTILE
+	}
+	# Megacorp
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_ACCEPT_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_END_RIVALRY_HOSTILE_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_OFFER_TRADE_DEAL_ACCEPT_01
+	}
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_END_RIVALRY_ACCEPT_01
+	}
+	# Fanatic Purifiers
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = yes
+				has_ai_personality = fanatic_purifiers
+			}
+		}
+		text = FP_PEACE_ACCEPT
+	}
+
+	######## Refused Offer Descriptions
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 01_OVERLORD_PEACE_REFUSE
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 02_OFFER_TRADE_DEAL_REFUSE
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 03_OFFER_TRADE_DEAL_REFUSE
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 04_OFFER_TRADE_DEAL_REFUSE
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = 02_PEACE_REFUSE
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+			}
+		}
+		text = KET_PEACE_REFUSE_01
+	}
+	# Machine Empire
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = FALLEN_MACHINE_EMPIRE_PEACE_REFUSE
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = MECH_PEACE_REFUSE_01
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = FALLEN_MACHINE_EMPIRE_PEACE_REFUSE_BERSERK
+	}
+	# Hivemind
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_hive_mind
+			}
+		}
+		text = HM_MAKE_RIVAL_ACCEPT_FRIENDLY
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_hive_mind
+			}
+		}
+		text = HM_INSULT_NEUTRAL
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_hive_mind
+			}
+		}
+		text = S_PEACE_REFUSE_01
+	}
+	# Megacorp
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_REFUSE_03
+	}
+	desc = {
+		trigger = {
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_REFUSE_04
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_REFUSE_01
+	}
+	desc = {
+		trigger = {
+			has_country_flag = SPT_rejected_first_offer
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_authority = auth_corporate
+			}
+		}
+		text = CORP_PEACE_REFUSE_02
+	}
+	# Fanatic Purifiers
+	desc = {
+		trigger = {
+			event_target:SPT_target = {
+				SPT_offered_peace_is_desired = no
+				has_ai_personality = fanatic_purifiers
+			}
+		}
+		text = FP_PEACE_REFUSE
+	}
+
+	diplomatic_title = event_target:SPT_target.GetName
+
+	diplomatic = yes
+
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:SPT_target
+		planet_background = event_target:SPT_target
+		graphical_culture = event_target:SPT_target
+		room = event_target:SPT_target.ruler
+	}
+
+	option = {
+		name = "EXCELLENT"
+		trigger = { event_target:SPT_target = { SPT_offered_peace_is_desired = yes } }
+		remove_country_flag = SPT_negotiating_peace
+		remove_country_flag = SPT_rejected_first_offer
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			switch = {
+				trigger = has_country_flag
+				SPT_flag_offered_white_peace = { SPT_white_peace_effects = yes }
+				SPT_flag_offered_status_quo = { SPT_status_quo_effects = yes }
+				SPT_flag_offered_claims = { SPT_cede_claims_effects = yes }
+				SPT_flag_offered_break_treaties = { SPT_break_treaties_effects = yes }
+			}
+		}
+		hidden_effect = { event_target:SPT_target = { country_event = { id = SPT.06 } } }
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Let's try that again...
+		name = "first_contact.270.B"
+		trigger = {
+			event_target:SPT_target = { SPT_offered_peace_is_desired = no }
+			NOT = { has_country_flag = SPT_rejected_first_offer }
+		}
+		hidden_effect = {
+			set_country_flag = SPT_rejected_first_offer
+			country_event = { id = SPT.02 }
+		}
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Wait!
+		name = "country.1046.a"
+		trigger = {
+			event_target:SPT_target = { SPT_offered_peace_is_desired = no }
+			has_country_flag = SPT_rejected_first_offer
+		}
+		custom_tooltip_with_params = {
+			description = CANT_TRADE_ATTITUDE
+			description_parameters = {
+				"STANCE" = [event_target:SPT_target.GetName]
+			}
+		}
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			set_timed_country_flag = {
+				flag = SPT_ignored_peace_offer
+				days = 360
+			}
+		}
+		remove_country_flag = SPT_negotiating_peace
+		remove_country_flag = SPT_rejected_first_offer
+		hidden_effect = { event_target:SPT_negotiating_war_leader = { country_event = { id = SPT.05 } } }
+
+		ai_chance = {
+			factor = 100
+		}
+	}
+	option = { # Actually, never mind.
+		name = "marauder.30.e"
+		allow = {
+			hidden_trigger = {
+				OR = {
+					event_target:SPT_target = { SPT_offered_peace_is_desired = no }
+					has_resource = { type = influence amount > 100 }
+				}
+			}
+		}
+		custom_tooltip_with_params = {
+			description = CANT_TRADE_ATTITUDE
+			description_parameters = {
+				"STANCE" = [event_target:SPT_target.GetName]
+			}
+		}
+		if = { limit = { SPT_offered_peace_is_desired = yes } add_resource = { influence = -100 } }
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			set_timed_country_flag = {
+				flag = SPT_ignored_peace_offer
+				days = 360
+			}
+		}
+		remove_country_flag = SPT_negotiating_peace
+		remove_country_flag = SPT_rejected_first_offer
+
+		ai_chance = {
+			factor = 0
+		}
+	}
+}
+
+### Player receives demands from war leader
+country_event = {
+	id = SPT.04
+	title = "ACTION_OFFER_PEACE_DIPLOMACY_VIEW_TITLE"
+	desc = "action.39.desc.hi"
+	picture = GFX_evt_hand_shake
+	show_sound = event_radio_chatter_02
+
+	is_triggered_only = yes
+
+	option = { # We refuse.
+		name = 01_DEMAND_VASS_REFUSE
+		set_timed_country_flag = {
+			flag = SPT_ignored_peace_offer
+			days = 360
+		}
+		hidden_effect = { event_target:SPT_negotiating_war_leader = { country_event = { id = SPT.05 } } }
+
+		ai_chance = { # In case the player disconnects for some reason at this stage, the AI will pick this option
+			factor = 100
+		}
+	}
+	option = { # We will accept the demands
+		name = MECH_INTEGRATE_NEUTRAL
+		tooltip = { custom_tooltip = uplift.7510.b }
+		switch = {
+			trigger = has_country_flag
+			SPT_flag_offered_white_peace = { SPT_white_peace_effects = yes }
+			SPT_flag_offered_status_quo = { SPT_status_quo_effects = yes }
+			SPT_flag_offered_claims = { SPT_cede_claims_effects = yes }
+			SPT_flag_offered_break_treaties = { SPT_break_treaties_effects = yes }
+		}
+		hidden_effect = { event_target:SPT_negotiating_war_leader = { country_event = { id = SPT.06 } } }
+		ai_chance = { # In case the player disconnects for some reason at this stage, the AI will NOT pick this option
+			factor = 0
+		}
+	}
+	option = { # There will be war!
+		name = KET_PEACE_REFUSE_01
+		custom_tooltip_with_params = {
+			description = CANT_TRADE_ATTITUDE
+			description_parameters = {
+				"STANCE" = [Root.GetName]
+			}
+		}
+		set_timed_country_flag = {
+			flag = SPT_ignored_peace_offer
+			days = 3600
+		}
+		hidden_effect = { event_target:SPT_negotiating_war_leader = { country_event = { id = SPT.05 } } }
+
+		ai_chance = { # In case the player disconnects for some reason at this stage, the AI will NOT pick this option
+			factor = 0
+		}
+	}
+}
+
+### They Have Rejected Our Demands
+country_event = {
+	id = SPT.05
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:SPT_target = {
+			remove_country_flag = SPT_negotiating_peace
+			create_message = {
+				type = SPT_SUE_FOR_PEACE_FAILED
+				localization = opinion_refused_fallen_empire_demand
+				days = 30
+				target = root
+			}
+		}
+		event_target:SPT_negotiating_war_leader = {
+			remove_country_flag = SPT_negotiating_peace
+			create_message = {
+				type = SPT_SUE_FOR_PEACE_FAILED
+				localization = opinion_refused_fallen_empire_demand
+				days = 30
+				target = root
+			}
+		}
+	}
+}
+
+# We Have Accepted Their Demands
+country_event = { ### Removes from war, adds truce, creates messages and removes temp flags
+	id = SPT.06
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:SPT_ongoing_war = {
+			every_war_participant = {
+				create_message = {
+					type = SPT_SUE_FOR_PEACE
+					localization = ACTION_OFFER_PEACE_NOTIFICATION
+					days = 30
+					target = root
+				}
+				if = {
+					limit = { is_at_war_with = event_target:SPT_enemy_war_leader }
+					set_truce = { target = event_target:SPT_target type = war }
+					event_target:SPT_target = { set_truce = { target = prev } }
+				}
+			}
+			remove_war_participant = event_target:SPT_target
+		}
+		event_target:SPT_negotiating_war_leader = { remove_country_flag = SPT_negotiating_peace }
+		event_target:SPT_negotiating_war_leader = { remove_country_flag = SPT_rejected_first_offer }
+		event_target:SPT_target = { remove_country_flag = SPT_negotiating_peace }
+	}
+}

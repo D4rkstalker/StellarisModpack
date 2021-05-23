@@ -1,0 +1,529 @@
+namespace = fatalf
+
+#Overgrowth Starter
+event = {
+	id = fatalf.132
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		if = {
+			limit = {has_global_flag = fatalf_overgrowth_guaranteed}
+			random_country = {
+				limit = {
+					is_country_type = global_event
+				}
+				country_event = {id = fatalf.030 days = 1080 random = 1080}
+			}
+		}
+		else = {
+			random_list = {
+				30 = {
+					random_country = {
+						limit = {
+							is_country_type = global_event
+						}
+						country_event = {id = fatalf.030 days = 1080 random = 1080}
+					}
+				}
+				70 = {log = "Failed Overgrowth Roll"}
+			}
+		}
+		
+	}
+}
+
+#Overgrowth Mid-game Crisis
+country_event = {
+	id = fatalf.030
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = {has_global_flag = fatalf_overgrowth_disabled}
+		NOT = {has_global_flag = start_overgrowth_crisis}
+	}
+	
+	immediate = {
+		every_country = {
+			limit = { 
+				OR = { 
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			begin_event_chain = {event_chain = seed_start target = this }
+			country_event = {id = fatalf.0301}
+		}
+		random_country = { 
+			limit = { is_country_type = global_event }
+			country_event = {id = fatalf.130 days = 360 random = 1000}
+		}
+		set_global_flag = start_overgrowth_crisis
+	}
+
+	#mean_time_to_happen = {days = 6}
+}
+
+country_event = {
+	id = fatalf.130
+	hide_window = yes
+	is_triggered_only = yes
+	picture = GFX_evt_hive
+
+	immediate = {
+		create_species = {
+				name = "Overgrowth"
+				class = SWARM
+				portrait = random
+				traits = random
+				immortal = yes
+		}
+		create_country = {
+			name = "Overgrowth"
+			type = "overgrowth_country"
+			species = last_created_species
+			name_list = "Overgrowth"
+			flag = {
+				icon= {
+					category = "special"
+					file = "the_swarm.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "new_dawn.dds"
+				}
+				colors={
+					"orange"
+					"grey"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				create_ship_design = { design = "Seed Ship" }
+				add_ship_design = last_created_design
+			}
+		}
+		last_created_country = {
+			save_event_target_as = overgrowth
+			owner_species = { save_event_target_as = overgrowth_species }
+			while = {
+				count = 10
+				random_system = {			
+					limit = {
+						NOR = {
+							any_ship_in_system = {owner = {is_same_empire = event_target:overgrowth}}
+							has_star_flag = hostile_system
+							has_star_flag = guardian
+							has_star_flag = enclave
+							exists = space_owner
+							any_ship_in_system = {
+								is_ship_size = constructor
+								is_constructing = starbase
+							}
+						}
+					}
+					random_system_planet = {
+						create_fleet = {
+							name = "Seed Ship"
+							effect = {
+								set_owner = event_target:overgrowth
+								create_ship = {
+									name = random
+									design = "Seed Ship"
+								}
+								set_location = {
+									target = prev
+									distance = 10
+									angle = random
+								}
+							}
+						}
+						create_fleet = {
+							name = "Seed Ship"
+							effect = {
+								set_owner = event_target:overgrowth
+								create_ship = {
+									name = random
+									design = "Seed Ship"
+								}
+								set_location = {
+									target = prev
+									distance = 10
+									angle = random
+								}
+							}
+						}
+					}
+				}
+			}
+			country_event = {id = fatalf.031}
+		}
+		every_country = {
+			limit = { 
+				OR = { 
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			end_event_chain = seed_start
+			begin_event_chain = {event_chain = seed_attack target = this }
+			country_event = {id = fatalf.0302}
+			establish_communications_no_message = last_created_country
+		}
+		country_event = {id = fatalf.034 days = 15}
+	}
+}
+	
+#Find nearest planet
+country_event = {
+	id = fatalf.031
+	hide_window = yes
+	is_triggered_only = yes
+	location = root
+	
+	immediate = {
+		every_owned_fleet = {
+			queue_actions = {
+				repeat = {
+					find_closest_planet = {
+						trigger = {
+							id = "close_planet"
+							OR = {
+								is_colonizable = yes
+								is_colony = yes
+							}
+							NOT = {has_planet_flag = start_growth}
+						}
+						found_planet = {
+							move_to = this
+							orbit_planet = this
+							effect = {
+								id = "set_growth_flag"
+								set_planet_flag = start_growth
+							}
+							wait = {duration = 45}
+							effect = {
+								id = "start_the_growth"
+								set_variable = {which = army_count value = 0}
+								planet_event = {id = fatalf.033}
+								set_variable = { which = blocker_count value = 0 }
+								planet_event = {id = fatalf.032}
+							}
+						}
+						failed = {
+							find_closest_system = {
+								trigger = {
+									id = "system_search"
+									# OR = {
+									# 	any_system_planet = {
+									# 		OR = {
+									# 			is_colonizable = yes
+									# 			is_colony = yes
+									# 		}
+									# 		NOT = {has_planet_flag = start_growth}
+									# 	}
+									# 	exists = owner
+									# }
+									NOT = {has_star_flag = fatalf_timed_passthrough}
+									distance = {
+										source = prev
+										type = hyperlane
+										max_jumps = 1
+									}
+								}
+								found_system = {
+									move_to = this
+									effect = {
+										id = "set_effect"
+										set_timed_star_flag = { flag = fatalf_timed_passthrough days = 300 }
+									}
+									wait = {duration = 5}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+				
+#Start Ground Infection
+planet_event = {
+	id = fatalf.032
+	hide_window = yes
+	is_triggered_only = yes
+	location = root
+
+	trigger = {
+		NOT = {
+			owner = {
+				is_primitive = yes
+			}
+		}
+	}
+	
+	immediate = {
+		if = {						#AI colonies will only spread 5 times
+			limit = {
+				OR = {
+					AND = {
+						check_variable = { which = blocker_count value > 5 }
+						exists = owner
+						owner = {is_ai = yes}
+					}
+					has_planet_flag = overgrown_planet
+				}
+			}
+			break = yes
+		}
+		else_if = {											#If spread 15 times, stop spreading and spawn new ship
+			limit = {check_variable = { which = blocker_count value > 15 }}
+			if = {
+				limit = {exists = event_target:overgrowth}
+				event_target:overgrowth = {
+					create_fleet = {
+						name = "Seed Ship"
+						effect = {
+							set_owner = event_target:overgrowth
+							create_ship = {
+								name = random
+								design = "Seed Ship"
+							}
+							set_location = {
+								target = root
+								distance = 10
+								angle = random
+							}
+						
+							queue_actions = {
+								repeat = {
+									find_closest_planet = {
+										trigger = {
+											id = "close_planet2"
+											OR = {
+												is_colonizable = yes
+												is_colony = yes
+											}
+											NOT = {has_planet_flag = start_growth}
+										}
+										found_planet = {
+											move_to = this
+											orbit_planet = this
+											effect = {
+												id = "set_growth_flag2"
+												set_planet_flag = start_growth
+											}
+											wait = {duration = 45}
+											effect = {
+												id = "start_the_growth2"
+												set_variable = {which = army_count value = 0}
+												planet_event = {id = fatalf.033}
+												set_variable = { which = blocker_count value = 0 }
+												planet_event = {id = fatalf.032}
+											}
+										}
+										failed = {
+											find_closest_system = {
+												trigger = {
+													id = "system_search2"
+													# OR = {
+													# 	any_system_planet = {
+													# 		OR = {
+													# 			is_colonizable = yes
+													# 			is_colony = yes
+													# 		}
+													# 		NOT = {has_planet_flag = start_growth}
+													# 	}
+													# 	exists = owner
+													# }
+													NOT = {has_star_flag = fatalf_timed_passthrough}
+													distance = {
+														source = prev
+														type = hyperlane
+														max_jumps = 1
+													}
+												}
+												found_system = {
+													move_to = this
+													effect = {
+														id = "set_effect2"
+														set_timed_star_flag = { flag = fatalf_timed_passthrough days = 300 }
+													}
+													wait = {duration = 5}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			set_planet_flag = overgrown_planet
+		}
+		else= {										#Spread the overgrowth
+			if = {										
+				limit = {							#If completely cleared and has spread 5 times, do not spread any more.
+					check_variable = { which = blocker_count value > 5 }
+					NOT = {has_deposit = d_fatalf_overgrowth}
+				}
+				planet_event = {id = fatalf.0305}
+				break = yes
+			}
+			add_deposit = d_fatalf_overgrowth
+			root = {
+				change_variable = { which = blocker_count value = 1 }
+				planet_event = {id = fatalf.032 days = 45}
+			}
+		}
+	}
+}
+
+#Spawn Spore Armies				
+planet_event = {
+	id = fatalf.033
+	hide_window = yes
+	is_triggered_only = yes
+	location = root
+	
+	immediate = {
+		if	= {
+			limit = {
+				is_colony = yes 
+				exists = owner 
+				owner = {
+					NOT = {has_country_flag = overgrowth_ground_seen}
+				}
+			}
+			planet_event = {id = fatalf.0304}
+		}
+		if = {
+			limit = {is_colony = yes 	is_occupied_flag = no	check_variable = {which = army_count value <= 7 }}
+			owner = {set_country_flag = overgrowth_ground_seen}
+			create_army = {
+				name = "Seed Army"
+				owner = event_target:overgrowth
+				species = event_target:overgrowth_species
+				type = seed_army 
+			}
+			create_army = {
+				name = "Seed Army"
+				owner = event_target:overgrowth
+				species = event_target:overgrowth_species
+				type = seed_army 
+			}
+			change_variable = {which = army_count  value = 1 }
+			planet_event = {id = fatalf.033 days = 30}
+		}
+	}
+}
+				
+#Feel the Oncoming Storm
+country_event = {
+	id = fatalf.0301
+	title = fatalf.0301.name
+	desc = fatalf.0301.desc
+	picture = GFX_evt_glitchy_matrix
+	is_triggered_only = yes
+	location = root
+	
+	option = {
+		name = fatalf.0301.a
+	}
+}	
+
+country_event = {
+	id = fatalf.0302
+	title = "fatalf.0302.name"
+	desc = "fatalf.0302.desc"
+	picture = GFX_evt_fleet_evil
+	is_triggered_only = yes
+	location = root
+	
+	option = {
+		name = fatalf.0302.a
+	}
+}
+
+country_event = {
+	id = fatalf.0303
+	title = "fatalf.0303.name"
+	desc = "fatalf.0303.desc"
+	picture = GFX_evt_exploding_ship
+	is_triggered_only = yes
+	location = root
+	
+	trigger = {
+		from = {
+			is_country = event_target:overgrowth
+		}
+	}
+	option = {
+		name = fatalf.0303.a
+	}
+}
+
+planet_event = {
+	id = fatalf.0304
+	title = "fatalf.0304.name"
+	desc = "fatalf.0304.desc"
+	picture = GFX_evt_disease_outbreak
+	is_triggered_only = yes
+	location = root
+	
+	option = {
+		name = fatalf.0304.a
+	}
+}
+
+#If infection eradicated on planet
+planet_event = {
+	id = fatalf.0305
+	title = "fatalf.0305.name"
+	desc = "fatalf.0305.desc"
+	picture = GFX_evt_tropical
+	is_triggered_only = yes
+	location = root
+	
+	trigger = {
+		NOT = {has_planet_flag = infection_cleared}
+	}
+	option = {
+		name = EXCELLENT
+		hidden_effect = {set_planet_flag = infection_cleared}
+	}
+}
+	
+#If all ships destroyed, remove the situation
+country_event = {
+	id = fatalf.034
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				any_owned_ship = {
+					exists = owner
+					owner = {is_same_empire = event_target:overgrowth}
+				}
+			}
+			country_event = {id = fatalf.034 days = 60}
+		}
+		else = {
+			event_target:overgrowth = {
+				destroy_country = yes
+			}
+			every_country = {
+				end_event_chain = seed_attack
+			}
+		}
+	}
+}
+			
