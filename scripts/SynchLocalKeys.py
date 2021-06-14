@@ -26,7 +26,7 @@ def getLocalisationKeys(ref_file):
     local_map = {}
 
     try:
-        with ref_file.open() as file:
+        with ref_file.open(encoding='utf-8') as file:
             next(file) #Skips first line
             for line in file:
                 line = line.lstrip() #Clears whitespaces

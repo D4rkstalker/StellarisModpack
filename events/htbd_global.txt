@@ -7,7 +7,7 @@ namespace = htbd_gl
 
 @incubation_time = 5000
 # change together with one in htbd_compat.txt
-@mod_version = 225
+@mod_version = 301
 
 # Create dragon/country at game start
 event = {
@@ -296,19 +296,24 @@ country_event = {
 			htbd_set_neutral_countries = yes
 		}
 
-		# version 225 added ether holes stabilization
 		if = {
 			limit = {
-				check_variable = { which = htbd_version value < 225 }
+				check_variable = { which = htbd_version value < 301.0 }
 			}
-			# log = "HTBD: connect ether holes with stars"
+			log = "HTBD: replace ether holes with from/to types"
 			every_owned_megastructure = {
 				limit = { is_megastructure_type = htbd_hole }
-				solar_system = {
-					log = "Hole in [This.GetName]"
-					htbd_spawn_hole = yes
+				if = {
+					limit = { solar_system = { has_star_flag = htbd_pass_to } }
+					solar_system = { htbd_spawn_hole_end = yes }
+					remove_megastructure = this
+					log = "Replace Etherhole with Etherhole Endpoint at [solar_system.GetName]"
 				}
-				remove_megastructure = this
+				else = {
+					solar_system = { htbd_spawn_hole = yes }
+					remove_megastructure = this
+					log = "Replace Etherhole with Etherhole Origin at [solar_system.GetName]"
+				}
 			}
 		}
 		# set new version for the current game finally
@@ -327,39 +332,41 @@ event = {
 		exists = event_target:htbd_country
 		event_target:htbd_country = {
 			NOT = { has_country_flag = htbd_lair_found }
-			num_fleets < 2
+			num_fleets < 3
 		}
 	}
 
 	immediate = {
-		log = "More dragons enter the galaxy"
 		random_system = {
 			limit = {
-				NOR = {
-					has_star_flag = htbd_pass_stay
-					has_star_flag = guardian
-					has_star_flag = enclave
-					has_star_flag = hostile_system
-					is_fe_cluster = yes
+				any_system_planet = { htbd_etherhole_source = yes }
+				is_fe_cluster = no
+				NOT = { has_star_flag = hostile_system }
+				NOT = { has_star_flag = htbd_death_place }
+			}
+			weights = {
+				base = 0.5
+				modifier = { mult = 40.0 has_star_flag = htbd_pass_stay }
+				modifier = { mult = 10.0 NOT = { exists = space_owner } }
+				modifier = { mult = 2.0 htbd_friend_system = yes }
+			}
+			if = {
+				limit = {
+					NOT = { has_star_flag = htbd_pass_stay }
 				}
-				any_system_planet = {
-					is_star = yes
-					NOR = {
-						is_planet_class = pc_black_hole
-						is_planet_class = pc_pulsar
-						is_planet_class = pc_neutron_star
+				log = "Spawn etherhole at [this.GetName]"
+				htbd_spawn_hole_end = yes
+				set_timed_star_flag = { flag = htbd_pass_stay days = @htbd_pass_time_short }
+			}
+			random_system_megastructure = {
+				limit = {
+					OR = {
+						is_megastructure_type = htbd_hole
+						is_megastructure_type = htbd_hole_end
 					}
 				}
-			}
-
-			htbd_spawn_hole = yes
-			set_timed_star_flag = { flag = htbd_pass_stay days = @htbd_pass_time_short }
-			set_star_flag = htbd_pass_to
-
-			random_system_megastructure = {
-				limit = { is_megastructure_type = htbd_hole }
 				random_list = {
-					5 = {
+					25 = {
 						htbd_new_fleet = yes
 						last_created_fleet = {
 							htbd_dragon_grand = yes
@@ -375,7 +382,7 @@ event = {
 							log = "Dragon [this.GetName] in [prevprev.GetName]"
 						}
 					}
-					30 = {
+					5 = {
 						htbd_new_fleet = yes
 						last_created_fleet = {
 							htbd_dragon_teen = yes
@@ -781,14 +788,20 @@ country_event = {
 	trigger = {
 		is_country_type = htbd_horde
 		any_owned_megastructure = {
-			is_megastructure_type = htbd_hole
+			OR = {
+				is_megastructure_type = htbd_hole
+				is_megastructure_type = htbd_hole_end
+			}
 			solar_system = { NOT = { has_star_flag = htbd_pass_stay } }
 		}
 	}
 	immediate = {
 		every_owned_megastructure = {
 			limit = {
-				is_megastructure_type = htbd_hole
+				OR = {
+					is_megastructure_type = htbd_hole
+					is_megastructure_type = htbd_hole_end
+				}
 				solar_system = { NOT = { has_star_flag = htbd_pass_stay } }
 			}
 			solar_system = {

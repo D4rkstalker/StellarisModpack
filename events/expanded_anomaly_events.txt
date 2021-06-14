@@ -469,7 +469,7 @@ ship_event = {
 					has_trait = leader_trait_expertise_biology
 					has_trait = leader_trait_meticulous
 					has_trait = leader_trait_cataloger
-					has_skill > 9
+					has_skill > 5
 				}
 			}
 		}
@@ -528,7 +528,7 @@ ship_event = {
 					has_trait = leader_trait_expertise_new_worlds
 					has_trait = leader_trait_meticulous
 					has_trait = leader_trait_cataloger
-					has_skill > 9
+					has_skill > 5
 				}
 			}
 		}
@@ -1699,7 +1699,7 @@ ship_event = {
 			}
 			while = {
 				count = 3
-				create_pop = { species = last_created }
+				create_pop = { species = last_created_species }
 			}
 		}
 	}
@@ -3969,7 +3969,7 @@ ship_event = {
 	}
 }
 
-# Broken Nanites
+# Nanites eat asteroids
 country_event = {
 	id = anomalymod.107
 	title = "distar.311.name"
@@ -3979,38 +3979,29 @@ country_event = {
 	
 	is_triggered_only = yes
 	
+	immediate = {
+		event_target:atomic_clock_planet = {
+			clear_deposits = yes
+			add_deposit = d_nanites_deposit
+			solar_system = {
+				every_system_planet = {
+					limit = {
+						is_asteroid = yes
+						has_any_strategic_resource = no
+						NOT = { has_deposit = d_nanites_deposit }
+					}
+					clear_deposits = yes
+					add_deposit = d_nanites_deposit
+				}
+			}
+		}
+	}
+	
 	option = {
-		name = anomalymod.107.a
+		name = distar.311.a
+		custom_tooltip = anomalymod.107.tooltip
 		small_artifact_reward = yes
-		if = {
-			limit = { NOT = { has_technology = tech_assembly_pattern } }
-			give_technology = { tech = tech_assembly_pattern }
-		}
-		else_if = {
-			limit = { has_tech_option = tech_construction_templates }
-			add_tech_progress = {
-				tech = tech_construction_templates
-				progress = 0.5
-			}
-		}
-		else_if = {
-			limit = { NOT = { has_technology = tech_construction_templates } }
-			add_research_option = tech_construction_templates
-			add_tech_progress = {
-				tech = tech_construction_templates
-				progress = 0.2
-			}
-		}
-		else = {
-			add_monthly_resource_mult = {
-				resource = engineering_research
-				value = @tier3researchreward
-				min = @tier3researchmin
-				max = @tier3researchmax
-			}
-		}
 		generate_lcluster_clue = yes
-		add_resource = { nanites = 300 }
 	}
 }
 
@@ -6376,25 +6367,22 @@ ship_event = {
 				min = @tier2researchmin
 				max = @tier2researchmax
 			}
-			if = {
-				limit = { NOT = { has_country_flag = tiyanki_encountered } }
-				hidden_effect = { set_country_flag = tiyanki_encountered }
-				if = {
-					limit = {
-						has_tech_option = tech_space_whale_weapon_1
-					}
-					add_tech_progress = {
-						tech = tech_space_whale_weapon_1
-						progress = 0.6
-					}
-				}
-				else = {
-					add_research_option = tech_space_whale_weapon_1
-					add_tech_progress = {
-						tech = tech_space_whale_weapon_1
-						progress = 0.2
-					}
-				}
+		}
+	}
+	option = {
+		name = DISGUSTING
+		exclusive_trigger = {
+			OR = {
+				is_xenophobe = yes
+				has_valid_civic = civic_machine_terminator
+			}
+		}
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
 			}
 		}
 	}
@@ -6495,7 +6483,7 @@ ship_event = {
 	id = anomalymod.226
 	title = "anomalymod.226.name"
 	desc = "anomalymod.226.desc"
-	picture = GFX_evt_ocean_planet
+	picture = GFX_evt_ocean
 	show_sound = event_ship_bridge
 	location = FROM
 	
@@ -6741,7 +6729,18 @@ ship_event = {
 ship_event = {
 	id = anomalymod.232
 	title = "anomaly.2510.name"
-	desc = "anomalymod.232.desc"
+	desc = {
+		text = "anomalymod.232.desc"
+		trigger = {
+			leader = { NOT = { has_trait = leader_trait_expertise_biology } }
+		}
+	}
+	desc = {
+		text = "anomalymod.232.desc_b"
+		trigger = {
+			leader = { has_trait = leader_trait_expertise_biology }
+		}
+	}
 	picture = GFX_evt_frozen
 	show_sound = event_ship_bridge
 	location = FROM
@@ -6760,6 +6759,9 @@ ship_event = {
 	}
 	option = {
 		name = FASCINATING
+		trigger = {
+			leader = { NOT = { has_trait = leader_trait_expertise_biology } }
+		}
 		FROM = {
 			set_deposit = d_society_3
 		}
@@ -6771,6 +6773,35 @@ ship_event = {
 					days = -1
 				}
 			}
+		}
+	}
+	option = {
+		name = EXCELLENT
+		trigger = {
+			leader = { has_trait = leader_trait_expertise_biology }
+		}
+		allow = {
+			leader = { has_trait = leader_trait_expertise_biology }
+		}
+		FROM = {
+			set_deposit = d_society_3_exotic_gas_1
+		}
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+		hidden_effect = {
+			FROM = {
+				add_modifier = {
+					modifier = "subterranean_ocean"
+					days = -1
+				}
+			}
+			owner = { set_country_flag = underwater_ocean_microbes_event_fired }
 		}
 	}
 }
@@ -6841,12 +6872,17 @@ country_event = {
 	is_triggered_only = yes
 	
 	immediate = {
-		FROM = { clear_deposits = yes }
+		FROM = {
+			clear_deposits = yes
+			set_deposit = d_society_3_exotic_gas_1
+		}
 	}
 	
 	option = {
 		name = REMARKABLE
-		FROM = { add_deposit = d_exotic_gases_1 }
+		tooltip = {
+			FROM = { set_deposit = d_exotic_gases_1 }
+		}
 		add_monthly_resource_mult = {
 			resource = society_research
 			value = @tier2researchreward
@@ -7154,7 +7190,7 @@ ship_event = {
 	id = anomalymod.244
 	title = "anomalymod.244.name"
 	desc = "anomalymod.244.desc"
-	picture = GFX_evt_ocean_planet
+	picture = GFX_evt_ocean
 	show_sound = event_ship_bridge
 	location = FROM
 	
@@ -7303,7 +7339,7 @@ planet_event = {
 		}
 		text = anomalymod.247.desc.phile
 	}
-	picture = GFX_evt_ocean_planet
+	picture = GFX_evt_ocean
 	show_sound = event_air_raid_siren
 	location = ROOT
 	

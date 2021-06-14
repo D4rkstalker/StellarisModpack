@@ -1,0 +1,4170 @@
+namespace = planet_builders
+####################
+#The Planetbuilders#
+####################
+
+#spawn a "marker" planet
+country_event = {
+	id = planet_builders.1
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_country_flag = planet_ordered
+		FROM = {
+			is_ship_size = planet_constructor
+		}
+	}
+	
+	immediate = {
+		save_event_target_as = planet_buyer
+		set_country_flag = planet_placed
+		FROM = {
+			solar_system = {
+				spawn_planet = {
+					class = "pc_planet_blueprint"
+					location = FROM
+					has_ring = no
+					size = 10
+				
+					init_effect = {
+						set_name = "Planet Hologram"
+						set_all_comms_surveyed = yes
+						clear_blockers = yes
+						clear_deposits = yes
+						clear_planet_modifiers = yes
+						set_planet_flag = megastructure
+						set_planet_flag = colony_event
+						prevent_anomaly = yes
+						add_modifier = { 
+							modifier = planet_builders_holographic_planet
+							days = -1
+						}
+						set_planet_flag = built_planet
+						save_event_target_as = built_planet
+					}
+				}
+			}
+		}
+		country_event = { id = planet_builders.2 days = 1 }
+	}
+}
+#confirm location
+country_event = {
+	id = planet_builders.2
+	title = planet_builders.2.title
+	desc = planet_builders.2.desc
+	picture = GFX_evt_shielded_planet
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = planet_builders.yes
+	}
+	option = {
+		name = planet_builders.no
+		hidden_effect = {
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.3 }
+				remove_planet = yes
+			}
+			remove_country_flag = planet_placed
+		}
+	}
+	option = {
+		name = planet_builders.2.money_back
+		add_resource = { energy = 500 }
+		hidden_effect = { 
+			event_target:built_planet = { remove_planet = yes }
+			remove_country_flag = planet_ordered
+			remove_country_flag = not_started_building_yet
+		}
+	}
+}
+#spawn the planetbuilder ship
+planet_event = {
+	id = planet_builders.3
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:planet_buyer = {
+			if = {
+				limit = {
+					NOT = { has_country_flag = planet_ordered }
+				}
+				set_country_flag = planet_ordered
+			}
+		}
+		create_fleet = {
+			effect = {
+				set_owner = event_target:planet_buyer
+				set_fleet_flag = planet_constructor
+				create_ship = {
+					name = random
+					design = "NAME_planet_constructor"
+					prefix = no
+					upgradable = no
+					effect = {
+						set_name = "NAME_planet_constructor"
+					}
+				}
+				set_location = {
+					target = prev
+					distance = 0
+					angle = random 
+				}
+			}
+			settings = {
+				spawn_debris = no
+			}
+		}
+	}
+}
+#place the scaffolding
+planet_event = {
+	id = planet_builders.4
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		change_pc = pc_planet_blueprint_uncolonizable
+		remove_modifier = planet_builders_holographic_planet
+		event_target:built_planet = {
+			spawn_megastructure = { 
+				type = "planet_construction_site_scaffolding" 
+				init_effect = {
+					set_megastructure_flag = planetbuilders_building_megastructure
+					save_event_target_as = planetbuilders_scaffolding
+				}
+			}
+		}
+		planet_event = { id = planet_builders.6 days = 360 }
+	}
+}
+#planetbuilders tell the player about the scaffolding
+country_event = {
+	id = planet_builders.5
+	title = planet_builders.comms.title
+	desc = planet_builders.5.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = planetbuilders
+			}
+			save_event_target_as = planet_builders
+		}
+		add_modifier = {
+			modifier = planet_builders_timer
+			days = 360
+		}
+	}
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.nice
+		tooltip = {
+			add_modifier = { 
+				modifier = planet_builders_timer
+				days = 360
+			}
+		}
+	}
+}
+#upgrade the scaffolding into a complete sphere, set preparing_surface_phase^ flag, which later gets removed by event, time depends on chosen planet size.
+planet_event = {
+	id = planet_builders.6
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:planetbuilders_scaffolding = {
+			upgrade_megastructure_to = planet_construction_site
+		}
+		change_pc = pc_molten
+		event_target:planet_buyer = {
+			country_event = { id = planet_builders.7 }
+		}
+	}
+}
+#scaffolding done. now choose the size of the ordered planet (core to crust phase)
+country_event = {
+	id = planet_builders.7
+	title = planet_builders.comms.title
+	desc = planet_builders.7.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				has_country_flag = not_payed_for_size_yet
+			}
+			planetbuilder_find_planet_again = yes
+			remove_country_flag = not_payed_for_size_yet
+		}
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 0
+			}
+		}
+	}
+
+	option = {
+		name = planet_builders.pay_later
+		hidden_effect = {
+			set_country_flag = not_payed_for_size_yet
+			country_event = { id = planet_builders.107 }
+		}
+	}
+#fuck localising this shit.
+	option = {
+		name = 1
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 1
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 2
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 2
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 3
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 3
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 4
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 4
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 5
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 5
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 6
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 6
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 7
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 7
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 8
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 8
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 9
+		set_variable = { 
+			which = ordered_planet_size_ec
+			value = 9
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 10
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 10
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 11
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 11
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 12
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 12
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 13
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 13
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 14
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 14
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 15
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 15
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 16
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 16
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 17
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 17
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 18
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 18
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 19
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 19
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 20
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 20
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 21
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 21
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 22
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 22
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 23
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 23
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 24
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 24
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 25
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 25
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 26
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 26
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 27
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 27
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 28
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 28
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 29
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 29
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 30
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 30
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 35
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 35
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 40
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 40
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 45
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 45
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 50
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 50
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 55
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 55
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 60
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 60
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 65
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 65
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 70
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 70
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 80
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 80
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 90
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 90
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+	option = {
+		name = 100
+		event_target:built_planet = {
+			set_variable = { 
+				which = ordered_planet_size_ec
+				value = 100
+			}
+		}
+		country_event = { id = planet_builders.8 }
+	}
+}
+#answer, review the size again. Different text/ extra cost for certain ranges of planets
+country_event = {
+	id = planet_builders.8
+	title = planet_builders.comms.title
+	desc = {
+		text = planet_builders.8.desc.small
+		trigger = {
+			event_target:built_planet = {
+				check_variable = {
+					which = ordered_planet_size_ec
+					value < 11
+				}
+			}
+		}
+	}
+	desc = {
+		text = planet_builders.8.desc.normal
+		trigger = {
+			event_target:built_planet = {
+				check_variable = {
+					which = ordered_planet_size_ec
+					value > 10
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 41
+				}
+			}
+		}
+	}
+	desc = {
+		text = planet_builders.8.desc.big
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 40
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 71
+				}
+			}
+		}
+	}
+	desc = {
+		text = planet_builders.8.desc.massive
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 71
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 91
+				}
+			}
+		}
+	}
+	desc = {
+		text = planet_builders.8.desc.supermassive
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 90
+				}
+			}
+		}
+	}
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		planetbuilder_find_planet_again = yes
+	}
+	
+	option = {
+		name = planet_builders.back
+		hidden_effect = {
+			country_event = { id = planet_builders.7 }
+			event_target:built_planet = {
+				set_variable = { 
+					which = ordered_planet_size_ec
+					value = 0
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = planet_builders.8.small
+		trigger = {
+			event_target:built_planet = {
+				check_variable = {
+					which = ordered_planet_size_ec
+					value < 11
+				}
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 15000 } 
+		}
+		add_resource = { energy = -15000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 720
+		}
+		event_target:built_planet = { planet_event = { id = planet_builders.9 } }
+	}
+	option = {
+		name = planet_builders.8.normal
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 10
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 41
+				}
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 30000 }
+		}
+		add_resource = { energy = -30000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 1440
+		}
+		event_target:built_planet = { planet_event = { id = planet_builders.9 } }
+	}
+	option = {
+		name = planet_builders.8.big
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 41
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 71
+				}
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 60000 }
+		}
+		add_resource = { energy = -60000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 1800
+		}
+		event_target:built_planet = { planet_event = { id = planet_builders.9 } }
+	}
+	option = {
+		name = planet_builders.8.massive
+		trigger = {
+			event_target:built_planet = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 70
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 91
+				}
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 90000 }
+		}
+		add_resource = { energy = -90000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 2160
+		}
+		event_target:built_planet = { planet_event = { id = planet_builders.9 } }
+	}
+	option = {
+		name = planet_builders.8.supermassive
+		trigger = {
+			event_target:built_planet = {
+				check_variable = {
+					which = ordered_planet_size_ec
+					value > 90
+				}
+			}
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 130000 }
+		}
+		add_resource = { energy = -130000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 2510
+		}
+		event_target:built_planet = { planet_event = { id = planet_builders.9 } }
+	}
+}
+#set the timer for crust completion. the actual planetsize only gets applied once a planetclass has been chosen (surface phase)
+planet_event = {
+	id = planet_builders.9
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:planetbuilders_scaffolding = {
+			upgrade_megastructure_to = planet_construction_site_core_crust_phase
+		}
+		change_planet_size = +5
+		if = {
+			limit = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 11
+				}
+			}
+			planet_event = { id = planet_builders.10 days = 720 } #2 years
+		}
+		if = {
+			limit = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 10
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 41
+				}
+			}
+			planet_event = { id = planet_builders.10 days = 1440 } #4 years
+		}
+		if = {
+			limit = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 40
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 71
+				}
+			}
+			planet_event = { id = planet_builders.10 days = 1800 } #5 years
+		}
+		if = {
+			limit = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 70
+				}
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value < 91
+				}
+			}
+			planet_event = { id = planet_builders.10 days = 2160 } #6 years
+		}
+		if = {
+			limit = {
+				check_variable = { 
+					which = ordered_planet_size_ec
+					value > 90
+				}
+			}
+			planet_event = { id = planet_builders.10 days = 2510 } #7 years
+		}
+	}
+}
+#core/crust phase ends. Player gets to choose planetclass and the megastructure gets upgraded again
+planet_event = {
+	id = planet_builders.10
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		change_pc = pc_barren
+		event_target:planet_buyer = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+}
+#choose planetclass - category menu
+country_event = {
+	id = planet_builders.11
+	title = planet_builders.comms.title
+	desc = planet_builders.11.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	trigger = {
+		NOT = {
+			has_country_flag = planet_builders_11_open
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				has_country_flag = not_payed_for_planetclass_yet
+			}
+			remove_country_flag = not_payed_for_planetclass_yet
+			planetbuilder_find_planet_again = yes
+		}
+		set_country_flag = planet_builders_11_open
+	}
+
+	option = {
+		name = planet_builders.pay_later
+		set_country_flag = not_payed_for_planetclass_yet
+	}
+	option = {
+		name = planet_builders.11.uninhabitable
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 10000 }
+		}
+		add_resource = { energy = -10000 }
+		country_event = { id = planet_builders.12 }
+	}
+	option = {
+		name = planet_builders.11.habitable_normal
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 20000 }
+		}
+		add_resource = { energy = -20000 }
+		country_event = { id = planet_builders.13 }
+	}
+	option = {
+		name = planet_builders.11.special
+		country_event = { id = planet_builders.15 }
+	}
+	
+	after = {
+		remove_country_flag = planet_builders_11_open
+	}
+}
+#category uninhabitable 
+country_event = {
+	id = planet_builders.12
+	title = planet_builders.comms.title
+	desc = planet_builders.12.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		add_resource = { energy = 10000 }
+		hidden_effect = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+	option = {
+		name = planet_builders.12.gas_giant
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_gas_giant
+			change_pc = pc_gas_giant
+			change_planet_size = +40
+		}
+	}
+	option = {
+		name = planet_builders.12.molten
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_molten
+		}
+	}
+#randomized to either pc_barren_cold or pc_barren
+	option = {
+		name = planet_builders.12.barren
+		hidden_effect = {
+			event_target:built_planet = {
+				random_list = {
+					50 = {
+						set_planet_flag = marked_for_pc_barren
+					}
+					50 = {
+						set_planet_flag = marked_for_pc_barren_cold
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.12.toxic
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_toxic
+		}
+	}
+	option = {
+		name = planet_builders.12.frozen
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_frozen
+		}
+	}
+	option = {
+		name = planet_builders.12.broken
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_broken
+		}
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:built_planet = {
+					OR = {
+						has_planet_flag = marked_for_pc_gas_giant
+						has_planet_flag = marked_for_pc_molten
+						has_planet_flag = marked_for_pc_barren
+						has_planet_flag = marked_for_pc_barren_cold
+						has_planet_flag = marked_for_pc_toxic
+						has_planet_flag = marked_for_pc_frozen
+						has_planet_flag = marked_for_pc_broken						
+					}
+				}
+			}
+			event_target:built_planet = {
+				set_planet_flag = marked_for_uninhabitable
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+#category habitable (extra option for planetary diversity)
+country_event = {
+	id = planet_builders.13
+	title = planet_builders.comms.title
+	desc = planet_builders.13.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+
+	option = {
+		name = planet_builders.back
+		add_resource = { energy = 20000 }
+		hidden_effect = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+	option = {
+		name = planet_builders.13.planetary_diversity
+		trigger = {
+			has_global_flag = has_planetary_diversity_mod
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.14 }
+		}
+	}
+	#dry
+	option = {
+		name = planet_builders.13.desert
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_desert
+		}
+	}
+	option = {
+		name = planet_builders.13.arid
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_arid
+		}
+	}
+	option = {
+		name = planet_builders.13.savannah
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_savannah
+		}
+	}
+	#temperate
+	option = {
+		name = planet_builders.13.tropical
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_tropical
+		}
+	}
+	option = {
+		name = planet_builders.13.continental
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_continental
+		}
+	}
+	option = {
+		name = planet_builders.13.ocean
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_ocean
+		}
+	}
+	#cold
+	option = {
+		name = planet_builders.13.tundra
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_tundra
+		}
+	}
+	option = {
+		name = planet_builders.13.arctic
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_arctic
+		}
+	}
+	option = {
+		name = planet_builders.13.alpine
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_alpine
+		}
+	}
+	option = {
+		name = planet_builders.13.nuked
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_nuked
+		}
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:built_planet = {
+					OR = {
+						has_planet_flag = marked_for_pc_desert
+						has_planet_flag = marked_for_pc_arid
+						has_planet_flag = marked_for_pc_savannah
+						has_planet_flag = marked_for_pc_tropical
+						has_planet_flag = marked_for_pc_continental
+						has_planet_flag = marked_for_pc_ocean
+						has_planet_flag = marked_for_pc_tundra
+						has_planet_flag = marked_for_pc_arctic
+						has_planet_flag = marked_for_pc_alpine
+						has_planet_flag = marked_for_pc_nuked
+					}
+				}
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+#category planetary diversity (normal planets, special ones are included in an extra menu of the special category)
+country_event = {
+	id = planet_builders.14
+	title = planet_builders.comms.title
+	desc = planet_builders.14.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		hidden_effect = {
+			country_event = { id = planet_builders.13 }
+		}
+	}
+	#gas planets
+	option = {
+		name = planet_builders.14.methane
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_methane
+		}
+	}
+	option = {
+		name = planet_builders.14.ammonia
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_ammonia
+		}
+	}
+	#the rest
+	option = {
+		name = planet_builders.14.prairie
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_prairie
+		}
+	}
+	option = {
+		name = planet_builders.14.antarctic
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_antarctic
+		}
+	}
+	option = {
+		name = planet_builders.14.glacial
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_glacial
+		}
+	}
+	option = {
+		name = planet_builders.14.frozen_desert
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_frozen_desert
+		}
+	}
+	option = {
+		name = planet_builders.14.steppe
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_steppe
+		}
+	}
+	option = {
+		name = planet_builders.14.hadesert
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_hadesert
+		}
+	}
+	option = {
+		name = planet_builders.14.boreal
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_boreal
+		}
+	}
+	option = {
+		name = planet_builders.14.sandsea
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_sandsea
+		}
+	}
+	option = {
+		name = planet_builders.14.subarctic
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_subarctic
+		}
+	}
+	option = {
+		name = planet_builders.14.cascadian
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_cascadian
+		}
+	}
+	option = {
+		name = planet_builders.14.swamp
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_swamp
+		}
+	}
+	option = {
+		name = planet_builders.14.mangrove
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_mangrove
+		}
+	}
+	option = {
+		name = planet_builders.14.desertislands
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_desertislands
+		}
+	}
+	option = {
+		name = planet_builders.14.mesa
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_mesa
+		}
+	}
+	option = {
+		name = planet_builders.14.oasis
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_oasis
+		}
+	}
+	option = {
+		name = planet_builders.14.hajungle
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_hajungle
+		}
+	}
+	option = {
+		name = planet_builders.14.mushroom
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_mushroom
+		}
+	}
+	option = {
+		name = planet_builders.14.biolumen
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_biolumen
+		}
+	}
+	option = {
+		name = planet_builders.14.retinal
+		event_target:built_planet = {
+			set_planet_flag = marked_for_pc_retinal
+		}
+	}
+	after = {
+		if = {
+			limit = {
+				event_target:built_planet = {
+					OR = {
+						has_planet_flag = marked_for_pc_methane
+						has_planet_flag = marked_for_pc_ammonia
+						has_planet_flag = marked_for_pc_prairie
+						has_planet_flag = marked_for_pc_antarctic
+						has_planet_flag = marked_for_pc_glacial
+						has_planet_flag = marked_for_pc_frozen_desert
+						has_planet_flag = marked_for_pc_steppe
+						has_planet_flag = marked_for_pc_hadesert
+						has_planet_flag = marked_for_pc_boreal
+						has_planet_flag = marked_for_pc_sandsea
+						has_planet_flag = marked_for_pc_subarctic
+						has_planet_flag = marked_for_pc_cascadian
+						has_planet_flag = marked_for_pc_swamp
+						has_planet_flag = marked_for_pc_mangrove
+						has_planet_flag = marked_for_pc_desertislands
+						has_planet_flag = marked_for_pc_mesa
+						has_planet_flag = marked_for_pc_oasis
+						has_planet_flag = marked_for_pc_hajungle
+						has_planet_flag = marked_for_pc_mushroom
+						has_planet_flag = marked_for_pc_biolumen
+						has_planet_flag = marked_for_pc_retinal
+					}
+				}
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+#special planets
+country_event = {
+	id = planet_builders.15
+	title = planet_builders.comms.title
+	desc = planet_builders.15.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		hidden_effect = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+	option = {
+		name = planet_builders.15.gaia
+		hidden_effect = {
+			country_event = { id = planet_builders.26 }
+		}
+	}
+	option = {
+		name = planet_builders.15.relic
+		hidden_effect = {
+			country_event = { id = planet_builders.27 }
+		}
+	}
+	option = {
+		name = planet_builders.15.alive
+		hidden_effect = {
+			country_event = { id = planet_builders.30 }
+		}
+	}
+	option = {
+		name = planet_builders.15.edible
+		hidden_effect = {
+			country_event = { id = planet_builders.31 }
+		}
+	}
+	option = {
+		name = planet_builders.15.golden
+		allow = {
+			custom_tooltip = {
+				text = only_one_golden
+				NOT = { has_global_flag = golden_planet_built }
+			}
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.28 }
+		}
+	}
+	option = {
+		name = planet_builders.15.pleasure
+		hidden_effect = {
+			country_event = { id = planet_builders.29 }
+		}
+	}
+}
+
+#planetbuilders get to work again. always takes the same amount of time. (different answer for uninhabitable planets)
+country_event = {
+	id = planet_builders.16
+	title = planet_builders.comms.title
+	desc = {
+		text = planet_builders.16.desc_habitable
+		trigger = {
+			NOT = {
+				event_target:built_planet = {
+					has_planet_flag = marked_for_uninhabitable
+				}
+			}
+		}
+	}
+	desc = {
+		text = planet_builders.16.desc_uninhabitable
+		trigger = {
+			event_target:built_planet = {
+				has_planet_flag = marked_for_uninhabitable
+			}
+		}
+	}
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		planetbuilder_find_planet_again = yes
+		event_target:planetbuilders_scaffolding = {
+			upgrade_megastructure_to = planet_construction_site_surface_phase
+		}
+		if = {
+			limit = {
+				event_target:built_planet = {
+					NOT = {
+						has_planet_flag = marked_for_uninhabitable
+					}
+				}
+			}
+			country_event = { id = planet_builders.22 days = 720 }
+			add_modifier = { 
+				modifier = planet_builders_timer
+				days = 720
+			}
+		}
+	#no further options for uninhabitable
+		if = {
+			limit = {
+				event_target:built_planet = {
+					has_planet_flag = marked_for_uninhabitable
+				}
+			}
+			country_event = { id = planet_builders.24 days = 360 }
+			add_modifier = { 
+				modifier = planet_builders_timer
+				days = 360
+			}
+		}
+	}
+	
+	option = {
+		name = planet_builders.nice
+	}
+}
+#apply planetclass and planetsize.
+planet_event = {
+	id = planet_builders.17
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+#type
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_desert
+			}
+			change_pc = pc_desert
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_arid
+			}
+			change_pc = pc_arid
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_savannah
+			}
+			change_pc = pc_savannah
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_tropical
+			}
+			change_pc = pc_tropical
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_continental
+			}
+			change_pc = pc_continental
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_ocean
+			}
+			change_pc = pc_ocean
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_tundra
+			}
+			change_pc = pc_tundra
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_arctic
+			}
+			change_pc = pc_arctic
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_alpine
+			}
+			change_pc = pc_alpine
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_nuked
+			}
+			change_pc = pc_nuked
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_gas_giant
+			}
+			change_pc = pc_gas_giant
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_molten
+			}
+			change_pc = pc_molten
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_barren
+			}
+			change_pc = pc_barren
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_barren_cold
+			}
+			change_pc = pc_barren_cold
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_toxic
+			}
+			change_pc = pc_toxic
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_frozen
+			}
+			change_pc = pc_frozen
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_broken
+			}
+			change_pc = pc_broken
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_methane
+			}
+			change_pc = pc_methane
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_ammonia
+			}
+			change_pc = pc_ammonia
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_prairie
+			}
+			change_pc = pc_prairie
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_antarctic
+			}
+			change_pc = pc_antarctic
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_glacial
+			}
+			change_pc = pc_glacial
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_frozen_desert
+			}
+			change_pc = pc_frozen_desert
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_steppe
+			}
+			change_pc = pc_steppe
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_hadesert
+			}
+			change_pc = pc_hadesert
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_boreal
+			}
+			change_pc = pc_boreal
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_sandsea
+			}
+			change_pc = pc_sandsea
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_subarctic
+			}
+			change_pc = pc_subarctic
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_cascadian
+			}
+			change_pc = pc_cascadian
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_swamp
+			}
+			change_pc = pc_swamp
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_mangrove
+			}
+			change_pc = pc_mangrove
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_desertislands
+			}
+			change_pc = pc_desertislands
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_mesa
+			}
+			change_pc = pc_mesa
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_oasis
+			}
+			change_pc = pc_oasis
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_hajungle
+			}
+			change_pc = pc_hajungle
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_mushroom
+			}
+			change_pc = pc_mushroom
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_biolumen
+			}
+			change_pc = pc_biolumen
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_retinal
+			}
+			change_pc = pc_retinal
+		}
+		if = {
+			limit = {
+				has_planet_flag = marked_for_pc_gaia
+			}
+			change_pc = pc_gaia
+		}
+#size
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 1 }
+			}
+			set_planet_size = 1
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 2 }
+			}
+			set_planet_size = 2
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 3 }
+			}
+			set_planet_size = 3
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 4 }
+			}
+			set_planet_size = 4
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 4 }
+			}
+			set_planet_size = 4
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 5 }
+			}
+			set_planet_size = 5
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 6 }
+			}
+			set_planet_size = 6
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 7 }
+			}
+			set_planet_size = 7
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 8 }
+			}
+			set_planet_size = 8
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 9 }
+			}
+			set_planet_size = 9
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 10 }
+			}
+			set_planet_size = 10
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 11 }
+			}
+			set_planet_size = 11
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 12 }
+			}
+			set_planet_size = 12
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 13 }
+			}
+			set_planet_size = 13
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 14 }
+			}
+			set_planet_size = 14
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 15 }
+			}
+			set_planet_size = 15
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 16 }
+			}
+			set_planet_size = 16
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 17 }
+			}
+			set_planet_size = 17
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 18 }
+			}
+			set_planet_size = 18
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 19 }
+			}
+			set_planet_size = 19
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 20 }
+			}
+			set_planet_size = 20
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 21 }
+			}
+			set_planet_size = 21
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 22 }
+			}
+			set_planet_size = 22
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 23 }
+			}
+			set_planet_size = 23
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 24 }
+			}
+			set_planet_size = 24
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 25 }
+			}
+			set_planet_size = 25
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 26 }
+			}
+			set_planet_size = 26
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 27 }
+			}
+			set_planet_size = 27
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 28 }
+			}
+			set_planet_size = 28
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 29 }
+			}
+			set_planet_size = 29
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 30 }
+			}
+			set_planet_size = 30
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 35 }
+			}
+			set_planet_size = 35
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 40 }
+			}
+			set_planet_size = 40
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 45 }
+			}
+			set_planet_size = 45
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 50 }
+			}
+			set_planet_size = 50
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 55 }
+			}
+			set_planet_size = 55
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 60 }
+			}
+			set_planet_size = 60
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 65 }
+			}
+			set_planet_size = 65
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 70 }
+			}
+			set_planet_size = 70
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 80 }
+			}
+			set_planet_size = 80
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 90 }
+			}
+			set_planet_size = 90
+		}
+		if = {
+			limit = {
+				check_variable = { which = ordered_planet_size_ec value = 100 }
+			}
+			set_planet_size = 100
+		}
+#deposits and name
+		set_name = "Fresh Planet"
+		if = {
+			limit = {
+				NOR = {
+					has_planet_flag = marked_for_pc_relic
+					has_planet_flag = marked_for_pc_pb_alive
+					has_planet_flag = marked_for_pc_pb_edible
+					has_planet_flag = marked_for_pc_pb_pleasure
+					has_planet_flag = marked_for_pc_pb_golden
+				}
+			}
+			clear_blockers = yes
+			clear_deposits = yes
+			reroll_deposits = yes
+		}
+#relic and gold have predetermined deposits
+		if = { limit = { has_planet_flag = marked_for_pc_relic }
+			change_pc = pc_relic
+			clear_blockers = yes
+			clear_deposits = yes
+			add_deposit = d_relic_dense_ruins
+			add_deposit = d_collapsed_spire
+			add_deposit = d_massive_crevice
+			add_deposit = d_shattered_solar_array
+			add_deposit = d_flooded_reactor_pits
+			add_deposit = d_crumbling_mining_tunnels
+			add_deposit = d_relic_metal_boneyard
+			if = { limit = { check_variable = { which = ordered_planet_size_ec value > 34 } }
+				add_deposit = d_massive_crevice
+				add_deposit = d_shattered_solar_array
+				add_deposit = d_flooded_reactor_pits
+				add_deposit = d_crumbling_mining_tunnels
+				add_deposit = d_relic_metal_boneyard
+			}
+		}
+		if = { limit = { has_planet_flag = marked_for_pc_pb_golden }
+			clear_blockers = yes
+			clear_deposits = yes
+			change_pc = pc_pb_golden
+			add_deposit = d_pb_golden_mansion_spaces
+			add_modifier = { modifier = planet_builders_golden_planet days = -1 }
+			event_target:planet_buyer = { set_country_flag = built_golden_planet }
+		}
+#specials will be terraformed into gaia worlds first, so they actually get deposits. Otherwise I would have to create a bunch of new deposits/change existing ones.
+		if = {
+			limit = {
+				OR = {
+					has_planet_flag = marked_for_pc_pb_alive
+					has_planet_flag = marked_for_pc_pb_edible
+					has_planet_flag = marked_for_pc_pb_pleasure
+				}
+			}
+			clear_blockers = yes
+			clear_deposits = yes
+			change_pc = pc_gaia
+			reroll_deposits = yes
+			planet_event = { id = planet_builders.25 }
+		}
+		if = { limit = { has_planet_flag = marked_for_pc_pb_pleasure }
+			event_target:planet_buyer = { set_country_flag = built_unholy_heretic_planet }
+		}
+	}
+}
+#has to be triggered as a seperate event, otherwise the deposit trick will not work
+planet_event = {
+	id = planet_builders.25
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = { limit = { has_planet_flag = marked_for_pc_pb_alive }
+			change_pc = pc_pb_alive
+			add_modifier = { modifier = planet_builders_alive_planet days = -1 }
+		}
+		if = { limit = { has_planet_flag = marked_for_pc_pb_edible }
+			change_pc = pc_pb_edible
+			add_deposit = d_pb_edible_plains
+			add_deposit = d_pb_edible_plains
+			add_modifier = { modifier = planet_builders_edible_planet days = -1 }
+	#special event: amoeba tries to eat the planet
+			if = {
+				limit = {
+					NOT = {
+						has_global_flag = hungry_amoeba_visited
+					}
+				}
+				planet_event = { id = planet_builders.2000 days = 3000 random = 1000 }
+				set_global_flag = hungry_amoeba_visited
+			}
+		}
+		if = { limit = { has_planet_flag = marked_for_pc_pb_pleasure }
+			change_pc = pc_pb_pleasure
+			add_modifier = { modifier = planet_builders_pleasure_planet days = -1 }
+		}
+	}
+}
+#Choose design modifiers
+country_event = {
+	id = planet_builders.22
+	title = planet_builders.comms.title
+	desc = planet_builders.22.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				has_country_flag = not_payed_for_design_yet
+			}
+			remove_country_flag = not_payed_for_design_yet
+			planetbuilder_find_planet_again = yes
+		}
+	}
+
+	option = {
+		name = planet_builders.pay_later
+		hidden_effect = {
+			country_event = { id = planet_builders.107 }
+			set_country_flag = not_payed_for_design_yet
+		}
+	}
+	option = {
+		name = planet_builders.22.beautiful
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 8000 }
+		}
+		add_resource = { energy = -8000 }
+		event_target:built_planet = { 
+			add_modifier = { modifier = planet_builders_beautiful_design days = -1 }
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.23 days = 60 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 60 }
+			}
+			add_modifier = { 
+				modifier = planet_builders_timer
+				days = 60
+			}
+		}
+	}
+	option = {
+		name = planet_builders.22.ecosystem
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 5000 }
+		}
+		add_resource = { energy = -5000 }
+		event_target:built_planet = {
+			add_modifier = { modifier = planet_builders_extensice_ecosystem_design days = -1 }
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.23 days = 60 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 60 }
+			}
+			add_modifier = { 
+				modifier = planet_builders_timer
+				days = 60
+			}
+		}
+	}
+	option = {
+		name = planet_builders.22.energy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 5000 }
+		}
+		add_resource = { energy = -5000 }
+		event_target:built_planet = {
+			add_modifier = { modifier = planet_builders_energy_design days = -1 }
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.23 days = 60 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 60 }
+			}
+		}
+	}
+	option = {
+		name = planet_builders.22.mining
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 5000 }
+		}
+		add_resource = { energy = -5000 }
+		event_target:built_planet = { 
+			add_modifier = { modifier = planet_builders_mining_design days = -1 }
+		}
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 60
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.23 days = 60 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 60 }
+			}
+		}
+	}
+	option = {
+		name = planet_builders.22.food
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 5000 }
+		}
+		add_resource = { energy = -5000 }
+		event_target:built_planet = {
+			add_modifier = { modifier = planet_builders_food_design days = -1 }
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.23 days = 60 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 60 }
+			}
+		}
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 60
+		}
+	}
+	option = {
+		name = planet_builders.22.nomod
+		hidden_effect = {
+			country_event = { id = planet_builders.23 }
+			event_target:built_planet = {
+				planet_event = { id = planet_builders.17 days = 10 }
+			}
+		}
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 10
+		}
+	}
+}
+#add modifiers
+country_event = {
+	id = planet_builders.23
+	title = planet_builders.comms.title
+	desc = planet_builders.23.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				has_country_flag = not_payed_for_mods_yet
+			}
+			remove_country_flag = not_payed_for_mods_yet
+			planetbuilder_find_planet_again = yes
+		}
+	}
+	
+	option = {
+		name = planet_builders.pay_later
+		hidden_effect = {
+			country_event = { id = planet_builders.107 }
+			set_country_flag = not_payed_for_mods_yet
+		}
+	}
+	option = {
+		name = planet_builders.23.add_modifier
+		custom_tooltip = planet_builders.23.add_modifier.tooltip
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 1000 }
+			custom_tooltip = {
+				text = too_many_modifiers
+				event_target:built_planet = {
+					check_variable = { which = num_positive_planetbuilders_modifiers value < 5 }
+				}
+			}
+		}
+		add_resource = { energy = -1000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				change_variable = { which = num_positive_planetbuilders_modifiers value = 1 }
+				if = {
+					limit = { NOT = { has_global_flag = has_guillis_planet_modifiers_mod } }
+					planetbuilder_add_random_planet_modifier_vanilla = yes
+				}
+				if = {
+					limit = { has_global_flag = has_guillis_planet_modifiers_mod }
+					planetbuilder_add_random_planet_modifier_vanilla_guilli = yes
+				}
+			}
+			country_event = { id = planet_builders.23 }
+		}
+	}
+	option = {
+		name = planet_builders.23.add_guilli_fe
+		custom_tooltip = planet_builders.23.add_guilli_fe.tooltip
+		trigger = {
+			has_global_flag = has_guillis_planet_modifiers_mod
+		}
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 3000 }
+			custom_tooltip = {
+				text = too_many_fe_modifiers
+				NOT = {
+					event_target:built_planet = {
+						has_planet_flag = has_fe_modifier
+					}
+				}
+			}
+		}
+		add_resource = { energy = -3000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = has_fe_modifier
+				planetbuilder_add_guillis_fe_modifier = yes
+			}
+			country_event = { id = planet_builders.23 }
+		}
+	}
+	option = {
+		name = planet_builders.modifier.why
+		response_text = planet_builders.modifier.why.desc
+		is_dialog_only = yes
+	}
+	option = {
+		name = planet_builders.23.done
+		country_event = { id = planet_builders.18 }
+		hidden_effect = {
+			#guillies planetary features afterwards
+			if = {
+				limit = { has_global_flag = has_guillis_planet_modifiers_mod }
+				gpm_roll_planetary_features_normal_habitable = yes
+				gpm_roll_planetary_blockers_normal_habitable = yes
+			}
+		}
+		
+	}
+}
+#Can select to put primitives and pre sapients on the planet.
+country_event = {
+	id = planet_builders.18
+	title = planet_builders.comms.title
+	desc = planet_builders.18.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		event_target:planetbuilders_scaffolding = {
+			upgrade_megastructure_to = planet_construction_site_final_touches
+		}
+		if = {
+			limit = {
+				has_country_flag = not_payed_for_primitivespresapients_yet
+			}
+			remove_country_flag = not_payed_for_primitivespresapients_yet
+			planetbuilder_find_planet_again = yes
+		}
+	}
+	
+	option = {
+		name = planet_builders.pay_later
+		hidden_effect = {
+			country_event = { id = planet_builders.107 }
+			set_country_flag = not_payed_for_primitivespresapients_yet
+		}
+	}
+	option = {
+		name = planet_builders.18.pre_sapients
+		hidden_effect = {
+			country_event = { id = planet_builders.20 }
+		}
+	}
+	option = {
+		name = planet_builders.18.primitives
+		hidden_effect = {
+			country_event = { id = planet_builders.21 }
+		}
+	}
+	option = {
+		name = planet_builders.18.done
+		country_event = { id = planet_builders.19 }
+	}
+}
+#pre-sapients
+country_event = {
+	id = planet_builders.20
+	title = planet_builders.comms.title
+	desc = planet_builders.20.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.18 }
+	}
+	option = {
+		name = planet_builders.20.presapient1
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 2000 }
+		}
+		add_resource = { energy = -2000 }
+		event_target:built_planet = {
+			planetbuilder_create_pre_sapient_species = yes
+			while = {
+				count = 4
+				create_pop = {
+					species = last_created
+					ethos = random
+				}
+			}
+		}
+		country_event = { id = planet_builders.19 days = 20 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 20
+		}
+	}
+	option = {
+		name = planet_builders.20.presapient2
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 4000 }
+		}
+		add_resource = { energy = -4000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				while = {
+					count = 2
+					planetbuilder_create_pre_sapient_species = yes
+					while = {
+						count = 4
+						create_pop = { species = last_created ethos = random }
+					}
+				}
+			}
+		}
+		country_event = { id = planet_builders.19 days = 20 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 20
+		}
+	}
+	option = {
+		name = planet_builders.20.presapient3
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 6000 }
+		}
+		add_resource = { energy = -6000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				while = {
+					count = 3
+					planetbuilder_create_pre_sapient_species = yes
+					while = {
+						count = 4
+						create_pop = {
+							species = last_created
+							ethos = random
+						}
+					}
+				}
+			}
+		}
+		country_event = { id = planet_builders.19 days = 20 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 20
+		}
+	}
+	option = {
+		name = planet_builders.20.presapient4
+		custom_tooltip = planet_builders.20.presapient4.tooltip
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 8000 }
+		}
+		add_resource = { energy = -8000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				while = {
+					count = 4
+					planetbuilder_create_pre_sapient_species = yes
+					while = {
+						count = 4
+						create_pop = {
+							species = last_created
+							ethos = random
+						}
+					}
+				}
+			}
+		}
+		country_event = { id = planet_builders.19 days = 20 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 20
+		}
+	}
+}
+#primitive selection
+country_event = {
+	id = planet_builders.21
+	title = planet_builders.comms.title
+	desc = planet_builders.21.desc  #remind player to rename the planet now
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.18 }
+	}
+	option = {
+		name = planet_builders.21.primitives.stone
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 1000 }
+		}
+		add_resource = { energy = -1000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = stone_age
+						set_country_flag = stone_age
+					} 
+				}
+				add_building = building_crude_huts
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 4
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.bronze
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 2000 }
+		}
+		add_resource = { energy = -2000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = bronze_age
+						set_country_flag = bronze_age 
+					} 
+				}
+				add_building = building_stone_palace
+				add_building = building_primitive_dwellings
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 8
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.iron
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 3000 }
+		}
+		add_resource = { energy = -3000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = iron_age
+						set_country_flag = iron_age 
+					} 
+				}
+				add_building = building_stone_palace
+				add_building = building_primitive_dwellings
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 9
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.medieval
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 4000 }
+		}
+		add_resource = { energy = -4000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = late_medieval_age
+						set_country_flag = late_medieval_age 
+					} 
+				}
+				add_building = building_stone_palace
+				add_building = building_primitive_dwellings
+				add_building = building_primitive_dwellings
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 9
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.renaissance
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 5000 }
+		}
+		add_resource = { energy = -5000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = renaissance_age
+						set_country_flag = renaissance_age 
+					} 
+				}
+				add_building = building_stone_palace
+				add_building = building_primitive_dwellings
+				add_building = building_primitive_dwellings
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 12
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.steam
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 6000 }
+		}
+		add_resource = { energy = -6000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = steam_age
+						set_country_flag = steam_age 
+					} 
+				}
+				add_building = building_stone_palace
+				add_building = building_urban_dwellings
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 16
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.industrial
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 7000 }
+		}
+		add_resource = { energy = -7000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = industrial_age
+						set_country_flag = industrial_age 
+					} 
+				}
+				add_building = building_primitive_capital
+				add_building = building_urban_dwellings
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				add_building = building_primitive_farm
+				add_building = building_primitive_power_plant
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 22
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.machine
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 9000 }
+		}
+		add_resource = { energy = -9000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = machine_age
+						set_country_flag = machine_age 
+					} 
+				}
+				add_building = building_primitive_capital
+				add_building = building_urban_dwellings
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				add_building = building_primitive_farm
+				add_building = building_primitive_power_plant
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 24
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.atomic
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 10000 }
+		}
+		add_resource = { energy = -10000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = atomic_age
+						set_country_flag = atomic_age 
+					} 
+				}
+				add_building = building_primitive_capital
+				add_building = building_urban_dwellings
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				add_building = building_primitive_farm
+				add_building = building_primitive_power_plant
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 26
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = planet_builders.21.primitives.early_space
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 11000 }
+		}
+		add_resource = { energy = -11000 }
+		add_modifier = { 
+			modifier = planet_builders_timer
+			days = 36
+		}
+		hidden_effect = {
+			country_event = { id = planet_builders.19 days = 36 }
+			event_target:built_planet = {
+				planetbuilder_create_primitive_species = yes
+				create_country = {
+					name = random
+					type = primitive
+					name_list = random 
+					ship_prefix = ASS 
+					authority = random
+					civics = random
+					species = last_created
+					flag = random
+					ethos = random
+					effect = {
+						set_primitive_age = early_space_age
+						set_country_flag = early_space_age 
+					} 
+				}
+				add_building = building_primitive_capital
+				add_building = building_urban_dwellings
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				add_building = building_primitive_farm
+				add_building = building_primitive_power_plant
+				planet_event = { id = planet_builders.32 days = 1 }
+				planet_event = { id = planet_builders.32 days = 2 }
+				planet_event = { id = planet_builders.32 days = 3 }
+				while = {
+					count = 26
+					create_pop = {
+						species = last_created
+					}
+				}
+			}
+		}
+	}
+	
+	after = {
+		last_created_country = {
+			save_event_target_as = primitives
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = awakened_fallen_empire
+					is_country_type = fallen_empire
+					is_country_type = lost_empire
+					is_country_type = ascended_empire
+					is_country_type = eternal_empire
+				}
+			}
+			establish_communications_no_message = event_target:primitives
+		}
+	}
+}
+#all done.
+country_event = {
+	id = planet_builders.19
+	title = planet_builders.comms.title
+	desc = planet_builders.19.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.19.a
+		hidden_effect = {
+			event_target:planetbuilders_scaffolding = { remove_megastructure = this }
+			event_target:built_planet = { planetbuilder_remove_all_planet_flags = yes }
+			planetbuilder_remove_all_country_flags = yes
+		}
+	}
+}
+#Uninhabitable planet finished. No need for any other options.
+country_event = {
+	id = planet_builders.24
+	title = planet_builders.comms.title
+	desc = planet_builders.24.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	option = {
+		name = planet_builders.24.a
+		hidden_effect = {
+			event_target:planetbuilders_scaffolding = { remove_megastructure = this }
+			event_target:built_planet = { planetbuilder_remove_all_planet_flags = yes }
+			planetbuilder_remove_all_country_flags = yes
+		}
+	}
+}
+#special planet ordering
+country_event = {
+	id = planet_builders.26
+	title = planet_builders.comms.title
+	desc = planet_builders.gaia.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 30000 }
+		}
+		add_resource = { energy = -30000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_gaia
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+country_event = {
+	id = planet_builders.27
+	title = planet_builders.comms.title
+	desc = planet_builders.relic.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 35000 }
+		}
+		add_resource = { energy = -35000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_relic
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+country_event = {
+	id = planet_builders.28
+	title = planet_builders.comms.title
+	desc = planet_builders.golden.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.golden.why
+		response_text = planet_builders.golden.2.desc
+		is_dialog_only = yes
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 60000 }
+		}
+		add_resource = { energy = -60000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_pb_golden
+			}
+			set_global_flag = golden_planet_built
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+country_event = {
+	id = planet_builders.29
+	title = planet_builders.comms.title
+	desc = planet_builders.pleasure.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 40000 }
+		}
+		add_resource = { energy = -40000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_pb_pleasure
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+country_event = {
+	id = planet_builders.30
+	title = planet_builders.comms.title
+	desc = planet_builders.alive.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 40000 }
+		}
+		add_resource = { energy = -40000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_pb_alive
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+country_event = {
+	id = planet_builders.31
+	title = planet_builders.comms.title
+	desc = planet_builders.edible.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.15 }
+	}
+	option = {
+		name = planet_builders.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 40000 }
+		}
+		add_resource = { energy = -40000 }
+		hidden_effect = {
+			event_target:built_planet = {
+				set_planet_flag = marked_for_pc_pb_edible
+			}
+			country_event = { id = planet_builders.16 }
+		}
+	}
+}
+planet_event = {
+	id = planet_builders.32
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		check_planet_employment = yes
+		check_planet_employment = yes
+	}
+}
+
+#planetbuilders comms and country
+#spawn event. spawn mth 10 years after the endgame start year and when any default empire has more than 1000 energy income or a 30.000 Stockpile
+country_event = {
+	id = planet_builders.101
+	hide_window = yes
+	
+	trigger = {
+		mid_game_years_passed >= 30
+		NOT = { any_country = { is_country_type = planetbuilders } }
+		OR = {
+			is_country_type = default
+			is_country_type = lost_empire
+			is_country_type = ascended_empire
+			is_country_type = eternal_empire
+		}
+		OR = {
+			has_monthly_income = {
+				resource = energy
+				value >= 1000
+			}
+			resource_stockpile_compare = {
+				resource = energy
+				value >= 30000
+			} 
+		}
+	}
+	
+	mean_time_to_happen = {
+		years = 4
+		modifier = {
+			factor = 0.5
+			any_country = {
+				OR = {
+					is_country_type = default
+					is_country_type = lost_empire
+					is_country_type = ascended_empire
+					is_country_type = eternal_empire
+				}
+				OR = {
+					has_monthly_income = { resource = energy value >= 1000 }
+					resource_stockpile_compare = { resource = energy value >= 30000 }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		save_event_target_as = rich_guy_mc_gee
+		random_owned_planet = {
+			limit = { is_inside_border = event_target:rich_guy_mc_gee }
+			save_event_target_as = planetbuilders_spawn_planet
+			planet_event = { id = planet_builders.102 }
+		}
+	}
+}
+planet_event = {
+	id = planet_builders.102
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		create_species = {
+			name = random 
+			class = random_non_machine
+			portrait = random
+			traits = random
+			immortal = yes
+			homeworld = this
+		}
+		if = {
+			limit = { host_has_dlc = "Megacorp" }
+			create_country = {
+				name = "NAME_planet_builders"
+				type = planetbuilders
+				ship_prefix = MDSS
+				authority = auth_corporate
+				civics = random
+				species = last_created
+				flag = random
+				ethos = { ethic = ethic_xenophile ethic = ethic_fanatic_materialist } 
+				effect = { save_event_target_as = planet_builders }
+			}
+		}
+		if = {
+			limit = { NOT = { host_has_dlc = "Megacorp" } }
+			create_country = {
+				name = "NAME_planet_builders"
+				type = planetbuilders
+				ship_prefix = MDSS
+				authority = auth_oligarchic
+				civics = random
+				species = last_created
+				flag = random
+				ethos = { ethic = ethic_xenophile ethic = ethic_fanatic_materialist } 
+				effect = { save_event_target_as = planet_builders }
+			}
+		}
+		create_fleet = {
+			effect = {
+				set_owner = event_target:planet_builders
+				create_ship = {
+					name = random
+					design = "NAME_Planet_Builder_Station"
+				}
+				set_location = {
+					target = prev
+					distance = 15
+					angle = random 
+				}
+			}
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = awakened_fallen_empire
+					is_country_type = fallen_empire
+					is_country_type = lost_empire
+					is_country_type = ascended_empire
+					is_country_type = eternal_empire
+				}
+			}
+			establish_communications_no_message = event_target:planet_builders
+		}
+		if = {
+			limit = { any_country = { is_country_type = planetbuilders } }
+			every_country = {
+				limit = { is_ai = no }
+				country_event = { id = planet_builders.103 }
+			}
+		}
+	}
+}
+#planetbuilders anounce that their services are now available
+country_event = {
+	id = planet_builders.103
+	title = planet_builders.103.title
+	desc = planet_builders.103.desc
+	picture = GFX_evt_fleet_neutral
+	location = event_target:planetbuilders_spawn_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = planetbuilders
+			}
+			save_event_target_as = planet_builders
+		}
+	}
+
+	option = {
+		name = planet_builders.103.a
+		hidden_effect = { country_event = { id = planet_builders.104 } }
+	}
+}
+country_event = {
+	id = planet_builders.104
+	title = planet_builders.104.title
+	desc = planet_builders.104.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+
+	option = {
+		name = planet_builders.104.a
+	}
+	option = {
+		trigger = {
+			OR = {
+				has_country_flag = human
+				has_country_flag = human_1
+				has_country_flag = human_2
+			}
+		}
+		name = planet_builders.104.b
+	}
+}
+#comms
+country_event = {
+	id = planet_builders.105
+	title = planet_builders.comms.title
+	desc = planet_builders.105.desc1
+	desc = planet_builders.105.desc2
+	desc = planet_builders.105.desc3
+	desc = planet_builders.105.desc4
+	desc = planet_builders.105.desc5
+	desc = planet_builders.105.desc6
+	desc = planet_builders.105.desc7
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		FROM = { is_country_type = planetbuilders }
+	}
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = planetbuilders
+			}
+			save_event_target_as = planet_builders
+		}
+		save_event_target_as = planet_buyer
+	}
+	
+	option = {
+		trigger = {
+			NOT = {
+				has_country_flag = planet_ordered
+			}
+		}
+		name = planet_builders.105.buy
+		hidden_effect = { 
+			country_event = { id = planet_builders.106 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = planet_ordered
+		}
+		name = planet_builders.105.buy
+		response_text = planet_builders.105.ordered_already.text
+		is_dialog_only = yes
+	}
+#if the ship is lost in any way that the script doesn't recognize, this option will still appear
+	option = {
+		trigger = {
+			has_country_flag = planet_ordered
+			NOT = { has_country_flag = planet_placed }
+			NOT = {
+				any_owned_fleet = { has_fleet_flag = planet_constructor }
+			}
+		}
+		name = planet_builders.105.buy_safeguard
+		hidden_effect = {
+			capital_scope = {
+				planet_event = { id = planet_builders.3 }
+			}
+			country_event = { id = planet_builders.109 }
+		}
+	}
+#if you have not paid for the last upgrade yet, you can continue the building here.
+	option = {
+		trigger = {
+			has_country_flag = not_started_building_yet
+		}
+		name = planet_builders.105.continue_deal #tell the player to use the decision on the planet
+		response_text = planet_builders.105.continue_deal.response
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_size_yet
+		}
+		name = planet_builders.105.continue_deal #size
+		hidden_effect = {
+			country_event = { id = planet_builders.7 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_planetclass_yet
+		}
+		name = planet_builders.105.continue_deal #planetclass
+		hidden_effect = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_design_yet
+		}
+		name = planet_builders.105.continue_deal #design
+		hidden_effect = {
+			country_event = { id = planet_builders.22 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_mods_yet
+		}
+		name = planet_builders.105.continue_deal #mods
+		hidden_effect = {
+			country_event = { id = planet_builders.23 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_primitivespresapients_yet
+		}
+		name = planet_builders.105.continue_deal #primitives and pre sapients
+		hidden_effect = {
+			country_event = { id = planet_builders.18 }
+		}
+	}
+	option = {
+		name = planet_builders.105.history
+		hidden_effect = {
+			country_event = { id = planet_builders.110 }
+		}
+	}
+	option = {
+		name = planet_builders.move_station
+		hidden_effect = {
+			country_event = { id = planet_builders.155 }
+		}
+	}
+	option = {
+		name = planet_builders.goodbye
+	}
+}
+country_event = {
+	id = planet_builders.106
+	title = planet_builders.comms.title
+	desc = planet_builders.106.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		hidden_effect = {
+			country_event = { id = planet_builders.1052 }
+		}
+	}
+	option = {
+		name = planet_builders.106.buy
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 500 }
+		}
+		add_resource = { energy = -500 }
+		hidden_effect = {
+			set_country_flag = not_started_building_yet
+			capital_scope = {
+				planet_event = { id = planet_builders.3 }
+			}
+		}
+		response_text = planet_builders.106.buy.response
+	}
+}
+#delayed payment
+country_event = {
+	id = planet_builders.107
+	title = planet_builders.comms.title
+	desc = planet_builders.107.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.107.a
+	}
+}
+#lost ship safeguard
+country_event = {
+	id = planet_builders.109
+	title = planet_builders.comms.title
+	desc = planet_builders.109.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.109.a
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 700 }
+		}
+		add_resource = { energy = -700 }
+	}
+	option = {
+		name = planet_builders.109.b
+		response_text = planet_builders.109.response
+		is_dialog_only = yes
+	}
+}
+#fluff dialoge
+country_event = {
+	id = planet_builders.110
+	title = planet_builders.comms.title
+	desc = planet_builders.110.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.back
+		hidden_effect = {
+			country_event = { id = planet_builders.1052 }
+		}
+	}
+	option = {
+		name = planet_builders.110.tech
+		response_text = planet_builders.110.tech.text
+		is_dialog_only = yes
+	}
+	option = {
+		name = planet_builders.110.work
+		response_text = planet_builders.110.work.text
+		is_dialog_only = yes
+	}
+	option = {
+		name = planet_builders.110.why_build
+		response_text = planet_builders.110.why_build.text
+		is_dialog_only = yes
+	}
+	option = {
+		name = planet_builders.goodbye
+	}
+}
+
+#mirrord comms for the "back" option
+country_event = {
+	id = planet_builders.1052
+	title = planet_builders.comms.title
+	desc = planet_builders.105.desc1
+	desc = planet_builders.105.desc2
+	desc = planet_builders.105.desc3
+	desc = planet_builders.105.desc4
+	desc = planet_builders.105.desc5
+	desc = planet_builders.105.desc6
+	desc = planet_builders.105.desc7
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	#trigger = {
+	#	FROM = { is_country_type = planetbuilders }
+	#}
+	
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = planetbuilders
+			}
+			save_event_target_as = planet_builders
+		}
+		save_event_target_as = planet_buyer
+	}
+	
+	option = {
+		trigger = {
+			NOT = {
+				has_country_flag = planet_ordered
+			}
+		}
+		name = planet_builders.105.buy
+		hidden_effect = { 
+			country_event = { id = planet_builders.106 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = planet_ordered
+		}
+		name = planet_builders.105.buy
+		response_text = planet_builders.105.ordered_already.text
+		is_dialog_only = yes
+	}
+#if the ship is lost in any way that the script doesn't recognize, this option will still appear
+	option = {
+		trigger = {
+			has_country_flag = planet_ordered
+			NOT = { has_country_flag = planet_placed }
+			NOT = { any_owned_fleet = { has_fleet_flag = planet_constructor } }
+		}
+		name = planet_builders.105.buy_safeguard
+		hidden_effect = {
+			capital_scope = {
+				planet_event = { id = planet_builders.3 }
+			}
+			country_event = { id = planet_builders.109 }
+		}
+	}
+#if you have not paid for the last upgrade yet, you can continue the building here.
+	option = {
+		trigger = {
+			has_country_flag = not_started_building_yet
+		}
+		name = planet_builders.105.continue_deal #tell the player to use the decision on the planet
+		response_text = planet_builders.105.continue_deal.response
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_size_yet
+		}
+		name = planet_builders.105.continue_deal #size
+		hidden_effect = {
+			country_event = { id = planet_builders.7 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_planetclass_yet
+		}
+		name = planet_builders.105.continue_deal #planetclass
+		hidden_effect = {
+			country_event = { id = planet_builders.11 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_design_yet
+		}
+		name = planet_builders.105.continue_deal #design
+		hidden_effect = {
+			country_event = { id = planet_builders.22 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_mods_yet
+		}
+		name = planet_builders.105.continue_deal #mods
+		hidden_effect = {
+			country_event = { id = planet_builders.23 }
+		}
+	}
+	option = {
+		trigger = {
+			has_country_flag = not_payed_for_primitivespresapients_yet
+		}
+		name = planet_builders.105.continue_deal #primitives and pre sapients
+		hidden_effect = {
+			country_event = { id = planet_builders.18 }
+		}
+	}
+	option = {
+		name = planet_builders.105.history
+		hidden_effect = {
+			country_event = { id = planet_builders.110 }
+		}
+	}
+	option = {
+		name = planet_builders.move_station
+		hidden_effect = {
+			country_event = { id = planet_builders.155 }
+		}
+	}
+	option = {
+		name = planet_builders.goodbye
+	}
+}
+#destruction of the planetbuilderbase perp
+country_event = {
+	id = planet_builders.1053
+	title = planet_builders.1053.title
+	desc = planet_builders.1053.desc
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		From = { is_country_type = planetbuilders }
+	}
+	
+	immediate = { 
+		every_country = { 
+			limit = { is_ai = no }
+			country_event = { id = planet_builders.1054 }
+		}
+		save_event_target_as = planetbuilderslayer
+	}
+	
+	option = { 
+		name = planet_builders.1053.a
+	}
+	option = { 
+		name = planet_builders.1053.b
+	}
+}
+#destruction of the planetbuilderbase everybody else
+country_event = {
+	id = planet_builders.1054
+	title = planet_builders.1053.title
+	desc = planet_builders.1054.desc
+	
+	is_triggered_only = yes
+
+	option = { 
+		name = planet_builders.1053.a
+	}
+	option = { 
+		name = planet_builders.1054.b
+	}
+}
+#relocate the pb station
+country_event = {
+	id = planet_builders.155
+	title = planet_builders.comms.title
+	desc = planet_builders.155.desc
+	diplomatic = yes
+	
+	is_triggered_only = yes
+
+	picture_event_data = {
+		portrait = event_target:planet_builders
+		room = "ethic_spaceship_room"
+	}
+	
+	option = {
+		name = planet_builders.155.a
+		allow = {
+			resource_stockpile_compare = { resource = energy value >= 2000 }
+		}
+		add_resource = { energy = -2000 }
+		set_country_flag = can_move_pb_station
+	}
+	option = {
+		name = planet_builders.back
+		country_event = { id = planet_builders.1052 }
+	}
+}
+planet_event = {
+	id = planet_builders.156
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		save_event_target_as = moving_target_planet
+		random_country = {
+				limit = { 
+					is_country_type = planetbuilders
+				}
+			save_event_target_as = planet_builders
+		}
+		event_target:planet_builders = {
+			random_owned_fleet = {
+				set_location = {
+					target = event_target:moving_target_planet
+					distance = 15
+					angle = random 
+				}
+			}
+		}
+	}
+}
+
+###############################
+#Special Planet Events - 2000+#
+###############################
+#edible planet attracts a massive, hungry amobea and its family from outer space
+planet_event = {
+	id = planet_builders.2000
+	title = planet_builders.2000.title
+	desc = planet_builders.2000.desc
+	picture = GFX_evt_friendly_amoeba
+	show_sound = event_red_alert
+	location = event_target:hungry_amoeba
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		save_event_target_as = tasty_planet
+		create_country = {
+			name = "NAME_Hungry_Amoeba"
+			type = amoeba
+			flag = {
+				icon = {
+					category = "zoological"
+					file = "flag_zoological_1.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "00_solid.dds"
+				}
+				colors={
+					"black"
+					"black"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				save_event_target_as = hungry_amoeba
+			}
+		}
+		create_fleet = {
+			name = "NAME_Hungry_Amoeba"
+			settings = {
+				spawn_debris = yes
+			}
+			effect = {
+				set_owner = event_target:hungry_amoeba
+				set_fleet_flag = hungry_amoeba
+				create_ship = {
+					name = random
+					design = "NAME_Hungry_Amoeba"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Great_Space_Organism"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Blue"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Teal"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Orange"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Zebra"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Blue"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Teal"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Orange"
+				}
+				create_ship = {
+					name = random
+					design = "NAME_Large_Space_Organism_Zebra"
+				}
+				while = {
+					count = 20
+					create_ship = {
+						name = random
+						design = "NAME_Small_Space_Organism_Blue"
+					}
+				}
+				while = {
+					count = 20
+					create_ship = {
+						name = random
+						design = "NAME_Small_Space_Organism_Teal"
+					}
+				}
+				while = {
+					count = 20
+					create_ship = {
+						name = random
+						design = "NAME_Small_Space_Organism_Orange"
+					}
+				}
+				while = {
+					count = 20
+					create_ship = {
+						name = random
+						design = "NAME_Small_Space_Organism_Zebra"
+					}
+				}
+				set_location = {
+					target = event_target:tasty_planet
+					distance = 15
+					angle = random 
+				}
+				set_fleet_stance = passive
+				set_aggro_range_measure_from = self
+				set_aggro_range = 1
+				auto_move_to_planet = {
+					target = event_target:tasty_planet
+					clear_auto_move_on_arrival = no
+				}
+			}
+		}
+		every_playable_country = {
+			establish_communications_no_message = event_target:hungry_amoeba
+		}
+		planet_event = { id = planet_builders.2001 days = 150 }
+	}
+	option = {
+		name = planet_builders.2000.a
+	}
+}
+#they feast on the planet
+planet_event = {
+	id = planet_builders.2001
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = { limit = { NOT = { planet_size = 1 } }
+			if = { 
+				limit = { 
+					any_fleet_in_orbit = {
+						has_fleet_flag = hungry_amoeba
+					}
+				}
+				planet_event = { id = planet_builders.2002 }
+			}
+			if = {
+				limit = { 
+					any_fleet_in_orbit = {
+						has_fleet_flag = hungry_amoeba
+					}
+				}
+				change_variable = { 
+					which = missed_feasts
+					value = 1
+				}
+			}
+			if = { 
+				limit = { 
+					check_variable = { 
+						which = missed_feasts
+						value < 11
+					}
+				}
+				planet_event = { id = planet_builders.2001 days = 300 }
+			}
+		}
+	}
+}
+planet_event = {
+	id = planet_builders.2002
+	title = planet_builders.2002.title
+	desc = planet_builders.2002.desc
+	picture = GFX_evt_friendly_amoeba
+	show_sound = event_space_amoeba
+	
+	is_triggered_only = yes
+
+	option = {
+		name = planet_builders.2002.a
+		change_planet_size = -1
+		add_planet_devastation = 20
+		random_owned_pop = {
+			kill_pop = yes
+		}
+	}
+}
+country_event = {
+	id = planet_builders.2003
+	title = planet_builders.2003.title
+	desc = planet_builders.2003.desc
+	picture = GFX_evt_friendly_amoeba
+	show_sound = event_space_amoeba
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		FromFromFrom = { has_fleet_flag = hungry_amoeba }
+	}
+	option = {
+		name = planet_builders.2003.a
+	}
+}
+
+
+
+
+
+
+
+
+

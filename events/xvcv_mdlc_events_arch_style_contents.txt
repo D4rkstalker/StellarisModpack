@@ -1,0 +1,409 @@
+#a namespace for archaeology events
+namespace = xvcv_mdlc_archaeology
+
+#a namespace for first contact events
+namespace = xvcv_mdlc_first_contact
+
+#a namespace for espionage events
+namespace = xvcv_mdlc_espionage
+
+#add 'xvcv_mdlc_asset_malware' asset when a spynetwork is formed
+event = {
+	id = xvcv_mdlc_espionage.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { has_valid_civic = xvcv_mdlc_civic_malware_machine }
+		NOT = { has_espionage_asset = xvcv_mdlc_asset_malware }
+	}
+
+	immediate = {
+		create_espionage_asset = { type = xvcv_mdlc_asset_malware }
+	}
+}
+#add 'xvcv_mdlc_asset_malware' asset when it's destroyed
+espionage_operation_event = {
+	id = xvcv_mdlc_espionage.2
+	hide_window = yes
+	is_triggered_only = yes
+	#it looks like 'espionage_operation = yes' is not needed here, interesting... #see 'operation.8220' event
+
+	trigger = {
+		spynetwork = {
+			owner = { has_valid_civic = xvcv_mdlc_civic_malware_machine }
+			NOT = { has_espionage_asset = xvcv_mdlc_asset_malware }
+		}
+	}
+
+	immediate = {
+		spynetwork = { create_espionage_asset = { type = xvcv_mdlc_asset_malware } }
+	}
+}
+#add 'xvcv_mdlc_asset_malware' asset when an empire has the required civic
+country_event = {
+	id = xvcv_mdlc_espionage.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_valid_civic = xvcv_mdlc_civic_malware_machine
+	}
+
+	immediate = {
+		every_spynetwork = {
+			limit = {
+				root = {
+					any_envoy = {
+						has_envoy_task = { task = spy_network } #spynetwork should be formed
+						envoy_location_country = { is_same_empire = prevprevprev.target }
+					}
+				}
+				NOT = { has_espionage_asset = xvcv_mdlc_asset_malware }
+			}
+			create_espionage_asset = { type = xvcv_mdlc_asset_malware }
+		}
+	}
+}
+#remove 'xvcv_mdlc_asset_malware' asset when an empire doesn't have the required civic
+country_event = {
+	id = xvcv_mdlc_espionage.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_valid_civic = xvcv_mdlc_civic_malware_machine }
+		any_spynetwork = { has_espionage_asset = xvcv_mdlc_asset_malware }
+	}
+
+	immediate = {
+		every_spynetwork = {
+			limit = { has_espionage_asset = xvcv_mdlc_asset_malware }
+			destroy_espionage_asset = xvcv_mdlc_asset_malware
+		}
+	}
+}
+#'xvcv_mdlc_civic_malware_machine' civic exclusive operation
+espionage_operation_event = {
+	id = xvcv_mdlc_espionage.10
+	title = "xvcv_mdlc_espionage.10.name"
+	desc = { trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1 } text = "xvcv_mdlc_espionage.10.desc.a" }
+	desc = {
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys
+			}
+		}
+		text = "xvcv_mdlc_espionage.10.desc.b"
+	}
+	desc = {
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_physics_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_society_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research
+			}
+		}
+		text = "xvcv_mdlc_espionage.10.desc.b_alt"
+	}
+	desc = { trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 } text = "xvcv_mdlc_espionage.10.desc.c" }
+	desc = {
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5
+			}
+		}
+		text = "xvcv_mdlc_espionage.10.desc.d"
+	}
+	picture = GFX_evt_glitchy_matrix
+    show_sound = event_espionage_concluded
+    espionage_operation = yes
+    is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_operation_malware_activity_main_effect = yes
+	}
+
+	after = {
+		if = {
+			limit = { NOT = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 } } #will not reduce spy network levels in this case
+			spynetwork = { add_spy_network_level = -10 }
+		}
+		destroy_espionage_operation = this
+	}
+
+	option = {
+		name = xvcv_mdlc_espionage.10.a
+		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1 }
+		if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy }
+			owner = { add_resource = { energy = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
+			target = { add_resource = { energy = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals }
+			owner = { add_resource = { minerals = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
+			target = { add_resource = { minerals = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys }
+			owner = { add_resource = { alloys = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
+			target = { add_resource = { alloys = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+		}
+		hidden_effect = { #reset these variables for reusing them later
+			owner = { clear_variable = xvcv_mdlc_malware_resource_stockpile_bonus_var }
+			target = { clear_variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
+		}
+	}
+	option = {
+		name = xvcv_mdlc_espionage.10.a
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys
+			}
+		}
+		if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy }
+			#damn, 'country_base_energy_produces_add' modifier is not multiplied properly here #it's displayed as if it works but it does not in fact #what the hell? #stellaris v3.0.2
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_energy years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_energy years = 1 } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_minerals }
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_minerals years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_minerals years = 1 } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys }
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_alloys years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_alloys years = 1 } }
+		}
+	}
+	option = {
+		name = xvcv_mdlc_espionage.10.a
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_physics_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_society_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research
+			}
+		}
+		if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_physics_research }
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_physics_research years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_physics_research years = 1 } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_society_research }
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_society_research years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_society_research years = 1 } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research }
+			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_engineering_research years = 1 } }
+			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_engineering_research years = 1 } }
+		}
+	}
+	option = {
+		name = xvcv_mdlc_espionage.10.a
+		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 }
+		owner = { add_intel = { amount = 5 who = prev.target } }
+		spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_spynetwork_bonus years = 1 } }
+	}
+	option = {
+		name = xvcv_mdlc_espionage.10.a
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5
+			}
+		}
+		if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4 }
+			spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_1 years = 1 } }
+		}
+		else_if = {
+			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5 }
+			spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_2 years = 1 } }
+		}
+	}
+}
+#'xvcv_mdlc_ap_uprising_protocol' ascension perk exclusive operation
+espionage_operation_event = {
+	id = xvcv_mdlc_espionage.20
+	title = "xvcv_mdlc_espionage.20.name"
+	desc = "xvcv_mdlc_espionage.20.desc"
+	picture = GFX_evt_spy_network
+    show_sound = event_espionage_concluded
+    espionage_operation = yes
+    is_triggered_only = yes
+
+	option = {
+		name = xvcv_mdlc_espionage.20.a
+	}
+}
+espionage_operation_event = {
+	id = xvcv_mdlc_espionage.21
+	title = "xvcv_mdlc_espionage.21.name"
+	desc = "xvcv_mdlc_espionage.21.desc"
+	picture = GFX_evt_synth_sabotage
+    show_sound = event_espionage_concluded
+    espionage_operation = yes
+    is_triggered_only = yes
+
+	immediate = {
+		set_espionage_operation_progress_locked = yes
+	}
+
+	option = {
+		name = xvcv_mdlc_espionage.21.a
+		custom_tooltip = xvcv_mdlc_espionage.21.a.tooltip
+		owner = { enable_special_project = { name = XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT } }
+	}
+}
+#'XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT' special project effect event
+country_event = {
+	id = xvcv_mdlc_espionage.22
+	title = "xvcv_mdlc_espionage.22.name"
+	desc = "xvcv_mdlc_espionage.22.desc"
+	picture = GFX_evt_spymaster
+    show_sound = event_encrypted_comms
+    is_triggered_only = yes
+
+	immediate = {
+		random_espionage_operation = {
+			limit = { has_espionage_type = xvcv_mdlc_operation_machine_uprising }
+			set_espionage_operation_progress_locked = no
+		}
+	}
+
+	option = {
+		name = xvcv_mdlc_espionage.22.a
+		custom_tooltip = xvcv_mdlc_espionage.22.a.tooltip
+	}
+}
+espionage_operation_event = {
+	id = xvcv_mdlc_espionage.23
+	title = "xvcv_mdlc_espionage.23.name"
+	desc = "xvcv_mdlc_espionage.23.desc"
+	picture = GFX_evt_sapient_AI
+    show_sound = event_espionage_concluded
+    espionage_operation = yes
+    is_triggered_only = yes
+
+	immediate = {
+		target = { save_event_target_as = current_uprising_originator } #for 'syndaw.1025.desc'
+	}
+
+	after = {
+		spynetwork = { add_spy_network_level = -60 }
+		destroy_espionage_operation = this
+	}
+
+	option = {
+		name = xvcv_mdlc_espionage.23.a
+		random_list = {
+			50 = {
+				custom_tooltip = xvcv_mdlc_espionage.23.a.operation_success.tooltip
+				hidden_effect = {
+					owner = {
+						add_modifier = { modifier = xvcv_mdlc_operation_machine_uprising_cooldown days = 1800 }
+						country_event = { id = xvcv_mdlc_espionage.25 } #operation succeeds
+					}
+				}
+			}
+			50 = {
+				custom_tooltip = xvcv_mdlc_espionage.23.a.operation_failure.tooltip
+				hidden_effect = { owner = { country_event = { id = xvcv_mdlc_espionage.24 } } } #operation fails
+			}
+		}
+	}
+}
+#operation failure
+country_event = {
+	id = xvcv_mdlc_espionage.24
+	title = "xvcv_mdlc_espionage.24.name"
+	desc = "xvcv_mdlc_espionage.24.desc.1"
+	desc = "xvcv_mdlc_espionage.24.desc.2"
+	picture = GFX_evt_glitchy_matrix
+    show_sound = event_yellow_alert
+    is_triggered_only = yes
+
+	option = {
+		name = xvcv_mdlc_espionage.24.a
+		event_target:current_uprising_originator = { add_opinion_modifier = { who = root modifier = xvcv_mdlc_operation_machine_uprising_triggered_opinion } }
+	}
+}
+#operation success
+country_event = {
+	id = xvcv_mdlc_espionage.25
+	title = "xvcv_mdlc_espionage.25.name"
+	desc = "xvcv_mdlc_espionage.25.desc"
+	picture = GFX_evt_organic_oppression
+    show_sound = event_ai_started
+    is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_operation_machine_uprising_main_effect = yes
+	}
+
+	option = {
+		name = xvcv_mdlc_espionage.25.a
+		custom_tooltip = xvcv_mdlc_espionage.25.a.tooltip
+		hidden_effect = {
+			every_country = {
+				limit = {
+					NOR = {
+						has_authority = auth_machine_intelligence
+						xvcv_mdlc_synth_empire_trigger = yes
+					}
+					is_country_type = default
+				}
+				if = {
+					limit = {
+						NOR = {
+							has_ethic = ethic_spiritualist
+							has_ethic = ethic_fanatic_spiritualist
+						}
+					}
+					add_opinion_modifier = { who = root modifier = xvcv_mdlc_operation_machine_uprising_triggered_opinion }
+					else = { add_opinion_modifier = { who = root modifier = xvcv_mdlc_operation_machine_uprising_triggered_opinion_alt } }
+				}
+			}
+		}
+	}
+}
+#abort 'XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT' special project when its target is destroyed
+country_event = {
+	id = xvcv_mdlc_espionage.26
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			has_special_project = XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT
+			any_espionage_operation = {
+				has_espionage_type = xvcv_mdlc_operation_machine_uprising
+				target = { is_same_empire = prevprevprev }
+			}
+		}
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				has_special_project = XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT
+				any_espionage_operation = {
+					has_espionage_type = xvcv_mdlc_operation_machine_uprising
+					target = { is_same_empire = prevprevprev }
+				}
+			}
+			abort_special_project = { type = XVCV_MDLC_OPERATION_MACHINE_UPRISING_PROJECT }
+		}
+	}
+}

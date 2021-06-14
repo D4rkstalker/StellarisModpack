@@ -77,6 +77,39 @@ fleet_event = {
 				save_event_target_as = pspmod_coprean_colony_2
 			}
 		}
+		owner = {
+			if = {
+				limit = { NOT = { exists = event_target:pspmod_coprean_colony_2 } }
+				random_system_within_border = {
+					limit = { any_neighbor_system = { has_owner = no } }
+					random_neighbor_system = {
+						limit = { has_owner = no }
+						random_system_planet = {
+							limit = {
+								is_star = no
+								is_asteroid = no
+							}
+							change_pc = pc_gas_giant
+							save_event_target_as = pspmod_coprean_colony_2
+						}
+					}
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:pspmod_coprean_colony_2 } }
+				random_system_within_border = {
+					limit = { is_capital_system = no }
+					random_system_planet = {
+						limit = {
+							is_star = no
+							is_asteroid = no
+						}
+						change_pc = pc_gas_giant
+						save_event_target_as = pspmod_coprean_colony_2
+					}
+				}
+			}
+		}
 		event_target:pspmod_coprean_colony_2 = { create_archaeological_site = PSP_coprean_constitution_site_2 }
 	}
 
@@ -211,25 +244,41 @@ fleet_event = {
 		closest_system = {
 			limit = {
 				pspmod_coprean_digsite_spawn_rules = yes
-				any_system_planet = { 
-					OR = {
-						is_planet_class = pc_asteroid
-						is_planet_class = pc_ice_asteroid
-					}
-				}
+				any_system_planet = { is_asteroid = yes }
 			}
 			min_steps = 1
 			max_steps = 20
 			random_system_planet = {
 				limit = {
 					has_anomaly = no
-					OR = {
-						is_planet_class = pc_asteroid #좌표를 따라 우리는 소행성대 속의 한 외행성에 다다랐습니다.
-						is_planet_class = pc_ice_asteroid
-					}
 					NOT = { exists = archaeological_site }
+					is_asteroid = yes #좌표를 따라 우리는 소행성대 속의 한 외행성에 다다랐습니다.
 				}
 				save_event_target_as = pspmod_coprean_colony_3
+			}
+		}
+		if = {
+			limit = { NOT = { exists = event_target:pspmod_coprean_colony_3 } }
+			owner = {
+				random_system_within_border = {
+					limit = { any_system_planet = { is_asteroid = yes } }
+					random_system_planet = {
+						limit = { is_asteroid = yes }
+						save_event_target_as = pspmod_coprean_colony_3
+					}
+				}
+			}
+		}
+		if = {
+			limit = { NOT = { exists = event_target:pspmod_coprean_colony_3 } }
+			closest_system = {
+				limit = { any_system_planet = { is_asteroid = yes } }
+				min_steps = 1
+				max_steps = 100
+				random_system_planet = {
+					limit = { is_asteroid = yes }
+					save_event_target_as = pspmod_coprean_colony_3
+				}
 			}
 		}
 		event_target:pspmod_coprean_colony_3 = {
@@ -549,9 +598,16 @@ country_event = {
 					cooldown = no
 				}
 				give_technology = { tech = tech_hive_node message = no }
+				species = {
+					modify_species = {
+						base = none
+						add_trait = trait_hive_mind
+					}
+				}
+				change_dominant_species = { species = last_created_species }
 				every_owned_pop = {
-					limit = { NOT = { has_trait = trait_hive_mind } }
-					modify_species = { add_trait = trait_hive_mind }
+					limit = { NOT = { is_same_species = last_created_species } }
+					change_species = last_created_species
 				}
 				every_owned_ship = {
 					limit = {
@@ -634,14 +690,30 @@ country_event = {
 						limit = { NOT = { has_technology = tech_bio_reactor } }
 						give_technology = { tech = tech_bio_reactor message = no }
 					}
-					every_owned_pop = {
-						limit = { NOT = { has_trait = trait_machine_unit } }
-						if = {
-							limit = { has_trait = trait_mechanical }
-							modify_species = { remove_trait = trait_mechanical }
+					species = {
+						create_species = {
+							adjective = this
+							name = this
+							namelist = prev
+							plural = this
+							class = "MACHINE"
+							portrait = this
+							traits = { trait = trait_machine_unit }
+							traits = this
+							homeworld = prev.capital_scope
+							effect = {
+								modify_species = {
+									remove_trait = trait_mechanical
+									change_scoped_species = no
+								}
+							}
 						}
-						modify_species = { add_trait = trait_machine_unit }
 					}
+					every_owned_pop = {
+						limit = { NOT = { is_same_species = last_created_species } }
+						change_species = last_created_species
+					}
+					change_dominant_species = { species = last_created_species }
 					every_owned_ship = {
 						limit = {
 							is_ship_class = shipclass_colonizer
