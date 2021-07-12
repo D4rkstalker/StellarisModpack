@@ -1,0 +1,466 @@
+namespace = maai_ac
+
+#Prime Hunter: Action gatekeeper
+fleet_event = {
+	id = maai_ac.100
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_global_flag = prime_hunter_actions_p2_started }
+			}
+			set_global_flag = prime_hunter_actions_p2_started
+		}
+		random_list = { #Always destroys origin world first, then:
+			25 = { #Finds and destroys nearby planet
+				fleet_event = { id = maai_ac.101 }
+			}
+			25 = { #Finds and destroys not so nearby planet
+				fleet_event = { id = maai_ac.103 }
+			}
+			5 = { #Finds and destroys a far planet (LAST RESORT)
+				fleet_event = { id = maai_ac.105 }
+			}
+			#10 = { #Attacks fleet #now done thru on_entering_system_fleet
+			#	fleet_event = { id = maai_ac.108 }
+			#}
+			#0.1 = { #The Master AI "glitches", allowing temporary advantage #no
+			#	fleet_event = { id = maai_ac.109 }
+			#}
+		}
+	}
+}
+
+#Prime Hunter: Finds a target system and planet and goes to the system
+fleet_event = {
+	id = maai_ac.101
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		#root.solar_system = { #Locates a nearby world to destroy
+			closest_system = {
+				min_steps = 0
+				max_steps = 10
+				use_bypasses = yes
+				limit = {
+					exists = owner
+					has_access_fleet = root.owner
+					NOR = { has_star_flag = tma_current_system_target }
+					any_system_planet = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						NOR = {
+							has_planet_flag = tma_current_planet_target
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+				}
+				set_timed_star_flag = {
+					flag = tma_current_system_target
+					days = 5
+				}
+				random_system_planet = {
+					limit = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+					save_event_target_as = tma_current_planet_target
+					set_timed_planet_flag = {
+						flag = tma_current_planet_target
+						days = 5
+					}
+				}
+			}
+		#}
+				if = {
+					limit = {
+						exists = event_target:tma_current_planet_target
+					}
+					queue_actions = {
+						find_closest_system = {
+							trigger = {
+								id = "tma.101.t"
+								has_star_flag = tma_current_system_target
+								#any_system_planet = { has_planet_flag = tma_current_planet_target }
+								#is_same_value = event_target:tma_current_planet_target
+							}
+							found_system = {
+								move_to = this
+							}
+							failed = { #if cannot find it/get to it
+								effect = {
+									id = "tma.101.f"
+									fleet_event = { id = maai_ac.101 }
+								} #retry
+							}
+						}
+						effect = {
+							id = "tma.101.e"
+							fleet_event = { id = maai_ac.102 } #destroy the target planet
+						}
+					}
+				}
+				else = {
+					fleet_event = { id = maai_ac.103 } #retries with larger range
+					log = "Couldn't find a target system for the Prime Hunter within the range of 10."
+				}
+	}
+}
+
+#Prime Hunter: Goes to the target world and destroys it
+fleet_event = {
+	id = maai_ac.102
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		root = {
+			queue_actions = {
+					find_closest_planet = {
+						trigger = {
+							id = "tma.102.t"
+							has_planet_flag = tma_current_planet_target
+						}
+						found_planet = {
+							move_to = this
+							orbit_planet = this
+							wait = 3
+							destroy_planet = this
+						}
+						failed = { #if cannot find it/already destroyed
+							wait = { duration = 10 }
+							effect = {
+								id = "tma.102.f"
+								fleet_event = { id = maai_ac.103 } #retries with larger range
+							}
+						}
+					}
+			}
+		}
+	}
+}
+}
+
+#Prime Hunter: Finds a target system and planet and goes to the system (range: medium)
+fleet_event = {
+	id = maai_ac.103
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		#root.solar_system = { #Locates a nearby world to destroy
+			closest_system = {
+				min_steps = 0
+				max_steps = 25
+				use_bypasses = yes
+				limit = {
+					exists = owner
+					has_access_fleet = root.owner
+					NOR = { has_star_flag = tma_current_system_target }
+					any_system_planet = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						NOR = {
+							has_planet_flag = tma_current_planet_target
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+				}
+				set_timed_star_flag = {
+					flag = tma_current_system_target
+					days = 5
+				}
+				random_system_planet = {
+					limit = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+					save_event_target_as = tma_current_planet_target
+					set_timed_planet_flag = {
+						flag = tma_current_planet_target
+						days = 5
+					}
+				}
+			}
+		#}
+				if = {
+					limit = {
+						exists = event_target:tma_current_planet_target
+					}
+					queue_actions = {
+						find_closest_system = {
+							trigger = {
+								id = "tma.103.t"
+								has_star_flag = tma_current_system_target
+								#any_system_planet = { has_planet_flag = tma_current_planet_target }
+								#is_same_value = event_target:tma_current_planet_target
+							}
+							found_system = {
+								move_to = this
+							}
+							failed = { #if cannot find it/get to it
+								effect = { fleet_event = { id = maai_ac.103 } } #retry
+							}
+						}
+						effect = {
+							id = "tma.103.e"
+							fleet_event = { id = maai_ac.104 } #destroy the target planet
+						}
+					}
+				}
+				else = {
+					fleet_event = { id = maai_ac.105 } #retries with larger range
+					log = "Couldn't find a target system for the Prime Hunter within the range of 25."
+				}
+	}
+}
+
+#Prime Hunter: Goes to the target world and destroys it (range: medium)
+fleet_event = {
+	id = maai_ac.104
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		root = {
+			queue_actions = {
+					find_closest_planet = {
+						trigger = {
+							id = "tma.104.t"
+							has_planet_flag = tma_current_planet_target
+						}
+						found_planet = {
+							move_to = this
+							orbit_planet = this
+							wait = 3
+							destroy_planet = this
+						}
+						failed = { #if cannot find it/already destroyed
+							wait = { duration = 10 }
+							effect = {
+								fleet_event = { id = maai_ac.105 } #retries with larger range
+							}
+						}
+					}
+			}
+		}
+	}
+}
+}
+
+#Prime Hunter: Finds a target system and planet and goes to the system (range: large)
+fleet_event = {
+	id = maai_ac.105
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		#root.solar_system = { #Locates a nearby world to destroy
+			closest_system = {
+				min_steps = 0
+				max_steps = 100
+				use_bypasses = yes
+				limit = {
+					exists = owner
+					has_access_fleet = root.owner
+					NOR = { has_star_flag = tma_current_system_target }
+					any_system_planet = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+						}
+						NOR = {
+							has_planet_flag = tma_current_planet_target
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+				}
+				set_timed_star_flag = {
+					flag = tma_current_system_target
+					days = 5
+				}
+				random_system_planet = {
+					limit = {
+						is_colony = yes
+						NOR = {
+							is_planet_class = pc_infested
+							is_planet_class = pc_ai
+							is_same_value = event_target:tma_creator_final_stronghold
+						}
+						#is_owned_by = event_target:master_ai_creator
+					}
+					save_event_target_as = tma_current_planet_target
+					set_timed_planet_flag = {
+						flag = tma_current_planet_target
+						days = 5
+					}
+				}
+			}
+		#}
+				if = {
+					limit = {
+						exists = event_target:tma_current_planet_target
+					}
+					queue_actions = {
+						find_closest_system = {
+							trigger = {
+								id = "tma.105.t"
+								has_star_flag = tma_current_system_target
+								#any_system_planet = { has_planet_flag = tma_current_planet_target }
+								#is_same_value = event_target:tma_current_planet_target
+							}
+							found_system = {
+								move_to = this
+							}
+							failed = { #if cannot find it/get to it
+								effect = { fleet_event = { id = maai_ac.100 } } #retries from start
+							}
+						}
+						effect = {
+							id = "tma.105.e"
+							fleet_event = { id = maai_ac.106 } #destroy the target planet
+						}
+					}
+				}
+				else = {
+					fleet_event = { id = maai_ac.100 } #retries from start
+					log = "Couldn't find a target system for the Prime Hunter within the range of 100. Either bug or really unlucky."
+				}
+	}
+}
+
+#Prime Hunter: Goes to the target world and destroys it (range: beeg)
+fleet_event = {
+	id = maai_ac.106
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		root = {
+			queue_actions = {
+					find_closest_planet = {
+						trigger = {
+							id = "tma.106.t"
+							has_planet_flag = tma_current_planet_target
+						}
+						found_planet = {
+							move_to = this
+							orbit_planet = this
+							wait = 3
+							destroy_planet = this
+						}
+						failed = { #if cannot find it/already destroyed
+							wait = { duration = 10 }
+							effect = {
+								fleet_event = { id = maai_ac.100 } #retries from start
+							}
+						}
+					}
+			}
+		}
+	}
+}
+}
+
+#Prime Hunter: Gitches
+fleet_event = {
+	id = maai_ac.109
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		random_list = {
+			5 = {
+				clear_orders = yes
+				clear_fleet_actions = ROOT
+				queue_actions = {
+					wait = 10
+				}
+			}
+			15 = {
+				clear_orders = yes
+				clear_fleet_actions = ROOT
+				queue_actions = {
+					wait = 30
+				}
+			}
+			30 = {
+				clear_orders = yes
+				clear_fleet_actions = ROOT
+				queue_actions = {
+					wait = 55
+				}
+			}
+			20 = {
+				clear_orders = yes
+				clear_fleet_actions = ROOT
+				queue_actions = {
+					wait = 90
+				}
+			}
+			5 = {
+				clear_orders = yes
+				clear_fleet_actions = ROOT
+				queue_actions = {
+					wait = 120
+				}
+			}
+		}
+		every_playable_country = {
+			country_event = { id = maai_ac.110 days = 1 }
+		}
+	}
+}
+
+#Prime Hunter: Temporarily Disabled
+country_event = {
+	id = maai_ac.110
+	title = maai_ac.110.name
+	desc = maai_ac.110.desc
+	picture = GFX_evt_ship_in_orbit_2
+	location = from
+
+	is_triggered_only = yes
+
+	immediate = {
+	}
+
+	option = {
+		name = maai_ac.110.a #Might be a time to strike
+	}
+	
+	option = {
+		name = maai_ac.110.b #We can build up our defenses!
+	}
+}
