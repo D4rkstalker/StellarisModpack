@@ -87,7 +87,16 @@ country_event = {
 espionage_operation_event = {
 	id = xvcv_mdlc_espionage.10
 	title = "xvcv_mdlc_espionage.10.name"
-	desc = { trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1 } text = "xvcv_mdlc_espionage.10.desc.a" }
+	desc = {
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys
+			}
+		}
+		text = "xvcv_mdlc_espionage.10.desc.a"
+	}
 	desc = {
 		trigger = {
 			OR = {
@@ -108,7 +117,19 @@ espionage_operation_event = {
 		}
 		text = "xvcv_mdlc_espionage.10.desc.b_alt"
 	}
-	desc = { trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 } text = "xvcv_mdlc_espionage.10.desc.c" }
+	desc = {
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_total_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_government_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_diplomacy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_economy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_technology_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_military_intel
+			}
+		}
+		text = "xvcv_mdlc_espionage.10.desc.c"
+	}
 	desc = {
 		trigger = {
 			OR = {
@@ -117,6 +138,10 @@ espionage_operation_event = {
 			}
 		}
 		text = "xvcv_mdlc_espionage.10.desc.d"
+	}
+	desc = {
+		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_failed }
+		text = "xvcv_mdlc_espionage.10.desc.operation_failed"
 	}
 	picture = GFX_evt_glitchy_matrix
     show_sound = event_espionage_concluded
@@ -129,7 +154,18 @@ espionage_operation_event = {
 
 	after = {
 		if = {
-			limit = { NOT = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 } } #will not reduce spy network levels in this case
+			limit = {
+				NOR = { #will not reduce spy network levels in these cases
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_total_intel
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_government_intel
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_diplomacy_intel
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_economy_intel
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_technology_intel
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_military_intel
+
+					has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_failed
+				}
+			}
 			spynetwork = { add_spy_network_level = -10 }
 		}
 		destroy_espionage_operation = this
@@ -137,25 +173,58 @@ espionage_operation_event = {
 
 	option = {
 		name = xvcv_mdlc_espionage.10.a
-		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1 }
-		if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy }
-			owner = { add_resource = { energy = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
-			target = { add_resource = { energy = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys
+			}
 		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals }
-			owner = { add_resource = { minerals = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
-			target = { add_resource = { minerals = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
-		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys }
-			owner = { add_resource = { alloys = 1 mult = xvcv_mdlc_malware_resource_stockpile_bonus_var } }
-			target = { add_resource = { alloys = -1 mult = xvcv_mdlc_malware_victim_resource_stockpile_var } }
-		}
-		hidden_effect = { #reset these variables for reusing them later
-			owner = { clear_variable = xvcv_mdlc_malware_resource_stockpile_bonus_var }
-			target = { clear_variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
+		hidden_effect = {
+			#why did I split the whole process into these two seemingly needless parts?
+			#because I've noticed that in the previous process, if there are two operations of this type ongoing, the 'xvcv_mdlc_malware_victim_resource_stockpile_var' variable will be set once, 
+			#and then the other operation finishes, setting the variable again, CHANGING the former one's value to a WRONG one
+			#so I had to make a temp country as a variable storage, cache the current value so that it won't be changed UNTIL the player selects this event option
+			random_country = {
+				limit = {
+					has_country_flag = xvcv_mdlc_malware_owner_id_@prev.owner
+					has_country_flag = xvcv_mdlc_malware_victim_id_@prev.target
+				}
+				save_event_target_as = xvcv_mdlc_cached_variables_storage_target
+				prev.owner = {
+					set_variable = {
+						which = xvcv_mdlc_malware_resource_stockpile_obtained_var
+						value = { scope = prev variable = xvcv_mdlc_malware_victim_resource_stockpile_cached_var }
+					}
+				}
+				prev.target = {
+					set_variable = {
+						which = xvcv_mdlc_malware_resource_stockpile_lost_var
+						value = { scope = prev variable = xvcv_mdlc_malware_victim_resource_stockpile_cached_var }
+					}
+				}
+				destroy_country = yes
+			}
+			switch = {
+				trigger = has_espionage_operation_flag
+				xvcv_mdlc_operation_malware_activity_1_energy = {
+					custom_tooltip = xvcv_mdlc_espionage.10.a_tooltip_1
+					owner = { add_resource = { energy = 1 mult = xvcv_mdlc_malware_resource_stockpile_obtained_var } }
+					target = { add_resource = { energy = -1 mult = xvcv_mdlc_malware_resource_stockpile_lost_var } }
+				}
+				xvcv_mdlc_operation_malware_activity_1_minerals = {
+					custom_tooltip = xvcv_mdlc_espionage.10.a_tooltip_2
+					owner = { add_resource = { minerals = 1 mult = xvcv_mdlc_malware_resource_stockpile_obtained_var } }
+					target = { add_resource = { minerals = -1 mult = xvcv_mdlc_malware_resource_stockpile_lost_var } }
+				}
+				xvcv_mdlc_operation_malware_activity_1_alloys = {
+					custom_tooltip = xvcv_mdlc_espionage.10.a_tooltip_3
+					owner = { add_resource = { alloys = 1 mult = xvcv_mdlc_malware_resource_stockpile_obtained_var } }
+					target = { add_resource = { alloys = -1 mult = xvcv_mdlc_malware_resource_stockpile_lost_var } }
+				}
+			}
+			owner = { clear_variable = xvcv_mdlc_malware_resource_stockpile_obtained_var }
+			target = { clear_variable = xvcv_mdlc_malware_resource_stockpile_lost_var }
 		}
 	}
 	option = {
@@ -167,21 +236,21 @@ espionage_operation_event = {
 				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys
 			}
 		}
-		if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy }
-			#damn, 'country_base_energy_produces_add' modifier is not multiplied properly here #it's displayed as if it works but it does not in fact #what the hell? #stellaris v3.0.2
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_energy years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_energy years = 1 } }
-		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_minerals }
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_minerals years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_minerals years = 1 } }
-		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys }
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_alloys years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_alloys years = 1 } }
+		switch = {
+			trigger = has_espionage_operation_flag
+			xvcv_mdlc_operation_malware_activity_2_energy = {
+				#damn, 'country_base_energy_produces_add' modifier is not multiplied properly here #it's displayed as if it works, but it does not, in fact #what the hell? #stellaris v3.0.2
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_energy years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_energy years = 1 } }
+			}
+			xvcv_mdlc_operation_malware_activity_2_minerals = {
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_minerals years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_minerals years = 1 } }
+			}
+			xvcv_mdlc_operation_malware_activity_2_alloys = {
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_alloys years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_alloys years = 1 } }
+			}
 		}
 	}
 	option = {
@@ -193,27 +262,46 @@ espionage_operation_event = {
 				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research
 			}
 		}
-		if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_physics_research }
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_physics_research years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_physics_research years = 1 } }
-		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_society_research }
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_society_research years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_society_research years = 1 } }
-		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research }
-			owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_engineering_research years = 1 } }
-			target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_engineering_research years = 1 } }
+		switch = {
+			trigger = has_espionage_operation_flag
+			xvcv_mdlc_operation_malware_activity_2_physics_research = {
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_physics_research years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_physics_research years = 1 } }
+			}
+			xvcv_mdlc_operation_malware_activity_2_society_research = {
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_society_research years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_society_research years = 1 } }
+			}
+			xvcv_mdlc_operation_malware_activity_2_engineering_research = {
+				owner = { add_modifier = { modifier = xvcv_mdlc_malware_income_bonus_engineering_research years = 1 } }
+				target = { add_modifier = { modifier = xvcv_mdlc_malware_income_penalty_engineering_research years = 1 } }
+			}
 		}
 	}
 	option = {
 		name = xvcv_mdlc_espionage.10.a
-		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 }
-		owner = { add_intel = { amount = 5 who = prev.target } }
-		spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_spynetwork_bonus years = 1 } }
+		trigger = {
+			OR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_total_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_government_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_diplomacy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_economy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_technology_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_military_intel
+			}
+		}
+		switch = {
+			trigger = has_espionage_operation_flag
+			xvcv_mdlc_operation_malware_activity_3_total_intel = {
+				owner = { add_intel = { amount = 10 who = prev.target } }
+				spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_spynetwork_bonus years = 1 } }
+			}
+			xvcv_mdlc_operation_malware_activity_3_government_intel = { owner = { add_intel_report = { category = government level = 2 days = 360 who = prev.target } } }
+			xvcv_mdlc_operation_malware_activity_3_diplomacy_intel = { owner = { add_intel_report = { category = diplomacy level = 2 days = 360 who = prev.target } } }
+			xvcv_mdlc_operation_malware_activity_3_economy_intel = { owner = { add_intel_report = { category = economy level = 2 days = 360 who = prev.target } } }
+			xvcv_mdlc_operation_malware_activity_3_technology_intel = { owner = { add_intel_report = { category = technology level = 2 days = 360 who = prev.target } } }
+			xvcv_mdlc_operation_malware_activity_3_military_intel = { owner = { add_intel_report = { category = military level = 2 days = 360 who = prev.target } } }
+		}
 	}
 	option = {
 		name = xvcv_mdlc_espionage.10.a
@@ -223,14 +311,15 @@ espionage_operation_event = {
 				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5
 			}
 		}
-		if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4 }
-			spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_1 years = 1 } }
+		switch = {
+			trigger = has_espionage_operation_flag
+			xvcv_mdlc_operation_malware_activity_4 = { spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_1 years = 1 } } }
+			xvcv_mdlc_operation_malware_activity_5 = { spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_2 years = 1 } } }
 		}
-		else_if = {
-			limit = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5 }
-			spynetwork = { add_modifier = { modifier = xvcv_mdlc_malware_espionage_bonus_2 years = 1 } }
-		}
+	}
+	option = {
+		name = xvcv_mdlc_espionage.10.operation_failed
+		trigger = { has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_failed }
 	}
 }
 #'xvcv_mdlc_ap_uprising_protocol' ascension perk exclusive operation

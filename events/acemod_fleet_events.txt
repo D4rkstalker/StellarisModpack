@@ -9,6 +9,8 @@ namespace = acemod_fleet
 # 
 # Note 2: Vanilla crisis countries are piloted by default. See instructions on how to exclude countries, including vanilla crisis countries.
 #
+# Note 3: In order to allow crisis factions use vanilla planet killer weapons this mod overwrites planet_is_hostile_or_crisis scripted trigger key in 01_scripted_triggers_planet_killers.txt.
+#
 # Instructions:
 # 
 # set_global_flag = acemod_activated											global				Activates ACEMOD fleet AI.
@@ -22,6 +24,7 @@ namespace = acemod_fleet
 # set_country_flag = acemod_country_flag_disabled_constructor_ai				country				Disables ACEMOD AI for constructor fleets.
 # set_country_flag = acemod_country_flag_disabled_army_ai						country				Disables ACEMOD AI for army fleets.
 # set_country_flag = acemod_country_flag_disabled_colonizer_ai					country				Disables ACEMOD AI for colonizer fleets.
+# set_country_flag = acemod_country_flag_disabled_colossus_ai					country				Disables ACEMOD AI for colossus fleets.
 #
 # set_global_flag = acemod_constructor_reinforcements_disabled					global				Disables constructor reinforcements for all countries.
 # set_country_flag = acemod_constructor_reinforcements							country				Enables constructor reinforcements for given country. Vanilla crisis countries receive them by default. Requires acemod_assisted_ai country flag.
@@ -54,6 +57,7 @@ namespace = acemod_fleet
 # set_planet_flag = acemod_planet_flag_bombardment_target_ignore				planet				Marks planet as excluded from being targeted for bombardment.
 # set_planet_flag = acemod_planet_flag_army_target_ignore						planet				Marks planet as excluded from being targeted for invasion.
 # set_planet_flag = acemod_planet_flag_colonizer_target_ignore					planet				Marks planet as excluded from being targeted for colonization or infestation.
+# set_planet_flag = acemod_planet_flag_colossus_target_ignore					planet				Marks planet as excluded from being targeted for colossus kill.
 #
 # set_global_flag = acemod_advanced_ai_disabled									global				Disables some of the fleet events which might require high amount of checks, like reaction to enemy movements. Do not use unless you really want to.
 #
@@ -61,6 +65,13 @@ namespace = acemod_fleet
 # set_star_flag = acemod_star_flag_starbase_defensive_protocol					system				Marks system as critical and to be defended immediately if needed.
 # set_country_flag = acemod_country_flag_starbase_defensive_protocol_disabled	country				Disables territorial defense for given country.
 # set_country_flag = acemod_country_flag_starbase_defensive_protocol_fallback_event_disabled	country	Disables fallback event (acemod_fleet.132). Use if issues from triggering both 130 132 arise (should not).
+#
+# set_country_flag = acemod_country_flag_can_spawn_crisis_colossus				country				Enables automatic Colossus spawns for a given country. Requires specific Colossus type flag and planet flag as well.
+# set_country_flag = acemod_country_flag_can_spawn_crisis_ai_colossus			country				Automatic Colossus spawns are of Contingency type. Required for above to work.
+# set_planet_flag = acemod_planet_flag_can_spawn_crisis_ai_colossus				planet				Sets planet to spawn Contingency Colossus on. Required for above to work if pc_ai is not present.
+# set_variable = { which = acemod_var_country_colossus_spawn_limit value = 4 }	country				Sets game limit of automatic Colossus spawns for a given country (default 4).
+# set_country_flag = acemod_can_build_crisis_ai_colossus						country				Allows given country to build Contingency Colossus.
+# acemod_spawn_ai_colossus = yes		root = country this = planet, fleet, ship, ambient_object	Spawns Contingency Colossus on this scope for root scope country.
 #
 # set_country_flag = acemod_country_flag_system_pings_disabled					country				Disables pinging systems to indicate potential high value targets.
 # 
@@ -111,6 +122,7 @@ event = {
 			}
 			set_global_flag = acemod_activated
 			set_country_flag = acemod_assisted_ai
+			set_country_flag = acemod_country_flag_can_spawn_crisis_colossus
 			if = {
 				limit = {
 					NOR = {
@@ -361,6 +373,40 @@ event = {
 				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
 				# }
 			}
+			if = {
+				limit = {
+					NOT = {
+						has_country_flag = acemod_country_flag_prioritise_galactic_empires_checked
+					}
+				}
+				if = {
+					limit = {
+						is_country_type = extradimensional
+					}
+					country_event = {
+						id = acemod_fleet.104						# Counting Dimensional Anchors
+						days = 0
+					}
+				}
+				if = {
+					limit = {
+						is_country_type = extradimensional_2
+					}
+					country_event = {
+						id = acemod_fleet.104						# Counting Dimensional Anchors
+						days = 1
+					}
+				}
+				if = {
+					limit = {
+						is_country_type = extradimensional_3
+					}
+					country_event = {
+						id = acemod_fleet.104						# Counting Dimensional Anchors
+						days = 2
+					}
+				}
+			}
 			every_owned_fleet = {
 				limit = {
 					is_fleet_idle = yes
@@ -397,6 +443,33 @@ event = {
 					}
 				}
 			}
+		}
+	}
+}
+
+# Counting Dimensional Anchors. Target galactic empires first over other extradimensional factions if any nearby.
+country_event = {
+	id = acemod_fleet.104
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				count_owned_fleet = {
+					limit = {
+						is_ship_size = starbase_exd						# Counting Dimensional Anchors.
+					}
+					count > 3
+				}
+			}
+			set_timed_country_flag = {
+				flag = acemod_country_flag_prioritise_galactic_empires_checked
+				days = 360
+			}
+			set_country_flag = acemod_country_flag_prioritise_galactic_empires			# Target galactic empires first over other extradimensional factions if any nearby. 
+		}
+		else = {
+			remove_country_flag = acemod_country_flag_prioritise_galactic_empires
 		}
 	}
 }
@@ -667,72 +740,175 @@ fleet_event = {
 	hide_window = yes
 	is_triggered_only = yes
 	immediate = {
-		solar_system = {
-			closest_system = {
-				min_steps = 1
-				max_steps = 20
-				use_bypasses = no
-				limit = {
-					exists = owner
-					has_access_fleet = root.owner
-					OR = {
-						owner = {
-							NOR = {
-								is_same_value = root.owner
-								is_country_type = fallen_empire
-							}
-							is_hostile = root.owner
-						}
-						AND = {
+		if = {
+			limit = {
+				owner = {
+					has_country_flag = acemod_country_flag_prioritise_galactic_empires					# Target galactic empires first over other extradimensional factions if any nearby.
+				}
+			}
+			solar_system = {
+				closest_system = {
+					min_steps = 1
+					max_steps = 10					# Short range seeking.
+					use_bypasses = no
+					limit = {
+						exists = owner
+						has_access_fleet = root.owner
+						OR = {
 							owner = {
-								is_same_value = root.owner
+								NOR = {
+									is_same_value = root.owner
+									is_country_type = fallen_empire
+								}
+								is_hostile = root.owner
 							}
-							NOT = {
-								exists = starbase								# Shortcut to check if system is under siege without iterating through planets.
+							AND = {
+								owner = {
+									is_same_value = root.owner
+								}
+								NOT = {
+									exists = starbase									# Shortcut to check if system is under siege without iterating through planets.
+								}
+								distance = {
+									source = prev
+									max_jumps = 4
+									use_bypasses = no
+								}
+								any_system_planet = {
+									has_orbital_bombardment = yes									# Relieve besieged colonies.
+								}
 							}
-							distance = {
-								source = prev
-								max_jumps = 4
-								use_bypasses = no
+						}
+						NOR = {
+							has_star_flag = acemod_star_flag_solar_system_target
+							AND = {
+								has_star_flag = extradimensional_origin_system								# Unbidden don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = unbidden
+								}
 							}
-							any_system_planet = {
-								has_orbital_bombardment = yes								# Relieve besieged colonies.
+							AND = {
+								has_star_flag = extradimensional_second_portal_system								# Aberrant don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = aberrant
+								}
+							}
+							AND = {
+								has_star_flag = extradimensional_third_portal_system								# Vehement don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = vehement
+								}
+							}
+							# Prioritise galactic empires over extradimensional systems when seeking in short range.
+							# Vanilla scripts assume only one country of each extradimensional type exists, so does ACE.
+							# Extradimensionals do not have colonies so colony relieve script does not apply.
+							AND = {
+								owner = {
+									OR = {
+										is_country_type = extradimensional
+										is_country_type = extradimensional_2
+										is_country_type = extradimensional_3
+									}
+								}
+								root.owner = {
+									OR = {
+										is_country_type = extradimensional
+										is_country_type = extradimensional_2
+										is_country_type = extradimensional_3
+									}
+									# has_country_flag = acemod_country_flag_prioritise_galactic_empires									# Trigger moved up.
+								}
 							}
 						}
 					}
-					NOR = {
-						has_star_flag = acemod_star_flag_solar_system_target
-						AND = {
-							has_star_flag = extradimensional_origin_system							# Unbidden don't need to target own portal system.
+					save_event_target_as = acemod_event_target_invader_target
+					set_timed_star_flag = {
+						flag = acemod_star_flag_solar_system_target
+						days = 120
+					}
+					set_timed_star_flag = {
+						flag = acemod_star_flag_solar_system_target@root						# Assigns solar system to a fleet in case bombing is interrupted by special order.
+						days = 360
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					exists = event_target:acemod_event_target_invader_target
+				}
+			}
+			solar_system = {
+				closest_system = {
+					min_steps = 1
+					max_steps = 20					# Medium range seeking.
+					use_bypasses = no
+					limit = {
+						exists = owner
+						has_access_fleet = root.owner
+						OR = {
 							owner = {
-								is_same_value = root.owner
-								# has_country_flag = unbidden
+								NOR = {
+									is_same_value = root.owner
+									is_country_type = fallen_empire
+								}
+								is_hostile = root.owner
+							}
+							AND = {
+								owner = {
+									is_same_value = root.owner
+								}
+								NOT = {
+									exists = starbase									# Shortcut to check if system is under siege without iterating through planets.
+								}
+								distance = {
+									source = prev
+									max_jumps = 4
+									use_bypasses = no
+								}
+								any_system_planet = {
+									has_orbital_bombardment = yes									# Relieve besieged colonies.
+								}
 							}
 						}
-						AND = {
-							has_star_flag = extradimensional_second_portal_system							# Aberrant don't need to target own portal system.
-							owner = {
-								is_same_value = root.owner
-								# has_country_flag = aberrant
+						NOR = {
+							has_star_flag = acemod_star_flag_solar_system_target
+							AND = {
+								has_star_flag = extradimensional_origin_system								# Unbidden don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = unbidden
+								}
 							}
-						}
-						AND = {
-							has_star_flag = extradimensional_third_portal_system							# Vehement don't need to target own portal system.
-							owner = {
-								is_same_value = root.owner
-								# has_country_flag = vehement
+							AND = {
+								has_star_flag = extradimensional_second_portal_system								# Aberrant don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = aberrant
+								}
+							}
+							AND = {
+								has_star_flag = extradimensional_third_portal_system								# Vehement don't need to target own portal system.
+								owner = {
+									is_same_value = root.owner
+									# has_country_flag = vehement
+								}
 							}
 						}
 					}
-				}
-				save_event_target_as = acemod_event_target_invader_target
-				set_timed_star_flag = {
-					flag = acemod_star_flag_solar_system_target
-					days = 120
-				}
-				set_timed_star_flag = {
-					flag = acemod_star_flag_solar_system_target@root					# Assigns solar system to a fleet in case bombing is interrupted by special order.
-					days = 360
+					save_event_target_as = acemod_event_target_invader_target
+					set_timed_star_flag = {
+						flag = acemod_star_flag_solar_system_target
+						days = 120
+					}
+					set_timed_star_flag = {
+						flag = acemod_star_flag_solar_system_target@root						# Assigns solar system to a fleet in case bombing is interrupted by special order.
+						days = 360
+					}
 				}
 			}
 		}
@@ -2257,7 +2433,7 @@ fleet_event = {
 		clear_fleet_actions = this		# Unstucks fleet if caught in a queued actions loop.
 		if = {
 			limit = {
-				has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+				has_fleet_flag = acemod_fleet_flag_starbase_construction_fleet
 			}
 			break = yes
 		}
@@ -2267,12 +2443,13 @@ fleet_event = {
 					NOR = {
 						exists = owner
 						has_star_flag = acemod_star_flag_starbase_construction_system
+						is_star_class = sc_dn						# Wild Space 3.0
 					}
 					NOT = {
 						any_fleet_in_system = {
 							OR = {
 								is_constructing = starbase
-								has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+								has_fleet_flag = acemod_fleet_flag_starbase_construction_fleet
 							}
 							owner = {
 								is_same_value = root.owner
@@ -2301,7 +2478,7 @@ fleet_event = {
 							}
 							root = {
 								set_timed_fleet_flag = {
-									flag = acemod_planet_flag_starbase_construction_fleet
+									flag = acemod_fleet_flag_starbase_construction_fleet
 									days = 100
 								}
 								fleet_event = {
@@ -2625,7 +2802,7 @@ fleet_event = {
 	immediate = {
 		if = {
 			limit = {
-				has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+				has_fleet_flag = acemod_fleet_flag_starbase_construction_fleet
 			}
 			break = yes
 		}
@@ -2669,8 +2846,9 @@ fleet_event = {
 									acemod_is_active_bypass = yes
 								}
 								has_access_fleet = root.owner
-								NOT = {
+								NOR = {
 									has_star_flag = acemod_star_flag_starbase_construction_system
+									is_star_class = sc_dn									# Wild Space 3.0
 								}
 								NOT = {
 									exists = owner
@@ -2680,7 +2858,7 @@ fleet_event = {
 									any_fleet_in_system = {
 										OR = {
 											is_constructing = starbase
-											has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+											has_fleet_flag = acemod_fleet_flag_starbase_construction_fleet
 										}
 										owner = {
 											is_same_value = root.owner
@@ -2750,6 +2928,7 @@ fleet_event = {
 					NOR = {
 						has_star_flag = acemod_star_flag_solar_system_constructor_target
 						has_star_flag = acemod_star_flag_starbase_construction_system
+						is_star_class = sc_dn						# Wild Space 3.0
 					}
 					NOT = {
 						exists = owner
@@ -2767,7 +2946,7 @@ fleet_event = {
 								AND = {
 									OR = {
 										is_constructing = starbase
-										has_fleet_flag = acemod_planet_flag_starbase_construction_fleet
+										has_fleet_flag = acemod_fleet_flag_starbase_construction_fleet
 									}
 									owner = {
 										is_same_value = root.owner
@@ -2858,7 +3037,7 @@ country_event = {
 		if = {
 			limit = {
 				is_country_type = swarm
-				count_owned_ship = {
+				count_owned_fleet = {
 					limit = {
 						is_ship_size = construction_ship_swarm
 					}
@@ -2926,7 +3105,7 @@ country_event = {
 					is_country_type = extradimensional_2
 					is_country_type = extradimensional_3
 				}
-				count_owned_ship = {
+				count_owned_fleet = {
 					limit = {
 						is_ship_size = construction_ship_ed
 					}
@@ -3103,7 +3282,7 @@ planet_event = {
 		if = {
 			limit = {
 				event_target:acemod_AI_crisis = {
-					count_owned_ship = {
+					count_owned_fleet = {
 						limit = {
 							is_ship_size = construction_ship_ai
 						}
@@ -4187,6 +4366,7 @@ fleet_event = {
 												value = 1
 											}
 											has_fleet_flag = acemod_fleet_flag_defensive_jumpdrive_protocol_cooldown
+											has_fleet_flag = acemod_fleet_flag_escort_team
 										}
 										# Does not work.
 										# solar_system = {
@@ -5128,13 +5308,644 @@ country_event = {
 	}
 }
 
-# Disables crisis colossi by default to avoid player meltdown.
+# Main colossus hunter-seeker event.
+event = {
+	id = acemod_fleet.700
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_global_flag = acemod_activated
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_assisted_ai				# Only countries with this flag will have their fleets piloted by ACEMOD.
+				NOT = {
+					has_country_flag = acemod_country_flag_disabled_colossus_ai
+				}
+				# OR = {
+				# 	is_country_type = swarm
+				# 	is_country_type = extradimensional
+				# 	is_country_type = extradimensional_2
+				# 	is_country_type = extradimensional_3
+				# 	is_country_type = ai_empire
+				# 	is_country_type = gray
+				# 	is_country_type = gray_goo					# A Deadly Tempest mod.
+				# }
+			}
+			every_owned_fleet = {
+				limit = {
+					is_ship_class = shipclass_military_special
+					NOT = {
+						has_fleet_order = destroy_planet_order
+					}
+					NOT = {
+						check_variable = {
+							which = acemod_var_fleet_piloted_exclusion
+							value = 1
+						}
+					}
+				}
+				fleet_event = {
+					id = acemod_fleet.705
+					days = 2
+					random = 10
+				}
+			}
+		}
+	}
+}
+
+# Seeks valid target planet to kill, skips if not found.
+fleet_event = {
+	id = acemod_fleet.705
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = acemod_fleet_flag_colossus_invader_fleet
+				}
+			}
+			if = {
+				limit = {
+					exists = solar_system
+				}
+				if = {
+					limit = {
+						solar_system = {
+							exists = owner
+							any_system_planet = {
+								is_colony = yes
+								owner = {
+									NOT = {
+										is_same_value = root.owner
+									}
+									# OR = {
+									is_hostile = root.owner
+									# is_primitive = yes	# Sweeping primitives would require overwriting can_destroy_planet_with_PLANET_KILLER_NEUTRON trigger.
+									# }
+								}
+								controller = {
+									OR = {
+										NOT = {
+											is_same_value = root.owner
+										}
+										AND = {
+											is_same_value = root.owner
+											root.owner = {
+												is_crisis_faction = yes												# Crises should kill even controlled planets for maximum speed.
+											}
+										}
+									}
+								}
+								# is_under_colonization =  yes	#	Cannot be invaded.
+								# Sweeping crisis worlds should be allowed.
+								# NOR = {
+								# 	is_planet_class = pc_infested
+								# 	is_planet_class = pc_ai
+								# }
+								NOT = {
+									has_planet_flag = acemod_planet_flag_colossus_target_ignore
+								}
+							}
+						}
+					}
+					save_event_target_as = acemod_event_target_invader_colossus
+					if = {
+						limit = {
+							exists = event_target:acemod_event_target_invader_colossus
+						}
+						clear_orders = yes						# Unstucks fleet if caught in a queued actions loop.
+						clear_fleet_actions = this						# Unstucks fleet if caught in a queued actions loop.
+						queue_actions = {
+							find_closest_planet = {
+								trigger = {
+									id = "acemod.705.t1"
+									is_colony = yes
+									# is_under_colonization =  yes	#	Cannot be invaded.
+									NOT = {
+										has_planet_flag = acemod_planet_flag_colossus_target
+									}
+									NOT = {
+										is_owned_by = root.owner
+									}
+									controller = {
+										OR = {
+											NOT = {
+												is_same_value = root.owner
+											}
+											AND = {
+												is_same_value = root.owner
+												root.owner = {
+													is_crisis_faction = yes													# Crises should kill even controlled planets for maximum speed.
+												}
+											}
+										}
+									}
+									owner = {
+										# OR = {
+										is_hostile = root.owner
+										# is_primitive = yes	# Sweeping primitives would require overwriting can_destroy_planet_with_PLANET_KILLER_NEUTRON trigger.
+										# }
+									}
+									# Sweeping crisis worlds should be allowed.
+									# NOR = {
+									# 	is_planet_class = pc_infested
+									# 	is_planet_class = pc_ai
+									# }
+									NOT = {
+										has_planet_flag = acemod_planet_flag_colossus_target_ignore
+									}
+								}
+								found_planet = {
+									effect = {
+										id = "acemod.705.e1"
+										save_event_target_as = acemod_event_target_invader_colossus_target
+										set_timed_planet_flag = {
+											flag = acemod_planet_flag_colossus_target
+											days = 120
+										}
+										prevprev = {
+											set_timed_fleet_flag = {
+												flag = acemod_fleet_flag_colossus_invader_fleet
+												days = 60
+											}
+										}
+									}
+									move_to = this
+									wait = 5
+									destroy_planet = {
+										target = this
+									}
+								}
+								failed = {
+									effect = {
+										id = "acemod.705.e3"
+										root = {
+											fleet_event = {
+												id = acemod_fleet.711
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							is_fleet_idle = yes
+							NOR = {
+								has_fleet_order = destroy_planet_order
+								has_fleet_flag = acemod_fleet_flag_colossus_invader_fleet
+							}
+						}
+						fleet_event = {
+							id = acemod_fleet.711
+						}
+					}
+				}
+				else_if = {
+					limit = {
+						is_fleet_idle = yes
+						NOR = {
+							has_fleet_order = destroy_planet_order
+							has_fleet_flag = acemod_fleet_flag_colossus_invader_fleet
+						}
+					}
+					fleet_event = {
+						id = acemod_fleet.711
+					}
+				}
+			}
+		}
+	}
+}
+
+fleet_event = {
+	id = acemod_fleet.711
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		clear_orders = yes		# Unstucks fleet if caught in a queued actions loop.
+		clear_fleet_actions = this		# Unstucks fleet if caught in a queued actions loop.
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_order = destroy_planet_order
+				}
+			}
+			solar_system = {
+				random_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = {
+							is_same_value = root.owner
+						}
+						is_ship_class = shipclass_military
+						NOT = {
+							has_fleet_flag = acemod_fleet_flag_response_team
+						}
+					}
+					save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+					set_timed_fleet_flag = {
+						flag = acemod_fleet_flag_escort_team
+						days = 360
+					}
+				}
+			}
+			if = {
+				limit = {
+					exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+				}
+				auto_follow_fleet = {
+					target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+					attack_fleet = no
+				}
+			}
+			else = {
+				owner = {
+					random_owned_fleet = {
+						limit = {
+							is_ship_class = shipclass_military
+							NOT = {
+								has_fleet_flag = acemod_fleet_flag_response_team
+							}
+							distance = {
+								source = prevprev
+								min_jumps = 0
+								max_jumps = 1
+								use_bypasses = no
+								bypass_empire = owner
+							}
+						}
+						save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+						set_timed_fleet_flag = {
+							flag = acemod_fleet_flag_escort_team
+							days = 360
+						}
+					}
+				}
+				if = {
+					limit = {
+						exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+					}
+					auto_follow_fleet = {
+						target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+						attack_fleet = no
+					}
+				}
+				else = {
+					owner = {
+						random_owned_fleet = {
+							limit = {
+								is_ship_class = shipclass_military
+								NOT = {
+									has_fleet_flag = acemod_fleet_flag_response_team
+								}
+								distance = {
+									source = prevprev
+									min_jumps = 2
+									max_jumps = 2
+									use_bypasses = no
+									bypass_empire = owner
+								}
+							}
+							save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+							set_timed_fleet_flag = {
+								flag = acemod_fleet_flag_escort_team
+								days = 360
+							}
+						}
+					}
+					if = {
+						limit = {
+							exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+						}
+						auto_follow_fleet = {
+							target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+							attack_fleet = no
+						}
+					}
+					else = {
+						owner = {
+							random_owned_fleet = {
+								limit = {
+									is_ship_class = shipclass_military
+									NOT = {
+										has_fleet_flag = acemod_fleet_flag_response_team
+									}
+									distance = {
+										source = prevprev
+										min_jumps = 3
+										max_jumps = 3
+										use_bypasses = no
+										bypass_empire = owner
+									}
+								}
+								save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+								set_timed_fleet_flag = {
+									flag = acemod_fleet_flag_escort_team
+									days = 360
+								}
+							}
+						}
+						if = {
+							limit = {
+								exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+							}
+							auto_follow_fleet = {
+								target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+								attack_fleet = no
+							}
+						}
+						else = {
+							owner = {
+								random_owned_fleet = {
+									limit = {
+										is_ship_class = shipclass_military
+										NOT = {
+											has_fleet_flag = acemod_fleet_flag_response_team
+										}
+										distance = {
+											source = prevprev
+											min_jumps = 4
+											max_jumps = 4
+											use_bypasses = no
+											bypass_empire = owner
+										}
+									}
+									save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+									set_timed_fleet_flag = {
+										flag = acemod_fleet_flag_escort_team
+										days = 360
+									}
+								}
+							}
+							if = {
+								limit = {
+									exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+								}
+								auto_follow_fleet = {
+									target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+									attack_fleet = no
+								}
+							}
+							else = {
+								owner = {
+									random_owned_fleet = {
+										limit = {
+											is_ship_class = shipclass_military
+											NOT = {
+												has_fleet_flag = acemod_fleet_flag_response_team
+											}
+											distance = {
+												source = prevprev
+												min_jumps = 5
+												max_jumps = 5
+												use_bypasses = no
+												bypass_empire = owner
+											}
+										}
+										save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+										set_timed_fleet_flag = {
+											flag = acemod_fleet_flag_escort_team
+											days = 360
+										}
+									}
+								}
+								if = {
+									limit = {
+										exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+									}
+									auto_follow_fleet = {
+										target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+										attack_fleet = no
+									}
+								}
+								else = {
+									owner = {
+										random_owned_fleet = {
+											limit = {
+												is_ship_class = shipclass_military
+												NOT = {
+													has_fleet_flag = acemod_fleet_flag_response_team
+												}
+												distance = {
+													source = prevprev
+													min_jumps = 6
+													max_jumps = 20
+													use_bypasses = no
+													bypass_empire = owner
+												}
+											}
+											save_event_target_as = acemod_acemod_event_target_fleet_colossus_escort
+											# set_timed_fleet_flag = {
+											# 	flag = acemod_fleet_flag_escort_team
+											# 	days = 360
+											# }
+										}
+									}
+									if = {
+										limit = {
+											exists = event_target:acemod_acemod_event_target_fleet_colossus_escort
+										}
+										auto_follow_fleet = {
+											target = event_target:acemod_acemod_event_target_fleet_colossus_escort
+											attack_fleet = no
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Spawn colossus root event.
+event = {
+	id = acemod_fleet.750
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_global_flag = acemod_activated
+		NOT = {
+			has_global_flag = acemod_crisis_colossus_disabled
+		}
+	}
+	immediate = {
+		every_country = {
+			limit = {
+				has_country_flag = acemod_country_flag_can_spawn_crisis_colossus
+			}
+			if = {
+				limit = {
+					NOT = {
+						is_variable_set = acemod_var_country_colossus_spawn_limit
+					}
+				}
+				event_target:global_event_country = {
+					if = {
+						limit = {
+							NOT = {
+								is_variable_set = acemod_var_country_colossus_spawn_limit
+							}
+						}
+						set_variable = {
+							which = acemod_var_country_colossus_spawn_limit
+							value = 4
+						}
+					}
+				}
+				set_variable = {
+					which = acemod_var_country_colossus_spawn_limit
+					value = {
+						scope = event_target:global_event_country
+						variable = acemod_var_country_colossus_spawn_limit
+					}
+				}
+			}
+			if = {
+				limit = {
+					check_variable = {
+						which = acemod_var_country_colossus_spawn_limit
+						value > acemod_var_country_num_colossus_spawned
+					}
+				}
+				country_event = {
+					id = acemod_fleet.751
+					days = 5
+					random = 10
+				}
+			}
+		}
+	}
+}
+
+# Spawn colossus
 country_event = {
+	id = acemod_fleet.751
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					is_country_type = ai_empire
+					has_country_flag = acemod_country_flag_can_spawn_crisis_ai_colossus
+				}
+			}
+			random_owned_planet = {
+				limit = {
+					OR = {
+						is_planet_class = pc_ai
+						has_planet_flag = acemod_planet_flag_can_spawn_crisis_ai_colossus
+					}
+					check_variable = {
+						which = acemod_var_planet_num_ai_colossus_spawned
+						value = 0
+					}
+				}
+				change_variable = {
+					which = acemod_var_planet_num_ai_colossus_spawned
+					value = 1
+				}
+				save_event_target_as = acemod_event_target_colossus_spawn_point
+			}
+			if = {
+				limit = {
+					exists = event_target:acemod_event_target_colossus_spawn_point
+				}
+				acemod_spawn_ai_colossus = yes				# Scope: planet, fleet, ship, ambient_object
+				if = {
+					limit = {
+						exists = event_target:acemod_event_target_ai_colossus
+					}
+					event_target:acemod_event_target_ai_colossus = {
+						if = {
+							limit = {
+								owner = {
+									has_country_flag = acemod_assisted_ai
+									NOT = {
+										has_country_flag = acemod_country_flag_disabled_colossus_ai
+									}
+								}
+								NOT = {
+									check_variable = {
+										which = acemod_var_fleet_piloted_exclusion
+										value = 1
+									}
+								}
+							}
+							fleet_event = {
+								id = acemod_fleet.705
+								days = 5
+							}
+						}
+					}
+				}
+			}
+			else = {
+				random_owned_planet = {
+					limit = {
+						is_planet_class = pc_ai
+						check_variable = {
+							which = acemod_var_planet_num_ai_colossus_spawned
+							value > 0
+						}
+					}
+					change_variable = {
+						which = acemod_var_planet_num_ai_colossus_spawned
+						value = 1
+					}
+					save_event_target_as = acemod_event_target_colossus_spawn_point
+					acemod_spawn_ai_colossus = yes					# Scope: planet, fleet, ship, ambient_object
+					if = {
+						limit = {
+							exists = event_target:acemod_event_target_ai_colossus
+						}
+						event_target:acemod_event_target_ai_colossus = {
+							if = {
+								limit = {
+									owner = {
+										has_country_flag = acemod_assisted_ai
+										NOT = {
+											has_country_flag = acemod_country_flag_disabled_colossus_ai
+										}
+									}
+									NOT = {
+										check_variable = {
+											which = acemod_var_fleet_piloted_exclusion
+											value = 1
+										}
+									}
+								}
+								fleet_event = {
+									id = acemod_fleet.705
+									days = 5
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Disables crisis colossi if Apocalypse DLC is not present.
+event = {
 	id = acemod_fleet.799
 	hide_window = yes
-	fire_only_once = yes
+	is_triggered_only = yes
 	trigger = {
-		is_ai = no
+		NOT = {
+			host_has_dlc = Apocalypse
+		}
 	}
 	immediate = {
 		set_global_flag = acemod_crisis_colossus_disabled

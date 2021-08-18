@@ -282,7 +282,8 @@ country_event = {
 									set_planet_flag = hatchling_will_trigger
 								}
 							}
-							set_surveyed = { surveyed = no surveyor = prevprev }
+							# FIXME set_surveyed is bugged 3.0.3!
+							# set_surveyed = { surveyed = no surveyor = prevprev }
 							add_anomaly = { category = disco_gray_cat target = prevprev }
 							prevprev = { set_country_flag = disco_gray }
 						}
@@ -593,6 +594,9 @@ country_event = {
 	is_triggered_only = yes
 	trigger = {
 		has_global_flag = lgates_activated_globally
+		exists = from
+		exists = fromfrom
+		exists = fromfromfrom
 		OR = {
 			is_robot_empire = yes
 			is_species_class = ROBOT # has_authority = auth_ancient_machine_intelligence
@@ -645,8 +649,10 @@ country_event = {
 		else_if = {
 			limit = {
 				from = {
+					exists = owner_species
 					OR = {
-						is_robot_empire = yes is_species_class = ROBOT
+						is_robot_empire = yes
+						is_species_class = ROBOT
 						has_technology = tech_nanite_ships
 					}
 				}
@@ -733,7 +739,7 @@ ship_event = {
 							is_disabled = no
 							fleet_power > 0 # This alone is not sure as some ships can be on escape!?
 							# has_fleet_flag = commands_merge_fleet_flag_temp
-							# OR = { owner = { is_same_empire = root.owner } }
+							# OR = { is_owned_by = root.owner }
 							owner = {
 								OR = {
 									is_robot_empire = yes
@@ -1196,6 +1202,23 @@ country_event = {
 		# 		days = 90
 		# 	}
 		# }
+		# awaken_guardians_of_the_galaxy
+		if = {
+			limit = { NOT = { has_global_flag = guardians_of_the_galaxy_happened } }
+			set_timed_global_flag = { flag = galactic_crisis_happened days = 1800 }
+			random_country = {
+				limit = {
+					is_country_type = fallen_empire
+					OR = {
+						has_ethic = ethic_fanatic_materialist
+						has_ethic = ethic_fanatic_xenophile
+					}
+					fleet_power > 60000
+				}
+				set_country_flag = guardians_of_the_galaxy
+				set_timed_country_flag = { flag = timed_guardians_of_the_galaxy_2 days = 1800 }
+			}
+		}
 	}
 	after = {
 		# log = "STRENGTH [graygoo_country.CmtVarCapitalDefenceNumber]"
@@ -1618,7 +1641,7 @@ country_event = {
 							is_ship_size = graygoo_mothership
 						}
 						clear_fleet_actions = this
-						shoal_cluster_defense = yes
+						fleet_event = { id = a_deadly_tempest.99 } # shoal_cluster_defense = yes
 					}
 				}
 			}
@@ -1647,6 +1670,63 @@ country_event = {
 				shoal_factory_guard_queue = { NUM = "graygoo_country.fleetCounter" }
 			}
 		}
+	}
+}
+
+fleet_event = {
+	id = a_deadly_tempest.99
+	hide_window = yes
+	archaeology = no
+	is_triggered_only = yes
+	trigger = { exists = solar_system }
+	immediate = {
+		closest_system = {
+			min_steps = 1
+			max_steps = 4
+			use_bypasses = no
+			# Error Current Scope: fleet?
+			limit = {
+				has_star_flag = lcluster
+				NOT = { has_star_flag = graygoo_factory_system }
+				any_system_planet = {
+					OR = {
+						is_planet_class = pc_gray_goo
+						is_planet_class = pc_gaia
+					}
+					NOT = {
+						any_fleet_in_orbit = {
+							exists = owner
+							has_fleet_flag = nanite_mother_ship
+						}
+					}
+				}
+			}
+			random_system_planet = {
+				limit = {
+					OR = {
+						is_planet_class = pc_gray_goo
+						is_planet_class = pc_gaia
+					}
+					NOT = {
+						any_fleet_in_orbit = {
+							exists = owner
+							has_fleet_flag = nanite_mother_ship
+						}
+					}
+				}
+				FROM = {
+					auto_move_to_planet = {
+						target = PREV
+						clear_auto_move_on_arrival = yes
+					}
+				}
+				# break = yes
+			}
+		}
+		# TODO Unknown error!?
+		# event_target:graygoo_country = { change_variable = { which = fleetCounter value = 1 } }
+		# shoal_continue_cluster_defense = { NUM = "graygoo_country.fleetCounter" }
+
 	}
 }
 
@@ -2329,13 +2409,14 @@ planet_event = {
 					set_country_flag = fired_nanobots@root
 				}
 				# set_planet_flag = space_owner_triggered
-				set_timed_planet_flag = { flag = space_owner_triggered days = 900 random = 100 }
+				set_timed_planet_flag = { flag = space_owner_triggered days = 900 }
 			}
-			every_playable_country = {
-				PREV = {
-					set_surveyed = { surveyed = no surveyor = PREV }
-				}
-			}
+			# FIXME set_surveyed is bugged 3.0.3!
+			# every_playable_country = {
+			#	PREV = {
+			#		set_surveyed = { surveyed = no surveyor = PREV }
+			#	}
+			# }
 		}
 	}
 }

@@ -1,44 +1,59 @@
 xvcv_mdlc_operation_malware_activity_main_effect = {
 	random_list = {
-		1 = {
-			set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1 #resource reward (one time) #ransomware
-			target = {
-				random_list = {
-					1 = {
-						prev = { set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy }
-						export_resource_stockpile_to_variable = { resource = energy variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
-					}
-					1 = {
-						prev = { set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals }
-						export_resource_stockpile_to_variable = { resource = minerals variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
-					}
-					1 = {
-						prev = { set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys }
-						export_resource_stockpile_to_variable = { resource = alloys variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
-					}
+		1 = { #resource reward (one time) #ransomware
+			modifier = {
+				factor = 0
+				target = {
+					resource_stockpile_compare = { resource = energy value <= 0 }
+					resource_stockpile_compare = { resource = minerals value <= 0 }
+					resource_stockpile_compare = { resource = alloys value <= 0 }
 				}
-				prev.owner = {
+			}
+			random_list = {
+				1 = {
+					modifier = { factor = 0 target = { resource_stockpile_compare = { resource = energy value <= 0 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy
+					target = { export_resource_stockpile_to_variable = { resource = energy variable = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+				}
+				1 = {
+					modifier = { factor = 0 target = { resource_stockpile_compare = { resource = minerals value <= 0 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals
+					target = { export_resource_stockpile_to_variable = { resource = minerals variable = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+				}
+				1 = {
+					modifier = { factor = 0 target = { resource_stockpile_compare = { resource = alloys value <= 0 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys
+					target = { export_resource_stockpile_to_variable = { resource = alloys variable = xvcv_mdlc_malware_victim_resource_stockpile_var } }
+				}
+			}
+			create_country = {
+				type = xvcv_mdlc_cached_variables_storage
+				effect = {
+					#'set_variable' effect doesn't support 'spynetwork' or 'espionage_operation' scope #damn it! #stellaris v3.0.3
+					set_country_flag = xvcv_mdlc_malware_owner_id_@prev.owner
+					set_country_flag = xvcv_mdlc_malware_victim_id_@prev.target
 					set_variable = {
-						which = xvcv_mdlc_malware_resource_stockpile_bonus_var
-						value = { scope = prev variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
+						which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var
+						value = { scope = prev.target variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
 					}
-					divide_variable = { which = xvcv_mdlc_malware_resource_stockpile_bonus_var value = 10 } #10% of the total stockpile
+					divide_variable = { which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var value = 10 } #10% of the total stockpile
 					if = {
-						limit = { check_variable = { which = xvcv_mdlc_malware_resource_stockpile_bonus_var value < 100 } }
-						set_variable = { which = xvcv_mdlc_malware_resource_stockpile_bonus_var value = 100 }
+						limit = { check_variable = { which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var value < 500 } }
+						set_variable = { which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var value = 500 } #minimum ransom
 					}
 					else_if = {
-						limit = { check_variable = { which = xvcv_mdlc_malware_resource_stockpile_bonus_var value > 1000 } }
-						set_variable = { which = xvcv_mdlc_malware_resource_stockpile_bonus_var value = 1000 }
+						limit = { check_variable = { which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var value > 5000 } }
+						set_variable = { which = xvcv_mdlc_malware_victim_resource_stockpile_cached_var value = 5000 } #maximum ransom
 					}
+					prev.target = { clear_variable = xvcv_mdlc_malware_victim_resource_stockpile_var }
 				}
 			}
 		}
-		1 = {
+		1 = { #resource reward (monthly) (1 year) #cryptojacking malware
 			modifier = {
 				factor = 0
 				owner = {
-					#0% chance if the empire has all those modifiers #rare but possible
+					#0% chance if the empire has all those modifiers
 					has_modifier = xvcv_mdlc_malware_income_bonus_energy
 					has_modifier = xvcv_mdlc_malware_income_bonus_minerals
 					has_modifier = xvcv_mdlc_malware_income_bonus_alloys
@@ -48,7 +63,6 @@ xvcv_mdlc_operation_malware_activity_main_effect = {
 				}
 			}
 			random_list = {
-				#resource reward (monthly) (1 year) #cryptojacking malware
 				1 = {
 					modifier = { factor = 0 owner = { has_modifier = xvcv_mdlc_malware_income_bonus_energy } }
 					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy
@@ -75,15 +89,81 @@ xvcv_mdlc_operation_malware_activity_main_effect = {
 				}
 			}
 		}
-		1 = { set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3 } #intel reward (one time) #spyware
-		1 = {
+		1 = { #intel reward (one time) #spyware
+			modifier = {
+				factor = 0
+				owner = {
+					intel = { who = prev.target value >= 100 }
+					has_intel_level = { who = prev.target category = government level >= 10 }
+				    has_intel_level = { who = prev.target category = diplomacy level >= 10 }
+					has_intel_level = { who = prev.target category = economy level >= 10 }
+					has_intel_level = { who = prev.target category = technology level >= 10 }
+					has_intel_level = { who = prev.target category = military level >= 10 }
+				}
+			}
+			random_list = {
+				1 = {
+					modifier = { factor = 0 owner = { intel = { who = prev.target value >= 100 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_total_intel
+				}
+				1 = {
+					modifier = { factor = 0 owner = { has_intel_level = { who = prev.target category = government level >= 10 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_government_intel
+				}
+				1 = {
+					modifier = { factor = 0 owner = { has_intel_level = { who = prev.target category = diplomacy level >= 10 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_diplomacy_intel
+				}
+				1 = {
+					modifier = { factor = 0 owner = { has_intel_level = { who = prev.target category = economy level >= 10 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_economy_intel
+				}
+				1 = {
+					modifier = { factor = 0 owner = { has_intel_level = { who = prev.target category = technology level >= 10 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_technology_intel
+				}
+				1 = {
+					modifier = { factor = 0 owner = { has_intel_level = { who = prev.target category = military level >= 10 } } }
+					set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_military_intel
+				}
+			}
+		}
+		1 = { #exploit
 			modifier = { factor = 0 spynetwork = { has_modifier = xvcv_mdlc_malware_espionage_bonus_1 } }
-			set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4 #operation skill bonus (1 year) #exploit
+			set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4 #operation skill bonus (1 year) 
 		}
 		1 = {
 			modifier = { factor = 0 spynetwork = { has_modifier = xvcv_mdlc_malware_espionage_bonus_2 } }
-			set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5 #infiltration speed and max infiltration level bonus (1 year) #exploit
+			set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5 #infiltration speed and max infiltration level bonus (1 year)
 		}
+	}
+	if = {
+		limit = {
+			#if none of those above conditions are met #is this even possible?
+			NOR = {
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_1_alloys
+
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_energy
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_minerals
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_alloys
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_physics_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_society_research
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_2_engineering_research
+
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_total_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_government_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_diplomacy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_economy_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_technology_intel
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_3_military_intel
+
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_4
+				has_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_5
+			}
+		}
+		set_espionage_operation_flag = xvcv_mdlc_operation_malware_activity_failed
 	}
 }
 xvcv_mdlc_operation_machine_uprising_main_effect = {

@@ -87,6 +87,7 @@ country_event = {
 	trigger = {
 		OR = {
 			has_country_flag = ag_ship_subsystem_enabled_301_2
+			has_country_flag = ag_ship_subsystem_enabled_304_2
 			has_country_flag = ag_ship_subsystem_enabled_401_2
 			has_country_flag = ag_ship_subsystem_enabled_501_2
 			has_country_flag = ag_ship_subsystem_enabled_701_2
@@ -103,6 +104,15 @@ country_event = {
 				set_location = { target = fromfrom distance = -1 angle = 0 }
 				set_ambient_object_flag = ag_player_gamma_station_debris_object
 				enable_special_project = { name = ag_structural_protection_system_301 location = this owner = root }
+			}
+		}
+		else_if = {
+			limit = { has_country_flag = ag_ship_subsystem_enabled_304_2 fromfrom = { has_ship_flag = ag_gamma_titan_player } }
+			create_ambient_object = { type = ag_player_gamma_titan_debris_object }
+			last_created_ambient_object = {
+				set_location = { target = fromfrom distance = -1 angle = 0 }
+				set_ambient_object_flag = ag_player_gamma_titan_debris_object
+				enable_special_project = { name = ag_structural_protection_system_304 location = this owner = root }
 			}
 		}
 		else_if = {
@@ -312,21 +322,43 @@ ship_event = {
 				}
 			}
 			owner = {
-				if = {
-					limit = { has_country_flag = ag_zeta_ships_unlocked }
-					ag_zeta_titan_player_spawn = {
-						ag_unlock_ship = yes
-						ag_owner = root.owner
-						ag_location_target = event_target:ag_ship_spawn_loc
+				create_fleet = {
+					name = "NAME_ag_zeta_guardian_fleet"
+					settings = { spawn_debris = no }
+					effect = {
+						set_fleet_flag = ag_has_ancient_ship_in_fleet
+						set_owner = root.owner
+						create_ship = {
+							name = "NAME_ag_zeta_titan_ship"
+							design = "NAME_ag_zeta_titan"
+							prefix = no
+							effect = {
+								set_ship_flag = ag_zeta_titan_player
+								ag_difficulty_bonus = yes
+							}
+						}
+						set_location = {
+							target = event_target:ag_ship_spawn_loc
+							distance = 0
+							angle = random 
+						}
 					}
 				}
-				else = {
-					ag_zeta_titan_player_spawn = {
-						ag_unlock_ship = no
-						ag_owner = root.owner
-						ag_location_target = event_target:ag_ship_spawn_loc
-					}
-				}
+				# if = {
+				# 	limit = { has_country_flag = ag_zeta_ships_unlocked }
+				# 	ag_zeta_titan_player_spawn = {
+				# 		ag_unlock_ship = yes
+				# 		ag_owner = root.owner
+				# 		ag_location_target = event_target:ag_ship_spawn_loc
+				# 	}
+				# }
+				# else = {
+				# 	ag_zeta_titan_player_spawn = {
+				# 		ag_unlock_ship = no
+				# 		ag_owner = root.owner
+				# 		ag_location_target = event_target:ag_ship_spawn_loc
+				# 	}
+				# }
 			}
 			event_target:ag_ship_spawn_loc = { destroy_ambient_object = this }
 		}
@@ -409,6 +441,49 @@ ship_event = {
 		}
 	}
 }
+# Gamma Titan
+ship_event = {
+	id = ag_subsystem.28
+	title = "ag_subsystem.28.name"
+	desc = "ag_subsystem.28.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_s_option"
+	picture_event_data = { room = ag_event_space_station_room }
+	show_sound = event_dyson_sphere_build_complete
+	location = root
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_subsystem.28.a"
+		hidden_effect = {
+			solar_system = {
+				random_system_ambient_object = {
+					limit = { has_ambient_object_flag = ag_player_gamma_titan_debris_object }
+					save_event_target_as = ag_ship_spawn_loc
+				}
+			}
+			owner = {
+				if = {
+					limit = { has_country_flag = ag_gamma_ships_unlocked }
+					ag_gamma_titan_player_spawn = {
+						ag_unlock_ship = yes
+						ag_owner = root.owner
+						ag_location_target = event_target:ag_ship_spawn_loc
+					}
+				}
+				else = {
+					ag_gamma_titan_player_spawn = {
+						ag_unlock_ship = no
+						ag_owner = root.owner
+						ag_location_target = event_target:ag_ship_spawn_loc
+					}
+				}
+			}
+			event_target:ag_ship_spawn_loc = { destroy_ambient_object = this }
+		}
+	}
+}
 
 # Gravity Weapon System
 country_event = {
@@ -449,7 +524,7 @@ country_event = {
 										has_hp <= 4000
 									}
 								}
-								reduce_hp_percent = 6
+								ag_reduce_hp_percent = { ag_value = 6 }
 								set_timed_ship_flag = { flag = ag_subsystem_31_target days = 5 }
 							}
 							10 = {
@@ -473,7 +548,7 @@ country_event = {
 										has_hp <= 4000
 									}
 								}
-								reduce_hp_percent = 2
+								ag_reduce_hp_percent = { ag_value = 2 }
 								set_timed_ship_flag = { flag = ag_subsystem_31_target days = 5 }
 							}
 							10 = {
@@ -782,6 +857,34 @@ country_event = {
 		}
 	}
 	immediate = {
+		if = {
+			limit = { from = { OR = {
+				is_country_type = ag_zeta_crisis_country
+				is_country_type = ag_zeta_crisis_portal_holder
+				is_country_type = ag_zeta_crisis_relic_country
+			} } }
+			fromfromfrom = {
+				remove_ship_flag = ag_sub_23_debuffed
+				set_timed_ship_flag = { flag = ag_sub_23_debuffed days = 20 }
+				solar_system = {
+					every_fleet_in_system = {
+						limit = { has_fleet_flag = ag_zeta_crisis_avatar_fleet }
+						random_list = {
+							50 = { }
+							30 = {
+								ag_spawn_buff_effect = { ag_scale = m ag_color = violet }
+								set_timed_ship_flag = { flag = ag_ship_weapon_range_mult_locked days = 10 }
+								add_modifier = { modifier = ag_ship_weapon_range_mult_buff multiplier = -5 days = 10 }
+							}
+							20 = {
+								ag_spawn_buff_effect = { ag_scale = m ag_color = violet }
+								delete_fleet = this
+							}
+						}
+					}
+				}
+			}
+		}
 		fromfrom = {
 			every_owned_ship = {
 				limit = {
@@ -789,14 +892,17 @@ country_event = {
 						AND = {
 							owner = { has_country_flag = ag_ship_subsystem_enabled_701_23 }
 							is_ship_size = ag_zeta_titan
+							NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon }
 						}
 						AND = {
 							owner = { has_country_flag = ag_ship_subsystem_enabled_702_23 }
 							is_ship_size = ag_zeta_battleship
+							NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon }
 						}
 						AND = {
 							owner = { has_country_flag = ag_ship_subsystem_enabled_703_23 }
 							is_ship_size = ag_zeta_destroyer
+							NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon }
 						}
 					}
 				}
@@ -936,6 +1042,32 @@ country_event = {
 							# 	value = 1
 							# }
 						}
+						if = {
+							limit = { OR = {
+								has_fleet_flag = ag_zeta_crisis_guardian_fleet
+								has_fleet_flag = ag_zeta_crisis_assault_fleet
+								has_fleet_flag = ag_zeta_crisis_patrol_fleet
+								has_fleet_flag = ag_zeta_crisis_protector_fleet
+							} }
+							random_list = {
+								20 = { }
+								80 = {
+									remove_fleet_flag = ag_zeta_crisis_leader
+									remove_fleet_flag = ag_zeta_crisis_leader_1
+									remove_fleet_flag = ag_zeta_crisis_leader_2
+									remove_fleet_flag = ag_zeta_crisis_leader_3
+									remove_fleet_flag = ag_zeta_crisis_leader_4
+									remove_fleet_flag = ag_zeta_crisis_leader_5
+									remove_fleet_flag = ag_zeta_crisis_leader_6
+									remove_fleet_flag = ag_zeta_crisis_leader_7
+									remove_fleet_flag = ag_zeta_crisis_leader_8
+									remove_fleet_flag = ag_zeta_crisis_leader_9
+									remove_fleet_flag = ag_zeta_crisis_leader_10
+									remove_fleet_flag = ag_zeta_crisis_leader_11
+									remove_fleet_flag = ag_zeta_crisis_leader_12
+								}
+							}
+						}
 					}
 					event_target:ag_target_leader = {
 						kill_leader = {
@@ -1009,6 +1141,7 @@ country_event = {
 	is_triggered_only = yes
 	trigger = {
 		OR = {
+			has_country_flag = ag_ship_subsystem_enabled_304_17
 			has_country_flag = ag_ship_subsystem_enabled_401_16
 			has_country_flag = ag_ship_subsystem_enabled_401_17
 			has_country_flag = ag_ship_subsystem_enabled_501_19
@@ -1019,6 +1152,27 @@ country_event = {
 	}
 	immediate = {
 		if = {
+			limit = { has_country_flag = ag_ship_subsystem_enabled_304_17 fromfrom = { any_owned_ship = { has_ship_flag = ag_gamma_titan_player } } }
+			fromfromfrom = {
+				set_variable = { which = ag_num_ships_temp_1 value = 0 }
+				# export_trigger_value_to_variable = { trigger = num_ships variable = ag_num_ships_temp_1 }
+				every_owned_ship = { fromfrom = { change_variable = { which = ag_num_ships_temp_1 value = 1 } } }
+			}
+			fromfrom = {
+				set_variable = { which = ag_num_ships_temp_2 value = 0 }
+				# export_trigger_value_to_variable = { trigger = num_ships variable = ag_num_ships_temp_2 }
+				every_owned_ship = { prev = { change_variable = { which = ag_num_ships_temp_2 value = 1 } } }
+				set_variable = { which = ag_num_ships_temp_1 value = { variable = ag_num_ships_temp_1 scope = root.fromfromfrom } }
+				if = {
+					limit = { check_variable = { which = ag_num_ships_temp_2 value < ag_num_ships_temp_1 } }
+					remove_modifier = "ag_delta_titan_support_system"
+					add_modifier = { modifier = "ag_delta_titan_support_system" days = 8 }
+				}
+			}
+			fromfromfrom = { clear_variable = ag_num_ships_temp_1 }
+			fromfrom = { clear_variable = ag_num_ships_temp_1 clear_variable = ag_num_ships_temp_2 }
+		}
+		if = {
 			limit = { fromfrom = { any_owned_ship = { has_ship_flag = ag_delta_titan_player } } }
 			if = {
 				limit = { has_country_flag = ag_ship_subsystem_enabled_401_16 }
@@ -1026,21 +1180,18 @@ country_event = {
 					50 = { }
 					50 = {
 						fromfromfrom = {
+							set_timed_fleet_flag = { flag = ag_sub_16_flaged days = 5 }
 							every_owned_ship = {
 								set_variable = { which = ag_weapon_range_factor value = 0 }
 								export_modifier_to_variable = { modifier = ship_weapon_range_mult variable = ag_weapon_range_factor }
 								if = {
 									limit = { check_variable = { which = ag_weapon_range_factor value > 0 } }
-									add_modifier = { modifier = "ag_delta_titan_weapon_range_debuff" multiplier = ag_weapon_range_factor days = 5 }
-									prev = { set_fleet_flag = ag_delta_titan_modified }
+									add_modifier = { modifier = "ag_delta_titan_weapon_range_debuff" multiplier = ag_weapon_range_factor days = -1 }
+									change_variable = { which = ag_delta_titan_weapon_range_debuff_levels value = 1 }
 								}
 								clear_variable = ag_weapon_range_factor
 							}
-							if = {
-								limit = { has_fleet_flag = ag_delta_titan_modified }
-								remove_fleet_flag = ag_delta_titan_modified
-								fleet_event = { id = ag_subsystem.72 days = 1 }
-							}
+							fleet_event = { id = ag_subsystem.72 days = 1 }
 						}
 					}
 				}
@@ -1056,21 +1207,15 @@ country_event = {
 					set_variable = { which = ag_num_ships_temp_2 value = 0 }
 					# export_trigger_value_to_variable = { trigger = num_ships variable = ag_num_ships_temp_2 }
 					every_owned_ship = { prev = { change_variable = { which = ag_num_ships_temp_2 value = 1 } } }
+					set_variable = { which = ag_num_ships_temp_1 value = { variable = ag_num_ships_temp_1 scope = root.fromfromfrom } }
 					if = {
-						limit = { check_variable = { which = ag_num_ships_temp_2 value < { variable = ag_num_ships_temp_1 scope = root.fromfromfrom } } }
+						limit = { check_variable = { which = ag_num_ships_temp_2 value < ag_num_ships_temp_1 } }
 						remove_modifier = "ag_delta_titan_support_system"
 						add_modifier = { modifier = "ag_delta_titan_support_system" days = 8 }
 					}
 				}
 				fromfromfrom = { clear_variable = ag_num_ships_temp_1 }
-				fromfrom = { clear_variable = ag_num_ships_temp_2 }
-			}
-		}
-		if = {
-			limit = { has_country_flag = ag_ship_subsystem_enabled_501_19 fromfrom = { any_owned_ship = { has_ship_flag = ag_epsilon_titan_player } } }
-			fromfrom = {
-				remove_modifier = "ag_epsilon_titan_support_system"
-				add_modifier = { modifier = "ag_epsilon_titan_support_system" days = 15 }
+				fromfrom = { clear_variable = ag_num_ships_temp_1 clear_variable = ag_num_ships_temp_2 }
 			}
 		}
 		if = {
@@ -1078,7 +1223,7 @@ country_event = {
 			if = {
 				limit = { has_country_flag = ag_ship_subsystem_enabled_2601_28 }
 				set_variable = { which = ag_num_owned_anchor_stations value = 0 }
-				every_owned_megastructure = {
+				every_megastructure = {
 					limit = { is_megastructure_type = ag_ancient_anchor_station_2 }
 					prev = { change_variable = { which = ag_num_owned_anchor_stations value = 1 } }
 				}
@@ -1095,43 +1240,40 @@ country_event = {
 						modifier = { add = 10 check_variable = { which = ag_num_owned_anchor_stations value > 2 } }
 						modifier = { add = 10 check_variable = { which = ag_num_owned_anchor_stations value > 3 } }
 						fromfromfrom = {
+							set_timed_fleet_flag = { flag = ag_sub_28_flaged days = 5 }
 							ag_spawn_explosion_effect = { ag_color = red ag_scale = xl }
 							every_owned_ship = {
 								set_variable = { which = ag_weapon_debuff_factor value = 0 }
 								export_modifier_to_variable = { modifier = ship_weapon_damage variable = ag_weapon_debuff_factor }
 								if = {
 									limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-									add_modifier = { modifier = "ag_wandering_ship_weapon_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-									prev = { set_fleet_flag = ag_wandering_ship_modified }
+									add_modifier = { modifier = "ag_wandering_ship_weapon_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+									change_variable = { which = ag_wandering_ship_weapon_damage_debuff_levels value = 1 }
 								}
 								set_variable = { which = ag_weapon_debuff_factor value = 0 }
 								export_modifier_to_variable = { modifier = ship_shield_damage_mult variable = ag_weapon_debuff_factor }
 								if = {
 									limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-									add_modifier = { modifier = "ag_wandering_ship_shield_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-									prev = { set_fleet_flag = ag_wandering_ship_modified }
+									add_modifier = { modifier = "ag_wandering_ship_shield_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+									change_variable = { which = ag_wandering_ship_shield_damage_debuff_levels value = 1 }
 								}
 								set_variable = { which = ag_weapon_debuff_factor value = 0 }
 								export_modifier_to_variable = { modifier = ship_armor_damage_mult variable = ag_weapon_debuff_factor }
 								if = {
 									limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-									add_modifier = { modifier = "ag_wandering_ship_armor_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-									prev = { set_fleet_flag = ag_wandering_ship_modified }
+									add_modifier = { modifier = "ag_wandering_ship_armor_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+									change_variable = { which = ag_wandering_ship_armor_damage_debuff_levels value = 1 }
 								}
 								set_variable = { which = ag_weapon_debuff_factor value = 0 }
 								export_modifier_to_variable = { modifier = ship_hull_damage_mult variable = ag_weapon_debuff_factor }
 								if = {
 									limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-									add_modifier = { modifier = "ag_wandering_ship_hull_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-									prev = { set_fleet_flag = ag_wandering_ship_modified }
+									add_modifier = { modifier = "ag_wandering_ship_hull_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+									change_variable = { which = ag_wandering_ship_hull_damage_debuff_levels value = 1 }
 								}
 								clear_variable = ag_weapon_debuff_factor
 							}
-							if = {
-								limit = { has_fleet_flag = ag_wandering_ship_modified }
-								remove_fleet_flag = ag_wandering_ship_modified
-								fleet_event = { id = ag_subsystem.73 days = 1 }
-							}
+							fleet_event = { id = ag_subsystem.73 days = 1 }
 						}
 					}
 				}
@@ -1151,7 +1293,7 @@ country_event = {
 					if = {
 						limit = { check_variable = { which = ag_num_ships_temp_2 value < { variable = ag_num_ships_temp_1 scope = root.fromfromfrom } } }
 						remove_modifier = "ag_wandering_ship_weapon_range_debuff"
-						add_modifier = { modifier = "ag_wandering_ship_weapon_range_debuff" days = 8 }
+						add_modifier = { modifier = "ag_wandering_ship_weapon_range_debuff" multiplier = 0.2 days = 8 }
 					}
 				}
 				fromfromfrom = { clear_variable = ag_num_ships_temp_1 }
@@ -1164,86 +1306,113 @@ fleet_event = {
 	id = ag_subsystem.72
 	hide_window = yes
 	is_triggered_only = yes
-	trigger = { exists = this is_in_combat = yes }
+	trigger = { exists = this }
 	immediate = {
-		every_owned_ship = {
-			limit = { check_modifier_value = { modifier = ship_weapon_range_mult value > 0 } }
-			set_variable = { which = ag_weapon_range_factor value = 0 }
-			export_modifier_to_variable = { modifier = ship_weapon_range_mult variable = ag_weapon_range_factor }
-			if = {
-				limit = { check_variable = { which = ag_weapon_range_factor value > 0 } }
-				add_modifier = { modifier = "ag_delta_titan_weapon_range_debuff" multiplier = ag_weapon_range_factor days = 5 }
-				prev = { set_fleet_flag = ag_delta_titan_modified }
-			}
-			clear_variable = ag_weapon_range_factor
-		}
 		if = {
-			limit = { has_fleet_flag = ag_delta_titan_modified }
-			remove_fleet_flag = ag_delta_titan_modified
+			limit = { is_in_combat = yes has_fleet_flag = ag_sub_16_flaged }
+			every_owned_ship = {
+				limit = { check_modifier_value = { modifier = ship_weapon_range_mult value > 0 } }
+				set_variable = { which = ag_weapon_range_factor value = 0 }
+				export_modifier_to_variable = { modifier = ship_weapon_range_mult variable = ag_weapon_range_factor }
+				if = {
+					limit = { check_variable = { which = ag_weapon_range_factor value > 0 } }
+					add_modifier = { modifier = "ag_delta_titan_weapon_range_debuff" multiplier = ag_weapon_range_factor days = -1 }
+					change_variable = { which = ag_delta_titan_weapon_range_debuff_levels value = 1 }
+				}
+				clear_variable = ag_weapon_range_factor
+			}
 			fleet_event = { id = ag_subsystem.72 days = 1 }
 		}
+		else = { every_owned_ship = {
+			while = {
+				count = ag_delta_titan_weapon_range_debuff_levels
+				remove_modifier = "ag_delta_titan_weapon_range_debuff"
+			}
+			clear_variable = ag_delta_titan_weapon_range_debuff_levels
+		} }
 	}
 }
 fleet_event = {
 	id = ag_subsystem.73
 	hide_window = yes
 	is_triggered_only = yes
-	trigger = { exists = this is_in_combat = yes }
+	trigger = { exists = this }
 	immediate = {
-		every_owned_ship = {
-			limit = { OR = {
-				check_modifier_value = { modifier = ship_weapon_damage value > 0 }
-				check_modifier_value = { modifier = ship_shield_damage_mult value > 0 }
-				check_modifier_value = { modifier = ship_armor_damage_mult value > 0 }
-				check_modifier_value = { modifier = ship_hull_damage_mult value > 0 }
-			} }
-			if = {
-				limit = { check_modifier_value = { modifier = ship_weapon_damage value > 0 } }
-				set_variable = { which = ag_weapon_debuff_factor value = 0 }
-				export_modifier_to_variable = { modifier = ship_weapon_damage variable = ag_weapon_debuff_factor }
-				if = {
-					limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-					add_modifier = { modifier = "ag_wandering_ship_weapon_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-					prev = { set_fleet_flag = ag_wandering_ship_modified }
-				}
-			}
-			if = {
-				limit = { check_modifier_value = { modifier = ship_shield_damage_mult value > 0 } }
-				set_variable = { which = ag_weapon_debuff_factor value = 0 }
-				export_modifier_to_variable = { modifier = ship_shield_damage_mult variable = ag_weapon_debuff_factor }
-				if = {
-					limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-					add_modifier = { modifier = "ag_wandering_ship_shield_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-					prev = { set_fleet_flag = ag_wandering_ship_modified }
-				}
-			}
-			if = {
-				limit = { check_modifier_value = { modifier = ship_armor_damage_mult value > 0 } }
-				set_variable = { which = ag_weapon_debuff_factor value = 0 }
-				export_modifier_to_variable = { modifier = ship_armor_damage_mult variable = ag_weapon_debuff_factor }
-				if = {
-					limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-					add_modifier = { modifier = "ag_wandering_ship_armor_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-					prev = { set_fleet_flag = ag_wandering_ship_modified }
-				}
-			}
-			if = {
-				limit = { check_modifier_value = { modifier = ship_hull_damage_mult value > 0 } }
-				set_variable = { which = ag_weapon_debuff_factor value = 0 }
-				export_modifier_to_variable = { modifier = ship_hull_damage_mult variable = ag_weapon_debuff_factor }
-				if = {
-					limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
-					add_modifier = { modifier = "ag_wandering_ship_hull_damage_debuff" multiplier = ag_weapon_debuff_factor days = 5 }
-					prev = { set_fleet_flag = ag_wandering_ship_modified }
-				}
-			}
-			clear_variable = ag_weapon_debuff_factor
-		}
 		if = {
-			limit = { has_fleet_flag = ag_wandering_ship_modified }
-			remove_fleet_flag = ag_wandering_ship_modified
+			limit = { is_in_combat = yes has_fleet_flag = ag_sub_28_flaged }
+			every_owned_ship = {
+				limit = { OR = {
+					check_modifier_value = { modifier = ship_weapon_damage value > 0 }
+					check_modifier_value = { modifier = ship_shield_damage_mult value > 0 }
+					check_modifier_value = { modifier = ship_armor_damage_mult value > 0 }
+					check_modifier_value = { modifier = ship_hull_damage_mult value > 0 }
+				} }
+				if = {
+					limit = { check_modifier_value = { modifier = ship_weapon_damage value > 0 } }
+					set_variable = { which = ag_weapon_debuff_factor value = 0 }
+					export_modifier_to_variable = { modifier = ship_weapon_damage variable = ag_weapon_debuff_factor }
+					if = {
+						limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
+						add_modifier = { modifier = "ag_wandering_ship_weapon_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+						change_variable = { which = ag_wandering_ship_weapon_damage_debuff_levels value = 1 }
+					}
+				}
+				if = {
+					limit = { check_modifier_value = { modifier = ship_shield_damage_mult value > 0 } }
+					set_variable = { which = ag_weapon_debuff_factor value = 0 }
+					export_modifier_to_variable = { modifier = ship_shield_damage_mult variable = ag_weapon_debuff_factor }
+					if = {
+						limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
+						add_modifier = { modifier = "ag_wandering_ship_shield_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+						change_variable = { which = ag_wandering_ship_shield_damage_debuff_levels value = 1 }
+					}
+				}
+				if = {
+					limit = { check_modifier_value = { modifier = ship_armor_damage_mult value > 0 } }
+					set_variable = { which = ag_weapon_debuff_factor value = 0 }
+					export_modifier_to_variable = { modifier = ship_armor_damage_mult variable = ag_weapon_debuff_factor }
+					if = {
+						limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
+						add_modifier = { modifier = "ag_wandering_ship_armor_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+						change_variable = { which = ag_wandering_ship_armor_damage_debuff_levels value = 1 }
+					}
+				}
+				if = {
+					limit = { check_modifier_value = { modifier = ship_hull_damage_mult value > 0 } }
+					set_variable = { which = ag_weapon_debuff_factor value = 0 }
+					export_modifier_to_variable = { modifier = ship_hull_damage_mult variable = ag_weapon_debuff_factor }
+					if = {
+						limit = { check_variable = { which = ag_weapon_debuff_factor value > 0 } }
+						add_modifier = { modifier = "ag_wandering_ship_hull_damage_debuff" multiplier = ag_weapon_debuff_factor days = -1 }
+						change_variable = { which = ag_wandering_ship_hull_damage_debuff_levels value = 1 }
+					}
+				}
+				clear_variable = ag_weapon_debuff_factor
+			}
 			fleet_event = { id = ag_subsystem.73 days = 1 }
 		}
+		else = { every_owned_ship = {
+			while = {
+				count = ag_wandering_ship_weapon_damage_debuff_levels
+				remove_modifier = "ag_wandering_ship_weapon_damage_debuff"
+			}
+			while = {
+				count = ag_wandering_ship_shield_damage_debuff_levels
+				remove_modifier = "ag_wandering_ship_shield_damage_debuff"
+			}
+			while = {
+				count = ag_wandering_ship_armor_damage_debuff_levels
+				remove_modifier = "ag_wandering_ship_armor_damage_debuff"
+			}
+			while = {
+				count = ag_wandering_ship_hull_damage_debuff_levels
+				remove_modifier = "ag_wandering_ship_hull_damage_debuff"
+			}
+			clear_variable = ag_wandering_ship_weapon_damage_debuff_levels
+			clear_variable = ag_wandering_ship_shield_damage_debuff_levels
+			clear_variable = ag_wandering_ship_armor_damage_debuff_levels
+			clear_variable = ag_wandering_ship_hull_damage_debuff_levels
+		} }
 	}
 }
 
@@ -1270,9 +1439,10 @@ country_event = {
 		if = {
 			limit = { has_country_flag = ag_ship_subsystem_enabled_2501_26 }
 			from = {
-				add_skill = 1
-				random_list = { 25 = { add_skill = 1 } 75 = { } }
+				random_list = { 10 = { add_skill = 2 } 40 = { add_skill = 1 } 50 = { } }
 				random_list = {
+					300 = { }
+					# 200 available totally.
 					10 = { modifier = { factor = 0 has_trait = leader_trait_meticulous } add_trait = leader_trait_meticulous }
 					10 = { modifier = { factor = 0 has_trait = leader_trait_spark_of_genius } add_trait = leader_trait_spark_of_genius }
 					10 = { modifier = { factor = 0 has_trait = leader_trait_carefree } add_trait = leader_trait_carefree }
@@ -1315,9 +1485,10 @@ country_event = {
 		}
 		else = {
 			from = {
-				add_skill = 1
-				random_list = { 25 = { add_skill = 1 } 75 = { } }
+				random_list = { 10 = { add_skill = 2 } 40 = { add_skill = 1 } 50 = { } }
 				random_list = {
+					120 = { }
+					# 80
 					10 = { modifier = { factor = 0 has_trait = leader_trait_trickster } add_trait = leader_trait_trickster }
 					10 = { modifier = { factor = 0 has_trait = leader_trait_engineer } add_trait = leader_trait_engineer }
 					10 = { modifier = { factor = 0 has_trait = leader_trait_aggressive } add_trait = leader_trait_aggressive }
