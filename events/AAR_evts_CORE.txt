@@ -1,0 +1,175 @@
+namespace = AAR_evt_CORE
+
+#	aar初始化/aar读档debug
+#	aar月检/aar年检
+
+
+
+
+###_[aar初始化]		##############################################################################
+#_<on_game_start>
+#_list	FW相关INIT/AAR安装
+event = {
+	id = AAR_evt_CORE.1
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		##	AAR安装
+		set_global_flag = AAR_installed
+		every_country = { limit = { AAR_trgr_cntr_playable = yes }
+			##	aar飞升起源
+			if = { limit = { has_origin = AAR_origin_ascended }
+				country_event = { id = AAR_misc_evt.1 days = 1 }
+			}
+			##	AAR防御参数DB
+			AAR_eft_cntr_VIGILANCE_var_DB = yes
+		}
+	}
+}
+###_[aar读档debug]
+#_<on_single_player_save_game_load>
+#_list	万用初始化/FW相关INIT/升级DB
+event = {
+	id = AAR_evt_CORE.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		##	万用初始化
+		if = { limit = { NOT = { has_global_flag = AAR_installed } }
+			set_global_flag = AAR_installed
+			every_country = { limit = { AAR_trgr_cntr_playable = yes }
+				##	AAR防御参数DB
+				AAR_eft_cntr_VIGILANCE_var_DB = yes
+			}
+		}
+		
+		##	升级DB
+	}
+}
+
+
+
+
+###_[aar月检]	####################################################################################################
+#_<VOP_on_monthly_pulse>
+#_list			FW月历TICK
+#_|AAR月扫星|	AAR权巅星球易主/AAR火炬恶果/AAR火炬恶果
+#_|半年|		aar海军ap改船/aar防御ap改防御塔
+event = {
+	id = AAR_evt_CORE.20
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		OR = {
+			has_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY	# |AAR月扫星准备|
+			has_global_flag = FW_MONTH_1
+			has_global_flag = FW_MONTH_7
+		}
+	}
+
+	immediate = {
+		###	FW月历TICK	#############################################################
+		if = { limit = { NOT = { has_global_flag = FW_installed } }
+			FW_eft_glbl_CORE_monthly_calendar_TICK = yes
+		}
+
+		###	|AAR月扫星|	#############################################################
+		if = { limit = { has_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY }	# |AAR月扫星准备|
+			remove_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY
+
+			every_galaxy_planet = {
+				limit = {# 殖民地
+					exists = owner
+					is_colony = yes
+					is_under_colonization = no
+				}
+				##	AAR月扫星
+				AAR_eft_plnt_PREROGATIVE_owner_transfer = yes	# AAR权巅星球易主
+				AAR_eft_plnt_TORCHLIGHT_backfire = yes			# AAR火炬恶果
+				AAR_eft_plnt_DOMINION = yes						# AAR威压星球
+			}
+		}
+
+		###	|半年|		#############################################################
+		if = {
+			limit = {
+				OR = {
+					has_global_flag = FW_MONTH_1
+					has_global_flag = FW_MONTH_7
+				}
+			}
+			every_country = {
+				limit = {
+					OR = {
+						has_country_flag = AAR_flg_cntr_AP_VIGILANCE
+						has_ascension_perk = AAR_fleet_armor
+						has_ascension_perk = AAR_fleet_shield
+					}
+				}
+				country_event = { id = AAR_evt_NAVY.3 }		# aar海军ap改船
+				country_event = { id = AAR_evt_VIGILANCE.2 }	# aar防御ap改防御塔
+			}
+		}
+	}
+}
+
+
+###_[aar年检]	####################################################################################################
+#_<VOP_on_yearly_pulse>
+#_list		FW月历校准
+#_<各国>	AAR防御参数DB/AAR海军参数DB		/AAR年度功能DB	/AAR统一年检/AAR火炬年检	/共同辉煌年检/铁血联盟年检/资本渗透年检
+event = {
+	id = AAR_evt_CORE.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		###	FW月历校准	#############################################################
+		if = { limit = { NOT = { has_global_flag = FW_installed } }
+			FW_eft_glbl_CORE_monthly_calendar_DB = yes
+		}
+
+		every_country = {
+			limit = {
+				OR = {
+					#_|拥有人口|
+					num_pops > 0
+					#_|拥有舰队|
+					AND = {
+						num_fleets > 0
+						fleet_power > 1
+					}
+				}
+			}
+
+			##	AAR防御参数DB
+			AAR_eft_cntr_VIGILANCE_var_DB = yes
+			##	AAR海军参数DB
+			if = {
+				limit = { 
+					OR = {
+						has_ascension_perk = eap_galactic_force_projection
+						has_ascension_perk = AAR_fleet_armor
+						has_ascension_perk = AAR_fleet_shield
+					}
+				}
+				AAR_eft_cntr_NAVY_var_DB = yes
+			}
+			##	AAR年度功能DB
+			AAR_eft_cntr_MISC_feature_DB = yes
+			
+			##	AAR统一年检
+			AAR_eft_cntr_ETHIC_yearly_DB = yes
+			##	AAR火炬年检
+			AAR_eft_cntr_TORCHLIGHT_yearly_DB = yes
+			##	共同辉煌年检
+			country_event = { id = AAR_evts_subject.1 }
+			##	铁血联盟年检
+			country_event = { id = AAR_evts_subject.2 }
+			##	资本渗透年检
+			country_event = { id = AAR_evts_subject.3 }
+		}
+	}
+}

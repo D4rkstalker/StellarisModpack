@@ -1,0 +1,96 @@
+namespace = htbd_comp
+
+country_event = {
+	id = htbd_comp.1
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		has_global_flag = has_playable_guardians
+		from = {
+			is_country_type = htbd_horde
+			has_country_flag = htbd_country
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				is_ai = no
+				has_country_flag = playable_guardian_feature_active
+				fromfromfrom = {
+					OR = {
+						is_ship_size = space_dragon_adult
+						is_ship_size = space_dragon_grand
+					}
+				}
+				NOT = { has_country_flag = guardian_dragon_defeated }
+			}
+			set_country_flag = guardian_dragon_defeated
+			country_event = { id = NSC_guardian_ether_drake.2 }
+		}
+	}
+}
+
+# Check for invalid dragon states and fix it 
+event = {
+	id = htbd_comp.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_leviathans = yes
+		any_country = {
+			is_country_type = htbd_horde
+		}
+	}
+	immediate = {
+		event_target:htbd_country = {
+			# fix stuck dragons
+			every_owned_fleet = {
+				limit = {
+					is_in_combat = no
+					OR = {
+						has_fleet_flag = htbd_travel
+						has_fleet_flag = htbd_healing
+						has_fleet_flag = htbd_cooldown
+					}
+					has_fleet_flag = htbd_idle
+				}
+				# log = "[this.GetName] is idle but in non-interrupt state!"
+				# if = { limit = { has_fleet_flag = htbd_travel } log = "-> traveling"}
+				# if = { limit = { has_fleet_flag = htbd_healing } log = "-> healing"}
+				# if = { limit = { has_fleet_flag = htbd_cooldown } log = "-> cooldown"}
+				htbd_clear_fleet_state = yes
+				set_fleet_flag = htbd_idle
+			}
+			# fix bad hatching
+			every_owned_fleet = {
+				limit = {
+					NOT = { has_fleet_flag = dragon_mother }
+					has_fleet_flag = htbd_hatching
+				}
+				log = "[this.GetName] is hatching but too young"
+				htbd_clear_fleet_state = yes
+				remove_fleet_flag = htbd_no_egg
+				set_fleet_flag = htbd_idle
+			}
+
+			# set comunications if none
+			every_country = {
+				limit = {
+					NOT = { is_country_type = htbd_horde }
+					NOT = { has_communications = prev }
+					OR = {
+						is_country_type = default
+						is_country_type = fallen_empire
+						is_pirate = yes # all marauders
+					}
+				}
+				# log = "Establish comms with [This.GetName]"
+				establish_communications_no_message = prev
+			}
+		}
+	}
+}

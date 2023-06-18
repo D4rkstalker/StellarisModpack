@@ -1,0 +1,5517 @@
+############################
+#
+# Ancient Relics Events
+#
+############################
+
+namespace = expandedrelics
+
+#################################
+# Vanilla Follow-ups			#
+# Reserved 1 - 199	 			#
+#################################
+
+### Archaeology: The Echoes Inside
+# Reserved 1 - 19
+# Set planet flags
+planet_event = {
+	id = expandedrelics.1
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_planet_flag = has_hidden_worm }
+	}
+
+	immediate = {
+		reroll_random = yes
+		random_list = {
+			4 = { set_planet_flag = has_hidden_worm }
+			3 = { } # No hidden worms
+		}
+	}
+}
+
+# Technology Researched
+country_event = {
+	id = expandedrelics.2
+	title = "expandedrelics.2.name"
+	desc = {
+		text = "expandedrelics.2.desc"
+		trigger = { has_country_flag = echoes_inside_completed }
+	}
+	desc = {
+		text = "expandedrelics.2.desc.first"
+		trigger = { NOT = { has_country_flag = echoes_inside_completed } }
+	}
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_bad_omen
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		random_relation = {
+			limit = {
+				has_country_flag = echoes_inside_completed
+				has_communications = ROOT
+			}
+			save_event_target_as = random_worm_knower
+		}
+	}
+
+	trigger = {
+		last_increased_tech = tech_hidden_worm
+	}
+	
+	option = {
+		name = OK
+		custom_tooltip = expandedrelics.2.a.tooltip
+	}
+	
+	after = {
+		hidden_effect = { set_country_flag = echoes_inside_completed }
+	}
+}
+
+# worm rampage stopped
+planet_event = {
+	id = expandedrelics.3
+	title = "expandedrelics.3.name"
+	desc = expandedrelics.3.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_modifier = planet_active_worm # worm hasn't finished eating
+	}
+	
+	immediate = {
+		remove_planet_flag = worm_on_the_attack
+		remove_modifier = planet_active_worm
+		add_planet_devastation = 25
+	}
+	
+	option = {
+		name = EXCELLENT
+		tooltip = {
+			add_planet_devastation = 25
+			remove_modifier = planet_active_worm
+		}
+		owner = {
+			add_monthly_resource_mult = {
+				resource = unity
+				value =  @tier2unityreward
+				min = @tier2unitymin
+				max = @tier2unitymax
+			}
+		}
+	}
+}
+
+# worm rampage continues
+planet_event = {
+	id = expandedrelics.4
+	title = "expandedrelics.4.name"
+	desc = expandedrelics.4.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_modifier = planet_active_worm # worm hasn't finished eating
+	}
+	
+	immediate = {
+	}
+	
+	option = {
+		name = TERRIBLE
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+	}
+}
+
+# worm activated (owner, perp undetected)
+planet_event = {
+	id = expandedrelics.5
+	title = "expandedrelics.5.name"
+	desc = expandedrelics.5.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		remove_planet_flag = has_hidden_worm
+		set_planet_flag = worm_on_the_attack
+		add_modifier = { modifier = planet_active_worm days = -1 }
+		owner = { abort_special_project = { type = WORM_REMOVAL_PROJECT location = ROOT }  }
+		# add threat for worm activation
+		while = {
+			count = 5
+			random_owned_pop = { kill_pop = yes }
+		}
+		add_planet_devastation = 40
+		while = {
+			count = 5
+			random_planet_army = {
+				limit = {
+					is_owned_by = planet.owner
+				}
+				remove_army = yes
+			}
+		}
+		owner = {
+			if = {
+				limit = { is_at_war_with = from }
+				add_static_war_exhaustion = {
+					attacker = from
+					location = root
+					value_for_planet_destruction = 0.75
+				}
+			}
+		}
+		random_list = {
+            1 = { #Saboteurs caught
+                modifier = {
+                    factor = 0
+					owner = {
+						OR = {
+							NOT = {
+								any_spynetwork = {
+									owner = { is_same_value = root.owner }
+									target = { is_same_value = from }
+								}
+							}
+							has_country_flag = recently_received_espionage_asset
+						}
+					}
+                }
+                modifier = {
+                    factor = 3
+					owner = {
+						relative_encryption_decryption = { target = from value > 0.8 }
+						relative_encryption_decryption = { target = from value < 1.6 }
+					}
+                }
+                modifier = {
+                    factor = 10
+                    owner = { relative_encryption_decryption = { target = from value >= 1.6 } }
+                }
+				owner = {
+					set_timed_country_flag = {
+						flag = espionage_caught_saboteurs
+						days = 20
+					}
+				}
+                if = {
+                    limit = {
+						owner = {
+							any_spynetwork = {
+								owner = { is_same_value = root.owner }
+								target = { is_same_value = from }
+								is_spynetwork_level > 5
+							}
+							NOT = { has_country_flag = recently_received_espionage_asset }
+						}
+                    }
+					owner = {
+						country_event = { #A Surprise Catch (asset granted)
+							id = espionage.1040
+							days = 15
+							scopes = { from = fromfrom }
+						}
+					}
+                }
+            }
+            9 = { } #Nothing
+        }
+	}
+	
+	after = {
+		owner = {
+			start_situation = {
+				type = situation_worm_activated
+				target = root
+			}
+		}
+	}
+	
+	option = {
+		name = TERRIBLE
+		tooltip = {
+			add_modifier = { modifier = planet_active_worm days = -1 }
+				while = {
+				count = 5
+				random_owned_pop = { kill_pop = yes }
+			}
+			add_planet_devastation = 40
+			while = {
+				count = 5
+				random_planet_army = {
+					limit = {
+						is_owned_by = planet.owner
+					}
+					remove_army = yes
+				}
+			}
+			owner = {
+				if = {
+					limit = { is_at_war_with = from }
+					add_static_war_exhaustion = {
+						attacker = from
+						location = root
+						value_for_planet_destruction = 0.75
+					}
+				}
+			}
+		}
+	}
+}
+
+# worm activated (owner)
+planet_event = {
+	id = expandedrelics.6
+	title = "expandedrelics.6.name"
+	desc = expandedrelics.6.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		remove_planet_flag = has_hidden_worm
+		set_planet_flag = worm_on_the_attack
+		add_modifier = { modifier = planet_active_worm days = -1 }
+		owner = { abort_special_project = { type = WORM_REMOVAL_PROJECT location = ROOT }  }
+		# add threat for worm activation
+		add_threat = { who = from amount = 3 }
+		owner = {
+			add_opinion_modifier = {
+				modifier = opinion_wormed_my_world
+				who = from
+			}
+			set_country_flag = knows_who_wormed_world@from
+		}
+		# modifier for allies + those upset by genocide
+		every_country = {
+			limit = {
+				NOR = {
+					is_same_value = from
+					is_same_value = root.owner
+					AND = {
+						has_federation = yes
+						is_in_federation_with = from
+					}
+				}
+				OR = {
+					has_communications = from
+					has_communications = root.owner
+				}
+				OR = {
+					AND = {
+						has_federation = yes
+						is_in_federation_with = root.owner
+					}
+					has_ai_personality = awakened_fallen_empire_xenophile
+					AND = {
+						is_country_type = default
+						OR = {
+							is_egalitarian = yes
+							is_xenophile = yes
+						}
+					}
+				}
+			}
+			add_opinion_modifier = {
+				modifier = opinion_wormed_a_world
+				who = from
+			}
+		}
+		while = {
+			count = 5
+			random_owned_pop = { kill_pop = yes }
+		}
+		add_planet_devastation = 40
+		while = {
+			count = 5
+			random_planet_army = {
+				limit = {
+					is_owned_by = planet.owner
+				}
+				remove_army = yes
+			}
+		}
+		owner = {
+			if = {
+				limit = { is_at_war_with = from }
+				add_static_war_exhaustion = {
+					attacker = from
+					location = root
+					value_for_planet_destruction = 0.75
+				}
+			}
+		}
+		owner = {
+			set_timed_country_flag = {
+				flag = espionage_caught_saboteurs
+				days = 20
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					any_spynetwork = {
+						owner = { is_same_value = root.owner }
+						target = { is_same_value = from }
+						is_spynetwork_level > 5
+					}
+					NOT = { has_country_flag = recently_received_espionage_asset }
+				}
+			}
+			owner = {
+				country_event = { #A Surprise Catch (asset granted)
+					id = espionage.1040
+					days = 15
+					scopes = { from = fromfrom }
+				}
+			}
+		}
+	}
+	
+	after = {
+		owner = {
+			start_situation = {
+				type = situation_worm_activated
+				target = root
+			}
+		}
+	}
+	
+	option = {
+		name = expandedrelics.6.a
+		custom_tooltip = expandedrelics.6.a.tooltip
+		tooltip = {
+			add_modifier = { modifier = planet_active_worm days = -1 }
+			while = {
+				count = 5
+				random_owned_pop = { kill_pop = yes }
+			}
+			add_planet_devastation = 40
+			while = {
+				count = 5
+				random_planet_army = {
+					limit = {
+						is_owned_by = planet.owner
+					}
+					remove_army = yes
+				}
+			}
+			owner = {
+				if = {
+					limit = { is_at_war_with = from }
+					add_static_war_exhaustion = {
+						attacker = from
+						location = root
+						value_for_planet_destruction = 0.75
+					}
+				}
+			}
+		}
+	}
+}
+
+# other empires hear of the worm, research option unlocked for others
+country_event = {
+	id = expandedrelics.7
+	title = "expandedrelics.7.name"
+	desc = expandedrelics.7.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_dangerous_animals
+	location = FROMFROM
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		#NOT = { has_global_flag = tech_hidden_worm_can_spread }
+	}
+	
+	immediate = {
+		hidden_effect = { set_global_flag = tech_hidden_worm_can_spread }
+	}
+	
+	option = {
+		name = expandedrelics.7.a
+	}
+}
+
+# Labyrinth moves, prompting a rethink
+situation_event = {
+	id = expandedrelics.8
+	title = expandedrelics.8.name
+	desc = expandedrelics.8.desc
+
+	picture = GFX_evt_unspeakable_horror
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	immediate = {
+		set_situation_locked = yes
+	}
+	after = {
+		set_situation_locked = no
+		target = {
+			remove_modifier = lush_planet
+			add_modifier = { modifier = bleak_planet days = -1 }
+			add_deposit = d_deep_sinkhole
+			add_deposit = d_deep_sinkhole
+		}
+	}
+
+	option = {
+		name = TERRIBLE
+	}
+}
+
+situation_event = {
+	id = expandedrelics.9
+	title = expandedrelics.9.name
+	desc = expandedrelics.9.desc
+
+	picture = {
+		trigger = { target = { is_cold = yes } }
+		picture = GFX_evt_arctic
+	}
+	picture = {
+		trigger = { target = { is_planet_class = pc_city } }
+		picture = GFX_evt_relic_world_building
+	}
+	picture = {
+		trigger = {
+			target = {
+				is_cold = no
+				NOT = { is_planet_class = pc_city }
+			}
+		}
+		picture = GFX_evt_arid
+	}
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	immediate = {
+		set_situation_locked = yes
+	}
+	after = {
+		set_situation_locked = no
+		target = {
+			if = {
+				limit = {
+					is_cold = yes
+					NOT = { is_planet_class = pc_arctic }
+				}
+				change_pc = pc_arctic
+				reset_planet = yes
+				add_deposit = d_deep_sinkhole
+				add_deposit = d_deep_sinkhole
+
+			}
+			else_if = {
+				limit = { is_planet_class = pc_city }
+				change_pc = pc_relic
+				clear_deposits = yes
+				relic_world_deposits = yes
+			}
+			else_if = {
+				limit = {
+					is_cold = no
+					NOT = { is_planet_class = pc_city }
+					NOT = { is_planet_class = pc_arid }
+				}
+				change_pc = pc_arid
+				reset_planet = yes
+				add_deposit = d_deep_sinkhole
+				add_deposit = d_deep_sinkhole
+			}
+			else = {
+				add_deposit = d_deep_sinkhole
+				add_deposit = d_deep_sinkhole
+				add_planet_devastation = 40
+			}
+		}
+	}
+
+	option = {
+		name = TERRIBLE
+	}
+}
+
+situation_event = {
+	id = expandedrelics.10
+	title = expandedrelics.10.name
+	desc = expandedrelics.10.desc
+
+	picture = {
+		trigger = { target = { is_cold = no } }
+		picture = GFX_evt_warm_barren
+	}
+	picture = {
+		trigger = { target = { is_cold = yes } }
+		picture = GFX_evt_cold_barren
+	}
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	after = {
+		target = {
+			hidden_effect = {
+				remove_planet_flag = worm_on_the_attack
+				destroy_colony = yes
+			}
+			remove_modifier = planet_active_worm
+			if = {
+				limit = { is_cold = yes }
+				change_pc = pc_barren_cold
+			}
+			else = {
+				change_pc = pc_barren
+			}
+			hidden_effect = {
+				reset_planet = yes
+				clear_deposits = yes
+			}
+			set_deposit = d_society_5
+			add_modifier = {
+				modifier = "terraforming_candidate"
+				days = -1
+			}
+		}
+		destroy_situation = this
+	}
+
+	option = {
+		name = expandedrelics.10.a
+	}
+}
+
+situation_event = {
+	id = expandedrelics.11
+	title = expandedrelics.11.name
+	desc = expandedrelics.11.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_alien_nature
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	trigger = {
+		target = {
+			exists = owner
+			num_pops > 3
+			NOT = { has_planet_flag = random_event_worm }
+		}
+	}
+
+	immediate = {
+		target = { set_timed_planet_flag = { flag = random_event_worm days = 180 } }
+	}
+	
+	after = {
+		target = {
+			while = {
+				count = 3
+				random_owned_pop = { kill_pop = yes }
+			}
+			add_planet_devastation = 40
+		}
+	}
+
+	option = {
+		name = TERRIBLE
+	}
+}
+
+situation_event = {
+	id = expandedrelics.12
+	title = expandedrelics.12.name
+	desc = expandedrelics.12.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_alien_nature
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	trigger = {
+		current_situation_approach = approach_attack
+		situation_progress > 30
+		target = {
+			exists = owner
+			num_pops > 3
+			NOT = { has_planet_flag = random_event_worm }
+		}
+	}
+
+	immediate = {
+		target = { set_timed_planet_flag = { flag = random_event_worm days = 360 } }
+	}
+	
+	after = {
+		add_situation_progress = -8
+		target = {
+			owner = {
+				add_monthly_resource_mult = {
+					resource = unity
+					value = @tier1unityreward
+					min = @tier1unitymin
+					max = @tier1unitymax
+				}
+			}
+			random_owned_pop = { kill_pop = yes }
+			while = {
+				count = 2
+				random_planet_army = {
+					limit = {
+						is_owned_by = root.target.owner
+					}
+					remove_army = yes
+				}
+			}
+			add_planet_devastation = 25
+		}
+	}
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+situation_event = {
+	id = expandedrelics.13
+	title = expandedrelics.13.name
+	desc = expandedrelics.13.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_alien_nature
+	is_triggered_only = yes
+	location = target
+	situation = this
+
+	trigger = {
+		current_situation_approach = approach_attack
+		situation_progress < 80
+		target = {
+			exists = owner
+			num_pops > 3
+			NOT = { has_planet_flag = random_event_worm }
+		}
+	}
+
+	immediate = {
+		target = { set_timed_planet_flag = { flag = random_event_worm days = 360 } }
+	}
+	
+	after = {
+		add_situation_progress = 3
+		target = {
+			while = {
+				count = 2
+				random_owned_pop = { kill_pop = yes }
+			}
+			while = {
+				count = 4
+				random_planet_army = {
+					limit = {
+						is_owned_by = root.target.owner
+					}
+					remove_army = yes
+				}
+			}
+			add_planet_devastation = 40
+		}
+	}
+
+	option = {
+		name = TERRIBLE
+	}
+}
+
+# worm check complete
+planet_event = {
+	id = expandedrelics.14
+	title = "expandedrelics.14.name"
+	desc = {
+		text = expandedrelics.14.desc
+		trigger = { has_planet_flag = has_hidden_worm }
+	}
+	desc = {
+		text = expandedrelics.14.desc.no
+		trigger = { NOT = { has_planet_flag = has_hidden_worm } }
+	}
+	picture = GFX_evt_unidentified_monster
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = expandedrelics.14.a
+		trigger = { has_planet_flag = has_hidden_worm }
+		custom_tooltip = expandedrelics.14.a.tooltip
+		enable_special_project = {
+			name  = WORM_REMOVAL_PROJECT
+			location = this
+			owner = root.owner
+		}
+	}
+	option = {
+		name = EXCELLENT
+		trigger = { NOT = { has_planet_flag = has_hidden_worm } }
+	}
+}
+
+# worm removed
+ship_event = {
+	id = expandedrelics.15
+	title = PROJECT_COMPLETE
+	desc = expandedrelics.15.desc
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	location = FROMFROM
+	
+	is_triggered_only = yes
+
+	trigger = {
+		FROMFROM = { has_planet_flag = has_hidden_worm }
+	}
+
+	option = {
+		name = EXCELLENT
+		hidden_effect = { FROMFROM = { remove_planet_flag = has_hidden_worm } }
+		custom_tooltip = expandedrelics.15.tooltip
+	}
+}
+
+# worm awakened by accident
+ship_event = {
+	id = expandedrelics.16
+	title = PROJECT_COMPLETE
+	desc = expandedrelics.16.desc
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_air_raid_siren
+	location = FROMFROM
+	
+	is_triggered_only = yes
+
+	trigger = {
+		FROMFROM = { has_planet_flag = has_hidden_worm }
+	}
+	
+	immediate = {
+		FROMFROM = {
+			remove_planet_flag = has_hidden_worm
+			set_planet_flag = worm_on_the_attack
+			add_modifier = { modifier = planet_active_worm days = -1 }
+			if = {
+				limit = { NOT = { has_global_flag = tech_hidden_worm_can_spread } }
+				save_event_target_as = hidden_worm_planet
+				every_country = {
+					limit = {
+						NOT = {
+							ROOT = { owner = { is_same_value = PREVPREV } }
+						}
+					}
+					country_event = { id = expandedrelics.7 days = 30 }
+				}
+			}
+			while = {
+				count = 5
+				random_owned_pop = { kill_pop = yes }
+			}
+			add_planet_devastation = 40
+			while = {
+				count = 5
+				random_planet_army = {
+					limit = {
+						is_owned_by = planet.owner
+					}
+					remove_army = yes
+				}
+			}
+		}
+	}
+	
+	after = {
+		owner = {
+			start_situation = {
+				type = situation_worm_activated
+				target = root
+			}
+		}
+	}
+
+	option = {
+		name = OOPS
+		tooltip = {
+			FROMFROM = {
+				add_modifier = { modifier = planet_active_worm days = -1 }
+				while = {
+					count = 5
+					random_owned_pop = { kill_pop = yes }
+				}
+				add_planet_devastation = 40
+				while = {
+					count = 5
+					random_planet_army = {
+						limit = {
+							is_owned_by = planet.owner
+						}
+						remove_army = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+# Planet Killers remove worm
+planet_event = {
+	id = expandedrelics.17
+	is_triggered_only = yes
+	hide_window = yes
+	
+	trigger = {
+		has_modifier = planet_active_worm
+	}
+	
+	immediate = {
+		remove_planet_flag = worm_on_the_attack
+		remove_modifier = planet_active_worm
+	}
+
+}
+
+
+### Archaeology: Target from Orbit
+# Reserved 20 - 29
+# Contact with Materialist FE
+country_event = {
+	id = expandedrelics.20
+	title = "expandedrelics.20.name"
+	desc = "expandedrelics.20.desc"
+	picture = GFX_evt_throne_room
+	show_sound = event_radio_chatter
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		country_event = { id = progress.6 days = 3 }
+		random_country = {
+			limit = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+				has_ethic = ethic_fanatic_materialist
+			}
+			save_event_target_as = materialist_fallen_empire
+		}
+		if = {
+			limit = {
+				NOT = {
+					any_relation = {
+						is_same_value = event_target:materialist_fallen_empire
+						has_communications = ROOT
+					}
+				}
+			}
+			set_country_flag = not_met_materialist_fe
+		}
+		establish_communications_no_message = event_target:materialist_fallen_empire
+	}
+	
+	option = {
+		name = ONSCREEN
+		hidden_effect = {
+			country_event = { id = expandedrelics.21 }
+		}
+	}
+}
+# FE makes contact
+country_event = {
+	id = expandedrelics.21
+	title = "TRANSMISSION"
+	desc = {
+		text = expandedrelics.21.a.desc
+		trigger = {
+			has_country_flag = not_met_materialist_fe
+		}
+	}
+	desc = {
+		text = expandedrelics.21.b.desc
+		trigger = {
+			NOT = { has_country_flag = not_met_materialist_fe }
+		}
+	}
+	desc = {
+		text = expandedrelics.21.desc.hive
+		trigger = {
+			is_hive_empire = yes
+		}
+	}
+	
+	is_triggered_only = yes
+	diplomatic = yes
+	
+	picture_event_data = {
+		portrait = event_target:materialist_fallen_empire
+		planet_background = event_target:materialist_fallen_empire
+		graphical_culture = event_target:materialist_fallen_empire
+		city_level = event_target:materialist_fallen_empire
+		room = event_target:materialist_fallen_empire.ruler
+	}
+	
+	option = {
+		name = expandedrelics.21.a
+		response_text = expandedrelics.21.a.response
+		is_dialog_only = yes
+		trigger = {
+			has_country_flag = not_met_materialist_fe
+		}
+	}
+	option = {
+		name = expandedrelics.21.b
+		response_text = expandedrelics.21.b.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = "expandedrelics.21.c"
+		hidden_effect = { country_event = { id = expandedrelics.22 } }
+	}
+	after = {
+		hidden_effect = {
+			remove_country_flag = not_met_materialist_fe
+		}
+	}
+}
+# Boon from FE
+country_event = {
+	id = expandedrelics.22
+	title = "TRANSMISSION"
+	desc = expandedrelics.22.desc
+	
+	is_triggered_only = yes
+	diplomatic = yes
+	
+	picture_event_data = {
+		portrait = event_target:materialist_fallen_empire
+		planet_background = event_target:materialist_fallen_empire
+		graphical_culture = event_target:materialist_fallen_empire
+		city_level = event_target:materialist_fallen_empire
+		room = event_target:materialist_fallen_empire.ruler
+	}
+	
+	option = {
+		name = "expandedrelics.22.a"
+		response_text = expandedrelics.22.a.response
+		if = {
+			limit = {
+				NOT = { has_technology = tech_planetary_shield_generator }
+			}
+			give_technology = { tech = tech_planetary_shield_generator }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_synchronized_defences }
+			}
+			give_technology = { tech = tech_synchronized_defences }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_experimental_subspace_navigation }
+			}
+			give_technology = { tech = tech_experimental_subspace_navigation }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_selected_lineages }
+			}
+			give_technology = { tech = tech_selected_lineages }
+		}				
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_space_defense_station_improvement }
+			}
+			give_technology = { tech = tech_space_defense_station_improvement }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_gene_banks }
+			}
+			give_technology = { tech = tech_gene_banks }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_starbase_hull_1 }
+				has_global_flag = starbase_expanded_installed
+			}
+			give_technology = { tech = tech_starbase_hull_1 }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_wormhole_stabilization }
+				can_research_technology = tech_wormhole_stabilization
+			}
+			give_technology = { tech = tech_wormhole_stabilization }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_construction_templates }
+			}
+			give_technology = { tech = tech_construction_templates }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_habitat_1 }
+				can_research_technology = tech_habitat_1
+			}
+			give_technology = { tech = tech_habitat_1 }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_hyperlane_mapping_mod }
+				has_global_flag = expanded_megastructures_installed
+			}
+			give_technology = { tech = tech_hyperlane_mapping_mod }
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_matter_generator }
+				has_global_flag = expanded_megastructures_installed
+			}
+			give_technology = { tech = tech_matter_generator }
+		}
+		else = {
+			# Just give databanks instead
+			add_modifier = {
+				modifier = fallen_empire_gift_databanks
+				days = 5400
+			}
+
+		}
+		if = {
+			limit = { NOT = { has_modifier = fallen_empire_gift_databanks } }
+			add_modifier = {
+				modifier = fallen_empire_gift_databanks
+				days = 1800
+			}
+		}
+		event_target:materialist_fallen_empire = {
+			add_opinion_modifier = { who = root modifier = opinion_fe_materialist_trials }
+		}
+	}
+	
+	option = {
+		name = "expandedrelics.22.b"
+		response_text = expandedrelics.22.b.response
+		if = {
+			limit = { mid_game_years_passed >= 0 }
+			custom_tooltip = fallen_empires_tasks.2.battlecruiser_tooltip
+			hidden_effect = {
+				capital_scope = {
+					create_fleet = {
+						settings = {
+							spawn_debris = no
+						}
+						effect = {
+							set_owner = ROOT
+							create_ship = {
+								name = "NAME_Progress"
+								design = "NAME_Surplus_Scholar"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							add_modifier = {
+								modifier = fe_gift_ship
+								days = -1
+							}
+							set_location = PREV
+						}
+					}
+				}
+			}
+		}
+		else = {
+			custom_tooltip = expandedrelics.22.b.escorts_tooltip
+			hidden_effect = {
+				capital_scope = {
+					create_fleet = {
+						settings = {
+							spawn_debris = no
+						}
+						effect = {
+							set_owner = ROOT
+							create_ship = {
+								name = "NAME_Surplus_I"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_II"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							add_modifier = {
+								modifier = fe_gift_ship
+								days = -1
+							}
+							set_location = PREV
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = "expandedrelics.22.c"
+		response_text = expandedrelics.22.c.response
+		add_resource = { minerals = 3000 }
+		add_resource = { alloys = 3000 }
+		add_resource = { energy = 1000 }
+	}
+}
+
+# Mysterious message
+country_event = {
+	id = expandedrelics.23
+	title = "expandedrelics.23.name"
+	desc = "expandedrelics.23.desc"
+	picture = GFX_evt_unity_symbol
+	show_sound = event_whispering
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = expandedrelics.23.a
+		hidden_effect = {
+			country_event = { id = expandedrelics.24 days = 15 random = 15 }
+		}
+	}
+}
+
+# Results
+country_event = {
+	id = expandedrelics.24
+	title = "expandedrelics.24.name"
+	desc = {
+		text = "expandedrelics.24.desc.a"
+		trigger = { has_country_flag = ancient_library }
+	}
+	desc = {
+		text = "expandedrelics.24.desc.b"
+		trigger = { has_country_flag = ancient_escort }
+	}
+	desc = {
+		text = "expandedrelics.24.desc.c"
+		trigger = { has_country_flag = ancient_luck }
+	}
+	picture = GFX_evt_unity_symbol
+	show_sound = event_whispering
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		random_list = {
+			# Automatic Fleets attack homicidal empires, tries to bomb your planets into dust
+			# Ancient Library
+			3 = {
+				set_country_flag = ancient_library
+				event_target:blessed_planet = {
+					solar_system = {
+						random_system_planet = {
+							limit = {
+								NOT = { is_same_value = event_target:blessed_planet }
+								OR = {
+									is_planet_class = pc_toxic
+									is_planet_class = pc_barren
+									is_planet_class = pc_barren_cold
+									is_planet_class = pc_frozen
+									is_planet_class = pc_molten
+								}
+								OR = {
+									has_deposit = no
+									has_deposit_for = shipclass_research_station 
+								}
+							}
+							save_event_target_as = blessed_library_planet
+							change_pc = pc_broken
+							reset_planet = yes
+							add_deposit = d_society_6
+							add_deposit = d_engineering_6
+							add_deposit = d_physics_6
+						}
+					}
+				}
+			}
+			# Gain access to an FE escort
+			1 = {
+				set_country_flag = ancient_escort
+				modifier = {
+					factor = 3
+					mid_game_years_passed >= 0
+				}
+			}
+			# Nebulous luck
+			3 = {
+				set_country_flag = ancient_luck
+			}
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+		trigger = { has_country_flag = ancient_library }
+		tooltip = {
+			event_target:blessed_library_planet = {
+				change_pc = pc_broken
+				add_deposit = d_society_6
+				add_deposit = d_engineering_6
+				add_deposit = d_physics_6
+			}
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+		trigger = { has_country_flag = ancient_escort }
+		add_resource = { alloys = 100 }
+		event_target:blessed_planet = {
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+				}
+				effect = {
+					set_owner = ROOT
+					create_ship = {
+						name = "NAME_Guardian"
+						design = "NAME_Surplus_Zealot"
+						graphical_culture = "fallen_empire_02"
+						upgradable = no
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = CURIOUS
+		trigger = { has_country_flag = ancient_luck }
+		add_modifier = { modifier = ancient_blessing_ancrel days = -1 }
+	}
+	
+	after = {
+		hidden_effect = {
+			remove_country_flag = ancient_library
+			remove_country_flag = ancient_escort
+			remove_country_flag = ancient_luck
+		}
+	}
+}
+
+### Archaeology: Sentinels
+# Reserved 30 - 39
+# Spawn and despawn sentinel armies
+event = {
+	id = expandedrelics.30
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_country = {
+			any_owned_planet = {
+				OR = {
+					has_planet_flag = sentinel_eight
+					has_planet_flag = sentinel_nine
+				}
+				OR = {
+					has_ground_combat = yes
+					has_planet_flag = sentinel_army_spawned
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		every_country = {
+			limit = {
+				any_owned_planet = {
+					OR = {
+						has_planet_flag = sentinel_eight
+						has_planet_flag = sentinel_nine
+					}
+					OR = {
+						has_ground_combat = yes
+						has_planet_flag = sentinel_army_spawned
+					}
+				}
+			}
+			country_event = { id = expandedrelics.31 }
+		}
+	}
+}
+country_event = {
+	id = expandedrelics.31
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_country_flag = sentinel_protection }
+				NAND = {
+					exists = overlord
+					overlord = { has_country_flag = sentinel_protection }
+				}
+			}
+			every_owned_army = {
+				limit = { army_type = sentinel_army }
+				remove_army = yes
+			}
+			every_owned_planet = {
+				limit = {
+					OR = {
+						has_planet_flag = sentinel_eight
+						has_planet_flag = sentinel_nine
+					}
+				}
+				remove_planet_flag = sentinel_army_spawned
+			}
+		}
+		else = {
+			every_owned_planet = {
+				limit = {
+					OR = {
+						has_planet_flag = sentinel_eight
+						has_planet_flag = sentinel_nine
+					}
+				}
+				if = {
+					limit = {
+						has_ground_combat = yes
+						has_planet_flag = sentinel_eight
+						NOT = { has_planet_flag = sentinel_army_spawned }
+					}
+					set_planet_flag = sentinel_army_spawned
+					while = {
+						count = 8
+						create_army = {
+							name = "NAME_Sentinels"
+							owner = root.owner
+							type = "sentinel_army"
+						}
+					}
+				}
+				else_if = {
+					limit = {
+						has_ground_combat = yes
+						has_planet_flag = sentinel_nine
+						NOT = { has_planet_flag = sentinel_army_spawned }
+					}
+					set_planet_flag = sentinel_army_spawned
+					while = {
+						count = 9
+						create_army = {
+							name = "NAME_Sentinels"
+							owner = root.owner
+							type = "sentinel_army"
+						}
+					}
+				}
+				else_if = {
+					limit = {
+						has_ground_combat = no
+						has_planet_flag = sentinel_army_spawned
+					}
+					remove_planet_flag = sentinel_army_spawned
+					every_planet_army = {
+						limit = { army_type = sentinel_army }
+						remove_army = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+### Archaeology: Warmer Climates
+# Reserved 40-44
+# Research Station Built: Chance of Survivors
+ship_event = {
+	id = expandedrelics.40
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			has_planet_flag = warmer_climates_deep_sleep_completed
+		}
+	}
+	
+	immediate = {
+		from = {
+			remove_planet_flag = warmer_climates_deep_sleep_completed
+			save_event_target_as = warmer_climates_planet
+		}
+		random_list = {
+			1 = {
+				owner = { country_event = { id = expandedrelics.42 days = 1800 random = 720 } }
+			}
+			2 = {
+				# do nothing
+			}
+		}
+	}
+}
+
+# Colony: Chance of Survivors
+planet_event = {
+	id = expandedrelics.41
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_planet_flag = warmer_climates_deep_sleep_completed
+		is_colony = yes
+		is_under_colonization = no
+	}
+	
+	immediate = {
+		remove_planet_flag = warmer_climates_deep_sleep_completed
+		save_event_target_as = warmer_climates_planet
+		owner = {
+			random_list = {
+				1 = {
+					country_event = { id = expandedrelics.42 days = 1600 random = 720 }
+				}
+				1 = {
+					# do nothing
+				}
+			}
+		}
+	}
+}
+
+# Survivors Found
+country_event = {
+	id = expandedrelics.42
+	title = "expandedrelics.42.name"
+	desc = "expandedrelics.42.desc"
+	picture = GFX_evt_clones
+	show_sound = event_laboratory_sound
+	location = event_target:warmer_climates_planet
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		any_planet_within_border = { is_same_value = event_target:warmer_climates_planet }
+	}
+	
+	immediate = {
+		if = {
+			limit = { event_target:warmer_climates_planet = { habitable_planet = yes } }
+			event_target:warmer_climates_planet = { save_event_target_as = cold_survivor_join_planet }
+		}
+		else = {
+			random_owned_planet = {
+				weights = {
+					base = 1
+					modifier = { 
+						factor = 0.25
+						NOT = { free_housing > 0 }
+					}
+					modifier = { 
+						add = 2
+						free_housing > 0
+					}
+					modifier = { 
+						add = 5
+						free_housing > 1
+					}
+					modifier = { 
+						add = 10
+						free_housing > 5
+					}
+					modifier = { 
+						add = 10
+						free_housing > 10
+					}
+					modifier = { 
+						add = 5
+						planet_size > 17
+					}
+					modifier = { 
+						add = 5
+						planet_size > 21
+					}
+				}
+				save_event_target_as = cold_survivor_join_planet
+			}
+		}
+	}
+	
+	option = {
+		name = expandedrelics.42.a
+		custom_tooltip = expandedrelics.42.a.tooltip
+		hidden_effect = {
+			if = {
+				limit = { has_global_flag = expanded_pops_active }
+				create_species = {
+					name = random
+					class = MOL
+					portrait = random
+					namelist = "FUN2"
+					traits = {
+						trait = "trait_moluscoid"
+						trait = "trait_cold_survivor"
+						trait = "trait_natural_engineers"
+						trait = "trait_industrious"
+						trait = "trait_solitary"
+					}
+					homeworld = event_target:cold_survivor_join_planet
+				}
+			}
+			else = {
+				create_species = {
+					name = random
+					class = MOL
+					portrait = random
+					namelist = "FUN2"
+					traits = {
+						trait = "trait_cold_survivor"
+						trait = "trait_natural_engineers"
+						trait = "trait_industrious"
+						trait = "trait_solitary"
+					}
+					homeworld = event_target:cold_survivor_join_planet
+				}
+			}
+			event_target:cold_survivor_join_planet = {
+				while = {
+					count = 2
+					create_pop = { species = last_created_species }					
+				}
+			}
+		}
+	}
+	option = {
+		name = expandedrelics.42.b
+		allow = { is_xenophile = no }
+	}
+	
+	option = {
+		name = TASTY
+		exclusive_trigger = {
+			has_civic = civic_hive_devouring_swarm
+		}
+		add_resource = { food = 100 }
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier3researchreward
+			min = @tier3researchmin
+			max = @tier3researchmax
+		}
+	}
+
+	option = {
+		name = "distar.216.a.exter"
+		exclusive_trigger = {
+			has_civic = civic_machine_terminator
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier3researchreward
+			min = @tier3researchmin
+			max = @tier3researchmax
+		}
+	}
+
+	option = {
+		name = SCUM
+		exclusive_trigger = {
+			has_civic = civic_fanatic_purifiers
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier3researchreward
+			min = @tier3researchmin
+			max = @tier3researchmax
+		}
+	}
+}
+
+### Ix Belèn - Memorex
+# Reserved 50-79
+
+# Fire Warning Signs (bi-yearly scope)
+event = {
+	id = expandedrelics.51
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_country = {
+			OR = {
+				any_owned_planet = {
+					OR = {
+						has_modifier = the_memorex_control
+						has_modifier = the_memorex_control_gestalt
+					}
+				}
+				check_variable = { which = memorex_usage value > 4 }
+			}
+			NOR = {
+				has_country_flag = memorex_scaled_back
+				has_country_flag = memorex_bad_events
+				has_country_flag = memorex_fixed
+			}
+		}
+	}
+		
+	immediate = {
+		random_country = {
+			limit = {
+				OR = {
+					any_owned_planet = {
+						OR = {
+							has_modifier = the_memorex_control
+							has_modifier = the_memorex_control_gestalt
+						}
+					}
+					check_variable = { which = memorex_usage value > 3 }
+				}
+				NOR = {
+					has_country_flag = memorex_scaled_back
+					has_country_flag = memorex_bad_events
+				}
+			}
+			random_list = {
+				24 = {
+				}
+				1 = {
+					set_country_flag = had_bad_memorex_events
+					country_event = { id = expandedrelics.52 days = 30 random = 400 }
+					modifier = {
+						factor = 3
+						any_owned_planet = {
+							OR = {
+								has_modifier = the_memorex_control
+								has_modifier = the_memorex_control_gestalt
+							}
+						}
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 5 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 7 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 9 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 11 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 13 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 15 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 17 }
+					}
+					modifier = {
+						factor = 1.25
+						check_variable = { which = memorex_usage value > 19 }
+					}
+					modifier = {
+						factor = 1.1
+						has_country_flag = had_bad_memorex_events
+					}
+				}
+			}
+		}
+	}
+}
+# Warning Signs
+country_event = {
+	id = expandedrelics.52
+	title = "expandedrelics.52.name"
+	desc = "expandedrelics.52.desc"
+	picture = GFX_evt_emergency_workers
+	show_sound = event_bad_omen
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = expandedrelics.52.a
+		limit_memorex_effect = yes
+	}
+	
+	option = {
+		name = expandedrelics.52.b
+		trigger = { is_ai = no }
+		hidden_effect = {
+			set_country_flag = memorex_bad_events
+			# fire bad events
+			country_event = { id = expandedrelics.56 days = 360 random = 360 }
+		}
+	}
+}
+
+# Restrictions lifted, asked about special project
+country_event = {
+	id = expandedrelics.53
+	title = "expandedrelics.53.name"
+	desc = "expandedrelics.53.desc"
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_country_flag = fix_memorex_started }
+	}
+	
+	immediate = { set_country_flag = fix_memorex_started }
+	
+	option = {
+		name = expandedrelics.53.a
+		capital_scope = {
+			solar_system = {
+				closest_system = {
+					limit = {
+						any_system_planet = {
+							exists = archaeological_site 
+							archaeological_site = { is_site_type = endless_expanse_digsite_2 }
+						}
+					}
+					random_system_planet = {
+						limit = {
+							exists = archaeological_site 
+							archaeological_site = { is_site_type = endless_expanse_digsite_2 }
+						}
+						enable_special_project = {
+							name  = INVESTIGATING_IX_BELEN_PROJECT
+							location = this
+							owner = root
+						}
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = NOTIME
+	}
+}
+
+ship_event = {
+	id = expandedrelics.54
+	title = "expandedrelics.54.name"
+	desc = "expandedrelics.54.desc"
+	picture = GFX_evt_gas_giant_station
+	show_sound = event_laboratory_sound
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = expandedrelics.54.a
+		owner = {
+			capital_scope = {
+				enable_special_project = {
+					name = "FIXING_MEMORES_PROJECT"
+					location = this
+					owner = root.owner
+				}
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = expandedrelics.55
+	title = "expandedrelics.55.name"
+	desc = "expandedrelics.55.desc"
+	picture = GFX_evt_surreal_visions
+	show_sound = event_mystic_reveal
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = EXCELLENT
+		owner = {
+			custom_tooltip = expandedrelics.55.a.tooltip
+			hidden_effect = {
+				remove_country_flag = memorex_bad_events
+				set_country_flag = memorex_fixed
+			}
+		}
+	}
+}
+
+# Bad Events
+country_event = {
+	id = expandedrelics.56
+	hide_window = yes
+	is_triggered_only = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_country_flag = memorex_bad_events
+		NOT = { has_country_flag = memorex_fixed }
+	}
+	
+	immediate = {
+		random_owned_planet = {
+			limit = { has_modifier = the_memorex }
+			weights = {
+				base = 1
+				modifier = {
+					add = 10
+					OR = {
+						has_modifier = the_memorex_control
+						has_modifier = the_memorex_control_gestalt
+					}
+				}
+			}
+			random_list = {
+				25 = {
+					# nothing happens
+				}
+				5 = {
+					# pop is dazed
+					planet_event = { id = expandedrelics.57 }
+				}
+				5 = {
+					# bad dreams
+					if = {
+						limit = { ROOT = { is_gestalt = no } }
+						planet_event = { id = expandedrelics.58 }
+					}
+				}
+				5 = {
+					# crime wave / deviancy / corruption
+					planet_event = { id = expandedrelics.59 }
+				}
+				3 = {
+					# a pop goes comatose
+					planet_event = { id = expandedrelics.60 }
+				}
+				5 = {
+					# bad dreams
+					if = {
+						limit = { ROOT = { is_gestalt = yes } }
+						planet_event = { id = expandedrelics.61 }
+					}
+				}
+				1 = {
+					# 3 pops goes comatose
+					planet_event = { id = expandedrelics.62 }
+				}
+			}
+		}
+	}
+	
+	after = {
+		country_event = { id = expandedrelics.56 days = 720 random = 1800 }
+	}
+}
+# Dazed
+planet_event = {
+	id = expandedrelics.57
+	title = "expandedrelics.57.name"
+	desc = "expandedrelics.57.desc"
+	picture = GFX_evt_surreal_visions
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		while = {
+			count = 5
+			random_owned_pop = {
+				limit = { NOT = { has_modifier = memorex_dazed } }
+				add_modifier = { modifier = memorex_dazed days = 3600 }
+			}
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		custom_tooltip = expandedrelics.57.a.tooltip
+	}
+	option = {
+		name = expandedrelics.57.b
+		custom_tooltip = expandedrelics.57.a.tooltip
+		owner = { limit_memorex_effect = yes }
+	}
+}
+# Bad Dreams
+planet_event = {
+	id = expandedrelics.58
+	title = "expandedrelics.58.name"
+	desc = "expandedrelics.58.desc"
+	picture = GFX_evt_surreal_visions
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = UNFORTUNATE
+		add_modifier = { modifier = the_memorex_bad_dreams days = 3600 }
+	}
+	option = {
+		name = expandedrelics.57.b
+		add_modifier = { modifier = the_memorex_bad_dreams days = 3600 }
+		owner = { limit_memorex_effect = yes }
+	}
+}
+
+# Crime
+planet_event = {
+	id = expandedrelics.59
+	title = "expandedrelics.59.name"
+	desc = {
+		text = "expandedrelics.59.desc"
+		trigger = { owner = { is_gestalt = no } }
+	}
+	desc = {
+		text = "expandedrelics.59.desc.hive"
+		trigger = { owner = { is_hive_empire = yes } }
+	}
+	desc = {
+		text = "expandedrelics.59.desc.machine"
+		trigger = { owner = { is_machine_empire = yes } }
+	}
+	picture = {
+		trigger = { 
+			owner = {
+				NOT = { is_gestalt = yes }
+			}
+		}
+		picture = GFX_evt_smugglers_in_bar
+	}
+	picture = {
+		trigger = { 
+			owner = { is_hive_empire = yes }
+		}
+		picture = GFX_evt_hive_mind
+	}
+	picture = {
+		trigger = { 
+			owner = { is_machine_empire = yes }
+		}
+		picture = GFX_evt_glitchy_matrix
+	}
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = expandedrelics.59.a
+		trigger = { owner = { is_gestalt = no } }
+		add_modifier = { modifier = the_memorex_crime days = 3600 }
+	}
+	option = {
+		name = expandedrelics.59.b
+		trigger = { owner = { is_gestalt = yes } }
+		add_modifier = { modifier = the_memorex_crime_gestalt days = 3600 }
+	}
+	option = {
+		name = expandedrelics.57.b
+		trigger = { owner = { is_gestalt = no } }
+		add_modifier = { modifier = the_memorex_crime days = 3600 }
+		owner = { limit_memorex_effect = yes }
+	}
+	option = {
+		name = expandedrelics.57.b
+		trigger = { owner = { is_gestalt = yes } }
+		add_modifier = { modifier = the_memorex_crime_gestalt days = 3600 }
+	}
+}
+
+# pop goes comatose
+planet_event = {
+	id = expandedrelics.60
+	title = "expandedrelics.60.name"
+	desc = {
+		text = "expandedrelics.60.desc"
+		trigger = { owner = { is_machine_empire = no } }
+	}
+	desc = {
+		text = "expandedrelics.60.desc.machine"
+		trigger = { owner = { is_machine_empire = yes } }
+	}
+	picture = GFX_evt_emergency_workers
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = UNFORTUNATE
+		random_owned_pop = {
+			if = {
+				limit = { is_robot_pop = yes }
+				kill_pop = yes
+				owner = { add_resource = { minerals = 50 } }
+			}
+			else = {
+				modify_species = {
+					species = this
+					add_trait = trait_memorex_comatos
+				}
+			}
+		}
+	}
+	option = {
+		name = expandedrelics.57.b
+		random_owned_pop = {
+			if = {
+				limit = { is_robot_pop = yes }
+				kill_pop = yes
+				owner = { add_resource = { minerals = 50 } }
+			}
+			else = {
+				modify_species = {
+					species = this
+					add_trait = trait_memorex_comatos
+				}
+			}
+		}
+		owner = { limit_memorex_effect = yes }
+	}
+}
+
+# Stability issues (gestalt)
+planet_event = {
+	id = expandedrelics.61
+	title = "expandedrelics.61.name"
+	desc = {
+		text = "expandedrelics.61.desc.hive"
+		trigger = { owner = { is_hive_empire = yes } }
+	}
+	desc = {
+		text = "expandedrelics.61.desc.machine"
+		trigger = { owner = { is_machine_empire = yes } }
+	}
+	picture = {
+		trigger = { 
+			owner = { is_hive_empire = yes }
+		}
+		picture = GFX_evt_hive_mind
+	}
+	picture = {
+		trigger = { 
+			owner = { is_machine_empire = yes }
+		}
+		picture = GFX_evt_glitchy_matrix
+	}
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = UNFORTUNATE
+		add_modifier = { modifier = the_memorex_stability_gestalt days = 3600 }
+	}
+	option = {
+		name = expandedrelics.57.b
+		add_modifier = { modifier = the_memorex_stability_gestalt days = 3600 }
+		owner = { limit_memorex_effect = yes }
+	}
+}
+
+# three pops go comatose
+planet_event = {
+	id = expandedrelics.62
+	title = "expandedrelics.62.name"
+	desc = {
+		text = "expandedrelics.62.desc"
+		trigger = { owner = { is_machine_empire = no } }
+	}
+	desc = {
+		text = "expandedrelics.62.desc.machine"
+		trigger = { owner = { is_machine_empire = yes } }
+	}
+	picture = GFX_evt_emergency_workers
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = UNFORTUNATE
+		custom_tooltip = expandedrelics.62.a.tooltip
+		hidden_effect = {
+			while = {
+				count = 3
+				random_owned_pop = {
+					if = {
+						limit = { is_robot_pop = yes }
+						kill_pop = yes
+						owner = { add_resource = { minerals = 50 } }
+					}
+					else = {
+						modify_species = {
+							species = this
+							add_trait = trait_memorex_comatos
+						}
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = expandedrelics.57.b
+		custom_tooltip = expandedrelics.62.a.tooltip
+		hidden_effect = {
+			while = {
+				count = 3
+				random_owned_pop = {
+					if = {
+						limit = { is_robot_pop = yes }
+						kill_pop = yes
+						owner = { add_resource = { minerals = 50 } }
+					}
+					else = {
+						modify_species = {
+							species = this
+							add_trait = trait_memorex_comatos
+						}
+					}
+				}
+			}
+		}
+		owner = { limit_memorex_effect = yes }
+	}
+}
+
+# twenty pops go comatose (decision only)
+planet_event = {
+	id = expandedrelics.63
+	title = "expandedrelics.63.name"
+	desc = {
+		text = "expandedrelics.63.desc"
+		trigger = { owner = { is_machine_empire = no } }
+	}
+	desc = {
+		text = "expandedrelics.63.desc.machine"
+		trigger = { owner = { is_machine_empire = yes } }
+	}
+	picture = GFX_evt_emergency_workers
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = TERRIBLE
+		custom_tooltip = expandedrelics.63.a.tooltip
+		hidden_effect = {
+			while = {
+				count = 20
+				random_owned_pop = {
+					if = {
+						limit = { is_robot_pop = yes }
+						kill_pop = yes
+						owner = { add_resource = { minerals = 50 } }
+					}
+					else = {
+						modify_species = {
+							species = this
+							add_trait = trait_memorex_comatos
+						}
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = expandedrelics.57.b
+		custom_tooltip = expandedrelics.63.a.tooltip
+		hidden_effect = {
+			while = {
+				count = 20
+				random_owned_pop = {
+					if = {
+						limit = { is_robot_pop = yes }
+						kill_pop = yes
+						owner = { add_resource = { minerals = 50 } }
+					}
+					else = {
+						modify_species = {
+							species = this
+							add_trait = trait_memorex_comatos
+						}
+					}
+				}
+			}
+		}
+		owner = { limit_memorex_effect = yes }
+	}
+}
+
+planet_event = {
+	id = expandedrelics.64
+	title = "expandedrelics.64.name"
+	desc = "expandedrelics.64.desc"
+	picture = GFX_evt_surreal_visions
+	show_sound = event_bad_omen
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = EXCELLENT
+		owner = {
+			add_relic = r_memorex
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+country_event = {
+	id = expandedrelics.65
+	title = ancrel.10040.name
+	desc = expandedrelics.65.desc
+
+	picture = GFX_evt_analyzing_artifacts
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = progress.2.a.mech # Acknowledged.
+	}
+}
+
+
+### Vanilla Precursors
+# Reserved 80-99
+# Zroni Marker (hidden)
+fleet_event = {
+	id = expandedrelics.80
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		owner = {
+			has_event_chain = "zroni_chain" 
+			FROM = {
+				is_point_of_interest = {
+					id = zroni_system_poi.1
+					event_chain = zroni_chain
+					owner = root.owner
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		FROM = {
+			remove_star_flag = zroni_expanded
+			solar_system = { remove_star_flag = zroni_expanded } # test to see if this line can be removed
+		}
+		owner = { remove_point_of_interest = zroni_system_poi.1 }
+	}
+}
+
+#################################
+# Archaeology Site Spawn Events	#
+# Reserved 200 - 249 			#
+#################################
+
+# Site Discovery: It was Aliens
+planet_event = {
+    id = expandedrelics.200
+	title = expandedrelics.200.name
+	desc = expandedrelics.200.desc
+	picture = GFX_evt_tomb_world
+	show_sound = event_mystic_reveal
+	location = this
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+	}
+	
+	immediate = {
+		set_global_flag = it_was_aliens_site_found
+	}
+
+    option = {
+		name = ancrel.4000.a
+		create_archaeological_site = it_was_aliens_site
+	}
+}
+
+# Site Discovery: City of Bones
+planet_event = {
+    id = expandedrelics.201
+	title = expandedrelics.201.name
+	desc = {
+		trigger = {
+			has_planet_flag = bone_city_d_deep_sinkhole
+		}
+		text = expandedrelics.201.desc_sinkhole
+	}
+	desc = {
+		trigger = {
+			has_planet_flag = bone_city_d_quicksand_basin
+		}
+		text = expandedrelics.201.desc_basin
+	}
+	desc = {
+		trigger = {
+			has_planet_flag = bone_city_d_dune_sea
+		}
+		text = expandedrelics.201.desc_dune
+	}
+	picture = GFX_evt_arid
+	show_sound = event_mystic_reveal
+	location = this
+
+   	is_triggered_only = yes
+
+    option = {
+		name = ancrel.4000.a
+		create_archaeological_site = city_of_bones
+	}
+	after = {
+		remove_planet_flag = bone_city_d_deep_sinkhole
+		remove_planet_flag = bone_city_d_quicksand_basin
+		remove_planet_flag = bone_city_d_dune_sea
+	}
+}
+
+# Site Discovery: Mutation Vats
+planet_event = {
+    id = expandedrelics.203
+	title = expandedrelics.203.name
+	desc = expandedrelics.203.desc
+	picture = GFX_evt_tomb_world
+	show_sound = event_mystic_reveal
+	location = this
+
+   	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = mutation_vats_found
+	}
+
+    option = {
+		name = ancrel.4000.a
+		create_archaeological_site = mutation_vats
+	}
+}
+
+
+# Asteroid Blast Door: check every decade
+event = {
+    id = expandedrelics.204
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_ancrel = yes
+		NOT = { has_global_flag = command_center_found }
+		years_passed >= 50
+		NOT = { end_game_years_passed >= 100 } # no guarantee to get it
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_command_center }
+				}
+			}
+		}
+		any_country = {
+			is_ai = no
+			any_planet_within_border = {
+				is_planet_class = pc_asteroid
+				NOT = { exists = archaeological_site }
+				NOT = { has_planet_flag = suppress_archaeological_sites }
+				has_deposit = no
+				NOT = {
+					solar_system = {
+						any_system_planet = { is_colony = yes }
+					}
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				is_ai = no
+				any_planet_within_border = {
+					is_planet_class = pc_asteroid
+					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
+					has_deposit = no
+					NOT = {
+						solar_system = {
+							any_system_planet = { is_colony = yes }
+						}
+					}
+				}
+			}
+			random_list = {
+				5 = {
+					random_planet_within_border = {
+						limit = {
+							is_planet_class = pc_asteroid
+							NOT = { exists = archaeological_site }
+							NOT = { has_planet_flag = suppress_archaeological_sites }
+							has_deposit = no
+							NOT = {
+								solar_system = {
+									any_system_planet = { is_colony = yes }
+								}
+							}
+						}
+						planet_event = { id = expandedrelics.205 days = 180 random = 1800 }
+					}
+				}
+				
+				95 = {
+					modifier = {
+						factor = 2
+						# playing single player
+						NOT = {
+							count_country = {
+								limit = { is_ai = no }
+								count > 1
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+planet_event = {
+    id = expandedrelics.205
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		# check that conditions still apply
+		has_ancrel = yes
+		exists = space_owner # check that system is still owned
+		NOT = { has_global_flag = command_center_found }
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_command_center }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		set_global_flag = command_center_found
+		space_owner = {
+			country_event = { id = expandedrelics.206 }
+		}
+	}
+}
+
+# Site Discovery
+country_event = {
+    id = expandedrelics.206
+	title = expandedrelics.206.name
+	desc = expandedrelics.206.desc
+	picture = GFX_evt_asteroid_field
+	show_sound = event_mystic_reveal
+	location = FROM
+
+   	is_triggered_only = yes
+
+    option = {
+		name = ancrel.4000.a
+		FROM = { create_archaeological_site = site_command_center }
+	}
+}
+
+# The Host: Research Mining Tech
+country_event = {
+	id = expandedrelics.207
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_ancrel = yes
+		NOT = { has_global_flag = the_host_found }
+		OR = {
+			last_increased_tech = tech_mining_1
+			last_increased_tech = tech_mining_2
+			last_increased_tech = tech_mining_3
+		}
+    	any_owned_planet = {
+			is_homeworld = no
+			OR = {
+				num_districts = { type = district_mining value > 1 }
+				num_districts = { type = district_mining_uncapped value > 1 }
+			}
+			OR = {
+				is_dry = yes
+				is_wet = yes
+				is_cold = yes
+				is_gaia_world = yes
+				is_planet_class = pc_relic
+			}
+			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
+   		}
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = the_host }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			10 = {
+				random_owned_planet = {
+					limit = {
+						is_homeworld = no
+						OR = {
+							num_districts = { type = district_mining value > 1 }
+							num_districts = { type = district_mining_uncapped value > 1 }
+						}
+						OR = {
+							is_dry = yes
+							is_wet = yes
+							is_cold = yes
+							is_gaia_world = yes
+							is_planet_class = pc_relic
+						}
+						NOT = { exists = archaeological_site }
+						NOT = { has_planet_flag = suppress_archaeological_sites }
+					}
+					planet_event = { id = expandedrelics.208 days = 125 random = 60 }
+				}
+			}
+			90 = {
+				modifier = {
+					factor = 10
+					is_ai = yes
+				}
+			}
+		}
+	}
+}
+
+# Site Discovery
+planet_event = {
+	id = expandedrelics.208
+	title = expandedrelics.208.name
+	desc = expandedrelics.208.desc
+	picture = GFX_evt_mining_operations
+	show_sound = event_mystic_reveal
+	location = this
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+	}
+	
+	immediate = {
+		set_global_flag = the_host_found
+	}
+
+    option = {
+		name = INTRIGUING
+		create_archaeological_site = the_host
+	}
+}
+
+# Get to the Bottom: On Colony 4 Years Old
+planet_event = {
+	id = expandedrelics.209
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_ocean_world = yes
+		is_homeworld = no
+		has_ancrel = yes
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_orbital_rain }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			5 = {
+				planet_event = { id = expandedrelics.210 days = 5 random = 10 }
+			}
+			95 = {
+				modifier = {
+					factor = 10
+					exists = owner
+					owner = { is_ai = yes }
+				}
+			}
+		}
+	}
+}
+
+# Site Discovery
+planet_event = {
+	id = expandedrelics.210
+	title = expandedrelics.210.name
+	desc = expandedrelics.210.desc
+	picture = GFX_evt_ocean
+	show_sound = event_scanner
+	location = this
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+	}
+	
+	immediate = {
+		set_global_flag = site_orbital_rain_found
+	}
+
+    option = {
+		name = INTRIGUING
+		create_archaeological_site = site_orbital_rain
+	}
+}
+
+planet_event = {
+	id = expandedrelics.211
+	title = expandedrelics.211.name
+	desc = expandedrelics.211.desc
+	picture = GFX_evt_archaeology_camp
+	show_sound = event_scanner
+	location = this
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+		NOT = { has_planet_flag = has_been_terraformed }
+		NOT = { has_global_flag = site_strange_fossils_found }
+		is_homeworld = no
+		OR = {
+			is_wet = yes
+			is_dry = yes
+			is_cold = yes
+			is_gaia_world = yes
+		}
+	}
+	
+	immediate = {
+		set_global_flag = site_strange_fossils_found
+		if = {
+			limit = { is_dry = yes }
+			set_planet_flag = is_dry_planet
+		}
+		else_if = {
+			limit = { is_cold = yes }
+			set_planet_flag = is_cold_planet
+		}
+		else = {
+			set_planet_flag = is_wet_planet
+		}
+	}
+
+    option = {
+		name = INTERESTING
+		create_archaeological_site = site_strange_fossils
+	}
+	option = {
+		name = expandedrelics.211.b
+		owner = {
+			add_resource = { unity = 600 }
+		}
+	}
+}
+
+planet_event = {
+	id = expandedrelics.212
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_ancrel = yes
+		habitable_planet = yes
+		is_homeworld = no
+		last_district_changed = district_mining
+		NOT = { has_global_flag = ancient_battle_site_found }
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = ancient_battle_site }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			5 = {
+				planet_event = { id = expandedrelics.213 days = 1 }
+				set_global_flag = ancient_battle_site_found
+			}
+			
+			95 = {
+				modifier = {
+					factor = 10
+					exists = owner
+					owner = { is_ai = yes }
+				}
+			}
+		}
+	}
+}
+
+# Site Discovery
+planet_event = {
+	id = expandedrelics.213
+	title = ancrel.108.name
+	desc = expandedrelics.213.desc
+	picture = GFX_evt_habitable_dig_site
+	show_sound = event_dig_site
+	location = this
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+	}
+
+    option = {
+		name = CURIOUS
+		create_archaeological_site = ancient_battle_site
+	}
+}
+
+# site_echoes_inside: Research Space Science
+country_event = {
+	id = expandedrelics.216
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_ancrel = yes
+		NOT = { has_global_flag = site_echoes_inside_found }
+		OR = {
+			last_increased_tech = tech_space_science_1
+			last_increased_tech = tech_space_science_2
+			last_increased_tech = tech_space_science_3
+			last_increased_tech = tech_space_science_4
+			last_increased_tech = tech_space_science_5
+		}
+    	any_planet_within_border = {
+			has_deposit = no
+			is_barren = yes
+			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
+			solar_system = {
+				any_system_planet = { has_deposit_for = shipclass_research_station }
+			}
+   		}
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_echoes_inside }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			5 = {
+				country_event = { id = expandedrelics.217 days = 325 random = 75 }
+			}
+			95 = {
+				modifier = {
+					factor = 10
+					is_ai = yes
+				}
+			}
+		}
+	}
+}
+
+# Site Discovery
+country_event = {
+	id = expandedrelics.217
+	title = expandedrelics.217.name
+	desc = expandedrelics.217.desc
+	picture = GFX_evt_physics_research
+	show_sound = event_scanner
+	location = event_target:site_echoes_inside_planet
+
+   	is_triggered_only = yes
+	
+	trigger = {
+		any_planet_within_border = {
+			has_deposit = no
+			is_barren = yes
+			NOT = { exists = archaeological_site }
+			NOT = { has_planet_flag = suppress_archaeological_sites }
+			solar_system = {
+				any_system_planet = { has_deposit_for = shipclass_research_station }
+			}
+   		}
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_echoes_inside }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		set_global_flag = site_echoes_inside_found
+		random_planet_within_border = {
+			limit = {
+				has_deposit = no
+				is_barren = yes
+				NOT = { exists = archaeological_site }
+				NOT = { has_planet_flag = suppress_archaeological_sites }
+				solar_system = {
+					any_system_planet = { has_deposit_for = shipclass_research_station }
+				}
+			}
+			save_event_target_as = site_echoes_inside_planet
+			if = {
+				limit = {
+					NOT = { has_modifier = terraforming_candidate }
+					NOT = { has_modifier = frozen_terraforming_candidate }
+					NOT = { has_modifier = toxic_terraforming_candidate }
+					planet_size > 9
+					planet_size < 26
+				}
+				add_terraforming_candidate_effect = yes
+			}
+		}
+	}
+
+    option = {
+		name = expandedrelics.217.a
+		event_target:site_echoes_inside_planet = {
+			enable_special_project = {
+				name = "ECHOES_INSIDE_PROJECT"
+				location = this
+				owner = root
+			}
+		}
+	}
+}
+
+ship_event = {
+	id = expandedrelics.218
+	title = expandedrelics.218.name
+	desc = expandedrelics.218.desc
+	picture = GFX_evt_arid
+	show_sound = event_mystic_reveal
+	location = event_target:site_echoes_inside_planet
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = DIG
+		event_target:site_echoes_inside_planet = {
+			create_archaeological_site = site_echoes_inside
+		}
+	}
+}
+
+planet_event = {
+	id = expandedrelics.219
+	title = expandedrelics.219.name
+	desc = expandedrelics.219.desc
+	picture = GFX_evt_relic_world
+	show_sound = event_mystic_reveal
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_planet_class = pc_relic
+		NOT = { exists = archaeological_site }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+		NOT = { has_global_flag = site_target_from_orbit_found }
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_target_from_orbit }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		set_global_flag = site_target_from_orbit_found
+	}
+	
+	option = {
+		name = DIG
+		create_archaeological_site = site_target_from_orbit
+	}
+}
+
+planet_event = {
+	id = expandedrelics.220
+	title = expandedrelics.220.name
+	desc = expandedrelics.220.desc
+	picture = GFX_evt_relic_world
+	show_sound = event_mystic_reveal
+	location = ROOT
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			is_dry = yes
+			is_cold = yes
+			is_nuked_world = yes
+			is_planet_class = pc_relic
+			
+		}
+		NOT = { exists = archaeological_site }
+		NOT = { has_global_flag = site_deja_vu_dig_found }
+		NOT = { has_planet_flag = suppress_archaeological_sites }
+		NOT = {
+			any_system = {
+				any_system_planet = {
+					exists = archaeological_site
+					archaeological_site = { is_site_type = site_deja_vu_dig }
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		set_global_flag = site_deja_vu_dig_found
+	}
+	
+	option = {
+		name = DIG
+		create_archaeological_site = site_deja_vu_dig
+	}
+}
+
+#################################
+# New Archaeology Sites			#
+# Reserved 250 - 599 			#
+#################################
+
+### Archaeology: Ancient Mysteries
+# Reserved 250 - 279
+# Excavation, 250 - 255
+# Advanced Ruins
+fleet_event = {
+	id = expandedrelics.250
+	title = "expandedrelics.250.name"
+	desc = "expandedrelics.250.desc"
+	picture = GFX_evt_relic_world
+	show_sound = event_wind_ruins
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		from = {
+			planet = {
+				add_deposit = d_fe_mat_ruins
+			}
+		}
+	}
+}
+
+# Beneath the Fumes
+fleet_event = {
+	id = expandedrelics.251
+	title = "expandedrelics.251.name"
+	desc = "expandedrelics.251.desc"
+	picture = GFX_evt_relic_world_street
+	show_sound = event_wind_ruins
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.251.a
+		medium_artifact_reward = yes
+	}
+}
+
+# Following the Breadcrumbs
+fleet_event = {
+	id = expandedrelics.252
+	title = "expandedrelics.252.name"
+	desc = "expandedrelics.252.desc"
+	picture = GFX_evt_generator_powerup
+	show_sound = event_power_down
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		small_artifact_reward = yes
+		owner = {
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+			add_monthly_resource_mult = {
+				resource = engineering_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+# Breaking and Entering
+fleet_event = {
+	id = expandedrelics.253
+	title = "expandedrelics.253.name"
+	desc = "expandedrelics.253.desc"
+	picture = GFX_evt_derelict_interior
+	show_sound = event_drilling
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = {
+			set_site_progress_locked = yes
+			planet = { set_planet_flag = site_fe_mat_in_lab }
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.253.a
+		small_artifact_reward = yes
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier1researchreward
+				min = @tier1researchmin
+				max = @tier1researchmax
+			}
+		}
+	}
+}
+
+# Evacuation Order
+fleet_event = {
+	id = expandedrelics.254
+	title = "expandedrelics.254.name"
+	desc = "expandedrelics.254.desc"
+	picture = GFX_evt_unidentified_monster
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.254.a
+		large_artifact_reward = yes
+		owner = {
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+			add_monthly_resource_mult = {
+				resource = engineering_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+	}
+}
+
+# The Central Archive
+fleet_event = {
+	id = expandedrelics.255
+	title = "expandedrelics.255.name"
+	desc = "expandedrelics.255.desc"
+	picture = GFX_evt_ancient_databank
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		owner = { set_country_flag = owns_mat_fe_archive_plans }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = CURIOUS
+		owner = {
+			locked_random_list = {
+				10 = {
+					add_random_research_option = {
+						add_progress = 0.5
+						tier = 4
+						ignore_prereqs = yes
+						fail_effects = {
+							add_random_research_option = {
+								add_progress = 0.25
+								tier = 5
+								ignore_prereqs = yes
+								fail_effects = {
+									add_monthly_resource_mult = {
+										resource = physics_research
+										value = @tier5researchreward
+										min = @tier5researchmin
+										max = @tier5researchmax
+									}
+									add_monthly_resource_mult = {
+										resource = society_research
+										value = @tier5researchreward
+										min = @tier5researchmin
+										max = @tier5researchmax
+									}
+									add_monthly_resource_mult = {
+										resource = engineering_research
+										value = @tier5researchreward
+										min = @tier5researchmin
+										max = @tier5researchmax
+									}
+								}
+							}
+						}
+					}
+				}
+				10 = {
+					add_random_research_option = {
+						add_progress = 0.25
+						tier = 5
+						ignore_prereqs = yes
+						fail_effects = {
+							add_monthly_resource_mult = {
+								resource = physics_research
+								value = @tier5researchreward
+								min = @tier5researchmin
+								max = @tier5researchmax
+							}
+							add_monthly_resource_mult = {
+								resource = society_research
+								value = @tier5researchreward
+								min = @tier5researchmin
+								max = @tier5researchmax
+							}
+							add_monthly_resource_mult = {
+								resource = engineering_research
+								value = @tier5researchreward
+								min = @tier5researchmin
+								max = @tier5researchmax
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Random Events, 256 - 264
+# Bio-Warfare
+fleet_event = {
+	id = expandedrelics.256
+	title = "ancrel.8065.name"
+	desc = "expandedrelics.256.desc"
+	picture = GFX_evt_emergency_workers
+	show_sound = event_bad_omen
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_1 }
+		fromfrom = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		fromfrom = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		fromfrom = { add_stage_clues = -3 }
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+fleet_event = {
+	id = expandedrelics.257
+	title = expandedrelics.257.name
+	desc = expandedrelics.257.desc
+	picture = GFX_evt_archaeologists_escaping
+	show_sound = event_ship_explosion
+	location = from
+
+	archaeology = yes
+
+	is_triggered_only = yes
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_2 }
+		from = { set_site_progress_locked = yes }
+	}
+	after = { 
+		from = { set_site_progress_locked = no }
+	}
+
+	option = {
+		name = UNFORTUNATE
+		leader = {
+			add_trait = leader_trait_maimed
+		}
+		owner = {
+			add_resource = {
+				alloys = 500
+				volatile_motes = 100
+			}
+		}
+	}
+}
+
+# Xenomorphs - Pay to Pass
+fleet_event = {
+	id = expandedrelics.258
+	title = "expandedrelics.258.name"
+	desc = {
+		text = "expandedrelics.258.desc"
+		trigger = { owner = { is_robot_empire = no } }
+	}
+	desc = {
+		text = "expandedrelics.258.desc.machine"
+		trigger = { owner = { is_robot_empire = yes } }
+	}
+	picture = "GFX_evt_archaeology_trap"
+	show_sound = event_screams
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_3 }
+		fromfrom = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		fromfrom = { set_site_progress_locked = no }
+	}
+	
+	option = {
+		name = expandedrelics.258.a
+		allow = {
+			owner = {
+				resource_stockpile_compare = {
+					resource = energy
+					value >= 100
+				}
+			}
+		}
+		owner = {
+			add_resource = {
+				energy = -100
+			}
+		}
+		fromfrom = { add_stage_clues = 3 }
+	}
+	option = {
+		name = ancrel.8093.b
+		fromfrom = { add_stage_clues = -2 }
+	}
+	after = {
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+	}
+}
+
+# Xenomorphs - No Survivors
+fleet_event = {
+	id = expandedrelics.259
+	title = "expandedrelics.259.name"
+	desc = "expandedrelics.259.desc"
+	picture = "GFX_evt_archaeology_trap"
+	show_sound = event_screams
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_3 }
+		fromfrom = { set_site_progress_locked = yes }
+		leader = {
+			save_event_target_as = dead_scientist
+			kill_leader = { show_notification = no } 
+		}
+	}
+
+	after = { 
+		fromfrom = { set_site_progress_locked = no }
+	}
+	
+	option = {
+		name = expandedrelics.259.a
+		fromfrom = { add_stage_clues = -3 }
+	}
+}
+
+# Necronomicon
+fleet_event = {
+	id = expandedrelics.260
+	title = "expandedrelics.260.name"
+	desc = "expandedrelics.260.desc"
+	picture = GFX_evt_ancient_artifact
+	show_sound = event_bad_omen
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_4 }
+		fromfrom = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		fromfrom = { set_site_progress_locked = no }
+	}
+	
+	option = {
+		name = expandedrelics.260.a
+		leader = {
+			add_trait = leader_trait_maniacal
+			add_trait = leader_trait_paranoid
+			add_skill = 1
+		}
+		fromfrom = { add_stage_clues = 2 }
+	}
+}
+
+# Discover Owners of Planet
+fleet_event = {
+	id = expandedrelics.261
+	title = "ancrel.8080.name"
+	desc = "expandedrelics.261.desc"
+	picture = GFX_evt_ancient_artifact
+	show_sound = event_finding_loot
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = { set_country_flag = triggered_fe_mat_special_event_5 }
+		fromfrom = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+				has_ethic = ethic_fanatic_materialist
+			}
+			save_event_target_as = materialist_fallen_empire
+		}
+	}
+
+	after = { 
+		fromfrom = { set_site_progress_locked = no }
+	}
+	
+	option = {
+		name = EXCELLENT
+		medium_artifact_reward = yes
+		fromfrom = { add_stage_clues = 3 }
+	}
+}
+
+# Contact with Materialist FE, 270 - 279
+# FE makes contact
+country_event = {
+	id = expandedrelics.270
+	title = expandedrelics.270.name
+	desc = expandedrelics.270.desc
+	
+	trigger = {
+		has_country_flag = owns_mat_fe_archive_plans
+		NOT = { has_country_flag = fe_mat_asks_for_plans }
+		any_country = {
+			OR = {
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+			}
+			has_ethic = ethic_fanatic_materialist
+			NOT = { is_at_war_with = ROOT }
+			has_communications = ROOT
+		}
+	}
+	
+	mean_time_to_happen = {
+		months = 60
+	}
+	
+	immediate = {
+		random_country = {
+			limit = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+				has_ethic = ethic_fanatic_materialist
+			}
+			save_event_target_as = materialist_fallen_empire
+		}
+		set_country_flag = fe_mat_asks_for_plans
+	}
+	
+	diplomatic = yes
+	
+	picture_event_data = {
+		portrait = event_target:materialist_fallen_empire
+		planet_background = event_target:materialist_fallen_empire
+		graphical_culture = event_target:materialist_fallen_empire
+		city_level = event_target:materialist_fallen_empire
+		room = event_target:materialist_fallen_empire.ruler
+	}
+	
+	# ships
+	option = {
+		name = expandedrelics.270.a
+		response_text = expandedrelics.270.a.response
+		event_target:materialist_fallen_empire = {
+			add_opinion_modifier = { who = root modifier = opinion_accepted_fallen_empire_demand }
+		}
+		hidden_effect = {
+			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
+		}
+		if = {
+			limit = { NOT = { mid_game_years_passed >= 0 } }
+			custom_tooltip = fallen_empires_tasks.2.escorts_tooltip
+			hidden_effect = {
+				capital_scope = {
+					create_fleet = {
+						settings = {
+							spawn_debris = no
+						}
+						effect = {
+							set_owner = ROOT
+							create_ship = {
+								name = "NAME_Surplus_I"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_II"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_III"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							add_modifier = {
+								modifier = fe_gift_ship
+								days = -1
+							}
+							set_location = PREV
+						}
+					}
+				}
+			}
+		}
+		else = {
+			custom_tooltip = expandedrelics.270.a.tooltip
+			hidden_effect = {
+				capital_scope = {
+					create_fleet = {
+						settings = {
+							spawn_debris = no
+						}
+						effect = {
+							set_owner = ROOT
+							create_ship = {
+								name = "NAME_Progress"
+								design = "NAME_Surplus_Scholar"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_I"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_II"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							create_ship = {
+								name = "NAME_Surplus_III"
+								design = "NAME_Surplus_Sage"
+								graphical_culture = event_target:materialist_fallen_empire
+								upgradable = no
+							}
+							add_modifier = {
+								modifier = fe_gift_ship
+								days = -1
+							}
+							set_location = PREV
+						}
+					}
+				}
+			}
+		}
+	}
+	# techs
+	option = {
+		name = expandedrelics.270.b
+		response_text = expandedrelics.270.b.response
+		event_target:materialist_fallen_empire = {
+			add_opinion_modifier = { who = root modifier = opinion_accepted_fallen_empire_demand }
+		}
+		hidden_effect = {
+			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
+		}
+		event_target:materialist_fallen_empire = { save_event_target_as = FallenEmpireTaskOrigin } # needed for scripted effect to work
+		give_fe_tech_gift = yes
+	}
+	# resources
+	option = {
+		name = expandedrelics.270.c
+		response_text = expandedrelics.270.c.response
+		event_target:materialist_fallen_empire = {
+			add_opinion_modifier = { who = root modifier = opinion_accepted_fallen_empire_demand }
+		}
+		hidden_effect = {
+			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
+		}
+		add_resource = { minerals = 3000 }
+		add_resource = { alloys = 1000 }
+		add_resource = { energy = 1000 }
+		add_resource = { volatile_motes = 100 }
+		add_resource = { exotic_gases = 100 }
+		add_resource = { rare_crystals = 100 }
+	}
+	# freedom
+	option = {
+		name = expandedrelics.270.d
+		response_text = expandedrelics.270.d.response
+		is_dialog_only = yes
+		trigger = {
+			NOT = { has_country_flag = fe_mat_asked_for_freedom }
+			is_subject = yes
+			event_target:materialist_fallen_empire = { is_overlord_to = ROOT }
+		}
+		hidden_effect = { set_country_flag = fe_mat_asked_for_freedom }
+	}
+	option = {
+		name = expandedrelics.270.e
+		response_text = expandedrelics.270.e.response
+		trigger = {
+			has_country_flag = fe_mat_asked_for_freedom
+			is_subject = yes
+			event_target:materialist_fallen_empire = { is_overlord_to = ROOT }
+		}
+		event_target:materialist_fallen_empire = {
+			add_opinion_modifier = { who = root modifier = opinion_accepted_fallen_empire_demand }
+		}
+		hidden_effect = {
+			event_target:materialist_fallen_empire = { set_country_flag = has_archive_schematics }
+			remove_country_flag = fe_mat_asked_for_freedom
+		}
+		set_subject_of = {
+			who = none
+		}
+	}
+	
+	after = {
+		hidden_effect = {
+			event_target:materialist_fallen_empire = {
+				if = {
+					limit = { has_country_flag = has_archive_schematics }
+					country_event = { id = expandedrelics.271 days = 180 random = 360 }
+				}
+			}
+		}
+	}
+}
+
+# upgrade archives when FE gets schematics
+country_event = {
+	id = expandedrelics.271
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_owned_planet = {
+			has_building = building_master_archive
+		}
+	}
+		
+	immediate = {
+		set_country_flag = master_archives_restored
+		set_timed_country_flag = {
+			flag = master_archives_restored_timer
+			days = 18000
+		}
+		random_owned_planet = {
+			limit = { has_building = building_master_archive }
+			save_event_target_as = font_of_knowledge_scope
+			remove_building = building_master_archive
+			add_building = building_master_archive_2
+		}
+		every_country = {
+			limit = { has_communications = ROOT }
+			country_event = { id = expandedrelics.272 }
+		}
+	}
+}
+
+country_event = {
+	id = expandedrelics.272
+	title = expandedrelics.272.name
+	desc = expandedrelics.272.desc
+	picture = GFX_evt_fallen_empire
+	show_sound = event_alien_signal
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = CURIOUS
+	}
+}
+
+# wages war if you don't give it up, modified humiliation war
+
+### Archaeology: Mega-Ruins
+# Reserved 280 - 299
+# Ruined World
+fleet_event = {
+	id = expandedrelics.280
+	title = "expandedrelics.280.name"
+	desc = "expandedrelics.280.desc"
+	picture = GFX_evt_relic_world
+	show_sound = event_wind_ruins
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		small_artifact_reward = yes
+	}
+}
+
+# Ancient Laboratory
+fleet_event = {
+	id = expandedrelics.281
+	title = "expandedrelics.281.name"
+	desc = "expandedrelics.281.desc"
+	picture = GFX_evt_derelict_interior
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		medium_artifact_reward = yes
+	}
+}
+
+# Mega-Engineering
+fleet_event = {
+	id = expandedrelics.282
+	title = "expandedrelics.282.name"
+	desc = "expandedrelics.282.desc"
+	picture = GFX_evt_engineering_research
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = INTRIGUING
+		owner = {
+			add_random_research_option = {
+				add_progress = 0.33
+				ignore_prereqs = no
+				fail_effects = {
+					add_monthly_resource_mult = {
+						resource = physics_research
+						value = @tier3researchreward
+						min = @tier3researchmin
+						max = @tier3researchmax
+					}
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier3researchreward
+						min = @tier3researchmin
+						max = @tier3researchmax
+					}
+					add_monthly_resource_mult = {
+						resource = engineering_research
+						value = @tier3researchreward
+						min = @tier3researchmin
+						max = @tier3researchmax
+					}
+				}
+			}
+			add_resource = { nanites = 100 }
+		}
+	}
+}
+
+# Power Troubles
+fleet_event = {
+	id = expandedrelics.283
+	title = "expandedrelics.283.name"
+	desc = "expandedrelics.283.desc"
+	picture = GFX_evt_physics_research
+	show_sound = event_power_down
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		closest_system = {
+			limit = {
+				has_access_fleet = root.owner
+				NOT = {
+					is_same_value = root.solar_system
+				}
+				OR = {
+					has_owner = no
+					owner = { is_same_value = root.owner }
+				}
+				any_system_planet = {
+					is_barren = yes
+					has_anomaly = no
+					has_deposit = no
+					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
+				}
+				NOT = {
+					any_system_planet = {
+						habitable_planet = yes
+					}
+				}
+			}
+			min_steps = 1
+			random_system_planet = {
+				limit = {
+					is_barren = yes
+					has_anomaly = no
+					has_deposit = no
+					NOT = { exists = archaeological_site }
+					NOT = { has_planet_flag = suppress_archaeological_sites }
+				}
+				create_archaeological_site = site_mega_engineering_2
+			}
+			save_event_target_as = site_mega_system_2
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.283.a
+		owner = {
+			if = {
+				limit = { NOT = { has_technology = tech_starbase_3 } }
+				give_technology = { tech = tech_starbase_3 }
+				add_research_option = tech_starbase_4
+			}
+			else_if = {
+				limit = { has_tech_option = tech_starbase_4 }
+				give_technology = { tech = tech_starbase_4 }
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_starbase_4 } }
+				add_research_option = tech_starbase_4
+				add_tech_progress = {
+					tech = tech_starbase_4
+					progress = 0.5
+				}
+			}
+			else_if = {
+				limit = { has_tech_option = tech_starbase_5 }
+				add_tech_progress = {
+					tech = tech_starbase_5
+					progress = 0.66
+				}
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_starbase_5 } }
+				add_research_option = tech_starbase_5
+				add_tech_progress = {
+					tech = tech_starbase_5
+					progress = 0.25
+				}
+			}
+			else_if = {
+				limit = {
+					has_global_flag = starbase_expanded_installed
+					has_tech_option = tech_starbase_6
+				}
+				add_tech_progress = {
+					tech = tech_starbase_6
+					progress = 0.5
+				}
+			}
+			else_if = {
+				limit = {
+					has_global_flag = starbase_expanded_installed
+					NOT = { has_technology = tech_starbase_6 }
+				}
+				add_research_option = tech_starbase_6
+				add_tech_progress = {
+					tech = tech_starbase_6
+					progress = 0.1
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = engineering_research
+					value = @tier5researchreward
+					min = @tier5researchmin
+					max = @tier5researchmax
+				}
+			}
+		}
+		tooltip = {
+			event_target:site_mega_system_2 = {
+				random_system_planet = {
+					limit = {
+						exists = archaeological_site
+						archaeological_site = { is_site_type = site_mega_engineering_2 }
+					}
+					create_archaeological_site = site_mega_engineering_2
+				}
+			}
+		}
+	}
+}
+
+# An Inopportune Asteroid
+fleet_event = {
+	id = expandedrelics.284
+	title = "expandedrelics.284.name"
+	desc = "expandedrelics.284.desc"
+	picture = GFX_evt_barren_dig_site
+	show_sound = event_drilling
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		owner = {
+			add_resource = {
+				minerals = 500
+			}
+		}
+	}
+}
+
+# Arcane Experiments
+fleet_event = {
+	id = expandedrelics.285
+	title = "expandedrelics.285.name"
+	desc = "expandedrelics.285.desc"
+	picture = GFX_evt_barren_dig_site
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		medium_artifact_reward = yes
+	}
+}
+
+# An Intact Terminal
+fleet_event = {
+	id = expandedrelics.286
+	title = "expandedrelics.286.name"
+	desc = "expandedrelics.286.desc"
+	picture = GFX_evt_physics_research
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = INTERESTING
+		owner = {
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier5researchreward
+				min = @tier5researchmin
+				max = @tier5researchmax
+			}
+		}
+	}
+}
+
+# Zero Point Power
+fleet_event = {
+	id = expandedrelics.287
+	title = "expandedrelics.287.name"
+	desc = "expandedrelics.287.desc"
+	picture = GFX_evt_generator_powerup
+	show_sound = event_energy_field
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		solar_system = {
+			spawn_system = {
+				min_distance >= 10
+				max_distance <= 30
+				initializer = "mega_engineering_system_2"
+			}
+		}
+		add_extra_hyperlane_to_spawned_system_effect = yes
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = INTERESTING
+		owner = {
+			if = {
+				limit = { NOT = { has_technology = tech_fusion_power } }
+				give_technology = { tech = tech_fusion_power }
+				give_technology = { tech = tech_cold_fusion_power }
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_cold_fusion_power } }
+				give_technology = { tech = tech_cold_fusion_power }
+				add_research_option = tech_antimatter_power
+			}
+			else_if = {
+				limit = { has_tech_option = tech_antimatter_power }
+				give_technology = { tech = tech_antimatter_power }
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_antimatter_power } }
+				add_research_option = tech_antimatter_power
+				add_tech_progress = {
+					tech = tech_antimatter_power
+					progress = 0.5
+				}
+			}
+			else_if = {
+				limit = { has_tech_option = tech_zero_point_power }
+				add_tech_progress = {
+					tech = tech_zero_point_power
+					progress = 0.66
+				}
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_zero_point_power } }
+				add_research_option = tech_zero_point_power
+				add_tech_progress = {
+					tech = tech_zero_point_power
+					progress = 0.25
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = physics_research
+					value = @tier5researchreward
+					min = @tier5researchmin
+					max = @tier5researchmax
+				}
+			}
+		}
+		tooltip = {
+			event_target:mega_engineering_planet_2 = {
+				create_archaeological_site = site_mega_engineering_3
+			}
+		}
+	}
+}
+
+# Hailed by Titan
+fleet_event = {
+	id = expandedrelics.288
+	title = "expandedrelics.288.name"
+	desc = expandedrelics.288.desc
+	picture = GFX_evt_ship_under_attack
+	show_sound = event_ship_bridge
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		FROM = {
+			has_star_flag = mega_engineering_system_2
+		}
+		owner = {
+			NOT = { has_country_flag = mega_engineering_2_flag }
+		}
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = mega_engineering_2_flag
+		}
+	}
+	
+	option = {
+		name = ONSCREEN
+		hidden_effect = {
+			owner = {
+				country_event = { id = expandedrelics.289 }
+			}
+		}
+	}
+	option = {
+		name = BATTLESTATIONS
+		trigger = {
+			owner = {
+				OR = {
+					is_xenophobe = yes
+					is_homicidal = yes
+				}
+			}
+		}
+	}
+}
+
+# Titan Diplomacy
+country_event = {
+	id = expandedrelics.289
+	title = "expandedrelics.289.name"
+	desc = "expandedrelics.289.desc"
+	
+	diplomatic = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	is_triggered_only = yes
+		
+	option = {
+		name = BATTLESTATIONS
+	}
+}
+
+# Last Titan Destroyed
+country_event = {
+	id = expandedrelics.290
+	title = "expandedrelics.290.name"
+	desc = expandedrelics.290.desc
+	picture = GFX_evt_small_space_battle
+	show_sound = event_ship_explosion
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		FromFromFrom = {
+			has_fleet_flag = mega_engineering_1_fleet
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+		fromfrom = {
+			save_event_target_as = our_fleet
+			solar_system = {
+				set_star_flag = titan_debris_system
+				save_event_target_as = our_fleet_position #used for loc purposes
+				create_ambient_object = {
+					type = "abandoned_ship_object"
+				}
+				random_system_ambient_object = {
+					limit = { is_same_value = last_created_ambient_object }
+					set_location = {
+						target = event_target:our_fleet
+						distance = 5
+						angle = random
+					}
+					set_ambient_object_flag = titan_debris_object
+					enable_special_project = {
+						name = TITAN_DEBRIS
+						location = this
+						owner = root
+					}
+				}
+			}
+		}
+	}
+}
+
+# Debris Investigated
+country_event = {
+	id = expandedrelics.291
+	title = "PROJECT_COMPLETE"
+	desc = "expandedrelics.291.desc"
+	picture = GFX_evt_space_station
+	show_sound = event_radio_chatter
+
+	is_triggered_only = yes
+	
+	immediate = {
+		hidden_effect = {
+			random_system = {
+				limit = { has_star_flag = titan_debris_system }
+				remove_star_flag = titan_debris_system
+				random_system_ambient_object = {
+					limit = { has_ambient_object_flag = titan_debris_object }
+					destroy_ambient_object = this
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+		if = {
+			limit = { NOT = { has_technology = tech_destroyers } }
+			give_technology = { tech = tech_destroyers }
+			add_research_option = tech_cruisers
+		}
+		else_if = {
+			limit = { NOT = { has_technology = tech_cruisers } }
+			give_technology = { tech = tech_cruisers }
+		}
+		else_if = {
+			limit = { has_tech_option = tech_battleships }
+			give_technology = { tech = tech_battleships }
+		}
+		else_if = {
+			limit = { NOT = { has_technology = tech_battleships } }
+			add_research_option = tech_battleships
+			add_tech_progress = {
+				tech = tech_battleships
+				progress = 0.5
+			}
+		}
+		else_if = {
+			limit = { has_tech_option = tech_titans }
+			add_tech_progress = {
+				tech = tech_titans
+				progress = 0.66
+			}
+		}
+		else_if = {
+			limit = {
+				NOT = { has_technology = tech_titans }
+				can_research_technology = tech_titans
+			}
+			add_research_option = tech_titans
+			add_tech_progress = {
+				tech = tech_titans
+				progress = 0.25
+			}
+		}
+		else = {
+			add_monthly_resource_mult = {
+				resource = engineering_research
+				value = @tier5researchreward
+				min = @tier5researchmin
+				max = @tier5researchmax
+			}
+		}
+	}
+}
+
+# The Science Nexus
+fleet_event = {
+	id = expandedrelics.292
+	title = "expandedrelics.292.name"
+	desc = "expandedrelics.292.desc"
+	picture = GFX_evt_think_tank
+	show_sound = event_think_tank_build_start
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		small_artifact_reward = yes
+	}
+}
+
+# Science in Ruins
+fleet_event = {
+	id = expandedrelics.293
+	title = "expandedrelics.293.name"
+	desc = "expandedrelics.293.desc"
+	picture = GFX_evt_think_tank
+	show_sound = event_think_tank_build_start
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		small_artifact_reward = yes
+	}
+}
+
+# Only Slightly Singed
+fleet_event = {
+	id = expandedrelics.294
+	title = "expandedrelics.294.name"
+	desc = "expandedrelics.294.desc"
+	picture = GFX_evt_derelict_interior
+	show_sound = event_laboratory_sound
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = EXCELLENT
+		large_artifact_reward = yes
+	}
+}
+
+# Blueprints
+fleet_event = {
+	id = expandedrelics.295
+	title = "expandedrelics.295.name"
+	desc = "expandedrelics.295.desc"
+	picture = GFX_evt_engineering_research
+	show_sound = event_mystic_reveal
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = EXCELLENT
+		owner = {
+			if = {
+				limit = { has_tech_option = tech_science_nexus }
+				add_tech_progress = {
+					tech = tech_science_nexus
+					progress = 0.5
+				}
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_science_nexus } }
+				add_research_option = tech_science_nexus
+				add_tech_progress = {
+					tech = tech_science_nexus
+					progress = 0.1
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = engineering_research
+					value = @tier5researchreward
+					min = @tier5researchmin
+					max = @tier5researchmax
+				}
+			}
+			if = {
+				limit = { NOT = { has_technology = tech_mega_engineering } }
+				custom_tooltip = expandedrelics.295.a.tooltip
+				hidden_effect = {
+					set_country_flag = mega_ruins_completed
+				}
+			}
+		}
+	}
+}
+
+# Project Complete
+planet_event = {
+	id = expandedrelics.296
+	title = "expandedrelics.296.name"
+	desc = "expandedrelics.296.desc"
+	picture = GFX_evt_think_tank
+	show_sound = event_think_tank_build_start
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = EXCELLENT
+		owner = {
+			if = {
+				limit = { has_tech_option = tech_mega_engineering }
+				add_tech_progress = {
+					tech = tech_mega_engineering
+					progress = 0.5
+				}
+			}
+			else_if = {
+				limit = { NOT = { has_technology = tech_mega_engineering } }
+				add_research_option = tech_mega_engineering
+				add_tech_progress = {
+					tech = tech_mega_engineering
+					progress = 0.1
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = engineering_research
+					value = @tier5researchreward
+					min = @tier5researchmin
+					max = @tier5researchmax
+				}
+			}
+			add_monthly_resource_mult = {
+				resource = engineering_research
+				value = @tier5researchreward
+				min = @tier5researchmin
+				max = @tier5researchmax
+			}
+		}
+	}
+}
+
+country_event = {
+	id = expandedrelics.297
+	title = ancrel.10040.name
+	desc = expandedrelics.297.desc
+
+	picture = GFX_evt_analyzing_artifacts
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = progress.2.a.mech # Acknowledged.
+	}
+}
+
+### Archaeology: Strange Fossils
+# Reserved 300 - 309
+# Climate Shift
+fleet_event = {
+	id = expandedrelics.300
+	title = "expandedrelics.300.name"
+	desc = {
+		trigger = { from = { planet = { has_planet_flag = is_wet_planet } } }
+		text = "expandedrelics.300.desc.wet"
+	}
+	desc = {
+		trigger = { from = { planet = { has_planet_flag = is_cold_planet } } }
+		text = "expandedrelics.300.desc.cold"
+	}
+	desc = {
+		trigger = { from = { planet = { has_planet_flag = is_dry_planet } } }
+		text = "expandedrelics.300.desc.dry"
+	}
+	picture = {
+		trigger = { 
+			from = { planet = { has_planet_flag = is_wet_planet } }
+		}
+		picture = GFX_evt_continental
+	}
+	picture = {
+		trigger = { 
+			from = { planet = { has_planet_flag = is_cold_planet } }
+		}
+		picture = GFX_evt_arctic
+	}
+	picture = {
+		trigger = { 
+			from = { planet = { has_planet_flag = is_dry_planet } }
+		}
+		picture = GFX_evt_desert
+	}
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		from = {
+			planet = {
+				random_list = {
+					1 = { set_planet_flag = site_strange_fossils_terraformed }
+					1 = {
+						set_planet_flag = site_strange_fossils_natural
+						modifier = {
+							factor = 0
+							is_cold = yes
+							OR = {
+								has_deposit = d_active_volcano
+								has_deposit = d_igneous_traps
+								has_modifier = geothermal_world
+								is_planet_class = pc_geothermal
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.300.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+	}
+}
+
+# More Clues
+fleet_event = {
+	id = expandedrelics.301
+	title = "expandedrelics.301.name"
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = is_wet_planet
+					NOT = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+		}
+		text = "expandedrelics.301.desc.wet"
+	}
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = is_cold_planet
+					NOT = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+		}
+		text = "expandedrelics.301.desc.cold"
+	}
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					OR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		text = "expandedrelics.301.desc.dry"
+	}
+	picture = {
+		trigger = { 
+			from = {
+				planet = {
+					NOR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		picture = GFX_evt_archaeology_camp
+	}
+	picture = {
+		trigger = { 
+			from = {
+				planet = {
+					OR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		picture = GFX_evt_relic_world_building
+	}
+	show_sound = event_wind_ruins
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		trigger = {
+			FROM = {
+				planet = {
+					OR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		small_artifact_reward = yes
+	}
+	option = {
+		name = DIG
+		trigger = {
+			FROM = {
+				planet = {
+					NOR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+	}
+}
+
+# Conclusion
+fleet_event = {
+	id = expandedrelics.302
+	title = "expandedrelics.302.name"
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = is_wet_planet
+					NOT = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+		}
+		text = "expandedrelics.302.desc.wet"
+	}
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = is_cold_planet
+					NOT = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+		}
+		text = "expandedrelics.302.desc.cold"
+	}
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = is_dry_planet
+					NOT = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+		}
+		text = "expandedrelics.302.desc.dry"
+	}
+	desc = {
+		trigger = {
+			from = {
+				planet = {
+					has_planet_flag = site_strange_fossils_terraformed
+				}
+			}
+		}
+		text = "expandedrelics.302.desc.terra"
+	}
+	picture = {
+		trigger = { 
+			from = {
+				planet = {
+					NOR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		picture = GFX_evt_archaeology_camp
+	}
+	picture = {
+		trigger = { 
+			from = {
+				planet = {
+					OR = {
+						has_planet_flag = is_dry_planet
+						has_planet_flag = site_strange_fossils_terraformed
+					}
+				}
+			}
+		}
+		picture = GFX_evt_relic_world_building
+	}
+	show_sound = event_mystic_reveal
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = FASCINATING
+		if = {
+			limit = {
+				from = {
+					planet = { has_planet_flag = site_strange_fossils_terraformed }
+				}
+			}
+			owner = {
+				small_artifact_reward = yes
+				add_modifier = { modifier = strange_fossils_terra days = -1 }
+				if = {
+					limit = {
+						NOT = { has_technology = tech_terrestrial_sculpting }
+					}
+					give_technology = { tech = tech_terrestrial_sculpting }
+				}
+				else = {
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier4researchreward
+						min = @tier4researchmin
+						max = @tier4researchmax
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				from = {
+					planet = {
+						has_planet_flag = is_cold_planet
+						NOT = { has_planet_flag = site_strange_fossils_terraformed }
+					}
+				}
+			}
+			from = {
+				planet = {
+					add_deposit = d_mineral_fields
+					add_deposit = d_mineral_fields
+				}
+			}
+			owner = {
+				add_modifier = { modifier = strange_fossils_cold days = -1 }
+				if = {
+					limit = { NOT = { has_technology = tech_volcano } }
+					give_technology = { tech = tech_volcano }
+				}
+				else = {
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier4researchreward
+						min = @tier4researchmin
+						max = @tier4researchmax
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				from = {
+					planet = {
+						has_planet_flag = is_wet_planet
+						NOT = { has_planet_flag = site_strange_fossils_terraformed }
+					}
+				}
+			}
+			from = {
+				planet = { add_deposit = d_geothermal_vent }
+			}
+			owner = {
+				add_modifier = { modifier = strange_fossils_cold days = -1 }
+				if = {
+					limit = { NOT = { has_technology = tech_massive_glacier } }
+					give_technology = { tech = tech_massive_glacier }
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier2researchreward
+						min = @tier2researchmin
+						max = @tier2researchmax
+					}
+				}
+				else = {
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier4researchreward
+						min = @tier4researchmin
+						max = @tier4researchmax
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				from = {
+					planet = {
+						has_planet_flag = is_dry
+						NOT = { has_planet_flag = site_strange_fossils_terraformed }
+					}
+				}
+			}
+			from = {
+				planet = { add_deposit = d_arid_highlands }
+			}
+			owner = {
+				if = {
+					limit = {
+						has_global_flag = EcologyMod_active
+						has_global_flag = ecology_pops_patch_flag
+					}
+					add_modifier = { modifier = strange_fossils_dry_eco days = -1 }
+				}
+				else_if = {
+					limit = { is_gestalt = no }
+					add_modifier = { modifier = strange_fossils_dry days = -1 }
+				}
+				else = {
+					add_modifier = { modifier = strange_fossils_dry_gestalt days = -1 }
+				}
+				if = {
+					limit = {
+						NOT = { has_technology = tech_colonization_3 }
+						can_research_technology = tech_colonization_3
+					}
+					give_technology = { tech = tech_colonization_3 }
+				}
+				else = {
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier4researchreward
+						min = @tier4researchmin
+						max = @tier4researchmax
+					}
+				}
+			}
+		}
+	}
+}
+
+### Archaeology: Artificial Alliance
+# Reserved 310 - 320
+fleet_event = {
+	id = expandedrelics.310
+	title = "expandedrelics.310.name"
+	desc = "expandedrelics.310.desc"
+	picture = GFX_evt_relic_world_building
+	show_sound = event_metal_fatigue
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = {
+			set_site_progress_locked = yes
+			planet = {
+				every_deposit = {
+					limit = { is_blocker = yes }
+					clear_blocker = yes
+				}
+				add_deposit = d_bomb_crater
+				add_deposit = d_bomb_crater
+				add_deposit = d_bomb_crater
+				add_deposit = d_bomb_crater
+			}
+		}
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		small_artifact_reward = yes
+	}
+}
+
+fleet_event = {
+	id = expandedrelics.311
+	title = "expandedrelics.311.name"
+	desc = "expandedrelics.311.desc"
+	picture = GFX_evt_archaeological_dig
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.311.a
+		medium_artifact_reward = yes
+	}
+}
+fleet_event = {
+	id = expandedrelics.312
+	title = "expandedrelics.312.name"
+	desc = "expandedrelics.312.desc"
+	picture = GFX_evt_sapient_AI
+	show_sound = event_activating_unknown_technology
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = INTERESTING
+		owner = {
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier4researchreward
+				min = @tier4researchmin
+				max = @tier4researchmax
+			}
+		}
+	}
+}
+fleet_event = {
+	id = expandedrelics.313
+	title = "expandedrelics.313.name"
+	desc = "expandedrelics.313.desc"
+	picture = GFX_evt_crashed_station
+	show_sound = event_metal_fatigue
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = CURIOUS
+		small_artifact_reward = yes
+	}
+}
+fleet_event = {
+	id = expandedrelics.314
+	title = "expandedrelics.314.name"
+	desc = "expandedrelics.314.desc"
+	picture = GFX_evt_sapient_AI
+	show_sound = event_alien_signal
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+		owner = {
+			random_system_within_border = {
+				spawn_system = {
+					min_distance = 10
+					max_distance = 40
+					initializer = "londor_init_01"
+				}
+			}
+			add_extra_hyperlane_to_spawned_system_effect = yes
+			random_system_within_border = {
+				limit = { has_star_flag = londor_system }
+				save_event_target_as = londor_system_scope
+			}
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.314.a
+		owner = {
+			add_random_research_option = {
+				add_progress = 0.5
+				category  = military_theory
+				area = society
+				ignore_prereqs = no
+				fail_effects = {
+					add_monthly_resource_mult = {
+						resource = society_research
+						value = @tier5researchreward
+						min = @tier5researchmin
+						max = @tier5researchmax
+					}
+				}
+			}
+			hidden_effect = {
+				create_point_of_interest = {
+					id = londor_system_poi.1
+					name = "londor_system_1_poi"
+					desc = "londor_system_1_poi_desc"
+					event_chain = londor_system_chain
+					location = event_target:londor_system_scope
+				}
+			}
+		}
+	}
+}
+
+ship_event = {
+	id = expandedrelics.315
+	title = expandedrelics.315.name
+	desc = expandedrelics.315.desc
+	picture = GFX_evt_ship_in_orbit
+	show_sound = event_radio_chatter
+	location = FROM
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = solar_system
+		solar_system = { has_star_flag = londor_system }
+	}
+
+	option = {
+		name = OK
+		owner = {
+			remove_point_of_interest = londor_system_poi.1
+			end_event_chain = londor_system_chain
+		}
+	}
+}
+fleet_event = {
+	id = expandedrelics.316
+	title = "expandedrelics.316.name"
+	desc = "expandedrelics.316.desc"
+	picture = GFX_evt_ai_planet
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = DIG
+		owner = {
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier4researchreward
+				min = @tier4researchmin
+				max = @tier4researchmax
+			}
+		}
+	}
+}
+fleet_event = {
+	id = expandedrelics.317
+	title = "expandedrelics.317.name"
+	desc = "expandedrelics.317.desc"
+	picture = GFX_evt_archaeological_dig
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = FASCINATING
+		medium_artifact_reward = yes
+	}
+}
+fleet_event = {
+	id = expandedrelics.318
+	title = "expandedrelics.318.name"
+	desc = "expandedrelics.318.desc"
+	picture = GFX_evt_robot_assembly_plant
+	show_sound = event_robo
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = FASCINATING
+		small_artifact_reward = yes
+	}
+}
+fleet_event = {
+	id = expandedrelics.319
+	title = "expandedrelics.319.name"
+	desc = "expandedrelics.319.desc"
+	picture = GFX_evt_sapient_AI
+	show_sound = event_mystic_reveal
+	location = from
+	
+	archaeology = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+		random_country = {
+			limit = {
+				has_ethic = ethic_fanatic_spiritualist
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			save_event_target_as = fallenspir
+		}
+	}
+
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = expandedrelics.319.a
+		owner = {
+			add_relic = r_three_londor
+		}
+	}
+	option = {
+		name = expandedrelics.319.b
+		owner = {
+			add_resource = { unity = 3000 }
+			add_monthly_resource_mult = {
+				resource = physics_research
+				value = @tier4researchreward
+				min = @tier4researchmin
+				max = @tier4researchmax
+			}
+		}
+	}
+}

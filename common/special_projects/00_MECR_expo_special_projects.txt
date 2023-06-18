@@ -1,0 +1,517 @@
+# 场馆建设
+special_project = {
+	key = "GLACTIC_EXPO_CENTER_CONSTRUCTION"
+	icon = "gfx/interface/icons/situation_log/situation_log_archaeology.dds"
+	picture = GFX_evt_arena
+	location = no
+	event_scope = planet_event
+	cost = {
+		base = 10000
+		modifier = {
+			factor = 0.001
+			is_ai = yes
+		}
+	}
+	tech_department = engineering_technology
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_start = {
+		add_deposit = d_expo_exhibition_center_constructing
+		planet_event = { #定时移除
+			id = MECR_EXPO.8
+			days = 1440
+		}
+	}
+	on_success = {
+		planet_event = {
+			id = MECR_EXPO.4
+		}
+	}
+	on_cancel = {
+		from = { remove_deposit = d_expo_exhibition_center_constructing }
+		if = {
+			limit = { is_ai = yes }
+			from = {
+				planet_event = {
+					id = MECR_EXPO.4
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				from = {
+					OR = {
+						has_owner = no
+						owner = { NOT = { is_same_value = prevprev } }
+					}
+				}
+			}
+			country_event = { #建设失败，另选地址
+				id = MECR_EXPO.7
+			}
+		}
+	}
+	on_fail = {
+		from = { remove_deposit = d_expo_exhibition_center_constructing }
+	}
+	abort_trigger = {
+		OR = {
+			from = {
+				OR = {
+					has_owner = no
+					owner = { NOT = { is_same_value = prevprev } }
+				}
+			}
+			is_ai = yes
+		}
+	}
+}
+# 准备
+special_project = {
+	key = "GLACTIC_EXPO_PREPARE_SCIENCE"
+	icon = "gfx/interface/icons/situation_log/situation_log_physics.dds"
+	picture = GFX_evt_physics_research
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 500
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 7.5
+			calc = pop_count
+		}
+	}
+	tech_department = physics_technology
+	#cost = 0
+	#days_to_research = @expo_prepare_stage_time_mid
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_success = {
+		set_timed_country_flag = { flag = expo_prepare_stage_complete days = @expo_prepare_stage_refresh_less }
+		multiply_variable = { which = ERROR_LOG_CHECKING__SPECIAL_PROJECT_IS_OK value = 1 } #error log checking
+		country_event = {
+			id = MECR_EXPO.110
+			#days = 5 ###
+		}
+	}
+	on_cancel = { }
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_PREPARE_CULTURE"
+	icon = "gfx/interface/icons/situation_log/situation_log_decision.dds"
+	picture = GFX_evt_analyzing_artifacts
+	location = no
+	event_scope = country_event
+	cost = 0
+	days_to_research = @expo_prepare_stage_time_mid
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+	same_option_group_as = { GLACTIC_EXPO_PREPARE_SCIENCE }
+
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_start = {
+		# 1000凝聚力。不够的话1:10影响力补齐
+		export_resource_stockpile_to_variable = {
+			resource = unity
+			variable = unity_stock
+		}
+		if = {
+			limit = { check_variable = { which = unity_stock value > 1000 } }
+			add_resource = { unity = -1000 }
+		}
+		else = {
+			add_resource = {
+				unity = -1
+				mult = unity_stock
+			}
+			subtract_variable = { which = unity_stock value = 1000 }
+			add_resource = {
+				influence = 0.1
+			}
+		}
+		clear_variable = unity_stock
+		set_variable = { which = expo_culture_scoring_dices value = 0 }
+		#country_event = {
+		#	id = MECR_EXPO.122
+		#	days = 1
+		#}
+	}
+	on_progress_25 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.122
+		}
+	}
+	on_progress_50 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.122
+		}
+	}
+	on_progress_75 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.122
+		}
+	}
+	on_success = {
+		set_timed_country_flag = { flag = expo_prepare_stage_complete days = @expo_prepare_stage_refresh_less }
+		multiply_variable = { which = ERROR_LOG_CHECKING__SPECIAL_PROJECT_IS_OK value = 1 } #error log checking
+		country_event = {
+			id = MECR_EXPO.120
+			#days = 5 ###
+		}
+	}
+	on_cancel = {
+		clear_variable = expo_culture_scoring_dices
+	}
+	on_fail = {
+		clear_variable = expo_culture_scoring_dices
+	}
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_PREPARE_INDUSTRY"
+	icon = "gfx/interface/icons/situation_log/situation_log_engineering.dds"
+	picture = GFX_evt_cybernetics
+	location = no
+	event_scope = country_event
+	cost = 0
+	days_to_research = @expo_prepare_stage_time_long
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+	same_option_group_as = { GLACTIC_EXPO_PREPARE_SCIENCE }
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_start = {
+		# 500合金。不够的话1:5影响力补齐
+		export_resource_stockpile_to_variable = {
+			resource = alloys
+			variable = alloys_stock
+		}
+		if = {
+			limit = { check_variable = { which = alloys_stock value > 500 } }
+			add_resource = { alloys = -500 }
+		}
+		else = {
+			add_resource = {
+				alloys = -1
+				mult = alloys_stock
+			}
+			subtract_variable = { which = alloys_stock value = 500 }
+			add_resource = {
+				influence = 0.2
+				mult = alloys_stock
+			}
+		}
+		clear_variable = alloys_stock
+		set_variable = { which = expo_industry_scoring_dices value = 0 }
+	}
+	on_progress_50 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.132
+		}
+	}
+	on_success = {
+		set_timed_country_flag = { flag = expo_prepare_stage_complete days = @expo_prepare_stage_refresh_less }
+		multiply_variable = { which = ERROR_LOG_CHECKING__SPECIAL_PROJECT_IS_OK value = 1 } #error log checking
+		country_event = {
+			id = MECR_EXPO.130
+			#days = 5 ###
+		}
+	}
+	on_cancel = {
+		clear_variable = expo_industry_scoring_dices
+	}
+	on_fail = {
+		clear_variable = expo_industry_scoring_dices
+	}
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_PREPARE_ARCHAEOLOGY"
+	icon = "gfx/interface/icons/situation_log/situation_log_precursor.dds"
+	picture = GFX_evt_habitable_dig_site
+	location = no
+	event_scope = country_event
+	cost = 0
+	days_to_research = @expo_prepare_stage_time_mid
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+	same_option_group_as = { GLACTIC_EXPO_PREPARE_SCIENCE }
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_start = {
+		# 50小型文物。不够的话1:1影响力补齐
+		export_resource_stockpile_to_variable = {
+			resource = minor_artifacts
+			variable = minor_artifacts_stock
+		}
+		if = {
+			limit = { check_variable = { which = minor_artifacts_stock value >= 50 } }
+			add_resource = { minor_artifacts = -50 }
+		}
+		else = {
+			add_resource = {
+				minor_artifacts = -50
+				mult = minor_artifacts_stock
+			}
+			subtract_variable = { which = minor_artifacts_stock value = 50 }
+			add_resource = {
+				influence = 50
+				mult = minor_artifacts_stock
+			}
+		}
+		clear_variable = minor_artifacts_stock
+		set_variable = { which = expo_archaeology_scoring_dices value = 0 }
+	}
+	on_progress_25 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.142
+		}
+	}
+	on_progress_75 = { #追加投资
+		country_event = {
+			id = MECR_EXPO.142
+		}
+	}
+	on_success = {
+		set_timed_country_flag = { flag = expo_prepare_stage_complete days = @expo_prepare_stage_refresh_less }
+		multiply_variable = { which = ERROR_LOG_CHECKING__SPECIAL_PROJECT_IS_OK value = 1 } #error log checking
+		country_event = {
+			id = MECR_EXPO.140
+			#days = 5 ###
+		}
+	}
+	on_cancel = {
+		clear_variable = expo_archaeology_scoring_dices
+	}
+	on_fail = {
+		clear_variable = expo_archaeology_scoring_dices
+	}
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_PREPARE_HISTORY"
+	icon = "gfx/interface/icons/situation_log/situation_log_modification.dds"
+	picture = GFX_evt_tradestation_interior
+	location = no
+	event_scope = country_event
+	cost = 0
+	days_to_research = @expo_prepare_stage_time_short
+	event_chain = the_galactic_expo						# specify which event chain it should belong to in the situation log
+	same_option_group_as = { GLACTIC_EXPO_PREPARE_SCIENCE }
+	AI_wait_days = { base = 1 }
+	requirements = {
+	}
+	on_start = {
+		# 100影响力
+		add_resource = {
+			influence = -100
+		}
+	}
+	on_success = {
+		set_timed_country_flag = { flag = expo_prepare_stage_complete days = @expo_prepare_stage_refresh_less }
+		multiply_variable = { which = ERROR_LOG_CHECKING__SPECIAL_PROJECT_IS_OK value = 1 } #error log checking
+		country_event = {
+			id = MECR_EXPO.150
+			#days = 5 ###
+		}
+	}
+	on_fail = {
+	}
+	abort_trigger = { is_ai = yes }
+}
+# 展览开始
+special_project = {
+	key = "GLACTIC_EXPO_SCIENCE_ON_EXHI"
+	icon = "gfx/interface/icons/situation_log/situation_log_physics.dds"
+	picture = GFX_evt_physics_research
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 1000
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 10
+			calc = pop_count
+		}
+	}
+	tech_department = society_technology
+	event_chain = the_galactic_expo_ongoing
+	timelimit = @expo_ongoing_timer
+
+	AI_wait_days = { base = 1 }
+	requirements = { }
+	on_success = {
+		country_event = {
+			id = MECR_EXPO.311
+		}
+	}
+	on_fail = { }
+	on_cancel = {
+		if = {
+			limit = { is_ai = yes }
+			random_list = {
+				100 = {
+					modifier = { mult = 0.5 has_country_flag = flag_expo_science_grade_bad }
+					modifier = { mult = 0.2 has_country_flag = flag_expo_science_grade_normal }
+					modifier = { mult = 0 has_country_flag = flag_expo_science_grade_good }
+					country_event = { id = MECR_EXPO.311 }
+				}
+				100 = {
+					modifier = { mult = 0.5 has_country_flag = flag_expo_culture_grade_bad }
+					modifier = { mult = 0.2 has_country_flag = flag_expo_culture_grade_normal }
+					modifier = { mult = 0 has_country_flag = flag_expo_culture_grade_good }
+					country_event = { id = MECR_EXPO.312 }
+				}
+				100 = {
+					modifier = { mult = 0.5 has_country_flag = flag_expo_industry_grade_bad }
+					modifier = { mult = 0.2 has_country_flag = flag_expo_industry_grade_normal }
+					modifier = { mult = 0 has_country_flag = flag_expo_industry_grade_good }
+					country_event = { id = MECR_EXPO.313 }
+				}
+				100 = {
+					modifier = { mult = 0.5 has_country_flag = flag_expo_archaeology_grade_bad }
+					modifier = { mult = 0.2 has_country_flag = flag_expo_archaeology_grade_normal }
+					modifier = { mult = 0 has_country_flag = flag_expo_archaeology_grade_good }
+					country_event = { id = MECR_EXPO.314 }
+				}
+				100 = {
+					modifier = { mult = 0.5 has_country_flag = flag_expo_history_grade_bad }
+					modifier = { mult = 0.2 has_country_flag = flag_expo_history_grade_normal }
+					modifier = { mult = 0 has_country_flag = flag_expo_history_grade_good }
+					country_event = { id = MECR_EXPO.315 }
+				}
+			}
+		}
+	}
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_CULTURE_ON_EXHI"
+	icon = "gfx/interface/icons/situation_log/situation_log_decision.dds"
+	picture = GFX_evt_analyzing_artifacts
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 1000
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 10
+			calc = pop_count
+		}
+	}
+	tech_department = society_technology
+	event_chain = the_galactic_expo_ongoing
+	same_option_group_as = { GLACTIC_EXPO_SCIENCE_ON_EXHI }
+	timelimit = @expo_ongoing_timer
+
+	AI_wait_days = { base = 1 }
+	requirements = { }
+	on_success = {
+		country_event = {
+			id = MECR_EXPO.312
+		}
+	}
+	on_fail = { }
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_INDUSTRY_ON_EXHI"
+	icon = "gfx/interface/icons/situation_log/situation_log_engineering.dds"
+	picture = GFX_evt_cybernetics
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 1000
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 10
+			calc = pop_count
+		}
+	}
+	tech_department = society_technology
+	event_chain = the_galactic_expo_ongoing
+	same_option_group_as = { GLACTIC_EXPO_SCIENCE_ON_EXHI }
+	timelimit = @expo_ongoing_timer
+
+	AI_wait_days = { base = 1 }
+	requirements = { }
+	on_success = {
+		country_event = {
+			id = MECR_EXPO.313
+		}
+	}
+	on_fail = { }
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_ARCHAEOLOGY_ON_EXHI"
+	icon = "gfx/interface/icons/situation_log/situation_log_precursor.dds"
+	picture = GFX_evt_habitable_dig_site
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 1000
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 10
+			calc = pop_count
+		}
+	}
+	tech_department = society_technology
+	event_chain = the_galactic_expo_ongoing
+	same_option_group_as = { GLACTIC_EXPO_SCIENCE_ON_EXHI }
+	timelimit = @expo_ongoing_timer
+
+	AI_wait_days = { base = 1 }
+	requirements = { }
+	on_success = {
+		country_event = {
+			id = MECR_EXPO.314
+		}
+	}
+	on_fail = { }
+	abort_trigger = { is_ai = yes }
+}
+special_project = {
+	key = "GLACTIC_EXPO_HISTORY_ON_EXHI"
+	icon = "gfx/interface/icons/situation_log/situation_log_modification.dds"
+	picture = GFX_evt_tradestation_interior
+	location = no
+	event_scope = country_event
+	cost = {
+		base = 1000
+		scaled_modifier = {
+			limit = { }
+			scope = this
+			add = 10
+			calc = pop_count
+		}
+	}
+	tech_department = society_technology
+	event_chain = the_galactic_expo_ongoing
+	same_option_group_as = { GLACTIC_EXPO_SCIENCE_ON_EXHI }
+	timelimit = @expo_ongoing_timer
+
+	AI_wait_days = { base = 1 }
+	requirements = { }
+	on_success = {
+		country_event = {
+			id = MECR_EXPO.315
+		}
+	}
+	on_fail = { }
+	abort_trigger = { is_ai = yes }
+}

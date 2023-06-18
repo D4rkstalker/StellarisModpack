@@ -1,0 +1,3003 @@
+namespace = mem_primitives
+
+@MTTHCOMMON = 1000
+@MTTHMEDIUM = 2500
+@MTTHRARE = 4000
+
+@MTTHREFUND = 600
+
+@warbase = 360
+@warrandom = 1800
+@interbellum = 7200
+@interbellumrandom = 3600
+
+@deathcycle = 180
+
+#####################################
+# Simple primitive events
+# By ViolentBeetle unless otherwise specified
+#####################################
+
+
+
+##############
+#Moon landing#
+##############
+
+
+# Moon Landing
+situation_event = {
+	id = mem_primitives.100
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_primitive = yes
+			NOR = {
+				has_country_flag = mem_primitives_moon
+				# More Advanced Space Events
+				has_country_flag = fircon_1495_fired
+				has_country_flag = fircon_2600_fired
+			}
+			NOT = { has_country_flag = dead_god_original_primitives } # has their own events
+#			OR = {
+				has_pre_ftl_age = early_space_age
+#				has_pre_ftl_age = mem_lunar_age
+#			}
+			capital_scope = {
+				is_moon = no
+				has_moon = yes
+				any_moon = {
+					NOR = {
+						is_planet_class = pc_toxic
+						is_planet_class = pc_molten
+					}
+				}
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_moon_seen }
+				}
+			}
+		}
+	}
+
+	weight_multiplier = {
+		factor = 1
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+			random_moon = {
+				limit = {
+					NOR = {
+						is_planet_class = pc_toxic
+						is_planet_class = pc_molten
+					}
+				}
+				save_event_target_as = the_moon
+			}
+			root.owner = { set_country_flag = moon_landing_reg }
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			if = {
+				limit = { exists = event_target:the_moon } # sanity check
+				set_country_flag = mem_primitives_moon
+				
+			}
+			if = {
+				limit = { is_regular_pre_ftl = yes }
+				random_list = {
+					80 = { }
+					15 = { 
+						shift_ethic = ethic_materialist 
+						shift_primitive_pop_ethic = { ETHIC = materialist  BONUS = -2 }
+					}
+					5 = { 
+						shift_ethic = ethic_militarist 
+						shift_primitive_pop_ethic = { ETHIC = militarist BONUS = -2 }
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.101 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.101
+	title = mem_primitives.101.name
+	desc = {
+		trigger = {
+			event_target:pre_ftl_country = {
+				has_country_flag = moon_landing_reg
+				event_target:the_moon = { habitable_planet = no }
+			}
+		}
+		text = mem_primitives.101.desc
+	}
+	desc = {
+		trigger = {
+			event_target:pre_ftl_country = {
+				has_country_flag = moon_landing_gas
+				event_target:the_moon = { habitable_planet = no }
+			}
+		}
+		text = mem_primitives.101.sister.desc
+	}
+	desc = {
+		trigger = {
+			event_target:pre_ftl_country = {
+				has_country_flag = moon_landing_reg
+				event_target:the_moon = { habitable_planet = yes }
+			}
+		}
+		text = mem_primitives.101.hab.desc
+	}
+	desc = {
+		trigger = {
+			event_target:pre_ftl_country = {
+				has_country_flag = moon_landing_gas
+				event_target:the_moon = { habitable_planet = yes }
+			}
+		}
+		text = mem_primitives.101.hab.sister.desc
+	}
+	
+	picture = GFX_evt_unspeakable_horror
+	show_sound = event_mystic_reveal
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = engineering_insights
+			set_predictive_observation_insight = {
+				VALUE = 10
+			}
+		}
+		set_country_flag = mem_primitives_moon_seen
+	}
+
+	option = {
+		name = {
+			text = mem_primitives.101
+			trigger = {
+				is_materialist = no
+				is_xenophobe = no
+			}
+		}
+		name = {
+			text = mem_primitives.101.phobe
+			trigger = {
+				is_xenophobe = yes
+			}
+		}
+		name = {
+			text = mem_primitives.101.mat
+			trigger = {
+				is_materialist = yes
+				is_xenophile = no
+			}
+		}
+		name = {
+			text = mem_primitives.101.matphile
+			trigger = {
+				is_materialist = yes
+				is_xenophile = yes
+			}
+		}
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 10
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = engineering_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Solar flares - Regression is hard
+# country_event = {
+	# id = mem_primitives.200
+	# hide_window = yes
+	
+	# mean_time_to_happen = {
+		# months = @MTTHRARE
+	# }
+	
+	# trigger = {
+		# is_country_type = primitive
+		# OR = {
+			# has_country_flag = industrial_age
+			# has_country_flag = machine_age
+			# has_country_flag = atomic_age
+			# has_country_flag = early_space_age
+		# }
+		# NOT = { has_country_flag = mem_primitives_flare }
+		# NOT = { has_ethic = ethic_gestalt_consciousness }
+		
+		# capital_scope = {
+			# has_observation_outpost = yes
+			# observation_outpost_owner = {
+				# NOT = { has_country_flag = mem_primitives_flare_o }
+			# }
+			# solar_system = {
+				# NOT = { has_star_flag = sol }
+			# }
+		# }
+	# }
+	
+	# immediate = {
+		# set_country_flag = mem_primitives_flare
+		# capital_scope = {
+			# solar_system = {
+				# save_event_target_as = the_star
+			# }
+			# save_event_target_as = the_planet
+			# observation_outpost_owner = {
+				# set_country_flag = mem_primitives_flare_o
+				# country_event = {
+					# id = mem_primitives.201
+				# }
+			# }
+		# }
+		# random_list = {
+			# 50 = { country_event = { mem_primitives.202 } } 
+			# 50 = { country_event = { mem_primitives.204 } } 
+		# }
+	# }
+	
+	
+# }
+
+
+#####################
+# World war scenario#
+#####################
+
+
+situation_event = {
+	id = mem_primitives.300
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 2
+			owner = { has_ethic = ethic_militarist }
+		}
+		modifier = {
+			factor = 5
+			owner = { has_ethic = ethic_fanatic_militarist }
+		}
+		modifier = {
+			factor = 0.25
+			owner = { has_ethic = ethic_pacifist }
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_ethic = ethic_fanatic_pacifist }
+			NOT = { has_country_flag = mem_primitives_ww }
+			OR = {
+				has_pre_ftl_age = steam_age
+				has_pre_ftl_age = industrial_age
+				has_pre_ftl_age = machine_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_ww_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+			IF = {
+				limit = { num_pops > 1 }
+				random_owned_pop = { kill_pop = yes }
+			}
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_ww
+			random_list = {
+				30 = { }
+				30 = { 
+					shift_ethic = ethic_xenophobe
+					shift_primitive_pop_ethic = { ETHIC = xenophobe  BONUS = -2 }
+				}
+				40 = { 
+					shift_ethic = ethic_militarist
+					shift_primitive_pop_ethic = { ETHIC = militarist  BONUS = -2 }
+				}
+			}
+			random_list = {
+				80 = { country_event = { id = mem_primitives.302 days = @warbase random = @warrandom } } #Armistice for 20 years
+				20 = { country_event = { id = mem_primitives.304 days = @warbase random = @warrandom } } #To end all wars
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.301 }
+			}
+		}
+		set_situation_flag = has_ongoing_observation_event_chain
+		# Setting this flag for the duration of the entire event chain
+		# to prevent other observation events from interfering.
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.301
+	title = mem_primitives.301.name
+	desc = mem_primitives.301.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_ground_battle
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		set_country_flag = mem_primitives_ww_seen
+	}
+	
+	option = {
+		name = OK
+	}
+}
+
+#Versailles
+country_event = {
+	id = mem_primitives.302
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+	}
+	
+	immediate = {
+		random_list = {
+			66 = { country_event = { id = mem_primitives.306 days = @interbellum random = @interbellumrandom } } #World War II
+			33 = {
+				#World War II will not happen
+				random_situation = {
+					limit = {
+						is_situation_type = pre_ftl_tech_progress_situation
+					}
+					remove_situation_flag = has_ongoing_observation_event_chain
+				}
+			}
+		}
+		
+		capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = { exists = observation_outpost_owner }
+				observation_outpost_owner = {
+					country_event = {
+						id = mem_primitives.303
+					}
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.303
+	title = mem_primitives.303.name
+	desc = mem_primitives.303.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_celebration
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.303a
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#To end all wars
+country_event = {
+	id = mem_primitives.304
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+	}
+
+	immediate = {
+		if = {
+			limit = { NOT = { has_country_flag = primitives_politics } }
+			set_country_flag = primitives_politics
+			set_country_flag = primitives_idealistic_foundation
+		}
+		random_situation = {
+			limit = {
+				is_situation_type = pre_ftl_tech_progress_situation
+			}
+			remove_situation_flag = has_ongoing_observation_event_chain
+		}
+		random_list = {
+			66 = { 
+				shift_ethic = ethic_pacifist
+				shift_primitive_pop_ethic = { ETHIC = pacifist   BONUS = -2 }
+			}
+			33 = { 
+				shift_ethic = ethic_xenophile
+				shift_primitive_pop_ethic = { ETHIC = xenophile   BONUS = -2 }
+			} 
+		}
+
+		random_list = {
+			33 = { 
+				shift_ethic = ethic_pacifist
+				shift_primitive_pop_ethic = { ETHIC = pacifist   BONUS = -2 }
+			}
+			17 = { 
+				shift_ethic = ethic_xenophile
+				shift_primitive_pop_ethic = { ETHIC = xenophile   BONUS = -2 }
+			} 
+			50 = {  }
+		}
+
+		capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = { exists = observation_outpost_owner }
+				observation_outpost_owner = {
+					country_event = {
+						id = mem_primitives.305
+					}
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.305
+	title = mem_primitives.305.name
+	desc = mem_primitives.305.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_celebration
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+	}
+	
+	option = {
+		name = OK
+		
+		trigger = {
+			NOR = {
+				AND = {
+					OR = {
+						has_ethic = ethic_militarist
+						has_ethic = ethic_fanatic_militarist
+					}
+					OR = {
+						has_ethic = ethic_xenophobe
+						has_ethic = ethic_fanatic_xenophobe
+					}
+				}
+				AND = {
+					OR = {
+						has_ethic = ethic_pacifist
+						has_ethic = ethic_fanatic_pacifist
+					}
+					OR = {
+						has_ethic = ethic_xenophile
+						has_ethic = ethic_fanatic_xenophile
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.305a.milphobe
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+			OR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+	
+	option = {
+		name = mem_primitives.305a.pacphile
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+			OR = {
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+		}
+		
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#World War II
+country_event = {
+	id = mem_primitives.306
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+	}
+	
+	immediate = {
+		random_list = {
+			20 = { 
+				shift_ethic = ethic_militarist 
+				shift_primitive_pop_ethic = { ETHIC = militarist   BONUS = -2 }
+			}
+			5 = { 
+				shift_ethic = ethic_authoritarian 
+				shift_primitive_pop_ethic = { ETHIC = authoritarian    BONUS = -2 }
+			} 
+			5 = { 
+				shift_ethic = ethic_xenophobe 
+				shift_primitive_pop_ethic = { ETHIC = xenophobe   BONUS = -2 }
+			}
+			70 = {  }
+		}
+		
+		random_list = {
+			66 = { country_event = { id = mem_primitives.308 days = @warbase random = @warrandom } } #Allies wins
+			33 = { country_event = { id = mem_primitives.310 days = @warbase random = @warrandom } } #Axis win
+		}
+		
+		IF = {
+			limit = { num_pops > 1 }
+			random_owned_pop = { kill_pop = yes }
+			change_variable = {
+				which = mem_primitives_pops_killed
+				value = 1
+			}
+		}		
+		
+		capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = { exists = observation_outpost_owner }
+				observation_outpost_owner = {
+					country_event = {
+						id = mem_primitives.307
+					}
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.307
+	title = mem_primitives.307.name
+	desc = mem_primitives.307.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_air_raid_siren
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = mem_primitives.307a
+	}
+}
+
+#World War II: Allies won
+country_event = {
+	id = mem_primitives.308
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+	}
+	
+	immediate = {
+		if = {
+			limit = { NOT = { has_country_flag = primitives_politics } }
+			set_country_flag = primitives_politics
+			set_country_flag = primitives_idealistic_foundation
+		}
+		random_situation = {
+			limit = {
+				is_situation_type = pre_ftl_tech_progress_situation
+			}
+			remove_situation_flag = has_ongoing_observation_event_chain
+		}
+		random_list = {
+			55 = {  }
+			30 = { 
+				shift_ethic = ethic_egalitarian 
+				shift_primitive_pop_ethic = { ETHIC = egalitarian     BONUS = -2 }
+			}
+			15 = { 
+				shift_ethic = ethic_pacifist 
+				shift_primitive_pop_ethic = { ETHIC = pacifist    BONUS = -2 }
+			}
+		}
+		
+		
+		capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = { exists = observation_outpost_owner }
+				observation_outpost_owner = {
+					country_event = {
+						id = mem_primitives.309
+					}
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.309
+	title = mem_primitives.309.name
+	desc = mem_primitives.309.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_celebration
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+	}
+	
+	option = {
+		name = OK
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#World War II: Axis won
+country_event = {
+	id = mem_primitives.310
+	
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+	}
+	
+	immediate = {
+		if = {
+			limit = { NOT = { has_country_flag = primitives_politics } }
+			set_country_flag = primitives_politics
+			set_country_flag = primitives_military_unification
+		}
+		random_situation = {
+			limit = {
+				is_situation_type = pre_ftl_tech_progress_situation
+			}
+			remove_situation_flag = has_ongoing_observation_event_chain
+		}
+		country_remove_ethic = "ethic_fanatic_materialist"
+		country_remove_ethic = "ethic_materialist"
+		country_remove_ethic = "ethic_fanatic_egalitarian"
+		country_remove_ethic = "ethic_egalitarian"
+		country_remove_ethic = "ethic_fanatic_pacifist"
+		country_remove_ethic = "ethic_pacifist"
+
+		country_remove_ethic = "ethic_militarist"
+		country_remove_ethic = "ethic_fanatic_xenophile"
+		country_remove_ethic = "ethic_xenophile"
+
+		country_remove_ethic = "ethic_xenophobe"
+		country_remove_ethic = "ethic_fanatic_spiritualist"
+		country_remove_ethic = "ethic_spiritualist"
+
+		country_remove_ethic = "ethic_authoritarian"
+		
+		IF = {
+			limit = {
+				NOR = {
+					has_ethic = ethic_fanatic_authoritarian
+					has_ethic = ethic_fanatic_militarist
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+			country_add_ethic = "ethic_xenophobe"
+			shift_primitive_pop_ethic = { ETHIC = xenophobe     BONUS = -2 }
+			country_add_ethic = "ethic_authoritarian"
+			shift_primitive_pop_ethic = { ETHIC = authoritarian     BONUS = -2 }
+			country_add_ethic = "ethic_militarist"
+			shift_primitive_pop_ethic = { ETHIC = militarist     BONUS = -2 }
+		}
+		ELSE = {
+			IF = {
+				limit = {
+					has_ethic = ethic_fanatic_authoritarian
+				}
+				country_add_ethic = ethic_xenophobe
+				shift_primitive_pop_ethic = { ETHIC = xenophobe     BONUS = -2 }
+			}
+			IF = {
+				limit = {
+					has_ethic = ethic_fanatic_militarist
+				}
+				country_add_ethic = ethic_xenophobe
+				shift_primitive_pop_ethic = { ETHIC = authoritarian     BONUS = -2 }
+			}
+			IF = {
+				limit = {
+					has_ethic = ethic_fanatic_xenophobe
+				}
+				country_add_ethic = ethic_militarist
+				shift_primitive_pop_ethic = { ETHIC = militarist     BONUS = -2 }
+			}
+		}
+	
+		capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = { exists = observation_outpost_owner }
+				observation_outpost_owner = {
+					country_event = {
+						id = mem_primitives.311
+					}
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.311
+	title = mem_primitives.311.name
+	desc = mem_primitives.311.desc
+	
+	picture = GFX_evt_burning_settlement
+	show_sound = event_celebration
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+	}
+	
+	option = {
+		name = INTERESTING
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+
+##########
+#Religion#
+##########
+
+#Peaceful one
+situation_event = {
+	id = mem_primitives.400
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 2
+			owner = { is_xenophile = yes }
+		}
+		modifier = {
+			factor = 0.5
+			owner = { is_xenophobe = yes }
+		}
+		modifier = {
+			factor = 0.5
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 0.1
+			owner = {
+				is_materialist = yes
+			}
+		}
+		modifier = {
+			factor = 2
+			owner = {
+				is_spiritualist = yes
+			}
+		}
+		modifier = {
+			factor = 0.75
+			owner = {
+				has_country_flag = renaissance_age
+			}
+		}
+		modifier = {
+			factor = 0.5
+			owner = {
+				has_country_flag = steam_age
+			}
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_country_flag = mem_primitives_religion }
+			OR = {
+				has_pre_ftl_age = bronze_age
+				has_pre_ftl_age = iron_age
+				has_pre_ftl_age = late_medieval_age
+				has_pre_ftl_age = renaissance_age
+				has_pre_ftl_age = steam_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_religion_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_religion
+			random_list = {
+				1 = { set_country_flag = cosmic_polytheism }
+				1 = { set_country_flag = cosmic_monotheism }
+			}
+			random_list = {
+				50 = { }
+				25 = { 
+					shift_ethic = ethic_xenophile 
+					shift_primitive_pop_ethic = { ETHIC = xenophile BONUS = -1 }
+				}
+				25 = { 
+					shift_ethic = ethic_pacifist 
+					shift_primitive_pop_ethic = { ETHIC = pacifist  BONUS = -1 }
+				}
+			}
+			shift_ethic = ethic_spiritualist
+			shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = 0 }
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.401 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.401
+	title = mem_primitives.401.name
+	desc = mem_primitives.401.desc
+	
+	picture = GFX_evt_mem_alien_pilgrimage
+	show_sound = event_pre_ftl_civilization
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_religion_seen
+	}
+
+	option = {
+		name = {
+			text = FASCINATING
+			trigger = {
+				NOR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.mat
+			trigger = {
+				OR = {
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sp
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				NOR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphile
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphobe
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		if = {
+			limit = { is_spiritualist = yes }
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1researchreward
+				min = @tier1researchmin
+				max = @tier1researchmax 
+			}
+		}
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Violent one
+situation_event = {
+	id = mem_primitives.402
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 0.5
+			owner = { is_pacifist = yes }
+		}
+		modifier = {
+			factor = 2
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 0.1
+			owner = {
+				is_materialist = yes
+			}
+		}
+		modifier = {
+			factor = 2
+			owner = {
+				is_spiritualist = yes
+			}
+		}
+		modifier = {
+			factor = 0.75
+			owner = {
+				has_pre_ftl_age = renaissance_age
+			}
+		}
+		modifier = {
+			factor = 0.5
+			owner = {
+				has_pre_ftl_age = steam_age
+			}
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_country_flag = mem_primitives_religion }
+			OR = {
+				has_pre_ftl_age = bronze_age
+				has_pre_ftl_age = iron_age
+				has_pre_ftl_age = late_medieval_age
+				has_pre_ftl_age = renaissance_age
+				has_pre_ftl_age = steam_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_religion_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_religion
+			random_list = {
+				1 = { set_country_flag = cosmic_polytheism }
+				1 = { set_country_flag = cosmic_monotheism }
+			}
+			random_list = {
+				50 = { }
+				25 = { 
+					shift_ethic = ethic_xenophobe
+					shift_primitive_pop_ethic = { ETHIC = xenophobe BONUS = -1 }
+				}
+				25 = { 
+					shift_ethic = ethic_militarist
+					shift_primitive_pop_ethic = { ETHIC = militarist  BONUS = -1 }
+				}
+			}
+			shift_ethic = ethic_spiritualist
+			shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = 0 }
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.403 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.403
+	title = mem_primitives.401.name
+	desc = mem_primitives.403.desc
+	
+	picture = GFX_evt_mem_alien_pilgrimage
+	show_sound = event_pre_ftl_civilization
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_religion_seen
+	}
+
+	option = {
+		name = {
+			text = FASCINATING
+			trigger = {
+				NOR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.mat
+			trigger = {
+				OR = {
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sp
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				NOR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphile
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphobe
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		if = {
+			limit = { is_spiritualist = yes }
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1researchreward
+				min = @tier1researchmin
+				max = @tier1researchmax 
+			}
+		}
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Philosophical one
+situation_event = {
+	id = mem_primitives.404
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 2
+			owner = { is_pacifist = yes }
+		}
+		modifier = {
+			factor = 0.5
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 0.1
+			owner = {
+				is_materialist = yes
+			}
+		}
+		modifier = {
+			factor = 2
+			owner = {
+				is_spiritualist = yes
+			}
+		}
+		modifier = {
+			factor = 0.75
+			owner = {
+				has_pre_ftl_age = renaissance_age
+			}
+		}
+		modifier = {
+			factor = 0.5
+			owner = {
+				has_pre_ftl_age = steam_age
+			}
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_country_flag = mem_primitives_religion }
+			OR = {
+				has_pre_ftl_age = bronze_age
+				has_pre_ftl_age = iron_age
+				has_pre_ftl_age = late_medieval_age
+				has_pre_ftl_age = renaissance_age
+				has_pre_ftl_age = steam_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_religion_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_religion
+			random_list = {
+				1 = { set_country_flag = cosmic_polytheism }
+				1 = { set_country_flag = cosmic_pantheism }
+				1 = { set_country_flag = cosmic_animism }
+			}
+			random_list = {
+				66 = { }
+				33 = { 
+					shift_ethic = ethic_pacifist
+					shift_primitive_pop_ethic = { ETHIC = pacifist BONUS = -1 }
+				}
+			}
+			shift_ethic = ethic_spiritualist
+			shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = 0 }
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.405 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.405
+	title = mem_primitives.401.name
+	desc = mem_primitives.405.desc
+	
+	picture = GFX_evt_mem_alien_pilgrimage
+	show_sound = event_pre_ftl_civilization
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = society_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_religion_seen
+	}
+
+	option = {
+		name = {
+			text = FASCINATING
+			trigger = {
+				NOR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.mat
+			trigger = {
+				OR = {
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sp
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				NOR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphile
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+		}
+		name = {
+			text = mem_primitives.401a.sphobe
+			trigger = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+				OR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		if = {
+			limit = { is_spiritualist = yes }
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1researchreward
+				min = @tier1researchmin
+				max = @tier1researchmax 
+			}
+		}
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Wacky one, with aliens
+situation_event = {
+	id = mem_primitives.406
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 2
+			owner = { is_xenophobe = yes }
+		}
+		modifier = {
+			factor = 0.5
+			owner = { is_xenophile = yes }
+		}
+		modifier = {
+			factor = 2
+			owner = { is_spiritualist = yes }
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			is_materialist = no
+			NOT = { has_country_flag = mem_primitives_religion }
+			OR = {
+				has_pre_ftl_age = machine_age
+				has_pre_ftl_age = atomic_age
+				has_pre_ftl_age = early_space_age
+#				has_pre_ftl_age = mem_lunar_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_religion_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_religion
+			random_list = {
+				1 = { set_country_flag = cosmic_pantheism }
+				1 = { set_country_flag = cosmic_animism }
+			}
+			random_list = {
+				40 = { }
+				20 = { 
+					shift_ethic = ethic_spiritualist
+					shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = -2 }
+				}
+				20 = { 
+					shift_ethic = ethic_spiritualist
+					shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = -2 }
+					shift_ethic = ethic_xenophobe
+					shift_primitive_pop_ethic = { ETHIC = xenophobe BONUS = -2 }
+				}
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.407 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.407
+	title = mem_primitives.401.name
+	desc = mem_primitives.407.desc
+	
+	picture = GFX_evt_mem_alien_pilgrimage
+	show_sound = event_radio_chatter
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = physics_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_religion_seen
+	}
+
+	option = {
+		name = mem_primitives.407a
+		if = {
+			limit = { is_spiritualist = yes }
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier1researchreward
+				min = @tier1researchmin
+				max = @tier1researchmax 
+			}
+		}
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = physics_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#################
+#Global pandemic#
+#################
+
+#Black death
+country_event = {
+	id = mem_primitives.500
+	hide_window = yes
+	is_triggered_only = yes # disabled
+	
+	#mean_time_to_happen = {
+	#	months = @MTTHMEDIUM
+	#}
+	
+	trigger = {
+		is_country_type = primitive
+		OR = {
+			has_country_flag = iron_age
+			has_country_flag = late_medieval_age
+			has_country_flag = steam_age
+			has_country_flag = industrial_age
+		}
+		NOT = { has_country_flag = mem_primitives_pandemic }
+		NOT = { has_ethic = ethic_gestalt_consciousness }
+		
+		capital_scope = {
+			has_observation_outpost = yes
+			observation_outpost = {
+				exists = owner
+				owner = { NOT = { has_country_flag = mem_primitives_pandemic_o } }
+			}
+			solar_system = {
+				NOT = { has_star_flag = sol }
+			}
+		}
+	}
+	
+	immediate = {
+		set_country_flag = mem_primitives_pandemic
+		country_event = {
+			id = mem_primitives.502
+		}
+		capital_scope = {
+			save_event_target_as = the_planet
+			observation_outpost_owner = {
+				set_country_flag = mem_primitives_pandemic_o
+				
+				country_event = {
+					id = mem_primitives.501
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.501
+	title = mem_primitives.501.name
+	desc = mem_primitives.501.desc
+	
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_laboratory_sound
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	#Initiate special project
+	option = {
+		name = mem_primitives.501a
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_xenophobe
+			}
+		}
+		
+		enable_special_project = {
+			name = "MEM_PRIMITIVES_BD_CURE_PROJECT"
+			location = event_target:the_planet
+			owner = root
+		}
+	}
+	
+	#Reject
+	option = {
+		name = mem_primitives.501b
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_xenophobe
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.501b.phobe
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_xenophobe
+			}
+		}
+	}
+
+}
+
+#BLACK DEATH CLAIMS THE POP
+country_event = {
+	id = mem_primitives.502
+	
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+		NOT = { has_country_flag = mem_primitives_pandemic_cured }
+	}
+	
+	immediate = {
+		random_owned_pop = {
+			kill_pop = yes
+		}
+		
+		change_variable = {
+			which = mem_primitives_pops_killed
+			value = 1
+		}
+		
+		IF = {
+			limit = {
+				num_pops > 0
+			}
+			random_list = {
+				20 = {
+					country_event = { id = mem_primitives.504 days = @deathcycle } #It's over
+				}
+				80 = {
+					country_event = { id = mem_primitives.502 days = @deathcycle } #Will claim another
+				}
+			}
+		}
+		ELSE = {
+			capital_scope = {
+				save_event_target_as = the_planet
+				if = {
+					limit = { has_observation_outpost = yes }
+					observation_outpost_owner = {
+						country_event = {
+							id = mem_primitives.503 # They all died
+						}
+					}
+					observation_outpost = {
+						dismantle = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+#They all died
+country_event = {
+	id = mem_primitives.503
+	title = mem_primitives.503.name
+	desc = mem_primitives.503.desc
+	
+	picture = GFX_evt_satellite_in_orbit
+	show_sound = event_ghost_town
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		abort_special_project = { type = MEM_PRIMITIVES_BD_CURE_PROJECT }
+	}
+	
+	option = {
+		name = TERRIBLE
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.503a.phobe
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+			}
+			OR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.503a.matphobe
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+			}
+			OR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+	
+	after = {
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#It's over
+country_event = {
+	id = mem_primitives.504
+	
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = primitive
+		NOT = { has_country_flag = mem_primitives_pandemic_cured }
+	}
+	
+	immediate = {
+		set_country_flag = mem_primitives_pandemic_cured
+		capital_scope = {
+			save_event_target_as = the_planet
+			observation_outpost_owner = {				
+				country_event = {
+					id = mem_primitives.505
+				}
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.505
+	title = mem_primitives.505.name
+	desc = mem_primitives.505.desc
+	
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		abort_special_project = { type = MEM_PRIMITIVES_BD_CURE_PROJECT }
+	}
+	
+	option = {
+		name = OK
+	}
+	
+	after = {
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Cure delivered
+ship_event = {
+	id = mem_primitives.506
+	title = mem_primitives.506.name
+	desc = mem_primitives.506.desc
+	
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	
+	location = THIS
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:the_planet = {
+			owner = { set_country_flag = mem_primitives_pandemic_cured }
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+	}
+	
+	after = {
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax 
+			}
+		}
+	}
+}
+
+#############################
+#TERROR
+#############################
+
+#Regular terror
+situation_event = {
+	id = mem_primitives.600
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 1.5
+			owner = { is_spiritualist = yes }
+		}
+		modifier = {
+			factor = 1.5
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 1.5
+			owner = { is_xenophobe = yes }
+		}
+		modifier = {
+			factor = 0.25
+			owner = { has_ethic = ethic_pacifist }
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_ethic = ethic_fanatic_pacifist }
+			NOT = { has_country_flag = mem_primitives_terror }
+			OR = {
+				has_pre_ftl_age = machine_age
+				has_pre_ftl_age = atomic_age
+				has_pre_ftl_age = early_space_age
+#				has_pre_ftl_age = mem_lunar_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_terror_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+			random_owned_pop = {
+				kill_pop = yes
+			}
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_terror
+			random_list = {
+				25 = {  }
+				25 = {
+					shift_ethic = ethic_authoritarian
+					shift_primitive_pop_ethic = { ETHIC = authoritarian BONUS = -2 }
+				}
+				25 = {
+					shift_ethic = ethic_militarist
+					shift_primitive_pop_ethic = { ETHIC = militarist BONUS = -2 }
+				}
+				25 = {
+					shift_ethic = ethic_xenophobe
+					shift_primitive_pop_ethic = { ETHIC = xenophobe BONUS = -2 }
+				}
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.601 }
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.601
+	title = mem_primitives.601.name
+	desc = mem_primitives.601.desc
+	
+	picture = GFX_evt_mem_terror_attack
+	show_sound = event_ground_battle
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = physics_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_terror_seen
+	}
+	
+	option = {
+		name = OK
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+				has_ethic = ethic_fanatic_militarist
+				has_ethic = ethic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = TERRIBLE
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+			NOR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.601a.mil
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.601a.pacphobe
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+			OR = {
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_xenophobe
+			}
+		}
+		
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = physics_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#Atomic terror
+situation_event = {
+	id = mem_primitives.602
+	hide_window = yes
+	is_triggered_only = yes
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 1.5
+			owner = { is_spiritualist = yes }
+		}
+		modifier = {
+			factor = 1.5
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 1.5
+			owner = { is_xenophobe = yes }
+		}
+		modifier = {
+			factor = 0.25
+			owner = { has_ethic = ethic_pacifist }
+		}
+	}
+
+	trigger = {
+		owner = {
+			is_regular_pre_ftl = yes
+			NOT = { has_ethic = ethic_fanatic_pacifist }
+			NOT = { has_country_flag = mem_primitives_terror }
+			OR = {
+				has_pre_ftl_age = atomic_age
+				has_pre_ftl_age = early_space_age
+#				has_pre_ftl_age = mem_lunar_age
+			}
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_terror_seen }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+			random_owned_pop = {
+				kill_pop = yes
+			}
+			add_deposit = d_radioactive_wasteland
+		}
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_terror
+			random_list = {
+				33 = {
+					shift_ethic = ethic_authoritarian
+					shift_primitive_pop_ethic = { ETHIC = authoritarian BONUS = -2 }
+				}
+				33 = {
+					shift_ethic = ethic_militarist
+					shift_primitive_pop_ethic = { ETHIC = militarist BONUS = -2 }
+				}
+				33 = {
+					shift_ethic = ethic_xenophobe
+					shift_primitive_pop_ethic = { ETHIC = xenophobe BONUS = -2 }
+				}
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.603 }
+			}
+		}
+	}
+}
+
+#Notification
+country_event = {
+	id = mem_primitives.603
+	title = mem_primitives.603.name
+	desc = mem_primitives.603.desc
+	
+	picture = GFX_evt_nuclear_explosion
+	show_sound = event_super_explosion
+	
+	location = event_target:the_planet
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = physics_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_terror_seen
+	}
+	
+	option = {
+		name = OK
+		
+		trigger = {
+			NOR = {
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+				has_ethic = ethic_fanatic_militarist
+				has_ethic = ethic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = TERRIBLE
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+				has_ethic = ethic_xenophile
+				has_ethic = ethic_fanatic_xenophile
+			}
+			NOR = {
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.601a.mil
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+	}
+	
+	option = {
+		name = mem_primitives.601a.pacphobe
+		
+		trigger = {
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+			OR = {
+				has_ethic = ethic_fanatic_xenophobe
+				has_ethic = ethic_xenophobe
+			}
+		}
+		
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+	
+	after = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = physics_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax 
+		}
+	}
+}
+
+#####
+#Y2K#
+#####
+
+situation_event = {
+	id = mem_primitives.700
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_primitive = yes
+			OR = {
+				has_pre_ftl_age = atomic_age
+				has_pre_ftl_age = early_space_age
+#				has_pre_ftl_age = mem_lunar_age
+			}
+			NOT = { has_country_flag = mem_primitives_y2k }
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_y2k_seen }
+				}
+			}
+		}
+		situation_progress > 192
+	}
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 0.25
+			owner = {
+				is_materialist = yes
+			}
+		}
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+		}
+		add_situation_progress = -192 #10%
+
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_y2k
+			if = {
+				limit = { is_regular_pre_ftl = yes }
+				random_list = {
+					75 = {
+					}
+					25 = {
+						shift_ethic = ethic_spiritualist
+						shift_primitive_pop_ethic = { ETHIC = spiritualist BONUS = -2 }
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.701 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.701
+	title = "mem_primitives.701.name"
+	desc = "mem_primitives.701.desc"
+	picture = GFX_evt_glitchy_matrix
+	show_sound = event_radio_chatter
+	location = event_target:the_planet
+	is_triggered_only = yes
+
+	trigger = {
+		exists = event_target:pre_ftl_country
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = physics_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_y2k_seen
+	}
+
+	option = {
+		name = {
+			text = UNFORTUNATE
+			trigger = {
+				is_materialist = no
+				is_spiritualist = no
+			}
+		}
+		name = {
+			text = mem_primitives.701a.sp
+			trigger = {
+				is_spiritualist = yes
+				is_xenophobe = no
+			}
+		}
+		name = {
+			text = mem_primitives.701a.sphobe
+			trigger = {
+				is_spiritualist = yes
+				is_xenophobe = yes
+			}
+		}
+		name = {
+			text = mem_primitives.701a.mat
+			trigger = {
+				is_materialist = yes
+				is_xenophile = no
+			}
+		}
+		name = {
+			text = mem_primitives.701a.matphile
+			trigger = {
+				is_materialist = yes
+				is_xenophile = yes
+			}
+		}
+		custom_tooltip = mem_primitives.701.a.tooltip
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = physics_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax
+		}
+	}
+}
+
+#POP REFUND EVENT
+country_event = {
+	id = mem_primitives.9999
+	
+	hide_window = yes
+	
+	mean_time_to_happen = {
+		months = @MTTHREFUND
+	}
+	
+	trigger = {
+		OR = {
+			NOT = { has_country_flag = mem_primitives_pandemic }
+			has_country_flag = mem_primitives_pandemic_cured
+		}
+		is_country_type = primitive
+	}
+	
+	immediate = {
+		capital_scope = {
+			if = {
+				limit = {
+					OR = {
+						num_pops < @early_space_age_pops
+						AND = {
+							root = { has_country_flag = atomic_age }
+							num_pops < @atomic_age_pops
+						}
+						AND = {
+							root = { has_country_flag = machine_age }
+							num_pops < @machine_age_pops
+						}
+						AND = {
+							root = { has_country_flag = industrial_age }
+							num_pops < @industrial_age_pops
+						}
+						AND = {
+							root = { has_country_flag = steam_age }
+							num_pops < @steam_age_pops
+						}
+						AND = {
+							root = { has_country_flag = renaissance_age }
+							num_pops < @renaissance_age_pops
+						}
+						AND = {
+							root = { has_country_flag = late_medieval_age }
+							num_pops < @late_medieval_age_pops
+						}
+						AND = {
+							root = { has_country_flag = iron_age }
+							num_pops < @iron_age_pops
+						}
+						AND = {
+							root = { has_country_flag = bronze_age }
+							num_pops < @bronze_age_pops
+						}
+						AND = {
+							root = { has_country_flag = stone_age }
+							num_pops < @stone_age_pops
+						}
+					}
+				}
+				create_pop = {
+					species = owner_main_species
+				}
+			}
+		}
+	}
+}
+
+##############
+#Fall of Rome#
+#By Caligula #
+##############
+
+# Fall of Rome
+situation_event = {
+	id = mem_primitives.800
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_primitive = yes
+			has_pre_ftl_age = iron_age
+			NOT = { has_country_flag = mem_primitives_fall_of_rome }
+			current_awareness_level < high
+			capital_scope = {
+				has_observation_outpost = yes
+				observation_outpost = { 
+					OR = {
+						has_mission = passive_observation
+						has_mission = specimen_collection
+					}
+				}
+				observation_outpost_owner = {
+					is_ai = no
+					NOT = { has_country_flag = mem_primitives_fall_of_rome_seen }
+				}
+			}
+		}
+		situation_progress > 960
+	}
+
+	weight_multiplier = {
+		factor = 1
+	}
+
+	immediate = {
+		owner.capital_scope = {
+			save_event_target_as = the_planet
+			if = {
+				limit = {
+					num_pops > 2
+				}
+				random_owned_pop = {
+					kill_pop = yes
+				}
+			}
+		}
+		add_situation_progress = -960 #50%
+		owner = {
+			save_event_target_as = pre_ftl_country
+			set_country_flag = mem_primitives_fall_of_rome
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = mem_primitives.801 }
+			}
+		}
+	}
+}
+country_event = {
+	id = mem_primitives.801
+	title = "mem_primitives.801.name"
+	desc = {
+		text = "mem_primitives.801.desc"
+		trigger = {
+			event_target:pre_ftl_country = {
+				is_regular_pre_ftl = yes
+			}
+		}
+	}
+	desc = {
+		text = "mem_primitives.801.hive.desc"
+		trigger = {
+			event_target:pre_ftl_country = {
+				is_hive_mind_pre_ftl = yes
+			}
+		}
+	}
+	picture = GFX_evt_medieval_alien_civilization
+	show_sound = event_pre_ftl_civilization
+	location = event_target:the_planet
+	is_triggered_only = yes
+
+	trigger = {
+		exists = event_target:pre_ftl_country
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			set_country_flag = engineering_insights
+			set_predictive_observation_insight = {
+				VALUE = 5
+			}
+		}
+		set_country_flag = mem_primitives_fall_of_rome_seen
+	}
+
+	option = {
+		name = {
+			text = UNFORTUNATE
+			trigger = {
+				is_materialist = no
+				is_xenophobe = no
+			}
+		}
+		name = {
+			text = mem_primitives.801a.materialist
+			trigger = {
+				is_materialist = yes
+				is_xenophobe = no
+			}
+		}
+		name = {
+			text = mem_primitives.801a.sphobe
+			trigger = {
+				is_xenophobe = yes
+			}
+		}
+		custom_tooltip = mem_primitives.801.a.tooltip
+		if = {
+			limit = {
+				event_target:pre_ftl_country = {
+					NOT = { current_awareness_level = full }
+				}
+			}
+			add_observation_insight_effect = {
+				VALUE = 5
+				OUTPOST = event_target:the_planet.observation_outpost 
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = engineering_research
+			value = @tier1researchreward
+			min = @tier1researchmin
+			max = @tier1researchmax
+		}
+	}
+}
+
+country_event = {
+	id = mem_primitives.9998
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_owned_leader = {
+			limit = {
+				is_ruler = yes
+			}
+			add_trait = mem_leader_trait_ruler_lunatic_neoch
+		}
+	}
+}

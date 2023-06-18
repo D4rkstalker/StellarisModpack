@@ -1,0 +1,247 @@
+#my_piquant_megastructure = {
+#	entity = "bawling_pink_rainbow_graphics"
+#	construction_entity = "bawling_pink_rainbow_graphics_construction"
+#	portrait = "GFX_my_piquant_megastructure_background"
+#	upgrade_desc = default|hide		# default: 'default'. Use 'hide' to hide to hide this stage from the upgrade list.
+#	upgrade_from = {
+#		my_flamboyant_megastructure
+#	}
+#	prerequisites = { "tech" }		# required technologies
+#	potential = {}					# trigger, scope: country
+#	possible = {}					# trigger, scope: galactic object, from: country
+#	build_time = 5					# days
+#	victory_score = 1000			# Victory score for the player who owns that megastructure
+#	build_cost = {
+#		minerals = 8
+#		energy = 13
+#		influence = 21
+#	}
+#	monthly_production = {
+#		energy = 34
+#	}
+#	maintenance = {
+#		energy = 10
+#	}
+#	country_modifier = {}
+#
+#	placement_rules = {
+#		planet_possible = {}		# trigger, scope: planet
+#	}
+#
+#	on_build_start = {}				# effects, scope: galactic object, from: country, fromfrom: megastructure instance (when upgrading existing megastructure)
+#	on_build_cancel = {}			# effects, scope: galactic object, from: country
+#	on_build_complete = {}			# effects, scope: galactic object, from: country, fromfrom: megastructure instance
+#
+#	ai_weight = {					# scope = country, default = 100
+#		modifier = {
+#			weight = 0
+#			NOT = {
+#				has_ethic = ethic_militarist
+#			}
+#		}
+#	}
+#
+#	construction_blocked_by_others = no # default yes, set to no if other constructions in same system
+#										should block construction of this type
+#}
+
+
+#	MEGA网道基址	/MEGA网道节点/MEGA网道枢纽	/MEGA网道关闭
+
+
+
+
+###	MEGA网道基址		限时+自我消除
+AAR_MEGA_webway_BASE = {
+	entity = "AAR_ENTT_mega_construction_platform"
+	construction_entity = "AAR_ENTT_mega_construction_platform"
+	portrait = "GFX_AAR_PV_webway_NEXUS"
+	place_entity_on_planet_plane = no
+#	entity_offset = { x = @entity_x y = @entity_y }
+#	build_outside_gravity_well = yes	# 如果是yes则无视|placement_rules|								# if this option is active, the placement_rules will be completely ignored
+	show_galactic_map_icon = no
+	show_in_outliner = no
+
+	prerequisites = { AAR_tech_AP_WEBWAY }
+	potential = { always = no }
+	possible = { always = no }
+	ai_weight = { factor = 0 }
+
+	build_time = 1
+	resources = {
+		category = megastructures
+	}
+#	sensor_range = 20
+#	hyperlane_range = 30
+#	country_modifier = {
+#		add_base_country_intel = 10
+#	}
+
+#	construction_blocks_and_blocked_by = none
+}
+
+
+
+
+###	MEGA网道节点		限时+自我消除
+AAR_MEGA_webway_NODE = {
+	entity = "AAR_entt_FX_webway_NODE"
+	construction_entity = "AAR_entt_FX_webway_NODE"
+	portrait = "GFX_AAR_PV_webway_NEXUS"
+	place_entity_on_planet_plane = no
+	show_galactic_map_icon = no
+	show_in_outliner = no
+	
+	prerequisites = { AAR_tech_AP_WEBWAY }
+	potential = { always = no }
+	possible = { always = no }
+	ai_weight = { factor = 0 }
+
+	build_time = 1
+	resources = {
+		category = megastructures
+	}
+
+	bypass_type = AAR_BPS_webway	# AAR通路_网道节点	|AAR_flg_sstm_WEBWAY_node|
+	## effects, scope: galactic object, from: country, fromfrom: megastructure instance
+	
+	on_build_complete = {
+		activate_gateway = fromfrom		# 激活通路
+	}
+}
+
+
+###	MEGA网道枢纽
+AAR_MEGA_webway_NEXUS = {
+	entity = "AAR_entt_FX_webway_NEXUS"
+	construction_entity = "AAR_entt_FX_webway_NEXUS"
+	portrait = "GFX_AAR_PV_webway_NEXUS"
+	place_entity_on_planet_plane = no
+	show_galactic_map_icon = no
+	show_in_outliner = no
+
+	prerequisites = { AAR_tech_AP_WEBWAY }
+	potential = {
+		has_technology = AAR_tech_AP_WEBWAY
+	}
+	possible = {
+		custom_tooltip = {
+			fail_text = "AAR_failtips_TECH_webway"
+			from = { has_technology = AAR_tech_AP_WEBWAY }
+		}
+	}
+	ai_weight = { factor = 0 }
+	
+	upgrade_from = {
+		AAR_MEGA_webway_BASE
+	}
+	build_time = 180	#360
+	resources = {
+		category = megastructures
+	#	cost = {#消耗直接放在<DEC网道勘探>
+	#		unity = 500
+	#		energy = 3000
+	#	}
+		upkeep = {
+			unity = 5
+			energy = 30
+		}
+	}
+
+	construction_blocks_and_blocked_by = none
+	## effects, scope: galactic object, from: country, fromfrom: megastructure instance (when upgrading existing megastructure)
+	on_build_start = {
+		set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_base days = 185 }
+	}
+	## effects, scope: galactic object, from: country
+	on_build_cancel = {
+		AAR_eft_sstm_WEBWAY_clean = yes		# 网道星系CLEAN
+	}
+	## effects, scope: galactic object, from: country, fromfrom: megastructure instance
+	on_build_complete = {
+		fromfrom = { set_name = "NAME_AAR_mega_WEBWAY_NEXUS" }	# 改名
+		activate_gateway = fromfrom		# 激活通路
+
+		from = {
+			## 网道capDB
+			change_variable = { which = AAR_var_cntr_WEBWAY_used value = 1 }	#_|现有枢纽|
+			
+			## 网道容量>1
+			if = { limit = { check_variable = { which = AAR_var_cntr_WEBWAY_used value <= AAR_var_cntr_WEBWAY_cap } }
+				country_event = { id = AAR_evt_WEBWAY.50		 scopes = { from = fromfrom } }		# 网道通知_枢纽完成
+				prev = {
+					set_star_flag = AAR_flg_sstm_WEBWAY_node
+					set_star_flag = AAR_flg_sstm_WEBWAY_nexus
+				}
+			}
+			## 网道容量不足
+			else = {
+				country_event = { id = AAR_evt_WEBWAY.51		 scopes = { from = fromfrom } }		# 网道通知_cap用尽
+				
+				# 网道枢纽腐化
+				prev = {
+					set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_preserve days = 180 }
+					set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node days = 180 }
+					set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_nexus days = 180 }
+		
+					# 网道sstm循环
+					if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+						set_star_flag = AAR_flg_sstm_WEBWAY_debug
+						system_event = { id = AAR_evt_WEBWAY.25 days = 1 random = 30 }	# 初始触发
+					}
+				}
+			}
+		}
+	}
+
+	bypass_type = AAR_BPS_webway	# AAR通路_网道节点
+	country_modifier = {
+		AAR_smod_cntr_WEBWAY_cap = 1
+	}
+}
+
+
+
+
+###	MEGA网道关闭
+AAR_MEGA_webway_CLOSE = {
+	entity = "AAR_ENTT_mega_construction_platform"
+	construction_entity = "AAR_ENTT_mega_construction_platform"
+	portrait = "GFX_AAR_PV_webway_NEXUS"
+	place_entity_on_planet_plane = no
+	show_galactic_map_icon = no
+	show_in_outliner = no
+	
+	prerequisites = { AAR_tech_AP_WEBWAY }	# 没有AP无法主动关闭网道
+	potential = {
+		is_ai = no
+	}
+	possible = {
+		hidden_trigger = { from = { is_ai = no } }
+	}
+	ai_weight = { factor = 0 }
+	
+	upgrade_from = {
+		AAR_MEGA_webway_BASE
+		AAR_MEGA_webway_NODE
+		AAR_MEGA_webway_NEXUS
+	}
+	build_time = 0
+	resources = {
+		category = megastructures
+	}
+
+	construction_blocks_and_blocked_by = none
+
+	on_build_complete = {# 清理所有巨构
+		delete_megastructure = fromfrom
+		remove_star_flag = AAR_flg_sstm_WEBWAY_preserve
+
+		remove_star_flag = AAR_flg_sstm_WEBWAY_base
+		remove_star_flag = AAR_flg_sstm_WEBWAY_node
+		remove_star_flag = AAR_flg_sstm_WEBWAY_nexus
+		
+		## 网道cap延时
+		from = { country_event = { id = AAR_evt_WEBWAY.22 days = 1 } }
+	}
+}

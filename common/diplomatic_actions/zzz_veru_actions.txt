@@ -1,0 +1,202 @@
+@cb_subjugation_length = 360
+
+
+# Creates a federation between two empires or invites an empire to an existing federation. Requires unanimous vote from the federation, if one exists already.
+# Usable by regular empires only. Raises trust over time.
+action_invite_to_federation = {
+	icon = "GFX_diplomacy_status_federation"
+	requires_actor_peace = yes
+	requires_recipient_peace = yes
+	requires_alliance_vote = yes
+	diplo_view_acceptance_icon = yes
+	should_notify_all_communications = yes
+	AI_acceptance_base_value = -50
+	action_type = positive
+	should_show_auto_accept_message_recipient = yes
+	should_open_auto_accept_message_recipient = yes
+	should_notify_auto_recipient_on_vote_fail = yes
+	requires_recipient_independence = no
+
+	potential = {
+		hidden_trigger = {
+			is_fallen_machine_empire = no
+			from = { is_fallen_machine_empire = no }
+		}
+		hidden_trigger = {
+			if = {
+				limit = { FROM = { is_subject = yes } }
+				is_overlord_to = FROM
+			}
+			OR = {
+				has_federation = no
+				federation = { NOT = { has_federation_type = vf_ef_federation } }
+			}
+		}
+	}
+
+	possible = {
+		if = {
+			limit = {
+				has_federation = no
+				is_subject = yes
+			}
+			custom_tooltip = {
+				fail_text = requires_not_subject_to_start_federation
+				OR = {
+					is_subject = no
+					overlord = { is_same_value = from }
+				}
+			}
+		}
+		custom_tooltip = {
+			fail_text = requires_not_subject_or_overlord_asking
+			from = {
+				OR = {
+					is_subject = no
+					overlord = { is_same_value = root }
+				}
+			}
+		}
+		if = {
+			limit = {
+				has_federation = no
+				is_country_type_with_subjects = yes
+			}
+			custom_tooltip = {
+				fail_text = requires_tradition_the_federation
+				has_tradition = tr_diplomacy_the_federation
+			}
+		}
+		diplomacy_is_not_homicidal = yes
+		diplomacy_is_not_inward_perfection = yes
+		custom_tooltip = {
+			fail_text = "requires_excellent_or_better_opinion"
+
+			OR = {
+				from = { is_same_value = prevprev } # Bypass opinion check if we are proposing on behalf of recipient
+				opinion_level = { who = from level >= excellent }
+				is_improving_relations_with = from
+				from = { is_subject = yes } # You can always ask your own subjects
+			}
+		}
+		if = {
+			limit = {
+				from = { has_valid_civic = civic_pompous_purists }
+				NOT = { root = { is_overlord_to = from } }
+				root = { is_same_value = prevprev } # Bypass check if we are proposing on behalf of recipient
+			}
+			if = {
+				limit = {
+					has_intel = {
+						who = from
+						intel = civics
+					}
+				}
+				custom_tooltip = {
+					fail_text = requires_recipient_not_pompous
+					always = no
+				}
+			}
+			else = {
+				custom_tooltip = {
+					fail_text = diplo_action_no_low_intel
+					always = no
+				}
+			}
+		}
+		# Members of the Galactic Empire can't be in federations
+		custom_tooltip = {
+			fail_text = "requires_actor_recipient_not_in_galactic_empire"
+			NAND = {
+				has_galactic_emperor = yes
+				OR = {
+					is_galactic_community_member = yes
+					from = { is_galactic_community_member = yes }
+				}
+			}
+		}
+		# Shared Borders
+		get_border_test = yes
+	}
+}
+
+# Form a research agreement with another empire
+action_form_research_agreement = {
+	icon = "GFX_diplomacy_status_research_agreement"
+	diplo_view_acceptance_icon = yes
+	should_notify_all_communications = no
+	requires_actor_independence = no
+	requires_recipient_independence = no
+	AI_acceptance_base_value = -50
+	action_type = positive
+	potential = {
+		hidden_trigger = {
+			is_country_type = default
+			from = { is_country_type = default }
+		}
+	}
+
+	possible = {
+		diplomacy_is_not_homicidal = yes
+		diplomacy_is_not_inward_perfection = yes
+		custom_tooltip = {
+			fail_text = "federation_actor_no_separate_treaties"
+			NOT = {
+				AND = {
+					has_federation = yes
+					federation = { has_federation_law = treaties_separate_no }
+					NOT = { federation = { any_member = { is_same_value = root.from } } }
+				}
+			}
+		}
+		custom_tooltip = {
+			fail_text = "federation_recipient_no_separate_treaties"
+			from = {
+				NOT = {
+					AND = {
+						has_federation = yes
+						federation = {
+							has_federation_law = treaties_separate_no
+						}
+						NOT = { federation = { any_member = { is_same_value = root } } }
+					}
+				}
+			}
+		}
+		custom_tooltip = {
+			fail_text = "federation_automatic_research"
+			NOT = {
+				AND = {
+					has_federation = yes
+					federation = { any_member = { is_same_value = root.from } }
+					federation = { has_federation_perk = research_federation_passive }
+				}
+			}
+		}
+		diplomacy_recipient_is_not_pompous = yes
+		custom_tooltip = {
+			fail_text = "requires_good_or_better_opinion"
+
+			OR = {
+				is_overlord_to = from
+				opinion_level = { who = from level >= good }
+				is_improving_relations_with = from
+			}
+		}
+		# custom_tooltip = {
+		# 	fail_text = not_allowed_for_protectorate
+		# 	NOT = {
+		# 		OR = {
+		# 			FROM = {
+		# 				is_subject = yes
+		# 				any_agreement = { agreement_preset = preset_protectorate }
+		# 			}
+		# 			AND = {
+		# 				is_subject = yes
+		# 				any_agreement = { agreement_preset = preset_protectorate }
+		# 			}
+		# 		}
+		# 	}
+		# }
+	}
+}

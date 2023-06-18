@@ -1,0 +1,93 @@
+namespace = AAR_evt_VIGILANCE
+#	aar防御ap星基init/aar防御ap星基易主
+#	aar防御ap改防御塔
+
+
+
+
+###	aar防御ap星基init
+#_<on_building_starbase_outpost>
+ship_event = {
+	id = AAR_evt_VIGILANCE.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { owner = { OR = { has_ascension_perk = AAR_AP_hostile_territory			has_ascension_perk = AAR_AP_defence_line } } }
+
+	immediate = {
+		solar_system = { AAR_eft_sstm_VIGILANCE_starbase_mod_DB = yes }	# AAR防御星基修正DB
+	}
+}
+
+###	aar防御ap星基易主
+#_<on_starbase_transfer>
+##_scopes	<root>=船(星基)	/<from>=前owner
+ship_event = {
+	id = AAR_evt_VIGILANCE.10
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		NOR = {
+			#	|AAR防御飞升添加|同步
+			AND = {
+				owner = { has_country_flag = AAR_flg_cntr_AP_VIGILANCE }
+				from = { has_country_flag = AAR_flg_cntr_AP_VIGILANCE }
+			}
+			AND = {
+				owner = { NOT = { has_country_flag = AAR_flg_cntr_AP_VIGILANCE } }
+				from = { NOT = { has_country_flag = AAR_flg_cntr_AP_VIGILANCE } }
+			}
+		}
+	}
+
+	immediate = {
+		set_update_modifiers_batch = begin	#_|修正更新|暂停
+		
+		solar_system = { AAR_eft_sstm_VIGILANCE_starbase_mod_DB = yes }	# AAR防御星基修正DB
+		
+		set_update_modifiers_batch = end	#_|修正更新|重启
+	}
+}
+
+
+
+
+### aar防御ap改防御塔		其他情况下只有[星基易主]和[AP采纳]的情况, 由[AAR防御星基修正DB]执行DB
+#_evt	<aar月检>
+country_event = {
+	id = AAR_evt_VIGILANCE.2
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_country_flag = AAR_flg_cntr_AP_VIGILANCE
+		any_owned_ship = {
+			is_ship_class = shipclass_military_station
+			NOT = { has_ship_flag = AAR_flg_ship_VIGILANCE_mod }
+		}
+	}
+
+	immediate = {
+		every_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_military_station
+				OR = {
+					NOT = { has_modifier = AAR_mod_ship_VIGILANCE_platform }
+					NOT = { has_modifier = AAR_mod_ship_VIGILANCE_ion }
+					NOT = { has_modifier = AAR_mod_ship_VIGILANCE_station }
+				}
+			}
+			# 防御平台
+			if = { limit = { is_ship_size = military_station_small }
+				set_ship_flag = AAR_flg_ship_VIGILANCE_mod
+				add_modifier = { modifier = AAR_mod_ship_VIGILANCE_platform	 days = -1 }
+			}
+			# 离子炮
+			else_if = { limit = { is_ship_size = ion_cannon }
+				set_ship_flag = AAR_flg_ship_VIGILANCE_mod
+				add_modifier = { modifier = AAR_mod_ship_VIGILANCE_ion	 days = -1 }
+			}
+			# 防御站/其他
+			else_if = { add_modifier = { modifier = AAR_mod_ship_VIGILANCE_station	 days = -1 } }
+		}
+	}
+}
+

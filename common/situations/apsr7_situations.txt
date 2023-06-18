@@ -1,0 +1,342 @@
+
+### Изучение Зоны
+
+# начинается после колонизации, до постройки кордона идет ситуация на нападения мутантов (повторяемое на финальном этапе до поражения игрока).
+# после постройки кордона ситуация заканчивается, начинается новая - экспедиция
+# этапы экспедиции - проект танка, экспедиция, маятник
+
+
+
+
+# Нападения Мутантов
+
+	# Progress
+	# 0	     20       50     100    200      300
+	# |_______|________|______|______|________|
+	#        мало   средне  много   тьма   колония потеряна
+
+apsr7_situation_mutants = {
+	picture = GFX_evt_apsr7_mutant
+	category = negative
+	complete_icon_frame = GFX_situation_outcome_frame_red
+	complete_icon = GFX_situation_outcome_negative
+	
+	# завершение ситуации - потеря колонии
+	on_progress_complete = {
+		custom_tooltip = apsr7_situation_mutants_finish_tooltip
+		hidden_effect = {
+			situation_event = { id = apsr.7223 }
+		}
+	}
+	
+	# сброс ситуации - если сожрали всех жителей
+	on_abort = {
+		situation_event = { id = apsr.7224 }
+	}
+	abort_trigger = {
+		OR = {
+			NOT = { exists = target.owner }
+			target.owner = { NOT = { is_same_value = root.owner } }
+		}
+	}
+
+	# стартовое значение
+	start_value = 1
+	# прогресс в месяц
+	monthly_progress = {
+		base = 1
+	}
+
+	# Этапы
+	stages = {
+		apsr7_mutants_stage1 = {
+			icon = GFX_situation_stage_1
+			icon_background = GFX_situation_stage_frame_red
+			end = 20
+		}
+		
+		apsr7_mutants_stage2 = {
+			icon = GFX_situation_stage_2
+			icon_background = GFX_situation_stage_frame_red
+			end = 50
+			on_first_enter = {
+				situation_event = { id = apsr.7211 }
+			}
+		}
+
+		apsr7_mutants_stage3 = {
+			icon = GFX_situation_stage_3
+			icon_background = GFX_situation_stage_frame_red
+			end = 100
+			on_first_enter = {
+				situation_event = { id = apsr.7214 }
+			}
+		}
+
+		apsr7_mutants_stage4 = {
+			icon = GFX_situation_stage_4
+			icon_background = GFX_situation_stage_frame_red
+			end = 200
+			on_first_enter = {
+				situation_event = { id = apsr.7217 }
+			}
+		}
+
+		apsr7_mutants_stage5 = {
+			icon = GFX_situation_stage_5
+			icon_background = GFX_situation_stage_frame_red
+			end = 300
+			on_first_enter = {
+				situation_event = { id = apsr.7220 }
+			}
+		}
+	}
+
+
+	# варианты влияния
+	# ничего не делать
+	approach = {
+		name = apsr7_approach_mutants_do_nothing
+		icon = GFX_situation_approach_this_is_fine
+		icon_background = GFX_situation_approach_bg_yellow
+		default = yes
+		on_select = {
+			custom_tooltip = apsr7_approach_mutants_do_nothing_tooltip
+		}
+		ai_weight = {
+			base = 1
+		}
+	}
+	# ускорить обучение солдат
+	approach = {
+		name = apsr7_approach_mutants_military
+		icon = GFX_situation_approach_fist
+		icon_background = GFX_situation_approach_bg_red
+		on_select = {
+			custom_tooltip = apsr7_approach_mutants_military_tooltip
+		}
+		target_modifier = {
+			planet_army_build_speed_mult = 1
+			planet_building_stronghold_build_speed_mult = 1
+			army_defense_damage_mult = 0.20
+			planet_soldiers_energy_upkeep_add = 4			
+		}
+		resources = {
+			category = situations
+			upkeep = {
+				trigger = {
+					owner = { is_gestalt = no }
+				}
+				consumer_goods = 20
+			}
+			upkeep = {
+				trigger = {
+					owner = { is_gestalt = yes }
+				}
+				unity = 30
+			}
+		}
+		ai_weight = {
+			base = 2
+			modifier = {
+				factor = 3
+				owner = {
+					OR = {
+						is_militarist = yes
+						is_authoritarian = yes
+						is_machine_empire = yes
+					}
+				}
+			}
+			modifier = {
+				factor = 3
+				target = {
+					OR = {
+						num_assigned_jobs = {
+							job = warrior_drone
+							value > 3
+						}
+						num_assigned_jobs = {
+							job = soldier
+							value > 3
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+# Экспедиция
+
+	# Progress
+	# 0	        25       100       250         300
+	# ___________|________|_________|____________|
+	# подготовка  проект    танк     экспедиция    маятник
+
+apsr7_situation_expedition = {
+	picture = GFX_evt_apsr7_expedition
+	category = positive
+	complete_icon_frame = GFX_situation_outcome_frame_blue
+	complete_icon = GFX_situation_outcome_unknown
+	
+	on_start = {
+		set_situation_locked = yes
+	}
+	
+	# завершение ситуации - получение технологии
+	on_progress_complete = {
+		custom_tooltip = situation_unknown_outcome_approach
+		hidden_effect = {
+			situation_event = { id = apsr.7234 }
+		}
+	}
+	
+	# сброс ситуации - если планета потеряна
+	on_abort = {
+		situation_event = { id = apsr.7235 }
+	}
+	abort_trigger = {
+		OR = {
+			NOT = { exists = target.owner }
+			target.owner = { NOT = { is_same_value = root.owner } }
+		}
+	}
+
+	# стартовое значение
+	start_value = 1
+	
+	# прогресс в месяц
+	monthly_progress = {
+		base = 1
+		modifier = {
+			add = 1
+			desc = string_current_approach
+			current_situation_approach = apsr7_approach_expedition_sponsor_bad
+		}
+		modifier = {
+			add = 2
+			desc = string_current_approach
+			current_situation_approach = apsr7_approach_expedition_sponsor_good
+		}
+	}
+
+	# Этапы
+	stages = {
+		apsr7_expedition_stage1 = {
+			icon = GFX_situation_stage_1
+			icon_background = GFX_situation_stage_frame_blue
+			end = 25
+		}
+
+		apsr7_expedition_stage2 = {
+			icon = GFX_situation_stage_2
+			icon_background = GFX_situation_stage_frame_blue
+			end = 100
+			on_first_enter = {
+				situation_event = { id = apsr.7231 }
+			}
+		}
+
+		apsr7_expedition_stage3 = {
+			icon = GFX_situation_stage_3
+			icon_background = GFX_situation_stage_frame_blue
+			end = 250
+			on_first_enter = {
+				situation_event = { id = apsr.7232 }
+			}
+		}
+		
+		apsr7_expedition_stage4 = {
+			icon = GFX_situation_stage_4
+			icon_background = GFX_situation_stage_frame_blue
+			custom_tooltip = stage_unknown_effects
+			end = 300
+			on_first_enter = {
+				situation_event = { id = apsr.7233 }
+			}
+		}
+	}
+
+
+	# варианты влияния
+	# наблюдать
+	approach = {
+		name = apsr7_approach_expedition_do_nothing
+		icon = GFX_situation_approach_shrug
+		icon_background = GFX_situation_approach_bg_red
+		default = yes
+		on_select = {
+			custom_tooltip = apsr7_approach_expedition_do_nothing_tooltip
+		}
+		ai_weight = {
+			base = 5
+		}
+	}
+	# спонсировать слабо
+	approach = {
+		name = apsr7_approach_expedition_sponsor_bad
+		icon = GFX_situation_approach_energy_credits
+		icon_background = GFX_situation_approach_bg_yellow
+		allow = {
+			custom_tooltip = {
+				fail_text = apsr7_expedition_going
+				NOT = { has_situation_flag = apsr7_expedition_going }
+			}
+		}
+		on_select = {
+			custom_tooltip = apsr7_approach_expedition_sponsor_bad_tooltip
+		}
+		resources = {
+			category = situations
+			upkeep = {
+				energy = 20
+			}
+		}
+		ai_weight = {
+			base = 3
+			modifier = {
+				factor = 3
+				owner = {
+					has_monthly_income = { resource = energy value >= 50 }
+				}
+			}
+		}
+	}
+	# спонсировать сильно
+	approach = {
+		name = apsr7_approach_expedition_sponsor_good
+		icon = GFX_situation_approach_handshake
+		icon_background = GFX_situation_approach_bg_green
+		allow = {
+			custom_tooltip = {
+				fail_text = apsr7_expedition_going
+				NOT = { has_situation_flag = apsr7_expedition_going }
+			}
+		}
+		on_select = {
+			custom_tooltip = apsr7_approach_expedition_sponsor_good_tooltip
+		}
+		resources = {
+			category = situations
+			upkeep = {
+				energy = 30
+				minerals = 30
+			}
+		}
+		ai_weight = {
+			base = 2
+			modifier = {
+				factor = 7
+				owner = {
+					AND = {
+						has_monthly_income = { resource = energy value >= 100 }
+						has_monthly_income = { resource = minerals value >= 100 }
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,142 @@
+#root = starbase
+#from = player
+
+# Weights in the ai_design part are multiplied with the base weight of 00_starbase_buildings.txt and 00_starbase_modules.txt
+# Then, a random number between that value and and extra 50% of that it is ADDED to it
+# F.e. 100 base weight multiplies with 2.00 = 200. Then we take a random number between 0 and 100 (50% of 200) and ADD it to 200. 235 then, for example
+# This is done for ALL starbase modules and buildings in the list every time an evaluation is made
+# And the building or module with the highest value will be chosen to being built
+# The implication of that is that you can not balance the weights TOO FAR from each other - otherwise some modules will never be chosen, unless they are the only thing on the evaluation
+# Due to the progression of the game and the unlocking of tech, though, it is often the case that there will only be 1 item on the list at any given time anyway
+
+# How the AI/game selects which type to use:
+# First of all, it will try to find one which fulfils both the potential trigger and has a positive weight_modifier
+# If this succeeds, the starbase already has a type.
+# If it fails, it will go through each starbase type that fulfils the potential trigger. Then it will check the ratio it has built (total of this type / total upgraded starbases) compared to the desired ratio. If it is set to desire a minimum value and owns less than that, it multiplies its ratio desire by * 100. Then it build according to that type's template.
+
+
+# Fortress System
+AAR_sbt_AP_void_fortress_BATTLE = {
+	#	被判定为这个type的基础条件
+	potential = {
+		has_starbase_size >= AAR_ship_AP_void_fortress_1
+	}
+
+	#	被判定为这个type的其他加权
+	weight_modifier = {
+		base = 0
+		complex_trigger_modifier = { # +75 for each gun_battery
+			trigger = count_starbase_modules
+			parameters = {
+				type = gun_battery
+			}
+			mode = add
+			mult = 75
+		}
+		complex_trigger_modifier = { # +75 for each missile_battery
+			trigger = count_starbase_modules
+			parameters = {
+				type = missile_battery
+			}
+			mode = add
+			mult = 75
+		}
+		complex_trigger_modifier = { # +75 for each hangar_bay
+			trigger = count_starbase_modules
+			parameters = {
+				type = hangar_bay
+			}
+			mode = add
+			mult = 75
+		}
+	}
+
+	#	ai选择这个当前type方向的概率
+	ai_design = {
+		min = {
+			base = 0
+		}
+
+		ratio = {
+			base = 0.25
+			modifier = {
+				add = 0.15
+				exists = owner
+				owner = {
+					is_militarist = yes
+				}
+			}
+		}
+
+		# token followed by priority
+		buildings = {
+			AAR_sbb_AP_void_PLNT_ARMY = {
+				base = 0.9
+			}
+			AAR_sbb_AP_void_PLNT_FORT = {
+				base = 0.9
+			}
+			AAR_sbb_AP_void_PLNT_SECURITY = {
+				base = 0.9
+			}
+
+			AAR_sbb_AP_void_NAVY_DOCK = {
+				base = 1.4
+				modifier = {
+					factor = 1.25
+					owner = { has_ascension_perk = eap_galactic_force_projection }	# 军备竞赛
+				}
+			}
+			AAR_sbb_AP_void_NAVY_SHIPYARD = {
+				base = 1.4
+				modifier = {
+					factor = 1.25
+					owner = { NOT = { has_ascension_perk = eap_galactic_force_projection } }	# 军备竞赛
+				}
+			}
+
+			AAR_sbb_AP_void_TACTIC_RANGE = {
+				base = 2.00
+			}
+			AAR_sbb_AP_void_TACTIC_DEFENCE = {
+				base = 2.00
+			}
+		}
+
+		modules = {
+			hangar_bay = {
+				base = 1.00
+				modifier = {
+					factor = 1.5
+					owner = {
+						is_preferred_weapons = weapon_type_strike_craft
+					}
+				}
+			}
+
+			missile_battery = {
+				base = 1.5
+				modifier = {
+					factor = 2
+					owner = {
+						is_preferred_weapons = weapon_type_explosive
+					}
+				}
+			}
+
+			gun_battery = {
+				base = 1.5
+				modifier = {
+					factor = 2
+					owner = {
+						OR = {
+							is_preferred_weapons = weapon_type_energy
+							is_preferred_weapons = weapon_type_kinetic
+						}
+					}
+				}
+			}
+		}
+	}
+}
+

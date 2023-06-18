@@ -1,0 +1,294 @@
+##############################
+# Liberationist Faction
+##############################
+
+liberationist = {
+	election_header = "GFX_faction_header_yellow"
+	guiding_ethic = ethic_militarist
+	use_guiding_ethic_as_pop_filter = no #this means that the faction will let pops that aren't egalitarian in too
+
+	unique = yes
+	support_multiplier = 1
+
+	#resources = {
+	#	category = pop_factions
+	#	produces = {
+	#		unity = -0.5
+	#	}
+	#}
+
+	is_potential = {
+		is_regular_empire = yes
+		has_origin = origin_sibling_rivalry
+		has_country_flag = liberationist_faction_formed
+	}
+
+	parameters = {
+		empire = {
+			type = country
+			valid_objects = {
+				is_same_value = root
+			}
+		}
+	}
+
+	can_join_pre_triggers = {
+		#is_enslaved = no
+		#is_being_purged = no
+	}
+
+	can_join_faction = {
+		is_shackled_robot = no
+		can_think = yes
+		NOT = { is_same_species = owner_species }
+		has_pop_flag = liberationist_sympathies
+	}
+
+	attraction = {
+		base = 160
+
+		modifier = {
+			factor = 10
+			exists = from
+			from = {
+				num_pops < 1
+			}
+		}
+	}
+
+	leader = {
+		base = 100
+
+		modifier = {
+			factor = 0.0
+			is_same_species = owner
+		}
+	}
+
+	demand = {
+		title = "LIBERATIONIST_"
+		unfulfilled_title = "LIBERATIONIST_"
+		desc = "LIBERATIONIST__DESC"
+
+		fulfilled_effect = 10
+		unfulfilled_effect = -10
+
+		potential = {
+		}
+
+		trigger = {
+		}
+	}
+
+	on_create = {
+		pop_faction_event = { id = eo_sibling_rivalry.3 }
+	}
+
+	on_destroy = {
+		if = {
+			limit = {
+				has_modifier = promoted_liberationist
+			}
+			remove_modifier = promoted_liberationist
+		}
+		if = {
+			limit = {
+				has_modifier = suppressed_liberationist
+			}
+			remove_modifier = suppressed_liberationist
+		}
+		country_event = { id = manifesti.30 }
+	}
+
+	actions = {
+		embrace_faction = {
+			title = "EMBRACE_FACTION"
+			description = "EMBRACE_FACTION_DESC"
+
+			cost = {
+				unity = 5000
+			}
+
+			potential = {
+				exists = owner
+				owner = {
+					OR = {
+						is_subject = no
+						NOT = { any_agreement = { agreement_preset = preset_dominion } }
+					}
+				}
+			}
+
+			valid = {
+				custom_tooltip = {
+					fail_text = EMBRACE_FACTION_COOLDOWN
+					parameter:empire = {
+						NOT = { has_modifier = embraced_faction_timer }
+					}
+				}
+				support > 0.20
+				parameter:empire = {
+					NOT = { has_ethic = "ethic_fanatic_egalitarian" }
+				}
+			}
+
+			effect = {
+				add_modifier = { modifier = embraced_faction days = 3600 }
+				parameter:empire = {
+					shift_ethic = ethic_egalitarian
+					hidden_effect = {
+						add_modifier = { modifier = embraced_faction_timer days = 3600 }
+						every_pop_faction = {
+							limit = { NOT = { is_same_value = root } }
+							add_modifier = { modifier = embraced_another_faction days = 3600 }
+						}
+					}
+				}
+				hidden_effect = {
+					save_event_target_as = TargetFaction
+					parameter:empire = {
+						every_relation = {
+							limit = {
+								is_ai = no
+								is_country_type = default
+								has_communications = prev
+								has_intel_level = {
+									who = prev
+									category = government
+									level >= 1
+								}
+							}
+							country_event = { id = factions.2000 }
+						}
+					}
+				}
+			}
+
+			ai_weight = {
+				base = 1
+				modifier = {
+					factor = 0
+					support < 0.50
+					owner = {
+						has_ethic = ethic_egalitarian
+					}
+				}
+				modifier = {
+					factor = 0
+					owner = { has_valid_civic = civic_fanatic_purifiers }
+				}
+				modifier = {
+					factor = 0
+					NOT = {
+						owner = {
+							exists = ruler
+							ruler = {
+								leader_of_faction = progressive
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0
+					owner = {
+						count_pop_faction = {
+							count < 4
+						}
+					}
+				}
+			}
+		}
+		promote_faction = {
+			title = "PROMOTE_FACTION"
+			description = "PROMOTE_FACTION_DESC"
+
+			potential = {
+				exists = owner
+				parameter:empire = {
+					NOR = {
+						has_modifier = suppressed_liberationist
+						has_modifier = promoted_liberationist
+					}
+				}
+			}
+
+			effect = {
+				parameter:empire = {
+					add_modifier = { modifier = promoted_liberationist days = -1 }
+				}
+			}
+
+			ai_weight = {
+				base = 0
+			}
+		}
+		cancel_promote_faction = {
+			title = "CANCEL_PROMOTE_FACTION"
+			description = "CANCEL_PROMOTE_FACTION_DESC"
+
+			potential = {
+				exists = owner
+				parameter:empire = {
+					has_modifier = promoted_liberationist
+				}
+			}
+
+			effect = {
+				parameter:empire = {
+					remove_modifier = promoted_liberationist
+				}
+			}
+
+			ai_weight = {
+				base = 0
+			}
+		}
+		suppress_faction = {
+			title = "SUPPRESS_FACTION"
+			description = "SUPPRESS_FACTION_DESC"
+
+			potential = {
+				exists = owner
+				parameter:empire = {
+					NOR = {
+						has_modifier = suppressed_liberationist
+						has_modifier = promoted_liberationist
+					}
+				}
+			}
+
+			effect = {
+				add_modifier = { modifier = suppressed_faction days = -1 }
+				parameter:empire = {
+					add_modifier = { modifier = suppressed_liberationist days = -1 }
+				}
+			}
+
+			ai_weight = {
+				base = 0
+			}
+		}
+		cancel_suppress_faction = {
+			title = "CANCEL_SUPPRESS_FACTION"
+			description = "CANCEL_SUPPRESS_FACTION_DESC"
+
+			potential = {
+				exists = owner
+				parameter:empire = {
+					has_modifier = suppressed_liberationist
+				}
+			}
+
+			effect = {
+				remove_modifier = suppressed_faction
+				parameter:empire = {
+					remove_modifier = suppressed_liberationist
+				}
+			}
+
+			ai_weight = {
+				base = 0
+			}
+		}
+	}
+}

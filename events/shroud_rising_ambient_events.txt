@@ -1,0 +1,563 @@
+#########################################################
+
+# Shroud Rising Ambient Events
+
+# Written by LastLeviathan
+
+#########################################################
+
+namespace = shroud_rising_ambient
+
+#########################################################
+# shroud_rising_ambient.1 | (Hidden) on_action for chance of storm
+# shroud_rising_ambient.2 | (Hidden) Chose specific system for Storm Invasion
+# shroud_rising_ambient.3 | Shroud Storm Announce to owner and spawn invasion
+# shroud_rising_ambient.4 | Shroud Storm Dissipates *Removes Storm and its effects
+# shroud_rising_ambient.5 | (Hidden) Chose specific system for Tiyanki Storm
+# shroud_rising_ambient.6 | Shroud Storm Tiyanki announounce to owner and spawn
+# shroud_rising_ambient.7 | Shroud Storm Tiyanki Dissipates *Removes Storm and its effects
+#########################################################
+
+#########################################################
+######## THE EYE OF TERROR SPAWN#########################
+#########################################################
+
+
+
+# Shroud Storms
+event = {
+	id = shroud_rising_ambient.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_global_flag = eye_of_terror_open
+		NOT = {
+			has_global_flag = eye_of_terror_sealed
+		}
+	}
+
+	immediate = {	
+		random_list = {
+			#Spooky storm
+			75 = {
+				random_country = {
+					limit = { 
+						is_country_type = global_event
+						NOR = {
+						has_global_flag = ongoing_shroud_storm
+						#has_global_flag = shroud_storm_cooldown
+						}
+					}	
+					country_event = { id = shroud_rising_ambient.2 days = 50 random = 100 }
+				}
+			}
+			#Tiyanki/Peaceful Storm
+			15 = {
+				random_country = {
+					limit = { 
+						is_country_type = global_event
+						NOR = {
+						has_global_flag = ongoing_shroud_storm
+						#has_global_flag = shroud_storm_cooldown
+						}
+					}	
+					country_event = { id = shroud_rising_ambient.5 days = 50 random = 100 }
+				}
+			}
+			10 = {}
+		}
+	}
+}
+
+# Choose a system to have a shroud storm
+country_event = {
+	id = shroud_rising_ambient.2
+	hide_window = yes	
+	is_triggered_only = yes
+	
+	trigger = {		
+		has_global_flag = eye_of_terror_open
+		NOT = { has_global_flag = eye_of_terror_sealed }
+	}
+	
+	immediate = {
+		set_global_flag = ongoing_shroud_storm		
+		random_system = {
+			limit = {
+				has_owner = yes  			
+				#owner = { is_ai = no } #for testing				
+				any_system_planet = { 
+					is_colony = yes 
+					num_pops > 10 
+				}
+				NOT = { any_system_planet = { has_planet_flag = has_shroud_monolith  }
+				}
+			}			
+			set_star_flag = shroud_storm_system		
+			add_modifier = { modifier = shroud_storm_effect_system  }
+			create_ambient_object = {
+							type = "shroud_storm_1"
+							location = this
+						}
+			#set_name = "STORM SYSTEM" ####################FOR TESTING ONLY				
+			last_created_ambient_object = {
+							set_ambient_object_flag = shroud_storm_object
+							set_location = {
+								target = prev
+								distance = 0
+								angle = random
+							}
+						}			
+			every_system_planet = {
+				limit = { is_star = no }
+				add_modifier = { modifier = shroud_storm_effect }				
+								
+			}
+			random_system_planet = {
+				limit = { 					
+					has_owner = yes			
+					has_ground_combat = no
+					num_pops > 10	
+					
+				}
+				planet_event = { id = shroud_rising_ambient.3 } #message and event for shroud storm horrors				
+								
+			}
+
+		
+			
+		}
+		
+			
+	}
+	
+	
+	
+}
+
+
+# Shroud Storm message and horrors
+planet_event = {
+	id = shroud_rising_ambient.3
+	title = "shroud_rising_ambient.3.name"
+	desc = "shroud_rising_ambient.3.desc"
+	picture = GFX_evt_space_monster
+	show_sound = event_air_raid_siren
+	location = ROOT
+	is_triggered_only = yes
+	
+
+	trigger = {
+				
+	}
+
+	immediate = {	
+				root.owner = { country_event = { id = shroud_rising_ambient.4 days = 200 random = 50 } }
+		
+				create_country = {
+					name = "NAME_shroud_horror_country"
+					type = shroud_entities	
+					name_list = "SHROUD_HORRORS"
+					flag = {
+					icon = {
+						category = "special"
+						file = "the_shroud.dds"
+					}
+					background= {
+						category = "backgrounds"
+						file = "00_solid.dds"
+					}
+					colors={
+						"dark_purple"
+						"black"
+						"null"
+						"null"
+					}
+					}
+					effect = {
+						establish_communications_no_message = root.owner
+						establish_contact = { who = root.owner location = root.solar_system }
+						apply_shroud_rising_difficulty = yes
+						
+					}
+				}						
+				last_created_country = {				
+				save_global_event_target_as = shroud_storm_horror
+				}		
+				every_country = { establish_communications_no_message = event_target:shroud_storm_horror }
+					
+						
+				create_fleet = {
+					# name = random
+					settings = {
+						spawn_debris = no
+						is_boss = yes
+					}
+					effect = {
+						set_owner = event_target:shroud_storm_horror				
+						create_ship = {
+							name = "NAME_shroud_entity_name"
+							design = "NAME_Corrupted_Avatar"							
+							}				
+							
+						set_location = root
+						set_fleet_stance = aggressive
+						set_fleet_bombardment_stance = devour
+						set_aggro_range_measure_from = self
+						set_aggro_range = 300
+						
+					
+					
+					
+					}
+				}
+				
+				create_fleet = {
+					# name = random
+					settings = {
+						spawn_debris = no
+						is_boss = yes
+					}
+					effect = {
+						set_owner = event_target:shroud_storm_horror				
+						create_ship = {
+							name = "NAME_shroud_entity_name"
+							design = "NAME_shroud_entity"							
+							}				
+							
+						set_location = root
+						set_fleet_stance = aggressive
+						set_fleet_bombardment_stance = devour
+						set_aggro_range_measure_from = self
+						set_aggro_range = 300
+						
+					
+					
+					
+					}
+					
+				} 				
+								
+				every_country = { establish_communications_no_message = event_target:shroud_storm_horror }
+				create_species = {
+					name = "NAME_shroud_horrors"
+					class = random_non_machine
+					portrait = random
+					traits = random
+				}
+				
+				# Spawn horrors
+				
+				random_list = {
+								
+				45 = { 				
+					create_army = {
+					name = "NAME_horror_army"
+					owner = last_created_country
+					species = last_created_species
+					type = "shroud_horror_army_1"
+					}
+					create_army = {
+						name = "NAME_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_1"
+					}	
+					create_army = {
+						name = "NAME_vengeful_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_2"
+					}
+					create_army = {
+						name = "NAME_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_1"
+					}
+				}
+				40 = {					
+					create_army = {
+						name = "NAME_vengeful_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_1"
+					}
+					create_army = {
+						name = "NAME_vengeful_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_2"
+					}					
+				}
+				5 = {					
+					create_army = {
+						name = "NAME_greater_horror_hunger"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_greater_horror_army"
+					}
+					create_army = {
+						name = "NAME_vengeful_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_2"
+					}
+					create_army = {
+						name = "NAME_vengeful_horror_army"
+						owner = last_created_country
+						species = last_created_species
+						type = "shroud_horror_army_2"
+					}
+				}
+				10 = { 					
+					create_army = {
+					name = "NAME_greater_horror_hunger"
+					owner = last_created_country
+					species = last_created_species
+					type = "shroud_greater_horror_army"
+					}						
+				}
+			}
+	}
+
+	option = {
+		name = shroud_rising_ambient.3.a
+		custom_tooltip = shroud_rising_ambient.3.a.tooltip
+		
+	}
+}
+
+# end of storm
+country_event = {
+	id = shroud_rising_ambient.4
+	title = "shroud_rising_ambient.4.name"
+	desc = "shroud_rising_ambient.4.desc"
+	picture = GFX_evt_ship_in_orbit_3
+	show_sound = event_the_great_awakening
+	is_triggered_only = yes
+	location = FROM
+	
+	immediate = {	
+		remove_global_flag = ongoing_shroud_storm
+		every_system = {
+			limit = { has_star_flag = shroud_storm_system }			
+			remove_modifier = shroud_storm_effect_system 
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = shroud_storm_object }
+				destroy_ambient_object = this
+			}
+			every_system_planet = {
+				limit = { is_star = no }
+				remove_modifier = shroud_storm_effect 				
+								
+			}
+			
+			remove_star_flag = shroud_storm_system
+			remove_modifier = shroud_storm_effect
+		}
+		
+		
+	}
+	
+	option = {	
+		name = shroud_rising_ambient.4.a
+		custom_tooltip = shroud_rising_ambient.4.a.tooltip
+	}
+}
+
+# Choose a system to have a shroud storm with Tiyanki
+country_event = {
+	id = shroud_rising_ambient.5
+	hide_window = yes	
+	is_triggered_only = yes
+	
+	trigger = {		
+		has_global_flag = eye_of_terror_open
+		NOT = { has_global_flag = eye_of_terror_sealed }
+	}
+	
+	immediate = {
+		set_global_flag = ongoing_shroud_storm		
+		random_system = {
+			limit = {
+				has_owner = yes  			
+				#owner = { is_ai = no } #for testing				
+				any_system_planet = { 
+					is_colony = yes 
+					num_pops > 10 
+				}
+				NOT = { any_system_planet = { has_planet_flag = has_shroud_monolith  }
+				}
+			}			
+			set_star_flag = shroud_storm_system		
+			add_modifier = { modifier = shroud_storm_effect_system  }
+			create_ambient_object = {
+							type = "shroud_storm_1"
+							location = this
+						}
+			#set_name = "STORM SYSTEM" ####################FOR TESTING ONLY				
+			last_created_ambient_object = {
+							set_ambient_object_flag = shroud_storm_object
+							set_location = {
+								target = prev
+								distance = 0
+								angle = random
+							}
+						}			
+			every_system_planet = {
+				limit = { is_star = no }
+				add_modifier = { modifier = shroud_storm_effect }				
+								
+			}
+			random_system_planet = {
+				limit = { 
+					has_owner = yes	
+					}
+						planet_event = { id = shroud_rising_ambient.6 } #message and event for shroud storm tiyanki				
+								
+			}
+
+		
+			
+		}
+		
+			
+	}
+	
+	
+	
+}
+
+# Shroud Storm message tiyanki
+planet_event = {
+	id = shroud_rising_ambient.6
+	title = "shroud_rising_ambient.6.name"
+	desc = "shroud_rising_ambient.6.desc"
+	picture = GFX_evt_tiyanki_family
+	show_sound = event_space_amoeba
+	location = ROOT
+	is_triggered_only = yes
+	
+	trigger = {
+				
+	}
+	
+	immediate = {
+		root.owner = { country_event = { id = shroud_rising_ambient.7 days = 200 random = 50 } }
+		random_list = {				
+				50 = {
+					create_fleet = {
+						name = "NAME_Tiyanki_Space_Whale"
+						effect = {
+							set_owner = event_target:tiyanki_country
+							create_ship = {
+								design = "NAME_Tiyanki_Cow"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Cow"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Bull"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Calf"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Calf"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Calf"
+							}
+							create_ship = {
+								design = "NAME_Tiyanki_Calf"
+							}
+							set_location = root
+							set_fleet_stance = passive
+							set_aggro_range_measure_from = return_point
+							set_aggro_range = 0
+							queue_actions = {
+								wait = { # Cooldown until they start moving
+									duration = 320
+									random = 80
+								}
+							}
+						}
+					}
+				}
+
+			50 = {
+				create_fleet = {
+					name = "NAME_Tiyanki_Space_Whale"
+					effect = {
+						set_owner = event_target:tiyanki_country
+						create_ship = {
+							design = "NAME_Tiyanki_Cow"
+						}						
+						create_ship = {
+							design = "NAME_Tiyanki_Bull"
+						}						
+						create_ship = {
+							design = "NAME_Tiyanki_Hatchling"
+						}
+						set_location = root
+						set_fleet_stance = passive
+						set_aggro_range_measure_from = return_point
+						set_aggro_range = 0
+						queue_actions = {
+							wait = { # Cooldown until they start moving
+								duration = 320
+								random = 80
+							}
+						}
+					}
+				}
+			}				
+		}
+	}
+	option = {
+		name = shroud_rising_ambient.6.a
+		custom_tooltip = shroud_rising_ambient.6.a.tooltip
+		
+	}
+}
+
+# end of storm
+country_event = {
+	id = shroud_rising_ambient.7
+	title = "shroud_rising_ambient.7.name"
+	desc = "shroud_rising_ambient.7.desc"
+	picture = GFX_evt_ship_in_orbit_3
+	show_sound = event_the_great_awakening
+	is_triggered_only = yes
+	location = FROM
+	
+	immediate = {	
+		
+		remove_global_flag = ongoing_shroud_storm
+		every_system = {
+			limit = { has_star_flag = shroud_storm_system }			
+			remove_modifier = shroud_storm_effect_system 
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = shroud_storm_object }
+				destroy_ambient_object = this
+			}
+			every_system_planet = {
+				limit = { is_star = no }
+				remove_modifier = shroud_storm_effect 				
+								
+			}
+			
+			remove_star_flag = shroud_storm_system
+			remove_modifier = shroud_storm_effect
+		}
+		
+		
+	}
+	
+	option = {	
+		name = shroud_rising_ambient.7.a
+		custom_tooltip = shroud_rising_ambient.7.a.tooltip
+	}
+}

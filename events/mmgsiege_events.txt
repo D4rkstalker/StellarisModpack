@@ -1,0 +1,229 @@
+namespace = mmgsiege
+
+# main event, checks resource balances and progresses shortages
+country_event = {
+	id = mmgsiege.1
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# check resource shortages on besieged planets
+		every_owned_planet = {
+			limit = {
+				mmgsiege_is_under_siege = yes
+				is_occupied_flag = no
+			}
+			mmgsiege_check_for_and_update_resource_shortage = { RESOURCE = food }
+			mmgsiege_check_for_and_update_resource_shortage = { RESOURCE = minerals }
+			mmgsiege_check_for_and_update_resource_shortage = { RESOURCE = energy }
+			mmgsiege_check_for_and_update_resource_shortage = { RESOURCE = consumer_goods }
+			mmgsiege_create_or_remove_shortage_modifiers = yes
+			mmgsiege_update_planet_status = yes
+		}
+
+		# recover resource shortages on planets not under siege
+		every_owned_planet = {
+			limit = {
+				OR = {
+					has_planet_flag = mmgsiege_food_shortage
+					has_planet_flag = mmgsiege_minerals_shortage
+					has_planet_flag = mmgsiege_energy_shortage
+					has_planet_flag = mmgsiege_consumer_goods_shortage
+					has_planet_flag = mmgsiege_under_siege
+				}
+				mmgsiege_is_under_siege = no
+			}
+			mmgsiege_check_for_and_update_resource_shortage_no_siege = { RESOURCE = food }
+			mmgsiege_check_for_and_update_resource_shortage_no_siege = { RESOURCE = minerals }
+			mmgsiege_check_for_and_update_resource_shortage_no_siege = { RESOURCE = energy }
+			mmgsiege_check_for_and_update_resource_shortage_no_siege = { RESOURCE = consumer_goods }
+			mmgsiege_create_or_remove_shortage_modifiers = yes
+			mmgsiege_update_planet_status = yes
+		}
+
+		# clear resource shortages on occupied planets
+		every_owned_planet = {
+			limit = {
+				OR = {
+					has_planet_flag = mmgsiege_food_shortage
+					has_planet_flag = mmgsiege_minerals_shortage
+					has_planet_flag = mmgsiege_energy_shortage
+					has_planet_flag = mmgsiege_consumer_goods_shortage
+				}
+				is_occupied_flag = yes
+			}
+			while = {
+				count = 4
+				mmgsiege_decrease_resource_shortage = { RESOURCE = energy }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = minerals }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = food }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = consumer_goods }
+			}
+			mmgsiege_create_or_remove_shortage_modifiers = yes
+		}
+	}
+}
+
+# stockpile events
+# calc stockpile max
+planet_event = {
+	id = mmgsiege.11
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		mmgsiege_calculate_stockpile_maximum = yes
+	}
+}
+
+# init stockpile vars
+planet_event = {
+	id = mmgsiege.12
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = { NOT = { is_variable_set = mmgsiege_energy_stockpile } }
+			set_variable = {
+				which = mmgsiege_energy_stockpile
+				value = 0
+			}
+		}
+		if = {
+			limit = { NOT = { is_variable_set = mmgsiege_minerals_stockpile } }
+			set_variable = {
+				which = mmgsiege_minerals_stockpile
+				value = 0
+			}
+		}
+		if = {
+			limit = { NOT = { is_variable_set = mmgsiege_food_stockpile } }
+			set_variable = {
+				which = mmgsiege_food_stockpile
+				value = 0
+			}
+		}
+		if = {
+			limit = { NOT = { is_variable_set = mmgsiege_consumer_goods_stockpile } }
+			set_variable = {
+				which = mmgsiege_consumer_goods_stockpile
+				value = 0
+			}
+		}
+	}
+}
+
+event = {
+	id = mmgsiege.13
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_country = {
+			every_owned_planet = {
+				planet_event = { id = mmgsiege.11 } # init stockpile maximum
+				planet_event = { id = mmgsiege.12 } # init stockpile resources
+			}
+		}
+	}
+}
+
+# update planet status on_system_controller_changed
+system_event = {
+	id = mmgsiege.31
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_system_planet = {
+			limit = { is_colony = yes }
+			mmgsiege_update_planet_status = yes
+		}
+	}
+}
+
+# update planet status on_planet_transfer on_planet_occupied
+planet_event = {
+	id = mmgsiege.32
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					has_planet_flag = mmgsiege_food_shortage
+					has_planet_flag = mmgsiege_minerals_shortage
+					has_planet_flag = mmgsiege_energy_shortage
+					has_planet_flag = mmgsiege_consumer_goods_shortage
+				}
+				is_occupied_flag = yes
+			}
+			while = {
+				count = 4
+				mmgsiege_decrease_resource_shortage = { RESOURCE = energy }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = minerals }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = food }
+				mmgsiege_decrease_resource_shortage = { RESOURCE = consumer_goods }
+			}
+		}
+		mmgsiege_update_planet_status = yes
+	}
+}
+
+# clean up siege/shortage modifiers and features on_planet_ownerless on_colony_destroyed
+planet_event = {
+	id = mmgsiege.33
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		mmgsiege_remove_siege_modifier = yes
+		while = {
+			count = 4
+			mmgsiege_decrease_resource_shortage = { RESOURCE = energy }
+			mmgsiege_decrease_resource_shortage = { RESOURCE = minerals }
+			mmgsiege_decrease_resource_shortage = { RESOURCE = food }
+			mmgsiege_decrease_resource_shortage = { RESOURCE = consumer_goods }
+		}
+		mmgsiege_create_or_remove_shortage_modifiers = yes
+	}
+}
+
+# update planet status on_planet_attackers_win
+country_event = {
+	id = mmgsiege.34
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		fromfrom = {
+			mmgsiege_update_planet_status = yes
+		}
+	}
+}
+
+# fallback to occasionally clean up ownerless planets if various on_actions don't catch it
+country_event = {
+	id = mmgsiege.35
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_galaxy_planet = {
+			limit = {
+				has_planet_flag = mmgsiege_under_siege
+				NOT = { exists = owner }
+			}
+			mmgsiege_update_planet_status = yes
+			planet_event = { id = mmgsiege.33 }
+		}
+	}
+}
+
+# delay wrapper for the above
+event = {
+	id = mmgsiege.36
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		event_target:global_event_country = {
+			country_event = {
+				id = mmgsiege.35
+				days = 10
+			}
+		}
+	}
+}

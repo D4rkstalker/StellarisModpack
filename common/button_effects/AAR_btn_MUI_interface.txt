@@ -1,0 +1,361 @@
+#_[舰队UI]	AARbtn拆中继器/AARbtn网道/jumper冷却/AARbtn铁幕
+#_[主UI]	维度魔方EXPRESS/宇宙立方EXPRESS
+
+
+
+
+###_[舰队UI]	##########################################		所有owner/controller同步检测, 只能使用controller = { is_same_value = owner }, 不能反过来
+##	AARbtn拆中继器
+AAR_btn_flt_NAVIGATOR_dismantle_relay = {
+	potential = {
+		MUI_trgr_flt_SWITCH_default = yes
+		controller = { has_ascension_perk = AAR_AP_navigator }
+	}
+	allow = {#参考[aar网道入轨激活]
+		controller = {
+			has_technology = tech_hyper_relays		# |科技满足|
+			has_resource = { type = energy amount > 250 }	# |资源足够|
+		}
+		custom_tooltip = {
+            fail_text = AAR_failtips_NAVIGATOR_dismantle_relay_ORBIT
+            hidden_trigger = {
+				exists = orbit
+				orbit = {
+					is_scope_type = megastructure
+					OR = {
+						is_megastructure_type = hyper_relay
+						is_megastructure_type = hyper_relay_restored
+					}
+					NOT = { has_megastructure_flag = AAR_flg_mega_NAVIGATOR_dismantled }	# |已拆除|
+				}
+            }
+        }
+	}
+	
+	effect = {
+		custom_tooltip = AAR_tips_NAVIGATOR_dismantle_relay
+		hidden_effect = {
+			controller = {
+				add_resource = {
+					energy = -250
+				}
+			}
+			#	<原中继器mega>
+			orbit = {
+				solar_system = {
+					spawn_megastructure = {
+						type = "hyper_relay_ruined"
+						coords_from = prev
+					}
+				}
+				## 添加ambt_星系缩放
+				if = { limit = { has_global_flag = has_system_scale_mod }
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_fx_NAVIGATOR_demolish		SCALE = 45	LOC = this	DAYS = 45 }		# AAR航海爆炸
+				}
+				## 添加ambt_vanilla
+				else = {
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_fx_NAVIGATOR_demolish		SCALE = 30	LOC = this	DAYS = 45 }		# AAR航海爆炸
+				}
+				set_megastructure_flag = AAR_flg_mega_NAVIGATOR_dismantled	# |已拆除|
+				remove_megastructure = this
+			}
+		}
+	}
+}
+
+##	AARbtn网道
+btn_flt_AAR_webway_OFF = {#---禁用
+	potential = { always = no }
+	allow = { always = no }
+}
+btn_flt_AAR_webway_ON = {
+	potential = {
+		MUI_trgr_flt_SWITCH_default = yes
+		controller = {
+			NOR = {
+				has_ascension_perk = AAR_AP_navigator
+				has_ascension_perk = AAR_AP_jumper
+			}
+		}
+	}
+	allow = {#参考[aar网道入轨激活]
+		#	|单体舰队|
+		hidden_trigger = {
+			num_ships = 1
+		}
+		#	|资源足够|
+		controller = { has_resource = { type = energy amount > 50 } }
+		#	|巨型舰船|
+		custom_tooltip = {
+			fail_text = AAR_failtips_AP_webway_SHIP_CLASS_no
+            hidden_trigger = {
+				OR = {
+					is_ship_class = shipclass_military_special
+					is_ship_class = shipclass_starbase
+				}
+            }
+        }
+		#	|AP网道行者|
+		custom_tooltip = {
+			fail_text = MUI_failtips_AAR_no_AP_webway
+            hidden_trigger = {
+				controller = { has_ascension_perk = AAR_AP_webway }
+            }
+        }
+		#	|存在枢纽|
+		custom_tooltip = {
+			fail_text = AAR_failtips_AP_webway_NEXUS_no
+            hidden_trigger = {
+				controller = { has_megastructure = AAR_MEGA_webway_NEXUS }
+            }
+        }
+	}
+	
+	effect = {
+		custom_tooltip = AAR_option_WEBWAY_TGT_set_node
+		custom_tooltip = AAR_tips_WEBWAY_FLT_set_node
+		hidden_effect = {
+			## 激活节点
+			if = {
+				limit = {
+					solar_system = {
+						NOR = {
+							has_star_flag = AAR_flg_sstm_WEBWAY_node	# 没有网道节点
+							has_star_flag = AAR_flg_sstm_WEBWAY_nexus	# 没有网道枢纽
+						}
+					}
+				}
+				
+				## 激活花费		参考[aar网道激活节点]
+				controller = {
+					add_resource = {
+						energy = -50
+					}
+				}
+				solar_system = {
+					## 网道星系CLEAN
+					AAR_eft_sstm_WEBWAY_clean = yes
+					
+					## 激活网道节点
+					spawn_megastructure = {
+						name = "NAME_AAR_mega_WEBWAY_NODE"
+						type = "AAR_MEGA_webway_NODE"
+						orbit_angle = 0
+						orbit_distance = 25		# 45一般为第一行星轨道
+						owner = root.controller
+						planet = star
+					}
+					set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node days = 45 }
+					
+					## 网道sstm循环
+					if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+						set_star_flag = AAR_flg_sstm_WEBWAY_debug
+						system_event = { id = AAR_evt_WEBWAY.25 }	# 初始触发
+					}
+				}
+			}
+		}
+	}
+}
+
+##	jumper冷却
+btn_flt_AAR_jumper_CD = {
+	potential = {
+		MUI_trgr_flt_SWITCH_default = yes
+		controller = { has_ascension_perk = AAR_AP_jumper }
+	}
+	allow = {
+		custom_tooltip = {
+            hidden_trigger = {
+				NOT = { any_owned_ship = {
+						OR = {
+							has_modifier = AAR_MOD_ship_JUMPER_fast_CD	# 快速冷却充能中
+							has_ship_flag = AAR_flg_ship_JUMPER_jump_CD	# 跃迁充能中
+						}
+					}
+				}
+            }
+            fail_text = MUI_failtips_AAR_jumper_CD_recharge
+        }
+	}
+	
+	effect = {
+		custom_tooltip = MUI_tips_AAR_jumper_CD_ready
+		hidden_effect = {
+		}
+	}
+}
+
+##	AARbtn铁幕
+AAR_btn_flt_VEIL = {
+	potential = {
+		MUI_trgr_flt_SWITCH_default = yes
+	}
+	allow = {
+		fleet_size > 16
+		controller = { has_technology = AAR_tech_AP_VEIL }
+		custom_tooltip = {
+            hidden_trigger = {
+				controller = { NOT = { has_country_flag = AAR_flg_cntr_VEIL_CD } }
+            }
+            fail_text = AAR_failtips_VEIL_CD
+        }
+	}
+	
+	effect = {
+		custom_tooltip = AAR_tips_btn_VEIL_iron
+		hidden_effect = {
+			controller = { set_timed_country_flag = { flag = AAR_flg_cntr_VEIL_CD days = @AAR_svar_VEIL_cd } }
+			AAR_eft_flt_VEIL_aura_SPAWN = yes	# AAR铁幕AURA激活
+		}
+	}
+}
+
+
+
+
+###_[主UI]	####################################################################################
+##	维度魔方EXPRESS
+AAR_btn_cntr_WEBWAY_relic_EXPRESS = {
+	potential = {
+		OR = {
+			#	国家域
+			AND = { is_scope_type = country
+				is_ai = no
+				has_ascension_perk = AAR_AP_webway
+				has_relic = AAR_R_webway
+				NOR = {
+					has_country_flag = MM_flg_cntr_PANEL_open	#	FW
+					has_country_flag = MUI_flg_cntr_EXPRESS_expand	#	MUI
+				}
+			}
+			#	舰队域
+			AND = { is_scope_type = fleet
+				exists = controller
+				controller = { is_ai = no
+					has_ascension_perk = AAR_AP_webway
+					has_relic = AAR_R_webway
+					#	MUI
+					NOR = {
+						has_country_flag = MM_flg_cntr_PANEL_open	#	FW
+						has_country_flag = MUI_flg_cntr_EXPRESS_expand	#	MUI
+					}
+				}
+			}
+		}
+	}
+	allow = {
+		custom_tooltip = {
+			fail_text = "AAR_failtips_WEBWAY_tgt_exists"
+			hidden_trigger = {
+				if = { limit = { is_scope_type = country }
+					NOT = { has_country_flag = AAR_flg_cntr_JUMP_webway_TGT }
+				}
+				else_if = { limit = { is_scope_type = fleet }
+					exists = controller
+					controller = { NOT = { has_country_flag = AAR_flg_cntr_JUMP_webway_TGT } }
+				}
+			}
+		}	
+	}
+	
+	effect = {#参考"AAR_R_webway"
+		custom_tooltip = AAR_R_webway
+		custom_tooltip = AAR_tips_R_webway
+		hidden_effect = {
+			if = { limit = { is_scope_type = country }
+				##_|存在枢纽|		=远程节点激活
+				if = { limit = { has_megastructure = AAR_MEGA_webway_NEXUS }
+					create_fleet = {
+						name = AAR_DESIGN_tgt_WEBWAY 
+						effect = {
+							# 绝对通行
+							set_fleet_flag = FW_flg_flt_JUMP	# FW特殊跃迁flt
+							root = { set_timed_country_flag = { flag = AAR_flg_cntr_JUMP_webway_TGT days = 90 } }	# |AAR特殊跃迁|	也作为激活开关
+							set_owner = root
+							create_ship = { name = AAR_DESIGN_tgt		 design = AAR_DESIGN_tgt }
+							set_location = root.capital_scope
+							fleet_event = { id = AAR_evt_WEBWAY.41 days = 90 }	# 网道定位器自我清理
+							
+							set_fleet_flag = AAR_flg_flt_TGT_webway
+						}
+					}
+				}
+				##_|没有枢纽|
+				else = {
+					country_event = { id = AAR_evt_WEBWAY.52 }	# 没有枢纽通知
+				}
+			}
+			else_if = { limit = { is_scope_type = fleet }
+				controller = {
+					##_|存在枢纽|		=远程节点激活
+					if = { limit = { has_megastructure = AAR_MEGA_webway_NEXUS }
+						create_fleet = {
+							name = AAR_DESIGN_tgt_WEBWAY 
+							effect = {
+								# 绝对通行
+								set_fleet_flag = FW_flg_flt_JUMP	# FW特殊跃迁flt
+								root = { set_timed_country_flag = { flag = AAR_flg_cntr_JUMP_webway_TGT days = 90 } }	# |AAR特殊跃迁|	也作为激活开关
+								set_owner = root
+								create_ship = { name = AAR_DESIGN_tgt		 design = AAR_DESIGN_tgt }
+								set_location = root.capital_scope
+								fleet_event = { id = AAR_evt_WEBWAY.41 days = 90 }	# 网道定位器自我清理
+								
+								set_fleet_flag = AAR_flg_flt_TGT_webway
+							}
+						}
+					}
+					##_|没有枢纽|
+					else = {
+						country_event = { id = AAR_evt_WEBWAY.52 }	# 没有枢纽通知
+					}
+				}
+			}
+		}
+	}
+}
+##	宇宙立方EXPRESS
+AAR_btn_cntr_JUMPER_relic_EXPRESS = {
+	potential = {
+		is_scope_type = country
+		is_ai = no
+		has_ascension_perk = AAR_AP_jumper
+		has_relic = AAR_R_jumper
+		NOR = {
+			has_country_flag = MM_flg_cntr_PANEL_open	#	FW
+			has_country_flag = MUI_flg_cntr_EXPRESS_expand	#	MUI
+		}
+	}
+	allow = {
+		custom_tooltip = {
+			fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_ongoing"
+			hidden_trigger = { NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock } }	# |超频中|非
+		}
+		custom_tooltip = {
+			fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_var"
+			hidden_trigger = {
+				OR = {
+					has_modifier = AAR_mod_cntr_JUMPER_overclock	# |超频中|
+					NOT = { has_country_flag = AAR_flg_cntr_JUMPER_overclock_CD }	# |充能中|非
+				}
+			}
+		}
+	}
+	
+	effect = {#参考"AAR_R_jumper"
+		custom_tooltip = AAR_R_jumper
+		custom_tooltip = AAR_tips_R_jumper
+		hidden_effect = {
+			set_update_modifiers_batch = begin	#_|修正更新|暂停
+			
+			#	超频
+			set_timed_country_flag = { flag = AAR_flg_cntr_JUMPER_overclock_CD days = 1080 }	# |冷却|=3年
+			add_modifier = { modifier = AAR_mod_cntr_JUMPER_overclock days = 360 }
+			#	MCM同步
+			fire_on_action = { on_action = MCM_on_country_sync }
+			
+			set_update_modifiers_batch = end	#_|修正更新|重启
+		}
+	}
+}
+

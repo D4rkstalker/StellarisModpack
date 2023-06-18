@@ -1,0 +1,2063 @@
+#Lithoid Supremacy Events
+namespace = lithoidsupremacy
+
+#Event 00: Game has Lithoid Supremacy
+event = {
+	id = lithoidsupremacy.00
+	hide_window = yes
+	is_triggered_only = yes
+	fire_only_once = yes
+	immediate = { set_global_flag = lithoidsupremacy }
+}
+
+#Event 1: Geode world DM deficit consequences
+country_event = {
+	id = lithoidsupremacy.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	#Triggers on DM deficit (has 0 of resouce and gain is negative)
+	trigger = {
+		has_resource = { type = sr_dark_matter amount = 0 }
+		has_monthly_income = { resource = sr_dark_matter  value < 0 }
+	}
+
+	#Causes 5 monthly devastation to owned geode worlds (That are not the Origin world)
+	immediate = {
+		every_owned_planet = {
+			limit = {
+				is_planet_class = pc_geode
+				has_deposit = d_geode_world_maintenance
+			}
+			add_planet_devastation = 5
+		}
+	}
+}
+
+#Event 2: Geode World Origin Setup
+planet_event = {
+	id = lithoidsupremacy.2
+	is_triggered_only = yes
+	hide_window = yes
+
+	pre_triggers = {
+		has_owner = yes
+	}
+
+	#Checks owner has the correct origin
+	trigger = {
+		owner = { has_origin = origin_geode_world }
+	}
+	
+	immediate = {
+		#Set planet size as 25 (Boosted to 32 with the deposit later)
+		set_planet_size = 25
+
+		#Declare origin world
+		set_planet_flag = lithoid_supremacy_geode_origin
+
+		#Guilli's compatibility
+		set_planet_flag = forbid_guillis_planet_modifiers
+
+		#Planetary Diversity compatibility
+		set_planet_flag = pd_ignore
+		
+		#Create the ambient shattered section
+		create_ambient_object = {
+			location = this
+			type = "lithoid_supremacy_geode_object"
+
+			use_3d_location= yes
+
+			entity_offset = 0
+			entity_offset_angle = 0
+			entity_offset_height = 0
+			base_angle_towards = star
+			entity_face_object = star
+
+			entity_scale_to_size = no #yes
+			scale = 16
+			#0.5 by default
+			#0.3 is under planet mesh
+		}
+		
+		#Add Modifier
+		add_modifier = { modifier = geode_world days = -1 }
+
+		#Add Deposits
+		add_deposit = d_expanded_lithosphere
+		add_deposit = d_geode_world_origin_maintenance
+
+		# Add Districts using event not deposit - Not used since it requires day 2 to trigger
+		# while = {
+		# 	count = 9
+		# 	add_district = district_mining
+		# 	add_district = district_generator
+		# }
+
+		# while = {
+		# 	count = 6
+		# 	add_district = district_farming
+		# }
+		
+		#give the rare crystal tech
+		owner = {
+			give_technology = { message = no tech = tech_mine_rare_crystals }
+		}
+	}
+}
+
+#Event 3: Fix for PD Geode Origin, creates deposits if not created
+country_event = {
+	id = lithoidsupremacy.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	#Triggers on DM deficit (has 0 of resouce and gain is negative)
+	trigger = {
+		exists = owner
+		owner = { has_origin = origin_geode_world }
+		home_planet = {
+			NOR = {
+				has_deposit = d_expanded_lithosphere
+				has_deposit = d_geode_world_origin_maintenance
+			}
+		}
+	}
+
+	#Causes 5 monthly devastation to owned geode worlds (That are not the Origin world)
+	immediate = {
+		home_planet = {
+			add_deposit = d_expanded_lithosphere
+			add_deposit = d_geode_world_origin_maintenance
+		}
+	}
+}
+
+#Event 4: Set Lithoid Empire Flag
+country_event = {
+	id = lithoidsupremacy.4
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		owner = {
+			is_lithoid_empire = yes
+		}
+	}
+
+	immediate = {
+		set_country_flag = lithoid_empire
+	}
+}
+
+#Event 5: Add Leader Traits
+country_event = {
+	id = lithoidsupremacy.5
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		every_owned_leader = {
+			add_leader_traits_after_modification_lithoid_supremacy = yes
+			remove_leader_traits_after_modification_lithoid_supremacy = yes
+		}
+
+		every_pool_leader = {
+			add_leader_traits_after_modification_lithoid_supremacy = yes
+			remove_leader_traits_after_modification_lithoid_supremacy = yes
+		}
+	}
+}
+
+#Event 6: Pearl Born Spawn
+planet_event = {
+	id = lithoidsupremacy.6
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { has_origin = origin_pearl_born }
+	}
+
+	immediate = { lithoid_supremacy_generate_start_pops = yes }
+}
+
+#Event 7: Switch one mining district to farming if Mossy Symbiosis/Pearl Born is present
+planet_event = {
+	id = lithoidsupremacy.7
+	is_triggered_only = yes
+	hide_window = yes
+
+	pre_triggers = {
+		has_owner = yes
+	}
+
+	#Checks owner has the correct origin/traits
+	trigger = {
+		owner = { 
+			species = {
+				OR = {
+					has_trait = trait_mossy_symbiosis
+					has_trait = trait_pearl_born_drone
+					has_trait = trait_pearl_born_royal
+				}
+			} 
+		}
+	}
+	
+	immediate = {
+		#Add hydrofarm to voiddwellers
+		if = {
+			limit = {
+				is_planet_class = pc_habitat 
+			}
+			add_building = building_hydroponics_farm
+		}
+		#Swap shattered ring mining to farming
+		if = {
+			limit = {
+				owner = {
+					has_origin = origin_shattered_ring
+				}
+			}
+			add_district = district_farming_uncapped
+			remove_district = district_mining_uncapped
+		}
+		#Swap planet mining district to farming
+		if = {
+			limit = {
+				is_artificial = no
+			}
+			add_district = district_farming
+			remove_district = district_mining 
+		}
+		#Add spawning pool for pearlborn
+		if = {
+			limit = {
+				owner = {
+					has_origin = origin_pearl_born
+				}
+			}
+			add_building = building_ocean_spawning_pool
+		}
+	}
+}
+
+#Event 8: Meteor ship Buff [Part 1]
+planet_event = {
+	id = lithoidsupremacy.8
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = FROM
+		exists = owner
+
+		FROM = { is_ship_size = lithoid_colonizer }
+		owner = { has_origin = origin_lithoid }
+		owner = { has_technology = tech_advanced_meteor_ship }
+
+		#NOT = { has_modifier = lithoid_crater } #Planet will immediately get this modifier
+	}
+
+	immediate = {
+		add_deposit = d_buried_lithoids
+		set_planet_flag = advanced_meteor_colonization
+	}
+}
+
+#Event 9: Meteor ship Buff [Part 2]
+planet_event = {
+	id = lithoidsupremacy.9
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		planet = {
+			has_planet_flag = advanced_meteor_colonization
+		}
+	}
+
+	immediate = {
+		create_pop = { species = owner }
+		remove_planet_flag = advanced_meteor_colonization
+	}
+}
+
+#Event 10: Terravore Army Seeding
+country_event = {
+	id = lithoidsupremacy.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { army_type = terravore_shard_army } #Terravore Army
+		exists = owner
+		owner = { has_technology = tech_terravore_shard_1 }
+	}
+
+	immediate = {
+		#Add Planet Modifier
+		fromfromfrom = {
+			if = {
+				limit = {
+					NAND = {
+						OR = {
+							#Unless already exists
+							has_modifier = terravore_shard_seeds_1
+							# has_modifier = terravore_shard_seeds_2
+							# has_modifier = terravore_shard_seeds_3
+						}
+						#has_planet_flag = terravore_shards_1@this
+					}
+				}
+				#set_planet_flag = terravore_shards_1@this
+				add_modifier = { modifier = terravore_shard_seeds_1 days = -1 }
+
+				#Fire spawn loop event
+				planet_event = {
+					id = lithoidsupremacy.11
+					days = 60
+					scopes = {
+						this = fromfromfrom
+					}
+				}
+			}
+		}
+	}
+}
+
+#Event 11: Terravore Seeded Armies Spawn
+planet_event = {
+	id = lithoidsupremacy.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		#has_modifier = terravore_shard_seeds_1
+	}
+
+	immediate = {
+		random_list = {
+			90 = {
+				log = "Shards rolled 90 on planet: \\[This.GetName]"
+			}
+			10 = {
+				log = "Shards rolled 10 on planet: \\[This.GetName]"
+
+				if = {
+					limit = { 
+						#Planet isn't being colonised or is not a colony
+						is_colony = yes
+						is_under_colonization = no
+						#Check not also terravore
+						exists = owner
+						NOT = {
+							owner = {
+								is_lithoid_empire = yes
+								has_valid_civic = civic_hive_devouring_swarm
+							}
+						}
+						#Check if occupied or not by checking if there are no terravore armies
+						NOT = {
+							any_planet_army = {
+								owner = {
+									has_country_flag = terravore_shard_empire
+								}
+							}
+						}
+					}
+					#Create Country
+					create_country = {
+						name = "NAME_Terravore_Shards"
+						type = faction
+						effect = {
+							establish_communications_no_message = root.owner
+						}
+						flag = {
+							icon = {
+								category = "domination"
+								file = "domination_1.dds"
+							}
+							background= {
+								category = "backgrounds"
+								file = "new_dawn.dds"
+							}
+							colors={
+								"red"
+								"black"
+								"null"
+								"null"
+							}
+						}
+					}
+					#Assign Flag
+					last_created_country = {
+						set_country_flag = terravore_shard_empire
+					}
+					#Create Species
+					create_species = {
+						name = "NAME_Terravore_Shards"
+						class = LITHOID
+						portrait = random
+						traits = random
+					}
+					#Create Armies
+					while = {
+						count = 5
+						create_army = {
+							name = "NAME_Terravore_Shards"
+							owner = last_created_country
+							species = last_created_species
+							type = "enraged_shardlings_army"
+						}
+					}
+					#Log Success
+					log = "Successful spawn on planet: \\[This.GetName]"
+				}
+				else = {
+					#Log Failure
+					log = "Failed spawn on planet: \\[This.GetName]"
+				}
+		
+				planet_event = {
+					id = lithoidsupremacy.12
+				}
+			}
+		}
+	}
+}
+
+#Event 12: looping event
+planet_event = {
+	id = lithoidsupremacy.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		#Do it again!
+		planet_event = {
+			id = lithoidsupremacy.11
+			days = 200
+			#Interval between respawns
+		}
+
+		log = "Loop iteration on planet: \\[This.GetName]"
+	}
+}
+
+#Event 13: Destroy Terravore Shards, Terravore transfer
+planet_event = {
+	id = lithoidsupremacy.13
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		#Has modifiers
+		OR = {
+			has_modifier = terravore_shard_seeds_1
+			# has_modifier = terravore_shard_seeds_2
+			# has_modifier = terravore_shard_seeds_3
+		}
+		#Owner is Terravore
+		exists = owner
+		owner = {
+			is_lithoid_empire = yes
+			has_valid_civic = civic_hive_devouring_swarm
+		}
+	}
+
+	immediate = {
+		#Remove modifiers
+		remove_modifier = terravore_shard_seeds_1
+	}
+}
+
+#Event 14: Destroy Terravore Shards, Colony destroy
+planet_event = {
+	id = lithoidsupremacy.14
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		#Has modifiers
+		OR = {
+			has_modifier = terravore_shard_seeds_1
+			# has_modifier = terravore_shard_seeds_2
+			# has_modifier = terravore_shard_seeds_3
+		}
+	}
+
+	immediate = {
+		#Remove modifiers
+		remove_modifier = terravore_shard_seeds_1
+	}
+}
+
+#Event 15: Give empire zro infused (Loops)
+country_event = {
+	id = lithoidsupremacy.15
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		#Initial trigger, psionic assimilation and Lithoid
+		owner = {
+			has_tradition = tr_psionics_psionic_assimilation
+			is_lithoid_empire = yes
+			NOT = { #Disable loop using this
+				has_country_flag = country_has_zro_infused
+			}
+		}
+	}
+
+	immediate = {
+		#Check if empire satisfies conditions
+		if = {
+			limit = { 
+				owner = {
+					#Conditions are positive zro income
+					has_resource = { type = sr_zro amount > 0 }
+					has_monthly_income = { resource = sr_zro  value > 0 }
+				}
+			}
+			#Check Succeeded
+			set_country_flag = country_has_zro_infused
+
+			country_event = { 
+				id = lithoidsupremacy.16
+			}
+		}
+		else = {
+			#Check Failed, try again in 240-360 days
+			country_event = {
+				id = lithoidsupremacy.15
+				days = 240 
+				random = 120
+			}
+		}
+	}
+}
+
+#Event 16: Notify Zro Infusion
+country_event = {
+	id = lithoidsupremacy.16
+	title = lithoidsupremacy.16.name
+	desc = lithoidsupremacy.16.desc
+	picture = GFX_evt_psionics
+	show_sound = event_the_great_awakening
+	is_triggered_only = yes
+
+	trigger = {
+		has_country_flag = country_has_zro_infused
+	}
+
+	immediate = {
+		#Pop becomes Zro Infused
+		random_owned_pop = {
+			limit = {
+				has_trait = trait_lithoid
+				has_trait = trait_psionic
+			}
+			modify_species = {
+				species = this
+				add_trait = trait_zro_infused
+			}
+		}
+		#Leader becomes Zro Infused
+		random_owned_leader = {
+			save_event_target_as = zro_infused_leader
+			if = {
+				limit = {
+					leader_class = admiral
+					NOT = { has_trait = leader_trait_admiral_zro_infused }
+				}
+				add_trait = leader_trait_admiral_zro_infused
+			}
+			else_if = {
+				limit = {
+					leader_class = governor
+					NOT = { has_trait = leader_trait_governor_zro_infused }
+				}
+				add_trait = leader_trait_governor_zro_infused
+			}
+			else_if = {
+				limit = {
+					leader_class = scientist
+					NOT = { has_trait = leader_trait_scientist_zro_infused }
+				}
+				add_trait = leader_trait_scientist_zro_infused
+			}
+			else_if = {
+				limit = {
+					leader_class = general
+					NOT = { has_trait = leader_trait_general_zro_infused }
+				}
+				add_trait = leader_trait_general_zro_infused
+			}
+		}
+	}
+
+	option = {
+		name = EXCELLENT
+		from = {
+			custom_tooltip = lithoidsupremacy.16.tooltip
+		}
+	}
+}
+
+#Event 17: Zro Overload Add
+country_event = {
+	id = lithoidsupremacy.17
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		#If a leader levels up, check they have the right trait
+		from = {
+			OR = {	
+				has_trait = leader_trait_admiral_zro_infused
+				has_trait = leader_trait_governor_zro_infused
+				has_trait = leader_trait_scientist_zro_infused
+				has_trait = leader_trait_general_zro_infused
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			if = {
+				limit = {
+					leader_class = admiral
+				}
+				random_list = {
+					90 = { }
+					10 = { 
+						remove_trait = leader_trait_admiral_zro_infused
+						add_trait = leader_trait_admiral_zro_overload
+						save_event_target_as = zro_overload_leader
+
+						leader_event = {
+							id = lithoidsupremacy.18
+							days = 720 
+							random = 720
+						}
+
+						leader_event = {
+							id = lithoidsupremacy.19
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					leader_class = governor
+				}
+				random_list = {
+					90 = { }
+					10 = { 
+						remove_trait = leader_trait_governor_zro_infused
+						add_trait = leader_trait_governor_zro_overload
+						save_event_target_as = zro_overload_leader
+
+						leader_event = {
+							id = lithoidsupremacy.18
+							days = 720 
+							random = 720
+						}
+
+						leader_event = {
+							id = lithoidsupremacy.19
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					leader_class = scientist
+				}
+				random_list = {
+					90 = { }
+					10 = { 
+						remove_trait = leader_trait_scientist_zro_infused
+						add_trait = leader_trait_scientist_zro_overload
+						save_event_target_as = zro_overload_leader
+
+						leader_event = {
+							id = lithoidsupremacy.18
+							days = 720
+							random = 720
+						}
+
+						leader_event = {
+							id = lithoidsupremacy.19
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					leader_class = general
+				}
+				random_list = {
+					90 = { }
+					10 = { 
+						remove_trait = leader_trait_general_zro_infused
+						add_trait = leader_trait_general_zro_overload
+						save_event_target_as = zro_overload_leader
+
+						leader_event = {
+							id = lithoidsupremacy.18
+							days = 720 
+							random = 720
+						}
+
+						leader_event = {
+							id = lithoidsupremacy.19
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+#Event 18: Kill the overloaded leader
+leader_event = {
+	id = lithoidsupremacy.18
+	title = lithoidsupremacy.18.name
+	desc = lithoidsupremacy.18.desc
+	picture = GFX_evt_psionics
+	show_sound = event_the_great_awakening
+	is_triggered_only = yes
+
+	trigger = {
+		#If a leader levels up, check they have the right trait
+		this = {
+			OR = {	
+				has_trait = leader_trait_admiral_zro_overload
+				has_trait = leader_trait_governor_zro_overload
+				has_trait = leader_trait_scientist_zro_overload
+				has_trait = leader_trait_general_zro_overload
+			}
+		}
+	}
+
+	immediate = {
+		this = {
+			save_event_target_as = zro_overloaded_leader
+			kill_leader = {
+				show_notification = no
+			}
+		}
+	}
+
+	option = {
+		name = UNFORTUNATE
+		from = {
+			custom_tooltip = lithoidsupremacy.18.tooltip
+		}
+	}
+}
+
+#Event 19: Notify Overload
+leader_event = {
+	id = lithoidsupremacy.19
+	title = lithoidsupremacy.19.name
+	desc = lithoidsupremacy.19.desc
+	picture = GFX_evt_psionics
+	show_sound = event_the_great_awakening
+	is_triggered_only = yes
+
+	option = {
+		name = EXCELLENT
+		from = {
+			custom_tooltip = lithoidsupremacy.19.tooltip
+		}
+	}
+}
+
+### COLOSSUS ###
+
+#Devourer
+planet_event = {
+	id = lithoidsupremacy.600
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		#Dismantle observation post
+		if = {
+			limit = {
+				has_observation_outpost = yes
+			}
+			observation_outpost_owner = {
+				country_event = { id = planet_destruction.1000 days = 1 }
+			}
+		}
+
+		# Swarm Situation Log counter
+		if = {
+			limit = {
+				exists = owner
+				owner = { is_country_type = swarm }
+			}
+			every_country = {
+				limit = { has_event_chain = "prethoryn_scourge_chain" }
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds"
+					amount = -1
+				}
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds_cleansed"
+					amount = 1
+				}
+			}
+
+			### EFFECT
+
+		}
+
+		#Galactic Resolution
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+				}
+				OR = {
+					is_active_resolution = "resolution_rulesofwar_independent_tribunals"
+					is_active_resolution = "resolution_rulesofwar_last_resort_doctrine"
+					is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
+				}
+			}
+			from.owner = {
+				set_timed_country_flag = { flag = resolution_breached_fired_deluge days = 3600 }
+			}
+		}
+
+		#Threat + Opinion
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+					OR = {
+						is_country_type = default
+						is_country_type = fallen_empire
+						is_country_type = awakened_fallen_empire
+					}
+				}
+			}
+			# Generate threat
+			add_threat = { who = from.owner amount = 3 }
+			# modifiers for victim
+			owner = {
+				add_opinion_modifier = {
+					modifier = opinion_devoured_my_world
+					who = from.owner
+				}
+				if = {
+					limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+					add_modifier = {
+						modifier = colossus_victim
+						days = 10800 # 30 years
+					}
+				}
+			}
+		}
+		# Add war exhaustion to planet owner
+		if = {
+			limit = {
+				exists = owner
+				owner = { NOT = { is_same_value = from.owner } }
+			}
+			owner = {
+				if = {
+					limit = { #isn't the case when the crisis bombards planets, for instance
+						is_at_war_with = from.owner
+					}
+					add_static_war_exhaustion = {
+						attacker = from.owner
+						location = root
+						value_for_planet_destruction = 1.0
+					}
+				}
+			}
+		}
+
+		#PRIMARY EFFECTS
+		#Check Planet size, provide resources/pops, change planet size
+		if = {
+			limit = {
+				planet_size > 25
+			}
+			from.owner = {
+				#provide 25+ perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			set_planet_size = 25
+		}
+		else_if = {
+			limit = {
+				planet_size > 22
+			}
+			from.owner = {
+				#provide 22+ perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			set_planet_size = 22
+		}
+		else_if = {
+			limit = {
+				planet_size > 19
+			}
+			from.owner = {
+				#provide 19+ perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			set_planet_size = 19
+		}
+		else_if = {
+			limit = {
+				planet_size > 15
+			}
+			from.owner = {
+				#provide 15+ perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			set_planet_size = 15
+		}
+		else_if = {
+			limit = {
+				planet_size > 10
+			}
+			from.owner = {
+				#provide 10+ perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			set_planet_size = 10
+		}
+		else_if = {
+			limit = {
+				planet_size <= 10
+			}
+			from.owner = {
+				#provide Destruction perks
+				random_list = {
+					10 = {
+						#Option A: Pop
+						log = "Planet \\[prev.GetName], POPS"
+
+						random_owned_planet = {
+							create_pop = {
+								species = owner_main_species
+							}
+							save_event_target_as = terravore_receive_planet
+						}
+						#Inform Empire
+						create_message = {
+							type = MESSAGE_TYPE_POP_CREATED_FROM_DEVOUR
+							localization = MESSAGE_POP_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = US
+								#My empire
+								scope = this
+							}
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+							variable = {
+								type = name
+								localization = PLANET
+								#Target own world
+								scope = event_target:terravore_receive_planet
+							}
+						}
+					}
+					10 = {
+						#Option: B Mineral
+						log = "Planet \\[prev.GetName], MINERALS"
+						add_monthly_resource_mult = {
+							resource = minerals
+							value = 3
+							min = @tier2materialmax
+							max = @tier3materialmax
+						}
+						#Food Bonus Gaia
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_gaia
+								}
+							}
+							add_resource = {
+								food = 1000
+							}
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus Ecu
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						create_message = {
+							type = MESSAGE_TYPE_MINERAL_CREATED_FROM_DEVOUR
+							localization = MESSAGE_MINERAL_CREATED_FROM_DEVOUR
+							days = 30
+							target = event_target:terravore_receive_planet
+							variable = {
+								type = name
+								localization = DEVOURED
+								scope = prev
+								#Planet devoured
+							}
+						}
+					}
+					10 = {
+						#Option C: Alloy
+						log = "Planet \\[prev.GetName], ALLOYS"
+						add_monthly_resource_mult = {
+							resource = alloys
+							value = 3
+							min = @tier3materialmin
+							max = @tier1materialmax
+						}
+						#Alloy Bonus Relic
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_relic
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+						#Alloy Bonus City
+						if = {
+							limit = { 
+								prev = {
+									is_planet_class = pc_city
+								}
+							}
+							add_resource = {
+								alloys = 250
+							}
+						}
+					}
+				}
+				###
+				log = "Planet \\[prev.GetName] was devoured by \\[this.GetName], and a pop created on \\[terravore_receive_planet.GetName]"
+				###
+			}
+			#Destroy Planet
+			every_owned_pop = {
+				kill_pop = yes
+			}
+			destroy_colony = yes
+			remove_all_buildings = yes
+			if = {
+				limit = {
+					exists = orbital_defence
+				}
+				destroy_fleet = orbital_defence
+			}
+			remove_all_buildings = yes
+			set_planet_size = 12
+			change_pc = pc_nuked
+			clear_deposits = yes
+			change_pc = pc_shattered
+			random_list = {
+				1 = {
+					add_deposit = d_minerals_6
+				}
+				1 = {
+					add_deposit = d_minerals_4
+				}
+				1 = {
+					add_deposit = d_minerals_3
+				}
+				1 = {
+					add_deposit = d_minerals_2
+				}
+			}
+		}
+	}
+}
+
+#Evaporator
+planet_event = {
+	id = lithoidsupremacy.700
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { is_planet_class = pc_ai }
+			}
+			from.owner = { country_event = { id = lithoidsupremacy.701 } }
+		}
+
+		#Dismantle observation post
+		if = {
+			limit = {
+				has_observation_outpost = yes
+			}
+			observation_outpost_owner = {
+				country_event = { id = planet_destruction.1000 days = 1 }
+			}
+		}
+		if = {
+			limit = {
+				is_planet_class = pc_ai
+				NOT = { has_planet_flag = machine_lair }
+			}
+			#set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_drenched	#Since needed for crisis events?
+			planet_event = { id = crisis.2040 }
+			create_ambient_object = {
+				location = this
+				type = habitat_cracker_object
+				duration = 5
+
+				use_3d_location = yes
+				base_angle_towards = star
+				entity_face_object = star
+
+				entity_offset = { min = 0 max = 0 }
+
+				entity_scale_to_size = yes
+				scale = 0.5
+			}
+		}
+
+		# Contingency Final Machine World
+		if = {
+			limit = {
+				is_planet_class = pc_ai
+				has_planet_flag = machine_lair
+			}
+			#set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_drenched	#Since needed for crisis events?
+			from.owner = { save_event_target_as = final_machine_world_destroyer }
+			stop_crisis_sound = yes
+			planet_event = { id = crisis.2046 }
+			create_ambient_object = {
+				location = this
+				type = habitat_cracker_object
+				duration = 5
+
+				use_3d_location = yes
+				base_angle_towards = star
+				entity_face_object = star
+
+				entity_offset = { min = 0 max = 0 }
+
+				entity_scale_to_size = yes
+				scale = 0.5
+			}
+		}
+
+		# Swarm Situation Log counter
+		if = {
+			limit = {
+				exists = owner
+				owner = { is_country_type = swarm }
+			}
+			every_country = {
+				limit = { has_event_chain = "prethoryn_scourge_chain" }
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds"
+					amount = -1
+				}
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds_cleansed"
+					amount = 1
+				}
+			}
+			destroy_colony = yes
+		}
+
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+				}
+				OR = {
+					is_active_resolution = "resolution_rulesofwar_independent_tribunals"
+					is_active_resolution = "resolution_rulesofwar_last_resort_doctrine"
+					is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
+				}
+			}
+			from.owner = {
+				set_timed_country_flag = { flag = resolution_breached_fired_deluge days = 3600 }
+			}
+		}
+		if = { #you've basically shortcutted terraforming. Yep, that's a breach
+			limit = {
+				exists = space_owner
+				space_owner = {
+					is_same_value = from.owner
+				}
+				OR = {
+					NOT = { exists = owner }
+					owner = { is_same_value = from.owner }
+				}
+				OR = {
+					is_active_resolution = "resolution_ecology_environmental_control_board"
+					is_active_resolution = "resolution_ecology_paradise_initiative"
+				}
+			}
+			from.owner = {
+				set_timed_country_flag = { flag = resolution_breached_terraformed days = 3600 }
+			}
+		}
+
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+					OR = {
+						is_country_type = default
+						is_country_type = fallen_empire
+						is_country_type = awakened_fallen_empire
+					}
+				}
+			}
+			# Generate threat
+			add_threat = { who = from.owner amount = 3 }
+			# modifier for allies + those upset by robots
+			every_country = {
+				limit = {
+					NOR = {
+						is_same_value = from.owner
+						is_same_value = root.owner
+						AND = {
+							has_federation = yes
+							is_in_federation_with = from.owner
+						}
+					}
+					OR = {
+						has_communications = from.owner
+						has_communications = root.owner
+					}
+				}
+				add_opinion_modifier = {
+					modifier = opinion_evaporated_a_world
+					who = from.owner
+				}
+			}
+			# modifiers for victim
+			owner = {
+				add_opinion_modifier = {
+					modifier = opinion_evaporated_my_world
+					who = from.owner
+				}
+				if = {
+					limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+					add_modifier = {
+						modifier = colossus_victim
+						days = 10800 # 30 years
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				exists = owner
+				owner = { is_country_type = primitive }
+			}
+			# modifier for allies + those upset by genocide
+			every_country = {
+				limit = {
+					NOR = { is_same_value = from.owner }
+					OR = {
+						has_communications = from.owner
+						has_communications = root.owner
+					}
+					is_country_type = default
+					NOR = {
+						is_xenophobe = yes
+						is_homicidal = yes
+						is_xenophile = yes
+					}
+				}
+				add_opinion_modifier = {
+					modifier = opinion_evaporated_a_primitive_world
+					who = from.owner
+				}
+			}
+			every_country = {
+				limit = {
+					NOR = { is_same_value = from.owner }
+					OR = {
+						has_communications = from.owner
+						has_communications = root.owner
+					}
+					OR = {
+						has_ai_personality = awakened_fallen_empire_xenophile
+						AND = {
+							is_country_type = default
+							is_xenophile = yes
+						}
+					}
+				}
+				add_opinion_modifier = {
+					modifier = opinion_evaporated_a_primitive_world_phile
+					who = from.owner
+				}
+			}
+		}
+		# Add war exhaustion to planet owner
+		if = {
+			limit = {
+				exists = owner
+				owner = { NOT = { is_same_value = from.owner } }
+			}
+			owner = {
+				if = {
+					limit = { #isn't the case when the crisis bombards planets, for instance
+						is_at_war_with = from.owner
+					}
+					add_static_war_exhaustion = {
+						attacker = from.owner
+						location = root
+						value_for_planet_destruction = 1.0
+					}
+				}
+			}
+		}
+
+		every_owned_pop = {
+			limit = {
+				NOR = { 
+					has_trait = trait_dune_born 
+					#has_trait = trait_lithoid
+				}
+			}
+			kill_pop = yes
+			from.owner = {
+				if = {
+					limit = { has_ascension_perk = ap_become_the_crisis }
+					complete_crisis_objective = crisobj_purge_pops
+				}
+			}
+		}
+		if = {
+			limit = { #were there any Aquatic pops? If so, the ownership needs to be flipped
+				any_owned_pop = {
+					is_scope_valid = yes
+					exists = this
+				}
+				owner = {
+					NOT = { is_same_value = from.owner }
+				}
+			}
+			set_owner = from.owner
+		}
+		if = {
+			limit = {
+				NOT = { is_planet_class = pc_broken }
+			}
+			change_pc = pc_desert
+			add_deposit = d_searing_desert
+		}
+	}
+}
+
+#Ding Dong, Evaporated
+country_event = {
+	id = lithoidsupremacy.701
+	title = lithoidsupremacy.701.name
+	desc = lithoidsupremacy.701.desc
+	picture = GFX_evt_death_from_above
+	show_sound = event_mystic_reveal
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = fired_evaporator }
+	}
+
+	immediate = {
+		set_country_flag = fired_evaporator
+	}
+
+	option = {
+		name = EXCELLENT
+		from = {
+			custom_tooltip = lithoidsupremacy.701.tooltip
+		}
+	}
+}

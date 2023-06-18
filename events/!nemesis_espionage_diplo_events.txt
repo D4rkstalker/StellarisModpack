@@ -1,0 +1,1023 @@
+################################
+#
+# Nemesis Espionage Events
+# Written by Gemma Thomson
+#
+###############################
+
+namespace = espionage
+
+@AssetReceivedTimer = 250 #Days until an empire which has randomly received an Asset is eligible to receive one again
+
+#######################################
+# HOSTILE INFILTRATION DETECTED
+#######################################
+
+# Hostile Infiltration Detected | from = inciting country (mirrors operation.3010)
+country_event = {
+    id = espionage.1070
+    title = espionage.1070.name
+    desc = {
+        text = espionage.1070.desc.identified
+        trigger = {
+            has_country_flag = hostile_infiltrator_identified@from
+            NOR = {
+                is_unfriendly = yes
+                is_xenophobe = yes
+                has_ascension_perk = ap_become_the_crisis
+            }
+        }
+    }
+    desc = {
+        text = espionage.1070.desc.identified.hostile
+        trigger = {
+            has_country_flag = hostile_infiltrator_identified@from
+            OR = {
+                is_unfriendly = yes
+                is_xenophobe = yes
+                has_ascension_perk = ap_become_the_crisis
+            }
+        }
+    }
+    desc = {
+        text = espionage.1070.desc.unknown
+        trigger = {
+            NOT = { has_country_flag = hostile_infiltrator_identified@from }
+            NOR = {
+                is_unfriendly = yes
+                is_xenophobe = yes
+                has_ascension_perk = ap_become_the_crisis
+            }
+        }
+    }
+    desc = {
+        text = espionage.1070.desc.unknown.hostile
+        trigger = {
+            NOT = { has_country_flag = hostile_infiltrator_identified@from }
+            OR = {
+                is_unfriendly = yes
+                is_xenophobe = yes
+                has_ascension_perk = ap_become_the_crisis
+            }
+        }
+    }
+    picture = GFX_evt_cover_blown
+    show_sound = event_spymaster
+    is_triggered_only = yes
+
+    trigger = {
+        exists = from
+    }
+
+    immediate = {
+        if = { #the hostile country is preset by a Smear Campaign
+            limit = {
+                exists = event_target:hostile_infiltration_country
+            }
+            set_country_flag = hostile_infiltrator_identified@from
+        }
+        else = {
+            if = { #we can decrypt and identify FROM as the hostile infiltrator
+                limit = {
+                    root = {
+                        relative_encryption_decryption = { target = from value > 1.5 }
+                    }
+                }
+                set_country_flag = hostile_infiltrator_identified@from
+                from = { save_event_target_as = hostile_infiltration_country }
+            }
+            else = { #guess the infiltrator
+                if = {
+                    limit = {
+                        any_playable_country = {
+                            has_communications = root
+                            NOT = { is_friendly_to = root }
+                        }
+                    }
+                    random_playable_country = {
+                        limit = {
+                            has_communications = root
+                            NOT = { is_friendly_to = root }
+                        }
+                        save_event_target_as = hostile_infiltration_country
+                    }
+                }
+                else = {
+                    random_playable_country = {
+                        limit = {
+                            has_communications = root
+                        }
+                        save_event_target_as = hostile_infiltration_country
+                    }
+                }
+            }
+        }
+    }
+
+    option = { #Keep quiet (known infiltrator)
+        name = espionage.1070.a
+        trigger = {
+            has_country_flag = hostile_infiltrator_identified@from
+        }
+        add_intel_report = {
+            category = military
+            level = 1
+            days = 200
+            who = event_target:hostile_infiltration_country
+        }
+        if = { #Add an Asset, if there's reciprocal espionage
+            limit = {
+                has_nemesis = yes
+                any_spynetwork = {
+                    owner = { is_same_value = root }
+                    target = { is_same_value = event_target:hostile_infiltration_country }
+                }
+            }
+            random_spynetwork = {
+                limit = {
+                    owner = { is_same_value = root }
+                    target = { is_same_value = event_target:hostile_infiltration_country }
+                }
+                if = {
+                    limit = { target = { is_hive_empire = yes } }
+                    espionage_create_asset_hive = yes
+                }
+                else_if = {
+                    limit = { target = { is_machine_empire = yes } }
+                    espionage_create_asset_machine = yes
+                }
+                else = {
+                    espionage_create_asset_regular = yes
+                }
+            }
+        }
+        ai_chance = {
+            factor = 2
+			modifier = {
+                factor = 2
+                event_target:hostile_infiltration_country = { is_overlord_to = root }
+				is_loyal_to = event_target:hostile_infiltration_country
+            }
+            modifier = {
+                factor = 5
+                event_target:hostile_infiltration_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+        }
+    }
+    option = { #Protest (known infiltrator)
+        name = espionage.1070.b
+        trigger = {
+            has_country_flag = hostile_infiltrator_identified@from
+        }
+        add_resource = {
+            influence = 20
+        }
+        root = {
+			if = {
+				limit = {
+					opinion_level = { who = event_target:hostile_infiltration_country level >= good }
+				}
+				add_opinion_modifier = {
+					who = event_target:hostile_infiltration_country
+					modifier = opinion_betrayed_trust
+				}
+			}
+            add_opinion_modifier = {
+                who = event_target:hostile_infiltration_country
+                modifier = opinion_smear_campaign_espionage
+            }
+        }
+        if = {
+            limit = {
+                event_target:hostile_infiltration_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+            federation = { add_cohesion = -75 } #More serious as the evidence is clearer
+        }
+		if = {
+			limit = {
+				root = { is_overlord_to = event_target:hostile_infiltration_country }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = root }
+					target = { is_same_value = event_target:hostile_infiltration_country }
+				}
+				add_loyalty = -75
+			}
+		}
+		if = {
+			limit = {
+				event_target:hostile_infiltration_country = { is_overlord_to = root }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = event_target:hostile_infiltration_country }
+					target = { is_same_value = root }
+				}
+				add_loyalty = -75
+			}
+		}
+        add_intel_report = {
+            category = military
+            level = 1
+            days = 200
+            who = event_target:hostile_infiltration_country
+        }
+        custom_tooltip = espionage.1070.b.tooltip
+        hidden_effect = {
+            event_target:hostile_infiltration_country = {
+                country_event = { id = espionage.1072 days = 1 } #Allegation of Espionage
+            }
+        }
+        ai_chance = {
+            factor = 1
+			modifier = {
+                factor = 2
+				trust = { who = event_target:hostile_infiltration_country value < 25 }
+            }
+			modifier = {
+                factor = 2
+				is_civic_diplomatic_corps = yes
+            }
+			modifier = {
+                factor = 5
+				is_honorbound_warriors = yes
+            }
+            modifier = {
+                factor = 5
+                OR = {
+                    is_xenophobic_isolationists = yes
+                    event_target:hostile_infiltration_country = { is_rival = root }
+                }
+            }
+			modifier = {
+                factor = 5
+                event_target:hostile_infiltration_country = { is_overlord_to = root }
+				is_disloyal_to = event_target:hostile_infiltration_country
+            }
+        }
+    }
+    option = { #Extort favours (known infiltrator)
+        name = espionage.1070.e
+        trigger = {
+            has_country_flag = hostile_infiltrator_identified@from
+            has_nemesis = yes
+            has_spynetwork = yes
+            any_spynetwork = {
+                owner = { is_same_value = root }
+                target = { is_same_value = event_target:hostile_infiltration_country }
+                has_espionage_asset_diplomacy = yes
+            }
+        }
+        allow = {
+            custom_tooltip = {
+                fail_text = espionage.1070.e.fail
+                event_target:hostile_infiltration_country = {
+                    OR = {
+                        is_unfriendly = yes
+                        has_ascension_perk = ap_become_the_crisis
+                    }
+                }
+            }
+        }
+        random_spynetwork = {
+            limit = {
+                owner = { is_same_value = root }
+                target = { is_same_value = event_target:hostile_infiltration_country }
+            }
+            destroy_espionage_asset_diplomacy = yes
+        }
+        add_favors = {
+            target = from
+            value = 2 #Also communicated in an option tooltip in espionage.1073. If the value's changed here, be sure to change it there as well.
+        }
+        hidden_effect = {
+            event_target:hostile_infiltration_country = {
+                country_event = { id = espionage.1073 days = 1 }
+            }
+        }
+        ai_chance = { factor = 1 }
+    }
+    option = { #Keep quiet (assumed infiltrator OR Smear Campaign)
+        name = espionage.1070.c
+        trigger = {
+            NOT = { has_country_flag = hostile_infiltrator_identified@from }
+        }
+        add_intel_report = {
+            category = military
+            level = 1
+            days = 100
+            who = event_target:hostile_infiltration_country
+        }
+        ai_chance = {
+            factor = 4
+			modifier = {
+                factor = 1.5
+                event_target:hostile_infiltration_country = { is_overlord_to = root }
+				is_loyal_to = event_target:hostile_infiltration_country
+            }
+            modifier = {
+                factor = 3
+                event_target:hostile_infiltration_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+        }
+    }
+    option = { #Protest (assumed infiltrator OR Smear Campaign)
+        name = espionage.1070.d
+        trigger = {
+            NOT = {
+                has_country_flag = hostile_infiltrator_identified@from
+            }
+        }
+        add_resource = {
+            influence = 10
+        }
+        root = {
+			if = {
+				limit = {
+					opinion_level = { who = event_target:hostile_infiltration_country level >= good }
+				}
+				add_opinion_modifier = {
+					who = event_target:hostile_infiltration_country
+					modifier = opinion_betrayed_trust
+				}
+			}
+            add_opinion_modifier = {
+                who = event_target:hostile_infiltration_country
+                modifier = opinion_smear_campaign_espionage
+            }
+        }
+        if = {
+            limit = {
+                event_target:hostile_infiltration_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+            federation = { add_cohesion = -30 } #Mirrored in operation.3010; also displayed in an option tooltip in espionage.1072. If this value is changed, be sure to change it there as well.
+        }
+		if = {
+			limit = {
+				root = { is_overlord_to = event_target:hostile_infiltration_country }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = root }
+					target = { is_same_value = event_target:hostile_infiltration_country }
+				}
+				add_loyalty = -30
+			}
+		}
+		if = {
+			limit = {
+				event_target:hostile_infiltration_country = { is_overlord_to = root }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = event_target:hostile_infiltration_country }
+					target = { is_same_value = root }
+				}
+				add_loyalty = -30
+			}
+		}
+        add_intel_report = {
+            category = military
+            level = 1
+            days = 100
+            who = event_target:hostile_infiltration_country
+        }
+        custom_tooltip = espionage.1070.b.tooltip
+        hidden_effect = {
+            if = { #the assumed country is actually the culprit (NOT Smear Campaigns)
+                limit = {
+                    event_target:hostile_infiltration_country = {
+                        is_same_value = from
+                    }
+                }
+                from = {
+                    country_event = { id = espionage.1071 days = 1 } #Espionage Exposed
+                }
+            }
+            else = {
+                event_target:hostile_infiltration_country = {
+                    country_event = { id = espionage.1072 days = 1 } #Allegation of Espionage
+                }
+            }
+        }
+        ai_chance = {
+            factor = 1
+			modifier = {
+                factor = 2
+				trust = { who = event_target:hostile_infiltration_country value < 25 }
+            }
+			modifier = {
+                factor = 2
+				is_civic_diplomatic_corps = yes
+            }
+			modifier = {
+                factor = 5
+				is_honorbound_warriors = yes
+            }
+            modifier = {
+                factor = 5
+                OR = {
+                    is_xenophobic_isolationists = yes
+                    event_target:hostile_infiltration_country = { is_rival = root }
+                }
+            }
+			modifier = {
+                factor = 5
+                event_target:hostile_infiltration_country = { is_overlord_to = root }
+				is_disloyal_to = event_target:hostile_infiltration_country
+            }
+        }
+    }
+
+    after = {
+        remove_country_flag = hostile_infiltrator_identified@from
+    }
+}
+
+# Extorted for Favors | from = victim country
+country_event = {
+    id = espionage.1073
+    title = espionage.1073.name
+    desc = {
+		text = espionage.1073.desc
+		trigger = {
+			any_spynetwork = {
+				owner = { is_same_value = root }
+                target = { is_same_value = from }
+			}
+		}
+	}
+	desc = {
+		text = espionage.1073.desc.smear
+		trigger = {
+			NOT = {
+				any_spynetwork = {
+					owner = { is_same_value = root }
+					target = { is_same_value = from }
+				}
+			}
+		}
+	}
+    picture = GFX_evt_cover_blown
+    show_sound = event_default
+    is_triggered_only = yes
+
+    trigger = {
+        exists = from
+    }
+
+    immediate = { }
+
+    option = {
+        name = CURSES
+        tooltip = {
+            from = {
+                add_favors = {
+                    target = root
+                    value = 2
+                }
+            }
+        }
+        add_opinion_modifier = {
+            who = from
+            modifier = opinion_blackmailed_espionage
+        }
+    }
+}
+
+#######################################
+# INSIDIOUS PLOT EXPOSED
+#######################################
+# Triggered as a random Spy Network event, but the plot which is being exposed may come from any other empire - not necessarily the one being spied upon.
+# May be triggered by Espionage Operations including Smear Campaign, in which case event_target:insidious_plot_country is pre-determined.
+
+# Insidious Plot Uncovered
+country_event = {
+    id = espionage.1081
+    title = espionage.1081.name
+    desc = {
+        text = espionage.1081.desc
+        trigger = {
+            NOR = {
+                is_unfriendly = yes
+                has_ascension_perk = ap_become_the_crisis
+                has_country_flag = insidious_plot_samecountry
+            }
+        }
+    }
+    desc = {
+        text = espionage.1081.desc.hostile
+        trigger = {
+            OR = {
+                is_unfriendly = yes
+                has_ascension_perk = ap_become_the_crisis
+            }
+            NOT = { has_country_flag = insidious_plot_samecountry }
+        }
+    }
+    desc = {
+        text = espionage.1081.desc.samecountry
+        trigger = {
+            has_country_flag = insidious_plot_samecountry
+        }
+    }
+    picture = GFX_evt_decryption
+    show_sound = event_encrypted_comms
+    is_triggered_only = yes
+
+    trigger = {
+        exists = event_target:insidious_plot_country
+        exists = event_target:insidious_plot_spynetwork
+    }
+
+    immediate = { }
+
+    option = { #Indignation, including IF the plotter is an ally
+        name = {
+            text = espionage.1081.a
+            trigger = {
+                NOR = {
+                    is_unfriendly = yes
+                    has_ascension_perk = ap_become_the_crisis
+                }
+            }
+        }
+        name = {
+            text = INTRIGUING
+            trigger = {
+                OR = {
+                    is_unfriendly = yes
+                    has_ascension_perk = ap_become_the_crisis
+                }
+            }
+        }
+        if = {
+            limit = {
+                has_federation = yes
+                event_target:insidious_plot_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+            federation = { add_cohesion = -45 }
+        }
+		if = {
+			limit = {
+				root = { is_overlord_to = event_target:insidious_plot_country }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = root }
+					target = { is_same_value = event_target:insidious_plot_country }
+				}
+				add_loyalty = -45
+			}
+		}
+		if = {
+			limit = {
+				event_target:insidious_plot_country = { is_overlord_to = root }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = event_target:insidious_plot_country }
+					target = { is_same_value = root }
+				}
+				add_loyalty = -45
+			}
+		}
+		if = {
+			limit = {
+				opinion_level = { who = event_target:insidious_plot_country level >= good }
+			}
+			add_opinion_modifier = {
+				who = event_target:insidious_plot_country
+				modifier = opinion_betrayed_trust
+			}
+		}
+        add_opinion_modifier = {
+            who = event_target:insidious_plot_country
+            modifier = opinion_smear_campaign_deceived
+        }
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier1unityreward
+			min = @tier1unitymin
+			max = @tier1unitymax
+		}
+        ai_chance = {
+            factor = 1
+            modifier = {
+                factor = 8
+                OR = {
+                    is_honorbound_warriors = yes
+                    is_xenophobic_isolationists = yes
+                    is_evangelising_zealots = yes
+                    has_ai_personality = slaving_despots
+                }
+            }
+			modifier = {
+                factor = 5
+				is_rival = event_target:insidious_plot_country
+            }
+			modifier = {
+                factor = 2
+				trust = { who = event_target:insidious_plot_country value < 25 }
+            }
+            modifier = {
+                factor = 0.1
+                resource_stockpile_compare = { resource = influence value >= 10 }
+                OR = {
+                    has_ai_personality = fanatic_befrienders
+                    has_ai_personality = spiritual_seekers
+                    has_ai_personality = hive_mind
+                    has_ai_personality = peaceful_traders
+                }
+            }
+        }
+    }
+    option = { #Quieter option IF the plotter is an ally
+        name = DISCONCERTING
+        trigger = {
+            OR = {
+                has_ai_personality = fanatic_befrienders
+                is_spiritual_seekers = yes
+                has_ai_personality = hive_mind
+                has_ai_personality = peaceful_traders
+                event_target:insidious_plot_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+        }
+        allow = {
+            root = {
+                resource_stockpile_compare = { resource = influence value >= 10 }
+            }
+        }
+        root = {
+            add_resource = { influence = -10 }
+			if = {
+				limit = {
+					has_federation = yes
+					event_target:insidious_plot_country = {
+						has_federation = yes
+						federation = { is_same_value = root.federation }
+					}
+				}
+				federation = { add_cohesion = -25 }
+			}
+			if = {
+				limit = {
+					root = { is_overlord_to = event_target:insidious_plot_country }
+				}
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = root }
+						target = { is_same_value = event_target:insidious_plot_country }
+					}
+					add_loyalty = -25
+				}
+			}
+			if = {
+				limit = {
+					event_target:insidious_plot_country = { is_overlord_to = root }
+				}
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = event_target:insidious_plot_country }
+						target = { is_same_value = root }
+					}
+					add_loyalty = -25
+				}
+			}
+			if = {
+				limit = {
+					opinion_level = { who = event_target:insidious_plot_country level >= good }
+				}
+				add_opinion_modifier = {
+					who = event_target:insidious_plot_country
+					modifier = opinion_betrayed_trust
+				}
+			}
+            add_opinion_modifier = {
+                who = event_target:insidious_plot_country
+                modifier = opinion_smear_campaign_deceived
+            }
+        }
+        ai_chance = {
+            factor = 2
+        }
+    }
+
+    after = {
+        remove_country_flag = insidious_plot_samecountry
+        event_target:insidious_plot_country = {
+            country_event = { id = espionage.1085 days = 1 } #Implicated in a Plot
+        }
+    }
+}
+# Suspect Plot Uncovered
+country_event = {
+    id = espionage.1082
+    title = espionage.1082.name
+    desc = {
+        text = espionage.1082.desc
+        trigger = {
+            NOT = { has_country_flag = insidious_plot_samecountry }
+        }
+    }
+    desc = {
+        text = espionage.1082.desc.samecountry
+        trigger = { has_country_flag = insidious_plot_samecountry }
+    }
+    picture = GFX_evt_decryption
+    show_sound = event_encrypted_comms
+    is_triggered_only = yes
+
+    trigger = {
+        exists = event_target:insidious_plot_country
+        exists = event_target:insidious_plot_spynetwork
+    }
+
+    immediate = {
+        random_spynetwork = {
+            limit = {
+                owner = { is_same_value = root }
+                target = { is_same_value = event_target:insidious_plot_spynetwork }
+            }
+            leader = { save_event_target_as = insidious_plot_spymaster }
+        }
+    }
+
+    option = { #Cautious indignation
+        name = espionage.1082.a
+        if = {
+            limit = {
+                has_federation = yes
+                event_target:insidious_plot_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+            federation = { add_cohesion = -20 } #Also demonstrated in an event option tooltip in espionage.1085. If it's updated here, make the change there as well.
+        }
+		if = {
+			limit = {
+				root = { is_overlord_to = event_target:insidious_plot_country }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = root }
+					target = { is_same_value = event_target:insidious_plot_country }
+				}
+				add_loyalty = -20
+			}
+		}
+		if = {
+			limit = {
+				event_target:insidious_plot_country = { is_overlord_to = root }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = event_target:insidious_plot_country }
+					target = { is_same_value = root }
+				}
+				add_loyalty = -20
+			}
+		}
+        root = {
+			if = {
+				limit = {
+					opinion_level = { who = event_target:insidious_plot_country level >= good }
+				}
+				add_opinion_modifier = {
+					who = event_target:insidious_plot_country
+					modifier = opinion_betrayed_trust
+				}
+			}
+            add_opinion_modifier = {
+                who = event_target:insidious_plot_country
+                modifier = opinion_smear_campaign_deceived
+            }
+            add_monthly_resource_mult = {
+                resource = unity
+                value = @tier1unityreward
+                min = @tier1unitymin
+                max = @tier1unitymax
+            }
+        }
+        hidden_effect = {
+            event_target:insidious_plot_country = {
+                country_event = { id = espionage.1085 days = 1 } #Implicated in a Plot
+            }
+        }
+        ai_chance = {
+            factor = 1
+            modifier = {
+                factor = 5
+                OR = {
+                    is_honorbound_warriors = yes
+                    is_xenophobic_isolationists = yes
+                    is_evangelising_zealots = yes
+                    has_ai_personality = slaving_despots
+                }
+            }
+			modifier = {
+                factor = 3
+				is_rival = event_target:insidious_plot_country
+            }
+			modifier = {
+                factor = 2
+				trust = { who = event_target:insidious_plot_country value < 25 }
+            }
+            modifier = {
+                factor = 0.1
+                OR = {
+                    has_ai_personality = fanatic_befrienders
+                    is_spiritual_seekers = yes
+                    has_ai_personality = hive_mind
+                    has_ai_personality = peaceful_traders
+                }
+            }
+        }
+    }
+    option = { #Ignore this
+        name = espionage.1082.b
+		add_opinion_modifier = {
+			who = event_target:insidious_plot_country
+			modifier = opinion_smear_campaign_suspicious
+		}
+        if = {
+            limit = {
+                event_target:insidious_plot_country = {
+                    has_federation = yes
+                    federation = { is_same_value = root.federation }
+                }
+            }
+            federation = { add_cohesion = -10 }
+        }
+		if = {
+			limit = {
+				root = { is_overlord_to = event_target:insidious_plot_country }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = root }
+					target = { is_same_value = event_target:insidious_plot_country }
+				}
+				add_loyalty = -10
+			}
+		}
+		if = {
+			limit = {
+				event_target:insidious_plot_country = { is_overlord_to = root }
+			}
+			random_agreement = {
+				limit = {
+					owner = { is_same_value = event_target:insidious_plot_country }
+					target = { is_same_value = root }
+				}
+				add_loyalty = -10
+			}
+		}
+        ai_chance = {
+            factor = 2
+        }
+    }
+
+    after = {
+        remove_country_flag = insidious_plot_samecountry
+    }
+}
+
+# Implicated in an Insidious Plot | from = accusing country
+country_event = {
+	id = espionage.1085
+	title = espionage.1085.name
+	desc = {
+		text = espionage.1085.desc
+		trigger = {
+			NOT = { has_country_flag = first_spynetwork }
+		}
+	}
+	desc = {
+		text = espionage.1085.desc.neverspied
+		trigger = { has_country_flag = insidious_plot_samecountry }
+	}
+	picture = GFX_evt_decryption
+	show_sound = event_default
+	is_triggered_only = yes
+
+	trigger = {
+		exists = from
+	}
+
+	immediate = { }
+
+	option = { #Non-Federation ally response
+		name = CURIOUS
+		trigger = {
+			NOT = {
+				AND = {
+					has_federation = yes
+					from = { has_federation = yes }
+					federation = { is_same_value = from.federation }
+				}
+			}
+		}
+		tooltip = {
+			from = {
+				add_opinion_modifier = {
+					who = root
+					modifier = opinion_smear_campaign_deceived
+				}
+			}
+		}
+		if = {
+			limit = {
+				root = { is_overlord_to = from }
+			}
+			tooltip = {
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = root }
+						target = { is_same_value = from }
+					}
+					add_loyalty = -20
+				}
+			}
+		}
+		if = {
+			limit = {
+				from = { is_overlord_to = root }
+			}
+			tooltip = {
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = from }
+						target = { is_same_value = root }
+					}
+					add_loyalty = -20
+				}
+			}
+		}
+	}
+	option = { #Federation ally response
+		name = UNFORTUNATE
+		trigger = {
+			has_federation = yes
+			from = { has_federation = yes }
+			federation = { is_same_value = from.federation }
+		}
+		tooltip = {
+			federation = { add_cohesion = -20 }
+			from = {
+				add_opinion_modifier = {
+					who = root
+					modifier = opinion_smear_campaign_deceived
+				}
+			}
+		}
+		if = {
+			limit = {
+				root = { is_overlord_to = from }
+			}
+			tooltip = {
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = root }
+						target = { is_same_value = from }
+					}
+					add_loyalty = -20
+				}
+			}
+		}
+		if = {
+			limit = {
+				from = { is_overlord_to = root }
+			}
+			tooltip = {
+				random_agreement = {
+					limit = {
+						owner = { is_same_value = from }
+						target = { is_same_value = root }
+					}
+					add_loyalty = -20
+				}
+			}
+		}
+	}
+}

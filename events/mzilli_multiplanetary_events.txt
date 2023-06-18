@@ -1,0 +1,2020 @@
+namespace = mzilli_multiplan_events
+
+# Entering the multiplanetary system for the first time
+ship_event = {
+	id = mzilli_multiplan_events.1
+	title = "mzilli_multiplan_events.1.name"
+	desc = "mzilli_multiplan_events.1.desc"
+	picture = GFX_evt_inhabited_solar_system
+	show_sound = event_mystic_reveal
+	location = FROM
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			has_star_flag = mzilli_events_multiplanetary_primitives
+			any_system_planet = {
+				exists = owner
+				owner = { is_country_type = primitive }
+			}
+		}
+	}
+
+	option = { name = REMARKABLE }
+}
+
+# Checks for an undiscovered outpost in the system, or for treaty violations, every ~6 months
+planet_event = {
+	id = mzilli_multiplan_events.2
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		solar_system = {
+			if = {
+				limit = {
+					exists = space_owner
+					any_system_planet = {
+						exists = owner
+						owner = { is_country_type = primitive }
+					}
+				}
+				if = {
+					limit = { exists = event_target:multiplanet_civ_2 }
+					event_target:multiplanet_civ_2 = { save_global_event_target_as = multiplan_civ_target }
+				}
+				else_if = {
+					limit = { exists = event_target:multiplanet_civ_1 }
+					event_target:multiplanet_civ_1 = { save_global_event_target_as = multiplan_civ_target }
+				}
+				else = { event_target:multiplanet_civ_3 = { save_global_event_target_as = multiplan_civ_target } }
+
+				# First Contact with outpost owner
+				if = {
+					limit = { space_owner = { NOT = { has_country_flag = discovered_by_multiplanetary_civ } } }
+					starbase = {
+						owner = { set_country_flag = discovered_by_multiplanetary_civ }
+						starbase_event = { id = mzilli_multiplan_events.3 }
+					}
+				}
+
+				# Not supposed to have anchorages, shipyards, or weapons
+				else_if = {
+					limit = {
+						has_star_flag = deal_1_with_@space_owner
+						starbase = {
+							OR = {
+								has_starbase_module = shipyard
+								has_starbase_module = anchorage
+								has_starbase_module = gun_battery
+								has_starbase_module = missile_battery
+								has_starbase_module = hangar_bay
+								has_starbase_building = communications_jammer
+								prev = { any_ship_in_system = { is_ship_size = military_station_small } }
+								prev = { any_ship_in_system = { is_ship_size = ion_cannon } }
+							}
+						}
+					}
+					starbase = { starbase_event = { id = mzilli_multiplan_events.9 } }
+				}
+
+				# Not supposed to have an upgraded starbase
+				else_if = {
+					limit = {
+						has_star_flag = deal_2_with_@space_owner
+						starbase = { NOT = { has_starbase_size = starbase_outpost } }
+					}
+					starbase = { starbase_event = { id = mzilli_multiplan_events.10 } }
+				}
+
+				# Not supposed to have fleets stationed in the system
+				else_if = {
+					limit = {
+						OR = {
+							has_star_flag = deal_1_with_@space_owner
+							has_star_flag = deal_2_with_@space_owner
+						}
+						any_fleet_in_system = {
+							owner = { is_same_value = root.space_owner }
+							NOR = {
+								is_civilian = yes
+								is_ship_size = mining_station
+								is_ship_size = research_station
+								is_ship_size = observation_station
+								is_ship_size = starbase_outpost
+								is_ship_size = starbase_starport
+								is_ship_size = starbase_starhold
+								is_ship_size = starbase_starfortress
+								is_ship_size = starbase_citadel
+							}
+							is_fleet_idle = yes
+						}
+					}
+					starbase = { starbase_event = { id = mzilli_multiplan_events.11 } }
+				}
+
+				# Observation Post running Active Studies or Indoctrination
+				else_if = {
+					limit = {
+						any_system_planet = {
+							has_observation_outpost = yes
+							observation_outpost = {
+								OR = {
+									has_mission = specimen_collection
+									has_mission = native_indoctrination
+								}
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							has_observation_outpost = yes
+							observation_outpost = {
+								OR = {
+									has_mission = specimen_collection
+									has_mission = native_indoctrination
+								}
+							}
+						}
+						observation_outpost = { fleet_event = { id = mzilli_multiplan_events.12 } }
+					}
+				}
+
+				# Observation Post running Tech Enlightenment
+				else_if = {
+					limit = {
+						any_system_planet = {
+							has_observation_outpost = yes
+							observation_outpost = { has_mission = technological_enlightenment_9 }
+						}
+						any_system_planet = {
+							exists = owner
+							owner = { is_country_type = primitive }
+							OR = {
+								NOT = { has_observation_outpost = yes }
+								NOT = { observation_outpost = { has_mission = technological_enlightenment_9 } }
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							exists = owner
+							owner = { is_country_type = primitive }
+							OR = {
+								NOT = { has_observation_outpost = yes }
+								NOT = { observation_outpost = { has_mission = technological_enlightenment_9 } }
+							}
+						}
+						owner = { save_global_event_target_as = multiplan_civ_target }
+					}
+					random_system_planet = {
+						limit = {
+							has_observation_outpost = yes
+							observation_outpost = { has_mission = technological_enlightenment_9 }
+						}
+						observation_outpost = { fleet_event = { id = mzilli_multiplan_events.13 } }
+					}
+				}
+			}
+			else = {
+				if = {
+					limit = { exists = event_target:multiplan_civ_target }
+					clear_global_event_target = multiplan_civ_target
+				}
+			}
+		}
+		planet_event = { id = mzilli_multiplan_events.2 days = 150 random = 60 }
+	}
+}
+
+# Primitives try to hail outpost owner for First Contact
+starbase_event = {
+	id = mzilli_multiplan_events.3
+	title = "mzilli_multiplan_events.3.name"
+	desc = "mzilli_multiplan_events.3.desc"
+	picture = GFX_evt_unknown_ships
+	show_sound = event_mystic_reveal
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.3.a
+		custom_tooltip = mzilli_multiplan_events.3.a.tooltip
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.4 } }
+	}
+	option = {
+		name = mzilli_multiplan_events.3.b
+		custom_tooltip = mzilli_multiplan_events.3.b.tooltip
+	}
+}
+
+# Communication - First Contact
+starbase_event = {
+	id = mzilli_multiplan_events.4
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = { ROOT = { solar_system = { NOT = { has_star_flag = hostilities } } } }
+		text = "mzilli_multiplan_events.4.desc.a"
+	}
+	desc = {
+		trigger = { ROOT = { solar_system = { has_star_flag = hostilities } } }
+		text = "mzilli_multiplan_events.4.desc.b"
+	}
+	show_sound = event_ship_bridge
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target.ruler
+		room = ethic_spaceship_room
+	}
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		# Greetings
+		name = mzilli_multiplan_events.4.a
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.5 } }
+	}
+	option = {
+		# This means war!
+		name = mzilli_multiplan_events.4.b
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.8 } }
+	}
+}
+
+# Communication - Greetings
+starbase_event = {
+	id = mzilli_multiplan_events.5
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = {
+			event_target:multiplan_civ_target = {
+				capital_scope = {
+					NOR = {
+						is_moon = yes
+						is_planet_class = pc_dormant
+						is_planet_class = pc_dormant_cold
+						is_planet_class = pc_dormant_toxic
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.5.desc.a"
+	}
+	desc = {
+		trigger = {
+			event_target:multiplan_civ_target = {
+				capital_scope = {
+					OR = {
+						is_planet_class = pc_dormant
+						is_planet_class = pc_dormant_cold
+						is_planet_class = pc_dormant_toxic
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.5.desc.b"
+	}
+	desc = {
+		trigger = { event_target:multiplan_civ_target = { capital_scope = { is_moon = yes } } }
+		text = "mzilli_multiplan_events.5.desc.c"
+	}
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target.ruler
+		room = ethic_spaceship_room
+	}
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		# Can we keep our starbase?
+		name = mzilli_multiplan_events.5.a
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.6 } }
+	}
+	option = {
+		# This means war!
+		name = mzilli_multiplan_events.4.b
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.8 } }
+	}
+}
+
+# Communication - Can we keep our starbase?
+starbase_event = {
+	id = mzilli_multiplan_events.6
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = { ROOT = { solar_system = { NOT = { has_star_flag = hostilities } } } }
+		text = "mzilli_multiplan_events.6.desc.a"
+	}
+	desc = {
+		trigger = { ROOT = { solar_system = { has_star_flag = hostilities } } }
+		text = "mzilli_multiplan_events.6.desc.b"
+	}
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target.ruler
+		room = ethic_spaceship_room
+	}
+	location = ROOT
+	is_triggered_only = yes
+
+	# Other planets' opinions?
+	option = {
+		name = mzilli_multiplan_events.6.a
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.7 } }
+	}
+	# Acceptable - deal 1
+	option = {
+		trigger = { ROOT = { solar_system = { NOT = { has_star_flag = hostilities } } } }
+		name = mzilli_multiplan_events.6.b
+		custom_tooltip = mzilli_multiplan_events.6.b.tooltip.a
+		hidden_effect = { ROOT = { solar_system = { set_star_flag = deal_1_with_@root.owner } } }
+	}
+	# Acceptable - deal 2
+	option = {
+		trigger = { ROOT = { solar_system = { has_star_flag = hostilities } } }
+		name = mzilli_multiplan_events.6.b
+		custom_tooltip = mzilli_multiplan_events.6.b.tooltip.b
+		hidden_effect = { ROOT = { solar_system = { set_star_flag = deal_2_with_@root.owner } } }
+	}
+	# This means war!
+	option = {
+		name = mzilli_multiplan_events.4.b
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.8 } }
+	}
+}
+
+# Communication - Other planets' opinions?
+starbase_event = {
+	id = mzilli_multiplan_events.7
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = { ROOT = { solar_system = { NOT = { has_star_flag = hostilities } } } }
+		text = "mzilli_multiplan_events.7.desc.a"
+	}
+	desc = {
+		trigger = { ROOT = { solar_system = { has_star_flag = hostilities } } }
+		text = "mzilli_multiplan_events.7.desc.b"
+	}
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target.ruler
+		room = ethic_spaceship_room
+	}
+	location = ROOT
+	is_triggered_only = yes
+
+	# Acceptable - deal 1
+	option = {
+		trigger = { ROOT = { solar_system = { NOT = { has_star_flag = hostilities } } } }
+		name = mzilli_multiplan_events.6.b
+		custom_tooltip = mzilli_multiplan_events.6.b.tooltip.a
+		hidden_effect = { ROOT = { solar_system = { set_star_flag = deal_1_with_@root.owner } } }
+	}
+	# Acceptable - deal 2
+	option = {
+		trigger = { ROOT = { solar_system = { has_star_flag = hostilities } } }
+		name = mzilli_multiplan_events.6.b
+		custom_tooltip = mzilli_multiplan_events.6.b.tooltip.b
+		hidden_effect = { ROOT = { solar_system = { set_star_flag = deal_2_with_@root.owner } } }
+	}
+	# This means war!
+	option = {
+		name = mzilli_multiplan_events.4.b
+		hidden_effect = { starbase_event = { id = mzilli_multiplan_events.8 } }
+	}
+}
+
+# Communication - This means war!
+starbase_event = {
+	id = mzilli_multiplan_events.8
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.8.desc"
+	diplomatic = yes
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target.ruler
+		room = ethic_spaceship_room
+	}
+	location = ROOT
+	is_triggered_only = yes
+
+	immediate = {
+		solar_system = {
+			if = {
+				limit = { NOT = { has_star_flag = hostilities } }
+				set_star_flag = hostilities
+			}
+		}
+	}
+
+	option = {
+		name = mzilli_multiplan_events.8.a
+		event_target:multiplan_civ_target = {
+			set_faction_hostility = {
+				target = ROOT.owner
+				set_hostile = yes
+				set_neutral = no
+				set_friendly = no
+			}
+		}
+	}
+}
+
+# Communication - Illegal starbase constructions
+starbase_event = {
+	id = mzilli_multiplan_events.9
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = { ROOT = { has_starbase_module = shipyard } }
+		text = "mzilli_multiplan_events.9.desc.a"
+	}
+	desc = {
+		trigger = { ROOT = { has_starbase_module = anchorage } }
+		text = "mzilli_multiplan_events.9.desc.b"
+	}
+	desc = {
+		trigger = { ROOT = { has_starbase_module = missile_battery } }
+		text = "mzilli_multiplan_events.9.desc.c"
+	}
+	desc = {
+		trigger = { ROOT = { has_starbase_module = gun_battery } }
+		text = "mzilli_multiplan_events.9.desc.d"
+	}
+	desc = {
+		trigger = { ROOT = { has_starbase_module = hangar_bay } }
+		text = "mzilli_multiplan_events.9.desc.e"
+	}
+	desc = {
+		trigger = { ROOT = { has_starbase_building = communications_jammer } }
+		text = "mzilli_multiplan_events.9.desc.f"
+	}
+	desc = {
+		trigger = {
+			ROOT = {
+				solar_system = {
+					any_ship_in_system = {
+						owner = { is_same_value = root.owner }
+						is_ship_size = military_station_small
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.9.desc.g"
+	}
+	desc = {
+		trigger = {
+			ROOT = {
+				solar_system = {
+					any_ship_in_system = {
+						owner = { is_same_value = root.owner }
+						is_ship_size = ion_cannon
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.9.desc.h"
+	}
+
+	diplomatic = yes
+	show_sound = event_ship_bridge
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_hegemonic_imperialists_room"
+	}
+
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.9.a
+		custom_tooltip = mzilli_multiplan_events.9.a.tooltip
+		hidden_effect = {
+			if = {
+				limit = { has_starbase_module = shipyard }
+				remove_starbase_module = { module = shipyard }
+			}
+			if = {
+				limit = { has_starbase_module = anchorage }
+				remove_starbase_module = { module = anchorage }
+			}
+			if = {
+				limit = { has_starbase_module = missile_battery }
+				remove_starbase_module = { module = missile_battery }
+			}
+			if = {
+				limit = { has_starbase_module = gun_battery }
+				remove_starbase_module = { module = gun_battery }
+			}
+			if = {
+				limit = { has_starbase_module = hangar_bay }
+				remove_starbase_module = { module = hangar_bay }
+			}
+			if = {
+				limit = { has_starbase_building = communications_jammer }
+				remove_starbase_building = { building = communications_jammer }
+			}
+			solar_system = {
+				every_ship_in_system = {
+					limit = {
+						owner = { is_same_value = root.owner }
+						OR = {
+							is_ship_size = military_station_small
+							is_ship_size = ion_cannon
+						}
+					}
+					delete_ship = this
+				}
+			}
+		}
+	}
+	option = {
+		name = mzilli_multiplan_events.9.b
+		custom_tooltip = mzilli_multiplan_events.9.b.tooltip
+		hidden_effect = {
+			event_target:multiplan_civ_target = {
+				country_event = { id = mzilli_multiplan_events.14 }
+				capital_scope = { set_planet_flag = illegal_weapons }
+			}
+		}
+	}
+}
+
+# Communication - Illegal starbase upgrade
+starbase_event = {
+	id = mzilli_multiplan_events.10
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.10.desc"
+
+	diplomatic = yes
+	show_sound = event_ship_bridge
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_hegemonic_imperialists_room"
+	}
+
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.9.a
+		custom_tooltip = mzilli_multiplan_events.10.a.tooltip
+		hidden_effect = {
+			remove_starbase_module = { slot = all }
+			remove_starbase_building = { slot = all }
+			set_starbase_size = starbase_outpost
+		}
+	}
+	option = {
+		name = mzilli_multiplan_events.9.b
+		custom_tooltip = mzilli_multiplan_events.9.b.tooltip
+		hidden_effect = {
+			event_target:multiplan_civ_target = {
+				country_event = { id = mzilli_multiplan_events.14 }
+				capital_scope = { set_planet_flag = illegal_upgrade }
+			}
+		}
+	}
+}
+
+# Communication - Illegal fleets in system
+starbase_event = {
+	id = mzilli_multiplan_events.11
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.11.desc"
+
+	diplomatic = yes
+	show_sound = event_ship_bridge
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_hegemonic_imperialists_room"
+	}
+
+	location = ROOT.solar_system
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.9.a
+		custom_tooltip = mzilli_multiplan_events.11.a.tooltip
+		hidden_effect = {
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						owner = { is_same_value = root.owner }
+						NOR = {
+							is_civilian = yes
+							is_ship_size = mining_station
+							is_ship_size = research_station
+							is_ship_size = observation_station
+							is_ship_size = starbase_outpost
+							is_ship_size = starbase_starport
+							is_ship_size = starbase_starhold
+							is_ship_size = starbase_starfortress
+							is_ship_size = starbase_citadel
+						}
+						is_fleet_idle = yes
+					}
+					set_mia = yes
+				}
+			}
+		}
+	}
+	option = {
+		name = mzilli_multiplan_events.11.b
+		custom_tooltip = mzilli_multiplan_events.9.b.tooltip
+		hidden_effect = {
+			event_target:multiplan_civ_target = {
+				country_event = { id = mzilli_multiplan_events.14 }
+				capital_scope = { set_planet_flag = illegal_fleets }
+			}
+		}
+	}
+}
+
+# Communication - Illegal observation post research
+fleet_event = {
+	id = mzilli_multiplan_events.12
+	title = "mzilli_multiplan_events.12.name"
+	desc = "mzilli_multiplan_events.12.desc"
+
+	diplomatic = yes
+	show_sound = event_ship_bridge
+
+	picture_event_data = {
+		portrait = ROOT.orbit.owner
+		planet_background = ROOT.orbit.owner
+		graphical_culture = ROOT.orbit.owner
+		city_level = ROOT.orbit.owner
+		room = "personality_hegemonic_imperialists_room"
+	}
+
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.12.a
+		custom_tooltip = mzilli_multiplan_events.12.a.tooltip
+		hidden_effect = { set_mission = passive_observation }
+	}
+	option = {
+		name = mzilli_multiplan_events.12.b
+		custom_tooltip = mzilli_multiplan_events.9.b.tooltip
+		hidden_effect = {
+			ROOT.orbit.owner = {
+				country_event = { id = mzilli_multiplan_events.14 }
+				capital_scope = { set_planet_flag = illegal_studies }
+			}
+		}
+	}
+}
+
+# Communication - Illegal technological enlightenment
+fleet_event = {
+	id = mzilli_multiplan_events.13
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.13.desc"
+
+	diplomatic = yes
+	show_sound = event_ship_bridge
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_hegemonic_imperialists_room"
+	}
+
+	location = ROOT
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.9.a
+		custom_tooltip = mzilli_multiplan_events.12.a.tooltip
+		hidden_effect = { set_mission = passive_observation }
+	}
+	option = {
+		name = mzilli_multiplan_events.13.b
+		custom_tooltip = mzilli_multiplan_events.9.b.tooltip
+		hidden_effect = {
+			event_target:multiplan_civ_target = {
+				country_event = { id = mzilli_multiplan_events.14 }
+				capital_scope = { set_planet_flag = illegal_uplift }
+			}
+		}
+	}
+}
+
+# Fleet is sent to threaten starbase
+country_event = {
+	id = mzilli_multiplan_events.14
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_owned_fleet = {
+			limit = {
+				NOR = {
+					has_fleet_flag = fleet_of_@root.capital_scope
+					has_fleet_flag = fleet_of_@root.capital_scope.orbit
+				}
+			}
+			save_global_event_target_as = deterrent_fleet
+			auto_move_to_planet = {
+				target = solar_system.star
+				clear_auto_move_on_arrival = yes
+			}
+			solar_system = {
+				random_system_planet = {
+					limit = { prevprev = { has_fleet_flag = fleet_of_@prev } }
+					save_global_event_target_as = fleet_berth
+				}
+			}
+		}
+		capital_scope = {
+			solar_system = {
+				starbase = {
+					if = {
+						limit = { ROOT = { capital_scope = { has_planet_flag = civ_3_planet_2 } } }
+						starbase_event = { id = mzilli_multiplan_events.15 days = 40 }
+					}
+					else = { starbase_event = { id = mzilli_multiplan_events.15 days = 20 } }
+				}
+			}
+		}
+	}
+}
+
+# Starbase is threatened by fleet
+starbase_event = {
+	id = mzilli_multiplan_events.15
+	title = "mzilli_multiplan_events.15.name"
+	desc = "mzilli_multiplan_events.15.desc"
+	picture = GFX_evt_fleet_neutral
+	show_sound = event_red_alert
+	location = ROOT
+	is_triggered_only = yes
+
+	immediate = { event_target:deterrent_fleet = { remove_auto_move_target = yes } }
+
+	option = {
+		trigger = { FROM.capital_scope = { has_planet_flag = illegal_weapons } }
+		name = mzilli_multiplan_events.15.a
+		custom_tooltip = mzilli_multiplan_events.9.a.tooltip
+		hidden_effect = {
+			FROM.capital_scope = { remove_planet_flag = illegal_weapons }
+			if = {
+				limit = { has_starbase_module = shipyard }
+				remove_starbase_module = { module = shipyard }
+			}
+			if = {
+				limit = { has_starbase_module = anchorage }
+				remove_starbase_module = { module = anchorage }
+			}
+			if = {
+				limit = { has_starbase_module = missile_battery }
+				remove_starbase_module = { module = missile_battery }
+			}
+			if = {
+				limit = { has_starbase_module = gun_battery }
+				remove_starbase_module = { module = gun_battery }
+			}
+			if = {
+				limit = { has_starbase_module = hangar_bay }
+				remove_starbase_module = { module = hangar_bay }
+			}
+			if = {
+				limit = { has_starbase_building = communications_jammer }
+				remove_starbase_building = { building = communications_jammer }
+			}
+			solar_system = {
+				every_ship_in_system = {
+					limit = {
+						owner = { is_same_value = root.owner }
+						OR = {
+							is_ship_size = military_station_small
+							is_ship_size = ion_cannon
+						}
+					}
+					delete_ship = this
+				}
+			}
+			recall_deterrent_fleet = yes
+		}
+	}
+	option = {
+		trigger = { FROM.capital_scope = { has_planet_flag = illegal_upgrade } }
+		name = mzilli_multiplan_events.15.a
+		custom_tooltip = mzilli_multiplan_events.10.a.tooltip
+		hidden_effect = {
+			FROM.capital_scope = { remove_planet_flag = illegal_upgrade }
+			remove_starbase_module = { slot = all }
+			remove_starbase_building = { slot = all }
+			set_starbase_size = starbase_outpost
+			recall_deterrent_fleet = yes
+		}
+	}
+	option = {
+		trigger = { FROM.capital_scope = { has_planet_flag = illegal_fleets } }
+		name = mzilli_multiplan_events.15.a
+		custom_tooltip = mzilli_multiplan_events.11.a.tooltip
+		hidden_effect = {
+			FROM.capital_scope = { remove_planet_flag = illegal_fleets }
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						owner = { is_same_value = root.owner }
+						NOR = {
+							is_civilian = yes
+							is_ship_size = mining_station
+							is_ship_size = research_station
+							is_ship_size = observation_station
+							is_ship_size = starbase_outpost
+							is_ship_size = starbase_starport
+							is_ship_size = starbase_starhold
+							is_ship_size = starbase_starfortress
+							is_ship_size = starbase_citadel
+						}
+						is_fleet_idle = yes
+					}
+					set_mia = yes
+				}
+			}
+			recall_deterrent_fleet = yes
+		}
+	}
+
+	option = {
+		trigger = { FROM.capital_scope = { has_planet_flag = illegal_studies } }
+		name = mzilli_multiplan_events.15.a
+		custom_tooltip = mzilli_multiplan_events.15.a.tooltip.a
+		hidden_effect = {
+			FROM.capital_scope = { remove_planet_flag = illegal_studies }
+			FROMFROM = { set_mission = passive_observation }
+			recall_deterrent_fleet = yes
+		}
+	}
+
+	option = {
+		trigger = { FROM.capital_scope = { has_planet_flag = illegal_uplift } }
+		name = mzilli_multiplan_events.15.a
+		custom_tooltip = mzilli_multiplan_events.15.a.tooltip.b
+		hidden_effect = {
+			FROM.capital_scope = { remove_planet_flag = illegal_uplift }
+			FROMFROM = { set_mission = passive_observation }
+			recall_deterrent_fleet = yes
+		}
+	}
+
+	option = {
+		name = mzilli_multiplan_events.15.b
+		custom_tooltip = mzilli_multiplan_events.15.b.tooltip
+		hidden_effect = {
+			FROM = {
+				capital_scope = {
+					remove_planet_flag = illegal_weapons
+					remove_planet_flag = illegal_upgrade
+					remove_planet_flag = illegal_fleets
+					remove_planet_flag = illegal_studies
+					if = {
+						limit = { has_observation_outpost = yes }
+						observation_outpost = { destroy_fleet = { target = this } }
+					}
+				}
+			}
+			recall_deterrent_fleet = yes
+			FROM = {
+				set_faction_hostility = {
+					target = ROOT.owner
+					set_hostile = yes
+					set_neutral = no
+					set_friendly = no
+				}
+			}
+		}
+	}
+}
+
+# Starbase is destroyed if disabled by multiplanetary primitives
+# This = Ship
+# From = Disabler Ship
+ship_event = {
+	id = mzilli_multiplan_events.16
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		FROM = { owner = { has_country_flag = multiplanetary_primitives } }
+		OR = {
+			is_ship_size = starbase_outpost
+			is_ship_size = starbase_starport
+			is_ship_size = starbase_starhold
+			is_ship_size = starbase_starfortress
+			is_ship_size = starbase_citadel
+			is_ship_size = starbase_swarm
+			is_ship_size = starbase_ai
+			is_ship_size = starbase_exd_0
+			is_ship_size = starbase_exd
+			is_ship_size = starbase_marauder
+			is_ship_size = starbase_gatebuilders
+			is_ship_size = starbase_fe_outpost
+		}
+	}
+
+	immediate = { destroy_ship = this }
+}
+
+# Outcome of first battle with multiplanetary species
+country_event = {
+	id = mzilli_multiplan_events.17
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		NOR = {
+			FromFrom = { is_civilian = yes }
+			FromFromFrom = { is_civilian = yes }
+		}
+		OR = {
+			AND = {
+				is_country_type = default
+				NOT = { has_country_flag = first_battle_with_multiplan }
+				FROM = { has_country_flag = multiplanetary_primitives }
+			}
+			AND = {
+				FROM = {
+					is_country_type = default
+					NOT = { has_country_flag = first_battle_with_multiplan }
+				}
+				has_country_flag = multiplanetary_primitives
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { is_country_type = default }
+			FROM = {
+				capital_scope = {
+					solar_system = {
+						if = {
+							limit = { NOT = { has_star_flag = hostilities } }
+							set_star_flag = hostilities
+						}
+					}
+				}
+				save_global_event_target_as = multiplan_civ_target
+			}
+			set_country_flag = first_battle_with_multiplan
+			country_event = { id = mzilli_multiplan_events.18 }
+		}
+		else = {
+			capital_scope = {
+				solar_system = {
+					if = {
+						limit = { NOT = { has_star_flag = hostilities } }
+						set_star_flag = hostilities
+					}
+				}
+			}
+			save_global_event_target_as = multiplan_civ_target
+			FROM = {
+				set_country_flag = first_battle_with_multiplan
+				country_event = { id = mzilli_multiplan_events.18 }
+			}
+		}
+	}
+}
+
+# Declaration of War with multiplanetary primitives
+country_event = {
+	id = mzilli_multiplan_events.18
+	title = "mzilli_multiplan_events.18.name"
+	desc = "mzilli_multiplan_events.18.desc"
+	picture = GFX_evt_fleet_from_surface
+	show_sound = event_yellow_alert
+	location = event_target:multiplan_species.home_planet.solar_system
+	is_triggered_only = yes
+
+	immediate = {
+		every_country = {
+			limit = { has_country_flag = multiplanetary_primitives }
+			set_faction_hostility = {
+				target = ROOT
+				set_hostile = yes
+				set_neutral = no
+				set_friendly = no
+			}
+			capital_scope = {
+				if = {
+					limit = { has_observation_outpost = yes }
+					observation_outpost = { destroy_fleet = { target = this } }
+				}
+				solar_system = {
+					if = {
+						limit = { NOT = { has_star_flag = at_war_with_@root } }
+						set_star_flag = at_war_with_@root
+					}
+					if = {
+						limit = { NOT = { has_star_flag = at_war } }
+						set_star_flag = at_war
+					}
+				}
+			}
+		}
+		while = {
+			count = 2
+			random_system = {
+				limit = {
+					exists = owner
+					owner = { is_same_value = root }
+					distance = {
+						source = event_target:multiplan_species.home_planet.solar_system
+						min_distance >= 0
+						max_distance <= 40
+						type = euclidean
+						same_solar_system = no
+					}
+					any_system_planet = {
+						NOR = {
+							AND = {
+								is_star = yes
+								NOT = { has_moon = yes }
+							}
+							is_primary_star = yes
+							is_asteroid = yes
+							is_moon = yes
+						}
+					}
+					NOR = {
+						has_star_flag = mzilli_events_multiplanetary_primitives
+						has_star_flag = multiplanetary_target
+					}
+				}
+				set_star_flag = multiplanetary_target
+				random_system_planet = {
+					limit = {
+						NOR = {
+							AND = {
+								is_star = yes
+								NOT = { has_moon = yes }
+							}
+							is_primary_star = yes
+							is_asteroid = yes
+							is_moon = yes
+						}
+					}
+					weights = {
+						base = 1
+						modifier = {
+							factor = 100
+							is_star = yes
+							has_moon = yes
+							NOT = { is_primary_star = yes }
+						}
+						modifier = {
+							factor = 20
+							OR = {
+								is_planet_class = pc_gas_giant
+								is_planet_class = pc_ice_giant
+								is_planet_class = pc_t_planet
+								is_planet_class = pc_bespin
+							}
+						}
+					}
+					set_planet_flag = multiplanetary_target
+					planet_event = { id = mzilli_multiplan_events.28 days = 7200 random = 3600 }
+				}
+			}
+		}
+	}
+
+	option = {
+		name = mzilli_multiplan_events.18.a
+		custom_tooltip = mzilli_multiplan_events.18.a.tooltip
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.20 } }
+	}
+	option = {
+		name = mzilli_multiplan_events.18.b
+		custom_tooltip = mzilli_multiplan_events.18.b.tooltip
+		custom_tooltip = mzilli_multiplan_events.18.tooltip
+		hidden_effect = {
+			event_target:multiplan_species = {
+				home_planet = {
+					solar_system = {
+						if = {
+							limit = { has_star_flag = deal_1_with_@root }
+							remove_star_flag = deal_1_with_@root
+						}
+						else_if = {
+							limit = { has_star_flag = deal_2_with_@root }
+							remove_star_flag = deal_2_with_@root
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# If at war, spawns a fleet every 1.5-2.5 years unless all planets and asteroids have fleets
+planet_event = {
+	id = mzilli_multiplan_events.19
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		solar_system = {
+			if = {
+				limit = {
+					OR = {
+						has_star_flag = at_war
+						has_global_flag = gray_goo_crisis_active
+						has_global_flag = marauder_crisis_ongoing
+						has_global_flag = war_in_heaven_ongoing
+						has_global_flag = ongoing_prethoryn_invasion
+						has_global_flag = ai_invasion_ongoing
+						AND = {
+							has_global_flag = extradimensional_invasion_happened
+							NOT = { has_global_flag = extradimensional_invasion_defeated }
+						}
+						any_country = {
+							is_country_type = default
+							has_crisis_level = crisis_level_5
+						}
+					}
+					any_system_planet = {
+						exists = owner
+						owner = { is_country_type = primitive }
+					}
+					any_system_planet = {
+						NOR = {
+							is_star = yes
+							is_moon = yes
+							prev = { any_fleet_in_system = { has_fleet_flag = fleet_of_@prevprev } }
+						}
+					}
+				}
+				random_system_planet = {
+					limit = {
+						OR = {
+							has_planet_flag = civ_1_planet_1
+							has_planet_flag = civ_1_planet_2
+							has_planet_flag = civ_1_planet_3
+							has_planet_flag = civ_2_planet_1
+							has_planet_flag = civ_2_planet_2
+							has_planet_flag = civ_2_planet_3
+							has_planet_flag = civ_3_planet_1
+							has_planet_flag = civ_3_planet_2
+							has_planet_flag = civ_3_planet_3
+						}
+						NOT = { solar_system = { any_fleet_in_system = { has_fleet_flag = fleet_of_@prevprev } } }
+
+					}
+					if = {
+						limit = {
+							exists = event_target:multiplanet_civ_1
+							OR = {
+								has_planet_flag = civ_1_planet_1
+								has_planet_flag = civ_1_planet_2
+								has_planet_flag = civ_1_planet_3
+							}
+						}
+						event_target:multiplanet_civ_1 = {
+							create_leader = {
+								class = admiral
+								species = event_target:multiplanet_species
+								name = random
+								skill = 3
+							}
+							create_fleet = {
+								effect = {
+									set_fleet_flag = fleet_of_@prevprev
+									set_owner = event_target:multiplanet_civ_1
+									create_ship = {
+										name = random
+										design = "NAME_multiplan_battleship"
+										graphical_culture = "nemesis_01"
+									}
+									while = {
+										count = 3
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_cruiser"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 7
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_destroyer"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 12
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_corvette"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									set_location = {
+										target = prevprev
+										distance = 10
+									}
+									set_fleet_stance = aggressive
+									set_aggro_range_measure_from = self
+									set_aggro_range = 350
+									assign_leader = last_created_leader
+								}
+								settings = { garrison = yes }
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							exists = event_target:multiplanet_civ_2
+							OR = {
+								has_planet_flag = civ_2_planet_1
+								has_planet_flag = civ_2_planet_2
+								has_planet_flag = civ_2_planet_3
+							}
+						}
+						event_target:multiplanet_civ_2 = {
+							create_leader = {
+								class = admiral
+								species = event_target:multiplanet_species
+								name = random
+								skill = 3
+							}
+							create_fleet = {
+								effect = {
+									set_fleet_flag = fleet_of_@prevprev
+									set_owner = event_target:multiplanet_civ_2
+									create_ship = {
+										name = random
+										design = "NAME_multiplan_battleship"
+										graphical_culture = "nemesis_01"
+									}
+									while = {
+										count = 3
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_cruiser"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 7
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_destroyer"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 12
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_corvette"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									set_location = {
+										target = prevprev
+										distance = 10
+									}
+									set_fleet_stance = aggressive
+									set_aggro_range_measure_from = self
+									set_aggro_range = 350
+									assign_leader = last_created_leader
+								}
+								settings = { garrison = yes }
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							exists = event_target:multiplanet_civ_3
+							OR = {
+								has_planet_flag = civ_3_planet_1
+								has_planet_flag = civ_3_planet_2
+								has_planet_flag = civ_3_planet_3
+							}
+						}
+						event_target:multiplanet_civ_3 = {
+							create_leader = {
+								class = admiral
+								species = event_target:multiplanet_species
+								name = random
+								skill = 3
+							}
+							create_fleet = {
+								effect = {
+									set_fleet_flag = fleet_of_@prevprev
+									set_owner = event_target:multiplanet_civ_3
+									create_ship = {
+										name = random
+										design = "NAME_multiplan_battleship"
+										graphical_culture = "nemesis_01"
+									}
+									while = {
+										count = 3
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_cruiser"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 7
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_destroyer"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									while = {
+										count = 12
+										create_ship = {
+											name = random
+											design = "NAME_multiplan_corvette"
+											graphical_culture = "nemesis_01"
+										}
+									}
+									set_location = {
+										target = prevprev
+										distance = 10
+									}
+									set_fleet_stance = aggressive
+									set_aggro_range_measure_from = self
+									set_aggro_range = 350
+									assign_leader = last_created_leader
+								}
+								settings = { garrison = yes }
+							}
+						}
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					has_star_flag = at_war
+					NOT = {
+						any_country = {
+							is_country_type = default
+							prev = { has_star_flag = at_war_with_@prev }
+						}
+					}
+				}
+				remove_star_flag = at_war
+			}
+		}
+		planet_event = { id = mzilli_multiplan_events.19 days = 540 random = 360 }
+	}
+}
+
+# Communication - Trying to end the war
+country_event = {
+	id = mzilli_multiplan_events.20
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.20.desc"
+	show_sound = event_ship_bridge
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_migrating_flock_room"
+	}
+
+	location = event_target:multiplan_species.home_planet.solar_system
+	is_triggered_only = yes
+
+	option = {
+		# Misunderstanding
+		name = mzilli_multiplan_events.20.a
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.21 } }
+	}
+	option = {
+		# You can't defeat us
+		name = mzilli_multiplan_events.20.b
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.22 } }
+	}
+	option = {
+		# What are your terms?
+		name = mzilli_multiplan_events.20.c
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.23 } }
+	}
+}
+
+# Communication - Misunderstanding
+country_event = {
+	id = mzilli_multiplan_events.21
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = {
+			event_target:multiplan_species = {
+				home_planet = {
+					solar_system = {
+						OR = {
+							has_star_flag = deal_1_with_@root
+							has_star_flag = deal_2_with_@root
+						}
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.21.desc.a"
+	}
+	desc = {
+		trigger = {
+			event_target:multiplan_species = {
+				home_planet = {
+					solar_system = {
+						NOR = {
+							has_star_flag = deal_1_with_@root
+							has_star_flag = deal_2_with_@root
+						}
+					}
+				}
+			}
+		}
+		text = "mzilli_multiplan_events.21.desc.b"
+	}
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_migrating_flock_room"
+	}
+
+	location = event_target:multiplan_species.home_planet.solar_system
+	is_triggered_only = yes
+
+	option = {
+		# You can't defeat us
+		name = mzilli_multiplan_events.20.b
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.22 } }
+	}
+	option = {
+		# What are your terms?
+		name = mzilli_multiplan_events.20.c
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.23 } }
+	}
+}
+
+# Communication - You can't defeat us
+country_event = {
+	id = mzilli_multiplan_events.22
+	title = "mzilli_multiplan_events.4.name"
+	desc = "mzilli_multiplan_events.22.desc"
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_migrating_flock_room"
+	}
+
+	location = event_target:multiplan_species.home_planet.solar_system
+	is_triggered_only = yes
+
+	option = {
+		# Misunderstanding
+		name = mzilli_multiplan_events.20.a
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.21 } }
+	}
+	option = {
+		# What are your terms?
+		name = mzilli_multiplan_events.20.c
+		hidden_effect = { country_event = { id = mzilli_multiplan_events.23 } }
+	}
+}
+
+# Communication - What are your terms?
+country_event = {
+	id = mzilli_multiplan_events.23
+	title = "mzilli_multiplan_events.4.name"
+	desc = {
+		trigger = { NOT = { has_country_flag = attempted_terms_with_multiplan } }
+		text = "mzilli_multiplan_events.23.desc.a"
+	}
+	desc = {
+		trigger = { has_country_flag = attempted_terms_with_multiplan }
+		text = "mzilli_multiplan_events.23.desc.b"
+	}
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = event_target:multiplan_civ_target
+		planet_background = event_target:multiplan_civ_target
+		graphical_culture = event_target:multiplan_civ_target
+		city_level = event_target:multiplan_civ_target
+		room = "personality_migrating_flock_room"
+	}
+
+	location = event_target:multiplan_species.home_planet.solar_system
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:multiplan_species = {
+			home_planet = {
+				solar_system = {
+					if = {
+						limit = { has_star_flag = deal_1_with_@root }
+						remove_star_flag = deal_1_with_@root
+					}
+					else_if = {
+						limit = { has_star_flag = deal_2_with_@root }
+						remove_star_flag = deal_2_with_@root
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		# We accept
+		name = mzilli_multiplan_events.23.a
+		custom_tooltip = mzilli_multiplan_events.23.a.tooltip
+		hidden_effect = {
+			if = {
+				limit = { has_country_flag = attempted_terms_with_multiplan }
+				remove_country_flag = attempted_terms_with_multiplan
+			}
+			event_target:multiplan_civ_target = {
+				capital_scope = {
+					solar_system = {
+						every_fleet_in_system = {
+							limit = { owner = { is_same_value = ROOT } }
+							set_mia = yes
+						}
+					}
+				}
+				country_event = { id = mzilli_multiplan_events.24 }
+			}
+		}
+	}
+	option = {
+		# No way
+		name = mzilli_multiplan_events.23.b
+		custom_tooltip = mzilli_multiplan_events.23.b.tooltip
+		custom_tooltip = mzilli_multiplan_events.18.tooltip
+		hidden_effect = {
+			if = {
+				limit = { NOT = { has_country_flag = attempted_terms_with_multiplan } }
+				set_country_flag = attempted_terms_with_multiplan
+			}
+		}
+	}
+}
+
+### Multiplanetary primitives become FTL-capable
+country_event = {
+	id = mzilli_multiplan_events.24
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		remove_country_flag = multiplanetary_primitives
+		remove_country_flag = early_space_age
+		set_country_flag = primitives_can_into_space
+		set_country_type = default
+		change_country_flag = {
+			icon = {
+				category = "domination"
+				file = "domination_3.dds"
+			}
+			background= {
+				category = "backgrounds"
+				file = "circle.dds"
+			}
+			colors={
+				"dark_grey"
+				"light_blue"
+				"null"
+				"null"
+			}
+		}
+		if = {
+			limit = {
+				OR = {
+					has_ethic = "ethic_pacifist"
+					has_ethic = "ethic_fanatic_pacifist"
+				}
+			}
+			shift_ethic = "ethic_militarist"
+			change_government = {
+				authority = random
+				civics = {
+					civic = civic_distinguished_admiralty
+					civic = random
+				}
+			}
+		}
+		else = {
+			change_government = {
+				authority = random
+				civics = random
+			}
+		}
+		set_name = random
+		#set_name = {
+		#	key = "triumvirate_empire_name"
+		#	variable_string = "[capital_scope.solar_system.GetName]"
+		#}
+		#set_name = "Triumvirate of [This.home_planet.System.GetName]"
+		#capital_scope = { solar_system = { prevprev = { set_adjective = prev } } }
+		#set_ship_prefix = "TSS"
+		capital_scope = {
+			solar_system = {
+				every_fleet_in_system = {
+					limit = { owner = { is_country_type = primitive } }
+					set_owner = ROOT
+				}
+				every_system_planet = {
+					limit = {
+						OR = {
+							exists = owner
+							is_colonizable = yes
+							has_planet_flag = civ_2_planet_3
+							has_planet_flag = civ_3_planet_2
+						}
+					}
+					set_owner = ROOT
+				}
+				random_fleet_in_system = {
+					limit = {
+						owner = { is_same_value = root }
+						NOT = { is_civilian = yes }
+					}
+					ROOT = {
+						create_leader = {
+							class = admiral
+							species = ROOT.owner_species
+							name = random
+							skill = 3
+						}
+						every_owned_fleet = {
+							limit = { NOT = { is_same_value = prevprev } }
+							delete_fleet = this
+						}
+					}
+					assign_leader = last_created_leader
+				}
+			}
+		}
+		add_resource = {
+			energy = 10000
+			minerals = 10000
+			food = 5000
+			alloys = 3000
+			influence = 500
+		}
+		every_owned_planet = {
+			clear_blockers = yes
+			while = {
+				limit = { num_pops < 8 }
+				create_pop = { species = owner }
+			}
+			remove_building = building_primitive_farm
+			remove_building = building_primitive_mine
+			remove_building = building_primitive_factory
+			remove_building = building_primitive_capital
+			remove_building = building_urban_dwellings
+			remove_building = building_urban_dwellings
+
+			add_building = building_capital
+
+			while = {
+				count = 3
+				add_district = {
+					district_type = district_city
+					ignore_cap = yes
+				}
+				add_district = {
+					district_type = district_farming
+					ignore_cap = yes
+				}
+				add_district = {
+					district_type = district_mining
+					ignore_cap = yes
+				}
+				add_district = {
+					district_type = district_generator
+					ignore_cap = yes
+				}
+			}
+			while = {
+				count = 2
+				add_district = {
+					district_type = district_industrial
+					ignore_cap = yes
+				}
+			}
+			add_building = building_research_lab_1
+			add_building = building_foundry_1
+			add_building = building_commercial_forum
+			solar_system = {
+				if = {
+					limit = { exists = starbase }
+					starbase = { set_owner = ROOT }
+				}
+				else = {
+					create_starbase = {
+						size = starbase_starport
+						owner = root
+						module = shipyard
+					}
+				}
+			}
+			remove_all_armies = yes
+		}
+		give_technology = { tech = tech_hydroponics }
+		give_technology = { tech = tech_mass_drivers_2 }
+		give_technology = { tech = tech_autocannons_1 }
+		give_technology = { tech = tech_autocannons_2 }
+		give_technology = { tech = tech_flak_batteries_1 }
+		give_technology = { tech = tech_kinetic_artillery_1 }
+		give_technology = { tech = tech_ship_armor_2 }
+		give_technology = { tech = tech_afterburners_1 }
+		give_technology = { tech = tech_auxiliary_fire_control }
+		give_technology = { tech = tech_combat_computers_1 }
+		give_technology = { tech = tech_destroyers }
+		give_technology = { tech = tech_cruisers }
+		give_technology = { tech = tech_battleships }
+		give_technology = { tech = tech_starbase_2 }
+		give_technology = { tech = tech_thrusters_2 }
+		give_technology = { tech = tech_fusion_power }
+
+		set_truce = {
+			target = FROM
+			type = guarantee
+		}
+		add_opinion_modifier = {
+			who = FROM
+			modifier = opinion_declared_war
+		}
+
+		FROM = { country_event = { id = mzilli_multiplan_events.25 days = 2 } }
+	}
+}
+
+# Informed of multiplanetary primitives becomes FTL-capable
+country_event = {
+	id = mzilli_multiplan_events.25
+	title = "mzilli_multiplan_events.25.name"
+	desc = "mzilli_multiplan_events.25.desc"
+	picture = GFX_evt_three_sided_deal
+	show_sound = event_celebration
+	location = FROM
+	is_triggered_only = yes
+
+	option = {
+		name = mzilli_multiplan_events.25.a
+	}
+	option = {
+		name = mzilli_multiplan_events.25.b
+		FROM = {
+			home_planet = {
+				solar_system = {
+					add_claims = {
+						who = root
+						num_of_claims = 10
+						show_notification = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+# Multiplanetary primitives are conquered
+country_event = {
+	id = mzilli_multiplan_events.26
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		FROM = {
+			has_country_flag = multiplanetary_primitives
+			is_country_type = primitive
+		}
+		FROMFROM = {
+			OR = {
+				has_planet_flag = civ_1_planet_1
+				has_planet_flag = civ_2_planet_3
+				has_planet_flag = civ_3_planet_2
+			}
+		}
+	}
+
+	immediate = {
+		FROM = { remove_country_flag = multiplanetary_primitives }
+		if = {
+			limit = {
+				NOT = {
+					any_country = {
+						has_country_flag = multiplanetary_primitives
+						is_country_type = primitive
+					}
+				}
+			}
+			FROMFROM = {
+				solar_system = { 
+					if = {
+						limit = { has_star_flag = at_war }
+						remove_star_flag = at_war
+					}
+				}
+			}
+			every_country = {
+				limit = {
+					is_country_type = default
+					OR = {
+						is_same_value = ROOT
+						has_country_flag = discovered_by_multiplanetary_civ
+					}
+				}
+				if = {
+					limit = { FROMFROM.solar_system = { has_star_flag = at_war_with_@prev } }
+					FROMFROM.solar_system = { remove_star_flag = at_war_with_@prev }
+				}
+				country_event = { id = mzilli_multiplan_events.27 }
+			}
+			every_country = {
+				limit = { has_country_flag = interstellar_fleet_arrives }
+				remove_country_flag = interstellar_fleet_arrives
+			}
+		}
+	}
+}
+
+# Empires are notified that the multiplanetary primitives have fallen
+country_event = {
+	id = mzilli_multiplan_events.27
+	title = "mzilli_multiplan_events.27.name"
+	desc = {
+		trigger = { is_same_value = FROM }
+		text = "mzilli_multiplan_events.27.desc.a"
+	}
+	desc = {
+		trigger = { NOT = { is_same_value = FROM } }
+		text = "mzilli_multiplan_events.27.desc.b"
+	}
+	picture = GFX_evt_ruined_system
+	show_sound = event_alien_signal
+	location = FROM
+	is_triggered_only = yes
+
+	option = {
+		trigger = { NOT = { is_same_value = FROM } }
+		name = anomaly.625.a
+	}
+	option = {
+		name = mzilli_multiplan_events.27.b
+	}
+}
+
+# Interstellar fleets arrive 20-30 years after war begins
+planet_event = {
+	id = mzilli_multiplan_events.28
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		remove_planet_flag = multiplanetary_target
+		solar_system = { remove_star_flag = multiplanetary_target }
+		if = {
+			limit = {
+				exists = space_owner
+				any_country = { has_country_flag = multiplanetary_primitives }
+				any_system = {
+					has_star_flag = mzilli_events_multiplanetary_primitives
+					has_star_flag = at_war_with_@root.space_owner
+				}
+			}
+			random_country = {
+				limit = { has_country_flag = multiplanetary_primitives }
+				set_country_flag = multiplanetary_interstellar_1
+			}
+			random_country = {
+				limit = {
+					has_country_flag = multiplanetary_primitives
+					NOT = { has_country_flag = multiplanetary_interstellar_1 }
+				}
+				set_country_flag = multiplanetary_interstellar_2
+			}
+			every_country = {
+				limit = {
+					OR = {
+						has_country_flag = multiplanetary_interstellar_1
+						has_country_flag = multiplanetary_interstellar_2
+					}
+				}
+				if = {
+					limit = { has_country_flag = multiplanetary_interstellar_1 }
+					remove_country_flag = multiplanetary_interstellar_1
+				}
+				else = { remove_country_flag = multiplanetary_interstellar_2 }
+				create_leader = {
+					class = admiral
+					species = event_target:multiplanet_species
+					name = random
+					skill = 3
+				}
+				create_fleet = {
+					effect = {
+						set_fleet_flag = multiplanetary_interstellar_fleet
+						set_owner = prev
+						while = {
+							count = 3
+							create_ship = {
+								name = random
+								design = "NAME_multiplan_battleship"
+								graphical_culture = "nemesis_01"
+							}
+						}
+						while = {
+							count = 6
+							create_ship = {
+								name = random
+								design = "NAME_multiplan_cruiser"
+								graphical_culture = "nemesis_01"
+							}
+						}
+						while = {
+							count = 12
+							create_ship = {
+								name = random
+								design = "NAME_multiplan_corvette"
+								graphical_culture = "nemesis_01"
+							}
+						}
+						set_location = {
+							target = ROOT
+							distance = 10
+						}
+						set_fleet_stance = aggressive
+						set_aggro_range_measure_from = self
+						set_aggro_range = 350
+						assign_leader = last_created_leader
+					}
+				}
+			}
+			solar_system = { starbase = { starbase_event = { id = mzilli_multiplan_events.29 } } }
+		}
+	}
+}
+
+starbase_event = {
+	id = mzilli_multiplan_events.29
+	title = "mzilli_multiplan_events.29.name"
+	desc = {
+		trigger = { owner = { NOT = { has_country_flag = interstellar_fleet_arrives } } }
+		text = "mzilli_multiplan_events.29.desc.a"
+	}
+	desc = {
+		trigger = { owner = { has_country_flag = interstellar_fleet_arrives } }
+		text = "mzilli_multiplan_events.29.desc.b"
+	}
+	picture = GFX_evt_fleet_neutral
+	show_sound = event_red_alert
+	location = FROM
+	is_triggered_only = yes
+
+	option = {
+		name = BATTLESTATIONS
+		hidden_effect = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = interstellar_fleet_arrives } }
+					set_country_flag = interstellar_fleet_arrives
+				}
+			}
+		}
+	}
+}

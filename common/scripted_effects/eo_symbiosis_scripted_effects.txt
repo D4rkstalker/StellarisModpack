@@ -1,0 +1,272 @@
+check_symbiotes = {
+	while = {
+		limit = {
+			any_owned_pop = {
+				is_symbiote = yes
+				NOT = { has_pop_flag = symbiotes_counted }
+			}
+		}
+		random_owned_pop = {
+			limit = {
+				is_symbiote = yes
+				NOT = { has_pop_flag = symbiotes_counted }
+			}
+			calculate_symbiote_count = yes
+			set_pop_flag = symbiotes_counted
+		}
+	}
+	every_owned_pop = {
+		remove_pop_flag = symbiotes_counted
+	}
+}
+
+calculate_symbiote_count = {
+	save_event_target_as = symbiote_pop
+	set_variable = {
+		which = num_symbiote_pops
+		value = 0
+	}
+	planet = {
+		while = {
+			limit = {
+				any_owned_pop = {
+					NOT = { is_same_value = event_target:symbiote_pop }
+					NOT = { has_pop_flag = counted_as_symbiote }
+					is_symbiote_of_prevprev = yes
+				}
+			}
+			random_owned_pop = {
+				limit = {
+					NOT = { is_same_value = event_target:symbiote_pop }
+					NOT = { has_pop_flag = counted_as_symbiote }
+					is_symbiote_of_prevprev = yes
+				}
+				set_pop_flag = counted_as_symbiote
+				event_target:symbiote_pop = {
+					change_variable = {
+						which = num_symbiote_pops
+						value = 1
+					}
+				}
+			}
+		}
+		every_owned_pop = {
+			remove_pop_flag = counted_as_symbiote
+		}
+	}
+}
+
+import_symbiote_for_pop = {
+	if = {
+		limit = {
+			planet = {
+				colony_age <= 1
+				is_homeworld = no
+			}
+		}
+		random_galaxy_species = {
+			limit = {
+				is_symbiote_of_prev = yes
+			}
+			prev.planet = {
+				create_pop = {
+					species = prev
+				}
+			}
+		}
+	}
+	else_if = { # First, take a declining symbiote
+		limit = {
+			owner = {
+				any_owned_pop = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						num_pops > 1
+						NOT = {
+							any_owned_pop = {
+								is_symbiote_of_prevprevprev = yes
+							}
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			random_owned_pop = {
+				limit = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						num_pops > 1
+						NOT = {
+							any_owned_pop = {
+								is_symbiote_of_prevprev = yes
+							}
+						}
+					}
+				}
+				resettle_pop = {
+					pop = this
+					planet = prevprev.planet
+				}
+			}
+		}
+	}
+	else_if = { # Second, take an unemployed symbiote
+		limit = {
+			owner = {
+				any_owned_pop = {
+					is_symbiote_of_prevprev = yes
+					is_unemployed = yes
+					planet = {
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			random_owned_pop = {
+				limit = {
+					is_symbiote_of_prevprev = yes
+					is_unemployed = yes
+					planet = {
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+				resettle_pop = {
+					pop = this
+					planet = prevprev.planet
+				}
+			}
+		}
+	}
+	else_if = { # Third, take a replacable symbiote
+		limit = {
+			owner = {
+				any_owned_pop = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						free_jobs < 0
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			random_owned_pop = {
+				limit = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						free_jobs < 0
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+				resettle_pop = {
+					pop = this
+					planet = prevprev.planet
+				}
+			}
+		}
+	}
+	else_if = { # Fourth, just take a fucking random symbiote
+		limit = {
+			owner = {
+				any_owned_pop = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			random_owned_pop = {
+				limit = {
+					is_symbiote_of_prevprev = yes
+					planet = {
+						count_owned_pop = {
+							limit = { is_same_species = prevprevprev }
+							count > 1
+						}
+					}
+				}
+				resettle_pop = {
+					pop = this
+					planet = prevprev.planet
+				}
+			}
+		}
+	}
+	else_if = { # Fifth, generate one from thin air if you have a migration treaty
+		limit = {
+			owner = {
+				count_owned_pop = {
+					limit = {
+						is_symbiote_of_prev = yes
+					}
+					count < 1
+				}
+			}
+			any_country = {
+				has_diplo_migration_treaty = prev.owner
+				any_owned_species = {
+					is_symbiote_of_prevprev = yes
+				}
+			}
+		}
+		random_galaxy_species = {
+			limit = {
+				is_symbiote_of_prev = yes
+			}
+			prev.planet = {
+				create_pop = {
+					species = prev
+				}
+			}
+		}
+	}
+	else_if = { # Finally, grab a refugee
+		limit = {
+			any_country = {
+				has_communications = prev.owner
+				any_owned_species = {
+					is_symbiote_of_prevprev = yes
+					has_purge_type = { type = purge_displacement country = prev }
+				}
+			}
+		}
+		random_country = {
+			limit = {
+				has_communications = prev.owner
+				any_owned_species = {
+					is_symbiote_of_prevprev = yes
+					has_purge_type = { type = purge_displacement country = prev }
+				}
+			}
+			random_owned_pop = {
+				limit = {
+					is_symbiote_of_prevprev = yes
+				}
+				resettle_pop = {
+					pop = this
+					planet = prevprev.planet
+				}
+				add_modifier = { modifier = recent_refugee days = 3600 }
+			}
+		}
+	}
+}

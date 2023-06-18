@@ -1,0 +1,316 @@
+# Set up mod installed global_flag.
+namespace = acemod_sfex_jumpdrive_order
+event = {
+	id = acemod_sfex_jumpdrive_order.1
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		NOT = {
+			has_global_flag = acemod_sfex_jumpdrive_order_installed
+		}
+	}
+	immediate = {
+		set_global_flag = acemod_sfex_jumpdrive_order_installed
+	}
+}
+
+fleet_event = {
+	id = acemod_sfex_jumpdrive_order.2
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		clear_orders = yes
+		clear_fleet_actions = this
+		set_variable = {
+			which = acemod_var_fleet_piloted_exclusion			# acemod_set_fleet_piloted_exclusion_on = yes
+			value = 1
+		}
+		set_timed_fleet_flag = {
+			flag = acemod_sfex_fleet_flag_jumpdrive_windup
+			days = 15			# acemod_sfex_var_fleet_jumpdrive_windup +1
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_global_flag = acemod_sfex_gfx_disabled
+				}
+			}
+			every_owned_ship = {
+				create_ambient_object = {
+					type = acemod_sfex_gfx_ambient_object_jumpdrive_windup
+					use_3d_location = yes
+					entity_face_object = this
+					entity_scale_to_size = yes
+					location = this
+					duration = 12					# does not accept variable
+				}
+				last_created_ambient_object = {
+					set_ambient_object_flag = acemod_sfex_gfx_ambient_object_flag_jumpdrive_windup
+				}
+			}
+		}
+		fleet_event = {
+			id = acemod_sfex_jumpdrive_order.3			# jumpdrive_windup
+			days = 13			# does not accept variable
+		}
+	}
+}
+
+fleet_event = {
+	id = acemod_sfex_jumpdrive_order.3
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+					is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_effective_range
+					# is_variable_set = acemod_sfex_jumpdrive_order_var_distance_interstellar_measured
+				}
+			}
+			clear_variable = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+			clear_variable = acemod_sfex_fleet_order_var_jumpdrive_effective_range
+			# clear_variable = acemod_sfex_jumpdrive_order_var_distance_interstellar_measured			# Last jump distance for debug.
+		}
+		if = {
+			limit = {
+				exists = event_target:acemod_sfex_core_event_target_1
+			}
+			if = {
+				limit = {
+					is_disabled = no
+					is_in_combat = no
+					has_fleet_flag = acemod_sfex_fleet_flag_jumpdrive_windup
+				}
+				solar_system = {
+					save_event_target_as = acemod_sfex_event_target_solar_system_origin_jumpdrive_windup
+				}
+				play_sound = ftl_hyperlane_out_coming_ship
+				every_owned_ship = {
+					create_ambient_object = {
+						type = acemod_sfex_gfx_ambient_object_jumpdrive_effect_ftl_trail_entity
+						scale = 0.1
+						use_3d_location = yes
+						entity_face_object = this
+						entity_scale_to_size = yes
+						location = this
+						duration = 2						# does not accept variable
+					}
+					create_ambient_object = {
+						type = acemod_sfex_gfx_ambient_object_jumpdrive_effect
+						use_3d_location = yes
+						entity_face_object = this
+						entity_scale_to_size = yes
+						location = this
+						duration = 2						# does not accept variable
+					}
+				}
+				fleet_event = {
+					id = acemod_sfex_jumpdrive_order.4
+					days = 1
+				}
+			}
+				else = {
+					set_variable = {
+						which = acemod_var_fleet_piloted_exclusion					# acemod_set_fleet_piloted_exclusion_off = yes
+						value = 0
+					}
+				}
+		}
+		else = {
+			log = "acemod_sfex_jumpdrive_order.3: event_target:acemod_sfex_core_event_target_1 does not exist."
+			set_variable = {
+				which = acemod_var_fleet_piloted_exclusion				# acemod_set_fleet_piloted_exclusion_off = yes
+				value = 0
+			}
+		}
+	}
+}
+
+fleet_event = {
+	id = acemod_sfex_jumpdrive_order.4
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		if = {
+			limit = {
+				is_disabled = no
+				is_in_combat = no
+				has_fleet_flag = acemod_sfex_fleet_flag_jumpdrive_windup
+			}
+			event_target:acemod_sfex_event_target_solar_system_origin_jumpdrive_windup = {
+				every_system_ambient_object = {
+					limit = {
+						has_ambient_object_flag = acemod_sfex_gfx_ambient_object_flag_jumpdrive_windup
+					}
+					destroy_ambient_object = this
+				}
+			}
+			# translation from galactic_object for set_location
+			# ambient_object galactic_object planet fleet megastructure
+			event_target:acemod_sfex_core_event_target_1 = {
+				if = {
+					limit = {
+						is_scope_type = galactic_object
+					}
+					if = {
+						limit = {
+							NOT = {
+								is_variable_set = acemod_sfex_jumpdrive_order_var_system_radius
+							}
+						}
+						acemod_sfex_jumpdrive_order_export_planets_in_system_distance_to_centre_point = yes
+						# Not working in 3.1.
+						# if = {
+						# 	limit = {
+						# 		any_system_planet = {
+						# 			is_primary_star = yes
+						# 		}
+						# 	}
+						# 	random_system_planet = {
+						# 		limit = {
+						# 			is_primary_star = yes
+						# 		}
+						# 		solar_system = {
+						# 			every_system_planet = {
+						# 				export_trigger_value_to_variable = {
+						# 					trigger = distance
+						# 					variable = acemod_sfex_jumpdrive_order_var_distance_measured
+						# 					parameters = {
+						# 						same_solar_system = yes
+						# 						source = prevprev
+						# 					}
+						# 				}
+						# 			}
+						# 		}
+						# 	}
+						# 	ordered_system_planet = {
+						# 		position = 0
+						# 		order_by = acemod_sfex_jumpdrive_order_var_distance_measured
+						# 		inverse = yes
+						# 		set_planet_flag = acemod_sfex_acemod_sfex_jumpdrive_order_furthest_planet
+						# 	}
+						# }
+						acemod_sfex_core_create_global_country_if_needed = yes
+						event_target:acemod_sfex_core_global_country = {
+							if = {
+								limit = {
+									NOT = {
+										is_variable_set = acemod_sfex_jumpdrive_order_var_system_radius_offset
+									}
+								}
+								set_variable = {
+									which = acemod_sfex_jumpdrive_order_var_system_radius_base_offset
+									value = 50
+								}
+								set_variable = {
+									which = acemod_sfex_jumpdrive_order_var_system_radius_no_planets_offset
+									value = 75
+								}
+							}
+						}
+						ordered_system_planet = {
+							position = 0
+							order_by = acemod_sfex_jumpdrive_order_var_distance_measured
+							inverse = no
+							solar_system = {
+								set_variable = {
+									which = acemod_sfex_jumpdrive_order_var_system_radius
+									value = prev.acemod_sfex_jumpdrive_order_var_distance_measured
+								}
+								change_variable = {
+									which = acemod_sfex_jumpdrive_order_var_system_radius
+									value = event_target:acemod_sfex_core_global_country.acemod_sfex_jumpdrive_order_var_system_radius_base_offset
+								}
+								if = {
+									limit = {
+										num_planets_in_system <= 2										# Probably needs tweaking for edge cases.
+									}
+									change_variable = {
+										which = acemod_sfex_jumpdrive_order_var_system_radius
+										value = event_target:acemod_sfex_core_global_country.acemod_sfex_jumpdrive_order_var_system_radius_no_planets_offset
+									}
+								}
+							}
+						}
+					}
+					if = {
+						limit = {
+							is_variable_set = acemod_sfex_jumpdrive_order_var_system_radius
+						}
+						acemod_sfex_jumpdrive_order_set_location = yes
+						prevprev = {
+							acemod_sfex_jumpdrive_order_apply_cooldown_effect = yes
+							# Root = Fleet
+							# From = TARGET System - does not work in 3.1.1
+							# FromFrom = ORIGIN System - does not work in 3.1.1
+							fire_on_action = {
+								on_action = acemod_sfex_on_jumpdrive_order_complete
+								scopes = {
+									from = solar_system
+									fromfrom = event_target:acemod_sfex_event_target_solar_system_origin_jumpdrive_windup
+								}
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							num_planets_in_system >= 1
+						}
+						random_system_planet = {
+							prevprev = {
+								set_location = {
+									target = prev
+									distance = 0
+									angle = 0
+									direction = in_system
+								}
+								acemod_sfex_jumpdrive_order_apply_cooldown_effect = yes
+								# Root = Fleet
+								# From = TARGET System - does not work in 3.1.1
+								# FromFrom = ORIGIN System - does not work in 3.1.1
+								fire_on_action = {
+									on_action = acemod_sfex_on_jumpdrive_order_complete
+									scopes = {
+										from = solar_system
+										fromfrom = event_target:acemod_sfex_event_target_solar_system_origin_jumpdrive_windup
+									}
+								}
+							}
+						}
+					}
+					else = {
+						log = "acemod_sfex_jumpdrive_order.4: No planets in the system to jump onto."
+					}
+				}
+				else = {
+					prev = {
+						set_location = {
+							target = event_target:acemod_sfex_core_event_target_1
+							distance = 0
+							angle = 0
+							direction = in_system
+						}
+						acemod_sfex_jumpdrive_order_apply_cooldown_effect = yes
+						# Root = Fleet
+						# From = TARGET System - does not work in 3.1.1
+						# FromFrom = ORIGIN System - does not work in 3.1.1
+						fire_on_action = {
+							on_action = acemod_sfex_on_jumpdrive_order_complete
+							scopes = {
+								from = solar_system
+								fromfrom = event_target:acemod_sfex_event_target_solar_system_origin_jumpdrive_windup
+							}
+						}
+					}
+				}
+			}
+			play_sound = ftl_hyperlane_in_coming_ship
+		}
+		set_variable = {
+			which = acemod_var_fleet_piloted_exclusion			# acemod_set_fleet_piloted_exclusion_off = yes
+			value = 0
+		}
+	}
+}

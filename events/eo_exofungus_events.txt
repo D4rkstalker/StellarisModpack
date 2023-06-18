@@ -1,0 +1,1262 @@
+namespace = eo_exofungus
+
+# Make starting colonisables be Primitives
+country_event = {
+	id = eo_exofungus.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = origin_exofungus
+	}
+
+	immediate = {
+		capital_scope.solar_system = {
+			owner_main_species = {
+				save_event_target_as = exofungus_species
+			}
+			closest_system = {
+				limit = { has_star_flag = neighbor_t1_first_colony }
+				max_steps = 3
+				random_system_planet = {
+					limit = {
+						is_colonizable = yes
+						is_colony = no
+						has_planet_flag = prescripted_ideal
+					}
+					set_planet_flag = exofungus_expansion_planet
+					generate_exofungus_pre_ftl = yes
+					set_name = random
+					change_colony_foundation_date = -461
+
+					while = {
+						count = 4
+						create_army = {
+							owner = last_created_country
+							type = primitive_additional_army
+							species = last_created_country
+						}
+					}
+				}
+			}
+			reroll_random = yes
+			closest_system = {
+				limit = { has_star_flag = neighbor_t2_second_colony }
+				max_steps = 6
+				random_system_planet = {
+					limit = {
+						is_colonizable = yes
+						is_colony = no
+						has_planet_flag = prescripted_ideal
+					}
+					set_planet_flag = exofungus_expansion_planet
+					generate_exofungus_pre_ftl = yes
+					set_name = random
+					change_colony_foundation_date = -461
+
+					while = {
+						count = 4
+						create_army = {
+							owner = last_created_country
+							type = primitive_additional_army
+							species = last_created_country
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = eo_exofungus.2
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		any_owned_species = {
+			has_trait = trait_exofungus
+		}
+		any_system = {
+			OR = {
+				distance = {
+					source = root.solar_system
+					use_bypasses = no
+					min_jumps = 1
+					max_jumps = 5
+				}
+				is_same_value = root.solar_system
+			}
+			any_system_planet = {
+				is_under_colonization = no
+				OR = {
+					is_colony = yes
+					is_colonizable = yes
+				}
+			}
+		}
+	}
+
+	immediate = {
+		save_event_target_as = seeding_planet
+		owner = { save_event_target_as = seeding_planet_owner }
+		every_owned_species = {
+			limit = {
+				has_trait = trait_exofungus
+			}
+			save_event_target_as = spore_species
+			random_system = {
+				limit = {
+					OR = {
+						distance = {
+							source = root.solar_system
+							use_bypasses = no
+							min_jumps = 1
+							max_jumps = 5
+						}
+						is_same_value = root.solar_system
+					}
+					any_system_planet = {
+						OR = {
+							is_colony = yes
+							is_colonizable = yes
+						}
+						has_anomaly = no
+						is_under_colonization = no
+						NOT = { has_planet_flag = future_spore_colony }
+						NAND = {
+							is_colony = yes
+							any_owned_species = {
+								is_same_species = event_target:spore_species
+							}
+						}
+						NAND = {
+							exists = owner
+							event_target:spore_species = {
+								has_citizenship_type = { country = prev.owner type = citizenship_purge }
+							}
+						}
+						OR = {
+							NOT = { has_modifier = "holy_planet" }
+							space_owner = {
+								AND = {
+									exists = this
+									has_modifier = chosen_of_zarqlan	
+								}
+							}
+						}
+					}
+				}
+				random_system_planet = {
+					limit = {
+						NOT = {
+							is_same_value = event_target:seeding_planet
+						}
+						OR = {
+							is_colony = yes
+							is_colonizable = yes
+						}
+						has_anomaly = no
+						is_under_colonization = no
+						NOT = { has_planet_flag = future_spore_colony }
+						NAND = {
+							is_colony = yes
+							any_owned_species = {
+								is_same_species = event_target:spore_species
+							}
+						}
+						NAND = {
+							exists = owner
+							event_target:spore_species = {
+								has_citizenship_type = { country = prev.owner type = citizenship_purge }
+							}
+						}
+						OR = {
+							NOT = { has_modifier = "holy_planet" }
+							space_owner = {
+								AND = {
+									exists = this
+									has_modifier = chosen_of_zarqlan	
+								}
+							}
+						}
+					}
+					save_event_target_as = spore_planet
+					set_planet_flag = future_spore_colony
+					event_target:spore_species = {
+						save_event_target_as = spore_species_of_@event_target:spore_planet
+					}
+					planet_event = {
+						id = eo_exofungus.3
+						days = 900
+						random = 900
+					}
+				}
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = eo_exofungus.3
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		save_event_target_as = spore_planet
+		event_target:spore_species_of_@event_target:spore_planet = {
+			save_event_target_as = spore_species
+		}
+		remove_planet_flag = future_spore_colony
+
+		if = { # Start a colony
+			limit = {
+				is_colony = no
+				exists = space_owner
+				event_target:spore_species = {
+					NOT = {
+						has_citizenship_type = { type = citizenship_purge country = space_owner }
+					}
+				}
+			}
+			space_owner = {
+				save_event_target_as = spore_host
+			}
+			start_colony = {
+				owner = space_owner
+				species = event_target:spore_species
+			}
+			set_planet_flag = spore_colonization
+			exofungus_notification_effect = yes
+		}
+		else_if = { # Settle on existing colony
+			limit = {
+				is_colony = yes
+				owner = {
+					is_primitive = no
+				}
+				event_target:spore_species = {
+					NOT = {
+						has_citizenship_type = { type = citizenship_purge country = prev.owner }
+					}
+				}
+			}
+			create_pop = {
+				species = event_target:spore_species
+			}
+			exofungus_notification_effect = yes
+		}
+		else_if = { # Primitive planet
+			limit = {
+				is_colony = yes
+				owner = {
+					is_primitive = yes
+					is_hive_empire = no
+				}
+				event_target:spore_species = {
+					NOT = {
+						has_trait = trait_hive_mind
+					}
+				}
+			}
+			random_owned_species = {
+				save_event_target_as = primitve_species
+			}
+			create_pop = {
+				species = event_target:spore_species
+			}
+			if = {
+				limit = {
+					exists = space_owner
+				}
+				pre_ftl_exofungus_notification = yes
+			}
+		}
+		else_if = {
+			limit = {
+				is_colony = no
+			}
+			event_target:spore_species = {
+				save_event_target_as = exofungus_species
+			}
+			generate_new_exofungus_pre_ftl = yes
+			set_name = random
+
+			while = {
+				count = 4
+				create_army = {
+					owner = last_created_country
+					type = primitive_additional_army
+					species = last_created_country
+				}
+			}
+			every_country = {
+				limit = {
+					event_target:spore_planet = {
+						is_surveyed = {
+							who = prev
+							status = yes
+						}
+					}
+				}
+				establish_communications_no_message = event_target:exofungus_primtive
+				if = {
+					limit = {
+						any_system_within_border = {
+							distance = {
+								source = event_target:spore_planet.solar_system
+								max_jumps = 5
+							}
+						}
+					}
+					wild_space_sprouts_notification = yes	
+				}
+			}
+		}
+	}
+}
+
+################################
+## Our planets
+################################
+
+country_event = { # We know this species, and have other exofungus
+	id = eo_exofungus.5
+	title = eo_exofungus.5.name
+	desc = {
+		text = eo_exofungus.5.desc.a
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = no
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.5.desc.b
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = yes
+			}
+		}
+	}
+	picture = GFX_evt_hand_shake
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.5.a
+	}
+}
+
+country_event = { # We know this species, but have never had exofungus before
+	id = eo_exofungus.6
+	title = eo_exofungus.6.name
+	desc = {
+		text = eo_exofungus.6.desc.a
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = no
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.6.desc.b
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = yes
+			}
+		}
+	}
+	picture = GFX_evt_hand_shake
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.6.a
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier2researchreward
+			min = @tier2researchmin
+			max = @tier2researchmax
+		}
+	}
+}
+
+country_event = { # We do not know this species, but have other exofungus
+	id = eo_exofungus.7
+	title = eo_exofungus.7.name
+	desc = {
+		text = eo_exofungus.7.desc.a
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = no
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.7.desc.b
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = yes
+			}
+		}
+	}
+	picture = GFX_evt_hand_shake
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.7.a
+	}
+}
+
+country_event = { # We do not know this species, and have never had exofungus before
+	id = eo_exofungus.8
+	title = eo_exofungus.8.name
+	desc = {
+		text = eo_exofungus.8.desc.a
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = no
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.8.desc.b
+		trigger = {
+			event_target:spore_planet = {
+				is_under_colonization = yes
+			}
+		}
+	}
+	picture = GFX_evt_hand_shake
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.8.a
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier2researchreward
+			min = @tier2researchmin
+			max = @tier2researchmax
+		}
+	}
+}
+
+################################
+## Wild space sprouts
+################################
+
+country_event = { # We know this species, and have other exofungus
+	id = eo_exofungus.9
+	title = eo_exofungus.9.name
+	desc = eo_exofungus.9.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.9.a
+	}
+}
+
+country_event = { # We know this species, but have never had exofungus before
+	id = eo_exofungus.10
+	title = eo_exofungus.10.name
+	desc = eo_exofungus.10.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.10.a
+	}
+}
+
+country_event = { # We do not know this species, but have other exofungus
+	id = eo_exofungus.11
+	title = eo_exofungus.11.name
+	desc = eo_exofungus.11.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.11.a
+	}
+}
+
+country_event = { # We do not know this species, and have never had exofungus before
+	id = eo_exofungus.12
+	title = eo_exofungus.12.name
+	desc = eo_exofungus.12.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.12.a
+	}
+}
+
+################################
+## Primitives
+################################
+
+country_event = { # We know this species, and have other exofungus
+	id = eo_exofungus.13
+	title = eo_exofungus.13.name
+	desc = eo_exofungus.13.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.13.a
+	}
+}
+
+country_event = { # We know this species, but have never had exofungus before
+	id = eo_exofungus.14
+	title = eo_exofungus.14.name
+	desc = eo_exofungus.14.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.14.a
+	}
+}
+
+country_event = { # We do not know this species, but have other exofungus
+	id = eo_exofungus.15
+	title = eo_exofungus.15.name
+	desc = eo_exofungus.15.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.15.a
+	}
+}
+
+country_event = { # We do not know this species, and have never had exofungus before
+	id = eo_exofungus.16
+	title = eo_exofungus.16.name
+	desc = eo_exofungus.16.desc
+	picture = GFX_evt_alien_cavemen
+	location = event_target:spore_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = eo_exofungus.16.a
+	}
+}
+
+######################################
+## Exofungus survey events
+######################################
+
+ship_event = { # Exofungus origin discovers one of their guaranteed primitives
+	id = eo_exofungus.17
+	title = eo_exofungus.17.name
+	desc = {
+		text = eo_exofungus.17.desc.a
+		trigger = {
+			owner = {
+				NOT = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+					has_country_flag = discovered_exofungal_primitives
+				}
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.17.desc.b
+		trigger = {
+			owner = {
+				has_country_flag = discovered_primitive_exofungus_neighbor_1
+				NOT = { has_country_flag = discovered_exofungal_primitives }
+			}
+			OR = {
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_stone_age
+					}
+					from.owner = {
+						has_pre_ftl_age = stone_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_bronze_age
+					}
+					from.owner = {
+						has_pre_ftl_age = bronze_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_iron_age
+					}
+					from.owner = {
+						has_pre_ftl_age = iron_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_late_medieval_age
+					}
+					from.owner = {
+						has_pre_ftl_age = late_medieval_age
+					}
+				}
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.17.desc.c
+		trigger = {
+			owner = {
+				has_country_flag = discovered_primitive_exofungus_neighbor_1
+				NOT = { has_country_flag = discovered_exofungal_primitives }
+			}
+			NOR = {
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_stone_age
+					}
+					from.owner = {
+						has_pre_ftl_age = stone_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_bronze_age
+					}
+					from.owner = {
+						has_pre_ftl_age = bronze_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_iron_age
+					}
+					from.owner = {
+						has_pre_ftl_age = iron_age
+					}
+				}
+				AND = {
+					owner = {
+						has_country_flag = primitive_exofungus_late_medieval_age
+					}
+					from.owner = {
+						has_pre_ftl_age = late_medieval_age
+					}
+				}
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.17.desc.d
+		trigger = {
+			owner = {
+				has_country_flag = discovered_exofungal_primitives
+				NOT = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+				}
+			}
+		}
+	}
+	desc = {
+		text = eo_exofungus.17.desc.e
+		trigger = {
+			owner = {
+				has_country_flag = discovered_exofungal_primitives
+				has_country_flag = discovered_primitive_exofungus_neighbor_1
+			}
+		}
+	}
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			has_planet_flag = prescripted_ideal
+			has_planet_flag = exofungus_expansion_planet
+			owner = {
+				is_primitive = yes
+				is_same_species = root.owner
+			}
+		}
+		owner = {
+			has_origin = origin_exofungus
+		}
+	}
+
+	option = {
+		name = eo_exofungus.17.a
+		if = {
+			limit = {
+				owner = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+				}
+			}
+			owner = {
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = @tier3researchreward
+					min = @tier3researchmin
+					max = @tier3researchmax
+				}
+			}
+		}
+		else = {
+			owner = {
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = @tier5researchreward
+					min = @tier5researchmin
+					max = @tier5researchmax
+				}
+			}
+		}
+	}
+
+	after = {
+		owner = {
+			if = {
+				limit = {
+					NOT = {
+						has_country_flag = discovered_primitive_exofungus_neighbor_1
+					}
+				}
+				set_country_flag = discovered_primitive_exofungus_neighbor_1
+				if = {
+					limit = {
+						from.owner = {
+							has_pre_ftl_age = stone_age
+						}
+					}
+					set_country_flag = primitive_exofungus_stone_age
+				}
+				else_if = {
+					limit = {
+						from.owner = {
+							has_pre_ftl_age = bronze_age
+						}
+					}
+					set_country_flag = primitive_exofungus_bronze_age
+				}
+				else_if = {
+					limit = {
+						from.owner = {
+							has_pre_ftl_age = iron_age
+						}
+					}
+					set_country_flag = primitive_exofungus_iron_age
+				}
+				else = {
+					limit = {
+						from.owner = {
+							has_pre_ftl_age = late_medieval_age
+						}
+					}
+					set_country_flag = primitive_exofungus_late_medieval_age
+				}
+			}
+			if = {
+				limit = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+					NOT = {
+						has_country_flag = discovered_primitive_exofungus_neighbor_2
+					}
+				}
+				set_country_flag = discovered_primitive_exofungus_neighbor_2
+			}
+		}
+	}
+}
+
+ship_event = { # Exofungus origin discovers previously unknown primitive
+	id = eo_exofungus.18
+	title = eo_exofungus.18.name
+	desc = {
+		trigger = {
+			owner = {
+				NOR = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+					has_country_flag = discovered_exofungal_primitives
+				}
+			}
+		}
+		text = eo_exofungus.18.desc.a
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_country_flag = discovered_primitive_exofungus_neighbor_1
+					has_country_flag = discovered_exofungal_primitives
+				}
+			}
+		}
+		text = eo_exofungus.18.desc.b
+	}
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			exists = owner
+			owner = {
+				is_primitive = yes
+				is_same_species = root.owner
+			}
+			NOR = {
+				has_planet_flag = prescripted_ideal
+				has_planet_flag = exofungus_expansion_planet
+			}
+		}
+		owner = {
+			has_origin = origin_exofungus
+		}
+	}
+
+	option = {
+		name = {
+			trigger = {
+				owner = {
+					NOR = {
+						has_country_flag = discovered_primitive_exofungus_neighbor_1
+						has_country_flag = discovered_exofungal_primitives
+					}
+				}
+			}
+			text = eo_exofungus.17.a
+		}
+		name = {
+			trigger = {
+				owner = {
+					OR = {
+						has_country_flag = discovered_primitive_exofungus_neighbor_1
+						has_country_flag = discovered_exofungal_primitives
+					}
+				}
+			}
+			text = eo_exofungus.18.b
+		}
+		owner = {
+			if = {
+				limit = {
+					OR = {
+						has_country_flag = discovered_primitive_exofungus_neighbor_1
+						has_country_flag = discovered_exofungal_primitives
+					}
+				}
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = @tier2researchreward
+					min = @tier2researchmin
+					max = @tier2researchmax
+				}
+			}
+			else = {
+				add_monthly_resource_mult = {
+					resource = society_research
+					value = @tier3researchreward
+					min = @tier3researchmin
+					max = @tier3researchmax
+				}
+			}
+		}
+	}
+
+	after = {
+		owner = {
+			set_country_flag = discovered_exofungal_primitives
+		}
+	}
+}
+
+ship_event = { # Exofungus origin discovers primitive with exofungal colonizers
+	id = eo_exofungus.19
+	title = eo_exofungus.19.name
+	desc = eo_exofungus.19.desc
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			exists = owner
+			owner = {
+				is_primitive = yes
+				NOT = {
+					is_same_species = root.owner
+				}
+				any_owned_pop = {
+					is_same_species = root.owner
+				}
+			}
+		}
+		owner = {
+			has_origin = origin_exofungus
+		}
+	}
+
+	option = {
+		name = eo_exofungus.19.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+ship_event = { # Other empire discovers primitive with exofungal colonizers
+	id = eo_exofungus.20
+	title = eo_exofungus.20.name
+	desc = eo_exofungus.20.desc
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			exists = owner
+			owner = {
+				is_primitive = yes
+				any_owned_pop = {
+					has_trait = trait_exofungus
+					NOT = {
+						is_same_species = from.owner
+					}
+				}
+			}
+		}
+		owner = {
+			NOT = {
+				has_origin = origin_exofungus
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			random_owned_species = {
+				limit = {
+					NOT = {
+						is_same_species = from.owner
+					}
+				}
+				save_event_target_as = exofungal_species
+			}
+		}
+	}
+
+	option = {
+		name = eo_exofungus.19.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+ship_event = { # Other empire discovers primitive of previously encountered exofungus
+	id = eo_exofungus.21
+	title = eo_exofungus.21.name
+	desc = {
+		trigger = {
+			from = {
+				NOT = {
+					has_planet_flag = exofungus_expansion_planet
+				}
+			}
+		}
+		text = eo_exofungus.21.desc.a
+	}
+	desc = {
+		trigger = {
+			from = {
+				has_planet_flag = exofungus_expansion_planet
+			}
+		}
+		text = eo_exofungus.21.desc.b
+	}
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			exists = owner
+			owner = {
+				is_primitive = yes
+				owner_species = {
+					has_trait = trait_exofungus
+				}
+			}
+		}
+		owner = {
+			NOT = {
+				has_origin = origin_exofungus
+			}
+			OR = {
+				any_owned_pop = {
+					is_same_species = from.owner.owner_species
+				}
+				any_country = {
+					NOT = { is_same_value = from.owner }
+					has_communications = root.owner
+					any_owned_pop = {
+						is_same_species = from.owner.owner_species
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		name = eo_exofungus.14.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+ship_event = { # Other empire discovers primitive of of unknown exofungus
+	id = eo_exofungus.22
+	title = eo_exofungus.22.name
+	desc = {
+		trigger = {
+			from = {
+				NOT = {
+					has_planet_flag = exofungus_expansion_planet
+				}
+			}
+			owner = {
+				NOR = {
+					any_owned_pop = {
+						has_trait = trait_exofungus
+					}
+					any_country = {
+						NOT = { is_same_value = from.owner }
+						NOT = { has_communications = root.owner }
+						any_owned_pop = {
+							has_trait = trait_exofungus
+						}
+					}
+				}
+			}
+		}
+		text = eo_exofungus.22.desc.a
+	}
+	desc = {
+		trigger = {
+			from = {
+				has_planet_flag = exofungus_expansion_planet
+			}
+			owner = {
+				NOR = {
+					any_owned_pop = {
+						has_trait = trait_exofungus
+					}
+					any_country = {
+						NOT = { is_same_value = from.owner }
+						NOT = { has_communications = root.owner }
+						any_owned_pop = {
+							has_trait = trait_exofungus
+						}
+					}
+				}
+			}
+		}
+		text = eo_exofungus.22.desc.b
+	}
+	desc = {
+		trigger = {
+			from = {
+				NOT = {
+					has_planet_flag = exofungus_expansion_planet
+				}
+			}
+			owner = {
+				OR = {
+					any_owned_pop = {
+						has_trait = trait_exofungus
+					}
+					any_country = {
+						NOT = { is_same_value = from.owner }
+						has_communications = root.owner
+						any_owned_pop = {
+							has_trait = trait_exofungus
+						}
+					}
+				}
+			}
+		}
+		text = eo_exofungus.22.desc.c
+	}
+	desc = {
+		trigger = {
+			from = {
+				has_planet_flag = exofungus_expansion_planet
+			}
+			owner = {
+				OR = {
+					any_owned_pop = {
+						has_trait = trait_exofungus
+					}
+					any_country = {
+						NOT = { is_same_value = from.owner }
+						has_communications = root.owner
+						any_owned_pop = {
+							has_trait = trait_exofungus
+						}
+					}
+				}
+			}
+		}
+		text = eo_exofungus.22.desc.d
+	}
+	picture = GFX_evt_alien_cavemen
+	location = from
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			exists = owner
+			owner = {
+				is_primitive = yes
+				owner_species = {
+					has_trait = trait_exofungus
+				}
+			}
+		}
+		owner = {
+			NOT = {
+				has_origin = origin_exofungus
+			}
+			NOR = {
+				any_owned_pop = {
+					is_same_species = from.owner.owner_species
+				}
+				any_country = {
+					has_communications = root.owner
+					any_owned_pop = {
+						is_same_species = from.owner.owner_species
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		name = eo_exofungus.12.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}
+
+################################
+## Make contact with previously encountered exofungus
+################################
+
+country_event = {
+	id = eo_exofungus.23
+	title = eo_exofungus.23.name
+	desc = eo_exofungus.23.desc
+	picture = GFX_evt_hand_shake
+	location = event_target:exofungus_primtive.capital_scope
+
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			has_origin = origin_exofungus
+		}
+		any_country = {
+			is_primitive = yes
+			has_communications = event_target:exofungus_greeter
+			any_owned_pop = {
+				is_same_species = from
+			}
+			home_planet = {
+				is_surveyed = { who = event_target:exofungus_greeter status = yes }
+			}
+		}
+	}
+
+	immediate = {
+		save_event_target_as = exofungus_greeter
+		random_country = {
+			limit = {
+				is_primitive = yes
+				has_communications = event_target:exofungus_greeter
+				any_owned_pop = {
+					is_same_species = from
+				}
+				home_planet = {
+					is_surveyed = { who = event_target:exofungus_greeter status = yes }
+				}
+			}
+			save_event_target_as = exofungus_primtive
+		}
+	}
+
+	option = {
+		name = eo_exofungus.16.a
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier2researchreward
+				min = @tier2researchmin
+				max = @tier2researchmax
+			}
+		}
+	}
+}

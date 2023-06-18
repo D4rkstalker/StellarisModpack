@@ -1,0 +1,146 @@
+namespace = AAR_evt_HOSTILE
+#	aar敌对海域接战
+#	aar敌对海域入场
+#	aar敌对海域雇主切换
+
+
+
+
+###_[aar敌对海域接战]	仅pc
+#_<on_entering_battle>
+##_scopes	<root>=进攻国家/<from>=防御国家/<fromfrom>=进攻舰队/<fromfromfrom>=防御舰队
+country_event = {
+	id = AAR_evt_HOSTILE.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		exists = fromfrom.controller	# |存在舰队控制者|
+		fromfrom = {
+			is_mobile = yes	# |非固定防御|
+			NOT = { has_fleet_flag = FW_flg_flt_HOSTILE_battle_enter_COUNT }
+			solar_system = {
+				exists = owner
+				owner = { has_ascension_perk = AAR_AP_hostile_territory }	# 处于|敌对海域星系|
+			}
+		}
+		##	|细节|
+		OR = {
+			fromfrom.controller = { is_ai = no }
+			fromfromfrom.controller = { is_ai = no }
+		}
+	}
+
+	immediate = {
+		#	<舰队1>
+		fromfrom = {
+			set_timed_fleet_flag = { flag = FW_flg_flt_HOSTILE_battle_enter_COUNT days = 1 }
+
+			##############################################################################
+			set_fleet_flag = TEMP_flg_flt_BATTLE_begin		# |执行类型标签|添加
+			set_update_modifiers_batch = begin	# 修正批处理
+			
+			AAR_eft_flt_HOSTILE_modifier_FW = yes	# AAR敌对海域FW
+			
+			set_update_modifiers_batch = end	# 修正批处理
+			remove_fleet_flag = TEMP_flg_flt_BATTLE_begin	# |执行类型标签|清除
+			##############################################################################
+		}
+	}
+}
+
+
+
+
+###_[aar敌对海域入场]
+#_<on_entering_system_fleet>
+##_scopes	<root/this>=舰队/<from>=星系
+fleet_event = {
+	id = AAR_evt_HOSTILE.4
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		is_mobile = yes
+		exists = controller
+		##	|粗略条件|
+		OR = {
+			from = { has_owner = yes }	# |星系有主|
+			NOT = { has_fleet_flag = AAR_flg_flt_HOSTILE_cross_NON }	# |星系无主+未清理|
+		}
+		##	|细节条件|
+		#	|敌方空域|
+		if = {
+			limit = { exists = from.space_owner
+				from.space_owner = {
+					has_ascension_perk = AAR_AP_hostile_territory
+					is_hostile = root.controller
+				}
+			}
+			NOT = { has_fleet_flag = AAR_flg_flt_HOSTILE_cross_ENEMY }	# |未削弱|
+		}
+		#	|我方空域|
+		else_if = {
+			limit = { exists = from.space_owner
+				controller = {
+					has_ascension_perk = AAR_AP_hostile_territory
+					OR = {
+						is_same_value = from.space_owner	# |自己领地|
+						is_overlord_to = from.space_owner	# |附庸领地|
+					}
+				}
+			}
+			NOT = { has_fleet_flag = AAR_flg_flt_HOSTILE_cross_OWN }	# |已庇护|
+		}
+		#	|其他|
+		else = {
+			always = yes
+		}
+	}
+
+	immediate = {
+		set_fleet_flag = TEMP_flg_flt_SYSTEM_enter		# |触发类型|
+		set_update_modifiers_batch = begin	#_|修正更新|暂停
+		
+		AAR_eft_flt_HOSTILE_modifier_FW = yes	# AAR敌对海域FW
+		
+		set_update_modifiers_batch = end	#_|修正更新|重启
+		remove_fleet_flag = TEMP_flg_flt_SYSTEM_enter	# |触发类型|
+	}
+}
+
+
+###_[aar敌对海域雇主切换]
+#_<on_fleet_contract_expired>
+##_scopes	<this/root>=舰队/<from>=租借者/<fromfrom>=所有者
+fleet_event = {
+	id = AAR_evt_HOSTILE.41
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		is_mobile = yes
+		exists = controller
+		##	存在修正
+		any_owned_ship = {
+			OR = {
+				has_modifier = AAR_mod_ship_HOSTILE_combat_enemy_AI_space
+				has_modifier = AAR_mod_ship_HOSTILE_combat_enemy_PC_space
+				has_modifier = AAR_mod_ship_HOSTILE_combat_own_AI_space
+				has_modifier = AAR_mod_ship_HOSTILE_combat_own_PC_space
+				has_modifier = AAR_mod_ship_HOSTILE_territory
+			}
+		}
+	}
+
+	immediate = {
+		set_fleet_flag = TEMP_flg_flt_CONTROLLER_switch		# |触发类型|
+		set_update_modifiers_batch = begin	#_|修正更新|暂停
+		
+		AAR_eft_flt_HOSTILE_modifier_FW = yes	# AAR敌对海域FW
+		
+		set_update_modifiers_batch = end	#_|修正更新|重启
+		remove_fleet_flag = TEMP_flg_flt_CONTROLLER_switch	# |触发类型|
+	}
+}
+

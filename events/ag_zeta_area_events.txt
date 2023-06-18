@@ -1,0 +1,2301 @@
+namespace = ag_zeta
+
+# Hidden, Spawn the Zeta Area
+country_event = {
+    id = ag_zeta.1
+    hide_window = yes
+	
+	is_triggered_only = yes
+	
+    immediate = {
+		ag_spawn_ancient_system = { ag_system_to_spawn = "ag_ancient_zeta_init" ag_hyperlane = no }
+		ag_spawned_system_effect = yes
+		create_point_of_interest = {
+			id = ag_zeta_area
+			name = "ag_zeta_area"
+			desc = "ag_zeta_area_desc"
+			event_chain = ag_hidden_system_chain
+			location = event_target:ag_ancient_zeta_star
+		}
+		event_target:ag_zeta_shrouded_planet = { add_deposit = d_zro_deposit_5 }
+		random_system = {
+			limit = { has_star_flag = ag_ancient_zeta_system }
+			every_system = {
+				limit = {
+					ag_is_ancient_system = no
+					distance = {
+						source = prev
+						min_distance >= 0
+						max_distance <= 40
+						type = euclidean
+						use_bypasses = no
+					}
+					NOR = { is_same_value = prev has_hyperlane_to = prev }
+				}
+				random_list = { 60 = { } 40 = { add_hyperlane = { from = this to = prev } } }
+				reroll_random = yes
+			}
+			ag_spawned_system_hyperlane_fixup = yes
+		}
+    }
+	
+	after = {
+		if = {
+			limit = { any_country = {
+				is_fallen_empire = yes
+				NOR = {
+					is_fallen_empire_machine = yes
+					is_fallen_empire_xenophobe = yes
+				}
+			} }
+			random_country = {
+				limit = {
+					is_fallen_empire = yes
+					NOR = {
+						is_fallen_empire_machine = yes
+						is_fallen_empire_xenophobe = yes
+					}
+				}
+				save_event_target_as = ag_target_fallen_empire
+			}
+			country_event = { id = ag_zeta.1000 days = 5 random = 10 }
+		}
+		every_country = {
+			limit = { has_special_project = ag_located_zeta_area }
+			abort_special_project = { type = "ag_located_zeta_area" location = capital_scope }
+		}
+	}
+}
+
+# on_entering_system_fleet, Notification for entering the Zeta Area first time
+fleet_event = {
+	id = ag_zeta.2
+	title = "ag_zeta.2.name"
+	desc = "ag_zeta.2.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ruined_system_room }
+	show_sound = event_mystic_reveal_light
+	location = event_target:ag_ancient_zeta_star
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			has_star_flag = ag_ancient_zeta_system
+		}
+		NOR = {
+			has_global_flag = ag_ancient_zeta_guardian_destroyed
+			owner = { OR = {
+				has_country_flag = ag_zeta_area_entered
+				ag_is_ancient_country = yes
+			} }
+		}
+	}
+	
+    immediate = {
+		owner = {
+			ag_refresh_ancient_system_poi = { ag_system_id = ag_zeta_area }
+			establish_communications_no_message = event_target:ag_ancient_zeta_guardian_country
+			set_country_flag = ag_zeta_area_entered
+		}
+		event_target:ag_ancient_zeta_guardian_country = {
+			if = {
+				limit = { check_variable = { which = ag_num_countries_zeta value < 11 } }
+				set_variable = { which = ag_num_countries_zeta value = 11 }
+			}
+			else = { change_variable = { which = ag_num_countries_zeta value = 1 } }
+		}
+	}
+	
+	option = {
+		name = "ag_zeta.2.a"
+		hidden_effect = { owner = {
+			if = {
+				limit = { is_ai = yes }
+				set_country_flag = ag_ancient_zeta_guardian_hostility
+				event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root.owner set_hostile = yes set_neutral = no set_friendly = no } }
+			}
+			else = { country_event = { id = ag_zeta.3 } }
+		} }
+	}
+	option = {
+		name = "ag_zeta.2.b"
+		trigger = { owner = { OR = {
+			has_ethic = ethic_xenophile
+			has_ethic = ethic_fanatic_xenophile
+		} } }
+		hidden_effect = { owner = {
+			if = {
+				limit = { is_ai = yes }
+				set_country_flag = ag_ancient_zeta_guardian_hostility
+				event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root.owner set_hostile = yes set_neutral = no set_friendly = no } }
+			}
+			else = { country_event = { id = ag_zeta.3 } }
+		} }
+	}
+	option = {
+		name = "ag_zeta.2.c"
+		trigger = { owner = { OR = {
+			has_ethic = ethic_xenophobe
+			has_ethic = ethic_fanatic_xenophobe
+		} } }
+		hidden_effect = { owner = {
+			if = {
+				limit = { is_ai = yes }
+				set_country_flag = ag_ancient_zeta_guardian_hostility
+				event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root.owner set_hostile = yes set_neutral = no set_friendly = no } }
+			}
+			else = { country_event = { id = ag_zeta.3 } }
+		} }
+	}
+}
+
+# Diplomatic event for first contact with the Zeta Installation Defensive System
+country_event = {
+	id = ag_zeta.3
+	title = "ag_zeta.3.name"
+	desc = "ag_zeta.3.desc"
+	
+	is_triggered_only = yes
+	
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	
+	picture_event_data = {
+		room = ag_ancient_ai_red_room
+		portrait = ag_ancient_ai_red
+	}
+	
+	immediate = { set_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	after = { remove_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	
+	option = {
+		name = "ag_zeta.3.a"
+		is_dialog_only = yes
+		response_text = "ag_zeta.3.a.response"
+		trigger = { NOR = {
+			has_valid_civic = civic_fanatic_purifiers
+			has_valid_civic = civic_hive_devouring_swarm
+		} }
+	}
+	option = {
+		name = "ag_zeta.3.b"
+		is_dialog_only = yes
+		response_text = "ag_zeta.3.b.response"
+		trigger = { NOR = {
+			has_valid_civic = civic_fanatic_purifiers
+			has_valid_civic = civic_hive_devouring_swarm
+		} }
+	}
+	option = {
+		name = "ag_zeta.3.c"
+		is_dialog_only = yes
+		response_text = "ag_zeta.3.c.response"
+		trigger = { NOR = {
+			has_valid_civic = civic_fanatic_purifiers
+			has_valid_civic = civic_hive_devouring_swarm
+		} }
+	}
+	option = {
+		name = "ag_zeta.3.d"
+		response_text = "ag_zeta.3.d.response"
+		trigger = { NOR = {
+			has_valid_civic = civic_fanatic_purifiers
+			has_valid_civic = civic_hive_devouring_swarm
+		} }
+		hidden_effect = {
+			country_event = { id = ag_zeta.4 days = 60 }
+			set_country_flag = ag_zeta_leave_promise@root
+		}
+	}
+	option = {
+		name = "ag_zeta.3.e"
+		response_text = "ag_zeta.3.e.response"
+		hidden_effect = {
+			set_country_flag = ag_ancient_zeta_guardian_hostility
+			event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root set_hostile = yes set_neutral = no set_friendly = no } }
+		}
+	}
+	option = {
+		name = "ag_zeta.3.f"
+		response_text = "ag_zeta.3.e.response"
+		trigger = { has_valid_civic = civic_fanatic_purifiers }
+		hidden_effect = {
+			set_country_flag = ag_ancient_zeta_guardian_hostility
+			event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root set_hostile = yes set_neutral = no set_friendly = no } }
+		}
+	}
+	option = {
+		name = "ag_zeta.3.g"
+		trigger = { has_valid_civic = civic_hive_devouring_swarm }
+		response_text = "ag_zeta.3.e.response"
+		hidden_effect = {
+			set_country_flag = ag_ancient_zeta_guardian_hostility
+			event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root set_hostile = yes set_neutral = no set_friendly = no } }
+		}
+	}
+	option = {
+		name = "ag_zeta.3.h"
+		trigger = { OR = {
+			has_ethic = ethic_spiritualist
+			has_ethic = ethic_fanatic_spiritualist
+		} }
+		response_text = "ag_zeta.3.e.response"
+		hidden_effect = {
+			set_country_flag = ag_ancient_zeta_guardian_hostility
+			event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root set_hostile = yes set_neutral = no set_friendly = no } }
+		}
+	}
+}
+
+# Defensive System turn into a hostile faction if player's ship didn't leave in 60 days
+country_event = {
+	id = ag_zeta.4
+	title = "ag_zeta.4.name"
+	desc = "ag_zeta.4.desc"
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { has_global_flag = ag_ancient_zeta_guardian_destroyed }
+		any_system = {
+			has_star_flag = ag_ancient_zeta_system
+			any_ship_in_system = {
+				owner = {
+					NOR = {
+						is_same_value = event_target:ag_ancient_zeta_guardian_country
+						has_country_flag = ag_ancient_zeta_guardian_hostility
+					}
+					has_country_flag = ag_zeta_area_entered
+					has_country_flag = ag_zeta_leave_promise@root
+				}
+			}
+		}
+	}
+	
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	
+	picture_event_data = {
+		room = ag_ancient_ai_red_room
+		portrait = ag_ancient_ai_red
+	}
+	
+	immediate = {
+		set_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged
+		set_country_flag = ag_ancient_zeta_guardian_hostility
+		event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root set_hostile = yes set_neutral = no set_friendly = no } }
+	}
+	after = { remove_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	
+	option = { name = "ag_zeta.4.a" }
+	option = { name = "ag_zeta.4.b" }
+}
+
+# on_entering_system_fleet, Defensive System turn into a hostile faction if player's ship entered the Zeta Area again
+fleet_event = {
+	id = ag_zeta.5
+	title = "ag_zeta.5.name"
+	desc = "ag_zeta.5.desc"
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = {
+			has_global_flag = ag_ancient_zeta_guardian_destroyed
+		}
+		from = {
+			has_star_flag = ag_ancient_zeta_system
+		}
+		owner = {
+			NOT = {
+				has_country_flag = ag_ancient_zeta_guardian_hostility
+			}
+			has_country_flag = ag_zeta_area_entered
+			has_country_flag = ag_zeta_leave_promise@root.owner
+		}
+	}
+	
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	
+	picture_event_data = {
+		room = ag_ancient_ai_red_room
+		portrait = ag_ancient_ai_red
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged
+			set_country_flag = ag_ancient_zeta_guardian_hostility
+			event_target:ag_ancient_zeta_guardian_country = { set_faction_hostility = { target = root.owner set_hostile = yes set_neutral = no set_friendly = no } }
+		}
+	}
+	after = { owner = { remove_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged } }
+	
+	option = { name = "ag_zeta.5.a" }
+	option = { name = "ag_zeta.5.b" }
+}
+
+# on_entering_battle, Defensive System turn into a hostile faction if player's ship attacked it
+country_event = {
+	id = ag_zeta.6
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = ag_ancient_zeta_guardian_hostility }
+		exists = event_target:ag_ancient_zeta_guardian_country
+		from = { is_same_value = event_target:ag_ancient_zeta_guardian_country }
+	}
+
+	immediate = {
+		set_country_flag = ag_ancient_zeta_guardian_hostility
+		event_target:ag_ancient_zeta_guardian_country = {
+			set_faction_hostility = {
+				target = root
+				set_hostile = yes
+				set_neutral = no
+				set_friendly = no
+			}
+		}
+	}
+}
+
+# on_custom_diplomacy, Diplomatic event for Zeta Installation Defensive System when it is neutral to the player
+country_event = {
+	id = ag_zeta.11
+	title = "ag_zeta.11.name"
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.a.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.b.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.c.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.d.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.e.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.f.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.g.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+		}
+		text = "ag_zeta.11.h.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			NOT = {
+				has_country_flag = ag_ancient_zeta_guardian_music_good_response
+			}
+		}
+		text = "ag_zeta.11.i.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			has_country_flag = ag_ancient_zeta_guardian_music_good_response
+		}
+		text = "ag_zeta.11.j.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			OR = {
+				has_ethic = ethic_materialist
+				has_ethic = ethic_fanatic_materialist
+			}
+		}
+		text = "ag_zeta.11.k.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			OR = {
+				has_ethic = ethic_spiritualist
+				has_ethic = ethic_fanatic_spiritualist
+			}
+		}
+		text = "ag_zeta.11.l.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			OR = {
+				has_ethic = ethic_pacifist
+				has_ethic = ethic_fanatic_pacifist
+			}
+		}
+		text = "ag_zeta.11.m.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			OR = {
+				has_ethic = ethic_militarist
+				has_ethic = ethic_fanatic_militarist
+			}
+		}
+		text = "ag_zeta.11.n.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+				has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			}
+			OR = {
+				has_country_flag = synthetic_empire
+				has_authority = auth_machine_intelligence
+			}
+		}
+		text = "ag_zeta.11.o.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			}
+		}
+		text = "ag_zeta.11.p.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			}
+		}
+		text = "ag_zeta.11.q.desc"
+	}
+	desc = {
+        trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_system_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_generic_greetings
+				has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			}
+		}
+		text = "ag_zeta.11.r.desc"
+	}
+	
+	is_triggered_only = yes
+
+	trigger = {
+		from = { is_same_value = event_target:ag_ancient_zeta_guardian_country }
+		NOR = {
+			has_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged
+			has_country_flag = ag_ancient_zeta_guardian_hostility
+		}
+	}
+	
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	
+	picture_event_data = {
+		room = ag_ancient_ai_red_room
+		portrait = ag_ancient_ai_red
+	}
+
+	immediate = {
+		set_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged
+		reroll_random = yes
+		random_list = {
+			60 = {
+				if = {
+					limit = { any_controlled_ship = { solar_system = { has_star_flag = ag_ancient_zeta_system } } }
+					set_country_flag = ag_ancient_zeta_guardian_system_greetings
+				}
+				else = { set_country_flag = ag_ancient_zeta_guardian_generic_greetings }
+			}
+			10 = {
+				if = {
+					limit = { any_controlled_ship = { solar_system = { has_star_flag = ag_ancient_zeta_system } } }
+					set_country_flag = ag_ancient_zeta_guardian_system_greetings
+				}
+				else = {
+					if = {
+						limit = { NOT = { has_country_flag = ag_ancient_zeta_guardian_music_bad_response } }
+						set_country_flag = ag_ancient_zeta_guardian_music_greetings
+					}
+					else = { set_country_flag = ag_ancient_zeta_guardian_generic_greetings }
+				}
+			}
+			30 = {
+				if = {
+					limit = { any_controlled_ship = { solar_system = { has_star_flag = ag_ancient_zeta_system } } }
+					set_country_flag = ag_ancient_zeta_guardian_system_greetings
+				}
+			}
+		}
+	}
+
+	after = {
+		remove_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged
+		remove_country_flag = ag_ancient_zeta_guardian_generic_greetings
+		remove_country_flag = ag_ancient_zeta_guardian_music_greetings
+		remove_country_flag = ag_ancient_zeta_guardian_system_greetings
+	}
+	
+	option = {
+		name = "ag_zeta.11.a"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.a.response"
+		trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_good_response
+				has_country_flag = ag_ancient_zeta_guardian_music_bad_response
+			}
+			NOT = { has_ethic = ethic_fanatic_xenophobe }
+		}
+		hidden_effect = { set_country_flag = ag_ancient_zeta_guardian_music_good_response }
+	}
+	option = {
+		name = "ag_zeta.11.b"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.b.response"
+		trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_good_response
+				has_country_flag = ag_ancient_zeta_guardian_music_bad_response
+			}
+			NOT = { has_ethic = ethic_fanatic_xenophobe }
+		}
+		hidden_effect = { set_country_flag = ag_ancient_zeta_guardian_music_bad_response }
+	}
+	option = {
+		name = "ag_zeta.11.c"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.c.response"
+		trigger = {
+			has_country_flag = ag_ancient_zeta_guardian_music_greetings
+			NOR = {
+				has_country_flag = ag_ancient_zeta_guardian_music_good_response
+				has_country_flag = ag_ancient_zeta_guardian_music_bad_response
+			}
+			has_ethic = ethic_fanatic_xenophobe
+		}
+		hidden_effect = { set_country_flag = ag_ancient_zeta_guardian_music_bad_response }
+	}
+	option = {
+		name = "ag_zeta.11.d"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.d.response"
+	}
+	option = {
+		name = "ag_zeta.11.e"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.e.response"
+	}
+	option = {
+		name = "ag_zeta.11.f"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.f.response"
+	}
+	option = {
+		name = "ag_zeta.11.g"
+		is_dialog_only = yes
+		response_text = "ag_zeta.11.g.response"
+		trigger = {
+			has_distar = yes
+			has_event_chain = "l_cluster_chain"
+			NOR = {
+				has_completed_event_chain_counter = { event_chain = l_cluster_chain counter = clues }
+				has_country_flag = ag_ancient_zeta_guardian_l_cluster_clue
+			}
+		}
+		hidden_effect = { set_country_flag = ag_ancient_zeta_guardian_l_cluster_clue }
+		generate_lcluster_clue = yes
+	}
+	option = {
+		name = "ag_zeta.11.h"
+		default_hide_option = yes
+		response_text = "ag_zeta.11.h.response"
+		hidden_effect = {
+			if = {
+				limit = {
+					has_country_flag = ag_ancient_zeta_guardian_music_greetings
+					NOR = {
+						has_country_flag = ag_ancient_zeta_guardian_music_good_response
+						has_country_flag = ag_ancient_zeta_guardian_music_bad_response
+					}
+				}
+				set_country_flag = ag_ancient_zeta_guardian_music_bad_response
+			}
+		}
+	}
+}
+
+# on_custom_diplomacy, Diplomatic event for Zeta Installation Defensive System when it is hostile to the player
+country_event = {
+	id = ag_zeta.12
+	title = "ag_zeta.12.name"
+	desc = "ag_zeta.12.a.desc"
+	desc = "ag_zeta.12.b.desc"
+	desc = "ag_zeta.12.c.desc"
+	desc = "ag_zeta.12.d.desc"
+	desc = "ag_zeta.12.e.desc"
+	
+	is_triggered_only = yes
+
+	trigger = {
+		from = { is_same_value = event_target:ag_ancient_zeta_guardian_country }
+		has_country_flag = ag_ancient_zeta_guardian_hostility
+		NOT = { has_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	}
+	
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	
+	picture_event_data = {
+		room = ag_ancient_ai_red_room
+		portrait = ag_ancient_ai_red
+	}
+
+	immediate = { set_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	after = { remove_country_flag = ag_ancient_zeta_guardian_diplomacy_engaged }
+	
+	option = {
+		name = "ag_zeta.12.a"
+		response_text = "ag_zeta.12.a.response"
+	}
+	option = {
+		name = "ag_zeta.12.b"
+		response_text = "ag_zeta.12.b.response"
+	}
+	option = {
+		name = "ag_zeta.12.c"
+		default_hide_option = yes
+		response_text = "ag_zeta.12.c.response"
+	}
+}
+
+# on_ship_disabled, Ancient Ships turn into psionic form
+ship_event = {
+	id = ag_zeta.21
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = { OR = {
+		is_ship_size = ag_zeta_titan
+		is_ship_size = ag_zeta_battleship
+		is_ship_size = ag_zeta_destroyer
+		is_ship_size = ag_zeta_military_station_small
+		is_ship_size = ag_zeta_military_station_large
+	} }
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_ship_flag = ag_zeta_ship_ability_cooldown }
+				exists = owner
+				owner = {
+					OR = {
+						is_same_value = event_target:ag_ancient_zeta_guardian_country
+						is_same_value = event_target:ag_ancient_psi_guardian_country
+						AND = {
+							is_ai = no
+							has_country_flag = ag_ship_subsystem_enabled_701_20
+							root = { is_ship_size = ag_zeta_titan NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon } }
+						}
+						AND = {
+							is_ai = no
+							has_country_flag = ag_ship_subsystem_enabled_702_20
+							root = { is_ship_size = ag_zeta_battleship NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon } }
+						}
+						AND = {
+							is_ai = no
+							has_country_flag = ag_ship_subsystem_enabled_703_20
+							root = { is_ship_size = ag_zeta_destroyer NOT = { has_ship_flag = ag_zeta_ship_gravity_weapon } }
+						}
+					}
+				}
+			}
+			random_list = {
+				75 = {
+					modifier = {
+						factor = 0
+						exists = solar_system
+						solar_system = { NOT = { any_ship_in_system = { exists = owner owner = { is_country_type = ag_zeta_crisis_country } } } }
+					}
+					ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+					set_disabled = no
+				}
+				25 = {
+					if = { limit = { fleet = { exists = leader } } leader = { save_event_target_as = ag_leader_swap_target unassign_leader = this } }
+					switch = {
+						trigger = is_ship_size
+						ag_zeta_titan = {
+							ag_ancient_zeta_guardian_ship_psi_warning = yes
+							fleet = {
+								create_ship = {
+									name = "NAME_ag_zeta_titan_ship"
+									design = "NAME_ag_zeta_titan_psi"
+									prefix = no
+									effect = {
+										if = {
+											limit = { prevprev = { has_ship_flag = ag_zeta_titan_player } }
+											set_ship_flag = ag_zeta_titan_player
+										}
+										copy_flags_and_variables_from = prevprev
+										ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+										ag_difficulty_bonus = yes
+										ship_event = { id = ag_zeta.22 days = @ag_sub_psionic_core_effect_days }
+									}
+								}
+							}
+							ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+							delete_ship = this
+							break = yes
+						}
+						ag_zeta_battleship = {
+							ag_ancient_zeta_guardian_ship_psi_warning = yes
+							fleet = {
+								create_ship = {
+									name = "NAME_ag_zeta_battleship_ship"
+									design = "NAME_ag_zeta_battleship_psi"
+									prefix = no
+									effect = {
+										if = {
+											limit = { prevprev = { has_ship_flag = ag_zeta_battleship_player } }
+											set_ship_flag = ag_zeta_battleship_player
+										}
+										copy_flags_and_variables_from = prevprev
+										ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+										ag_difficulty_bonus = yes
+										ship_event = { id = ag_zeta.22 days = @ag_sub_psionic_core_effect_days }
+									}
+								}
+							}
+							ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+							delete_ship = this
+							break = yes
+						}
+						ag_zeta_destroyer = {
+							ag_ancient_zeta_guardian_ship_psi_warning = yes
+							fleet = {
+								create_ship = {
+									name = "NAME_ag_zeta_destroyer_ship"
+									design = "NAME_ag_zeta_destroyer_psi"
+									prefix = no
+									effect = {
+										if = {
+											limit = { prevprev = { has_ship_flag = ag_zeta_destroyer_player } }
+											set_ship_flag = ag_zeta_destroyer_player
+										}
+										copy_flags_and_variables_from = prevprev
+										ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+										ag_difficulty_bonus = yes
+										ship_event = { id = ag_zeta.22 days = @ag_sub_psionic_core_effect_days }
+									}
+								}
+							}
+							ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+							delete_ship = this
+							break = yes
+						}
+						ag_zeta_military_station_small = {
+							ag_ancient_zeta_guardian_ship_psi_warning = yes
+							create_fleet = {
+								name = "NAME_ag_zeta_military_station_small_fleet"
+								settings = {
+									spawn_debris = no
+									is_boss = yes
+								}
+								effect = {
+									set_owner = root.owner
+									create_ship = {
+										name = "NAME_ag_zeta_military_station_small_ship"
+										design = "NAME_ag_zeta_military_station_small_psi"
+										prefix = no
+										
+										effect = {
+											copy_flags_and_variables_from = prevprev
+											ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+											ag_difficulty_bonus = yes
+											ship_event = { id = ag_zeta.22 days = @ag_sub_psionic_core_effect_days }
+										}
+									}
+									set_location = {
+										target = root
+										distance = 0
+										angle = 0
+									}
+								}
+							}
+							ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+							delete_ship = this
+							break = yes
+						}
+						ag_zeta_military_station_large = {
+							ag_ancient_zeta_guardian_ship_psi_warning = yes
+							create_fleet = {
+								name = "NAME_ag_zeta_military_station_large_fleet"
+								settings = {
+									spawn_debris = no
+									is_boss = yes
+								}
+								effect = {
+									set_owner = root.owner
+									create_ship = {
+										name = "NAME_ag_zeta_military_station_large_ship"
+										design = "NAME_ag_zeta_military_station_large_psi"
+										prefix = no
+										effect = {
+											copy_flags_and_variables_from = prevprev
+											ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+											ag_difficulty_bonus = yes
+											ship_event = { id = ag_zeta.22 days = @ag_sub_psionic_core_effect_days }
+										}
+									}
+									set_location = { target = root distance = 0 angle = 0 }
+								}
+							}
+							ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+							delete_ship = this
+							break = yes
+						}
+					}
+					if = { limit = { exists = event_target:ag_leader_swap_target } fleet = { assign_leader = event_target:ag_leader_swap_target } }
+				}
+			}
+		}
+		else = {
+			ag_clear_disable_at_health = { ag_disable_type = zeta_ship }
+			set_disabled = no
+		}
+	}
+}
+
+# Ancient Ship recovery form psionic form
+ship_event = {
+	id = ag_zeta.22
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = { limit = { fleet = { exists = leader } } leader = { save_event_target_as = ag_leader_swap_target unassign_leader = this } }
+		switch = {
+			trigger = is_ship_size
+			ag_zeta_titan_psi = {
+				fleet = {
+					create_ship = {
+						name = "NAME_ag_zeta_titan_ship"
+						design = "NAME_ag_zeta_titan"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+							if = {
+								limit = { prevprev = { has_ship_flag = ag_zeta_titan_player } }
+								set_ship_flag = ag_zeta_titan_player
+							}
+							reroll_random = yes
+							random_list = {
+								25 = { ag_reduce_hp_percent = { ag_value = 80 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 70 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 60 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 50 } }
+							}
+							copy_flags_and_variables_from = root
+							ag_set_disable_at_health = { ag_value = 0.02 ag_disable_type = zeta_ship }
+							set_timed_ship_flag = {
+								flag = ag_zeta_ship_ability_cooldown
+								days = @ag_sub_psionic_core_debuff_days
+							}
+							add_modifier = {
+								modifier = "ag_ancient_zeta_psi_power_cooldown"
+								days = @ag_sub_psionic_core_debuff_days
+							}
+						}
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				delete_ship = this
+				break = yes
+			}
+			ag_zeta_battleship_psi = {
+				fleet = {
+					create_ship = {
+						name = "NAME_ag_zeta_battleship_ship"
+						design = "NAME_ag_zeta_battleship"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+							if = {
+								limit = { prevprev = { has_ship_flag = ag_zeta_battleship_player } }
+								set_ship_flag = ag_zeta_battleship_player
+							}
+							reroll_random = yes
+							random_list = {
+								25 = { ag_reduce_hp_percent = { ag_value = 80 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 70 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 60 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 50 } }
+							}
+							copy_flags_and_variables_from = root
+							ag_set_disable_at_health = { ag_value = 0.02 ag_disable_type = zeta_ship }
+							set_timed_ship_flag = {
+								flag = ag_zeta_ship_ability_cooldown
+								days = @ag_sub_psionic_core_debuff_days
+							}
+							add_modifier = {
+								modifier = "ag_ancient_zeta_psi_power_cooldown"
+								days = @ag_sub_psionic_core_debuff_days
+							}
+						}
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				delete_ship = this
+				break = yes
+			}
+			ag_zeta_destroyer_psi = {
+				fleet = {
+					create_ship = {
+						name = "NAME_ag_zeta_destroyer_ship"
+						design = "NAME_ag_zeta_destroyer"
+						prefix = no
+						effect = {
+							ag_difficulty_bonus = yes
+							if = {
+								limit = { prevprev = { has_ship_flag = ag_zeta_destroyer_player } }
+								set_ship_flag = ag_zeta_destroyer_player
+							}
+							reroll_random = yes
+							random_list = {
+								25 = { ag_reduce_hp_percent = { ag_value = 80 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 70 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 60 } }
+								25 = { ag_reduce_hp_percent = { ag_value = 50 } }
+							}
+							copy_flags_and_variables_from = root
+							ag_set_disable_at_health = { ag_value = 0.02 ag_disable_type = zeta_ship }
+							set_timed_ship_flag = {
+								flag = ag_zeta_ship_ability_cooldown
+								days = @ag_sub_psionic_core_debuff_days
+							}
+							add_modifier = {
+								modifier = "ag_ancient_zeta_psi_power_cooldown"
+								days = @ag_sub_psionic_core_debuff_days
+							}
+						}
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				delete_ship = this
+				break = yes
+			}
+			ag_zeta_military_station_small_psi = {
+				create_fleet = {
+					name = "NAME_ag_zeta_military_station_small_fleet"
+					settings = {
+						spawn_debris = no
+						is_boss = yes
+					}
+					effect = {
+						set_owner = root.owner
+						create_ship = {
+							name = "NAME_ag_zeta_military_station_small_ship"
+							design = "NAME_ag_zeta_military_station_small"
+							prefix = no
+							effect = {
+								ag_difficulty_bonus = yes
+								reroll_random = yes
+								random_list = {
+									25 = { ag_reduce_hp_percent = { ag_value = 80 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 70 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 60 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 50 } }
+								}
+								copy_flags_and_variables_from = root
+								ag_set_disable_at_health = { ag_value = 0.02 ag_disable_type = zeta_ship }
+								set_timed_ship_flag = {
+									flag = ag_zeta_ship_ability_cooldown
+									days = @ag_sub_psionic_core_debuff_days
+								}
+								add_modifier = {
+									modifier = "ag_ancient_zeta_psi_power_cooldown"
+									days = @ag_sub_psionic_core_debuff_days
+								}
+							}
+						}
+						set_location = { target = root distance = 0 angle = 0 }
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				delete_ship = this
+				break = yes
+			}
+			ag_zeta_military_station_large_psi = {
+				create_fleet = {
+					name = "NAME_ag_zeta_military_station_large_fleet"
+					settings = {
+						spawn_debris = no
+						is_boss = yes
+					}
+					effect = {
+						set_owner = root.owner
+						create_ship = {
+							name = "NAME_ag_zeta_military_station_large_ship"
+							design = "NAME_ag_zeta_military_station_large"
+							prefix = no
+							effect = {
+								ag_difficulty_bonus = yes
+								reroll_random = yes
+								random_list = {
+									25 = { ag_reduce_hp_percent = { ag_value = 80 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 70 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 60 } }
+									25 = { ag_reduce_hp_percent = { ag_value = 50 } }
+								}
+								copy_flags_and_variables_from = root
+								ag_set_disable_at_health = { ag_value = 0.02 ag_disable_type = zeta_ship }
+								set_timed_ship_flag = {
+									flag = ag_zeta_ship_ability_cooldown
+									days = @ag_sub_psionic_core_debuff_days
+								}
+								add_modifier = {
+									modifier = "ag_ancient_zeta_psi_power_cooldown"
+									days = @ag_sub_psionic_core_debuff_days
+								}
+							}
+						}
+						set_location = { target = root distance = 0 angle = 0 }
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				delete_ship = this
+				break = yes
+			}
+		}
+		if = { limit = { exists = event_target:ag_leader_swap_target } fleet = { assign_leader = event_target:ag_leader_swap_target } }
+	}
+}
+
+# Notification for ship belongs to the Zeta Installation Defensive System turned into psionic form
+country_event = {
+	id = ag_zeta.31
+	title = "ag_zeta.31.name"
+	desc = "ag_zeta.31.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_small_space_battle_room }
+	show_sound = event_red_alert
+	location = event_target:ag_ancient_zeta_star
+	
+	is_triggered_only = yes
+	trigger = { NOT = { has_country_flag = ag_zeta_31_fired } }
+	immediate = { set_country_flag = ag_zeta_31_fired }
+	
+	option = { name = "ag_zeta.31.a" }
+}
+
+# Zeta Installation Defensive System calls reinforcement
+ship_event = {
+	id = ag_zeta.32
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this }
+	
+	immediate = {
+		repair_ship = yes
+		set_disabled = no
+		if = {
+			limit = { NOT = { has_ship_flag = ag_zeta_station_reinforcement_locked } }
+			random_list = {
+				10 = {
+					modifier = {
+						factor = 0
+						is_variable_set = ag_num_zeta_reinforcement_spawned
+						check_variable = { which = ag_num_zeta_reinforcement_spawned value > 4 }
+					}
+					random_list = {
+						10 = { set_timed_ship_flag = { flag = ag_zeta_station_reinforcement_locked days = 5 } }
+						10 = { set_timed_ship_flag = { flag = ag_zeta_station_reinforcement_locked days = 4 } }
+						10 = { set_timed_ship_flag = { flag = ag_zeta_station_reinforcement_locked days = 3 } }
+						10 = { set_timed_ship_flag = { flag = ag_zeta_station_reinforcement_locked days = 2 } }
+						10 = { set_timed_ship_flag = { flag = ag_zeta_station_reinforcement_locked days = 1 } }
+						10 = { }
+					}
+					reroll_random = yes
+					change_variable = { which = ag_num_zeta_reinforcement_spawned value = 1 }
+					ship_event = { id = ag_zeta.341 days = 30 random = 10 }
+				}
+				20 = {
+					clear_variable = ag_num_zeta_reinforcement_spawned
+					ag_clear_disable_at_health = { ag_disable_type = zeta_station }
+					ship_event = { id = ag_zeta.34 days = 180 }
+				}
+			}
+			reroll_random = yes
+			solar_system.star = {
+				create_fleet = {
+					name = "NAME_ag_zeta_guardian_fleet"
+					settings = {
+						spawn_debris = no
+						is_boss = yes
+					}
+					effect = {
+						set_owner = root.owner
+						while = {
+							count = @ag_zeta_guardian_reinforcement_fleet_num_battleships
+							ag_zeta_battleship_spawn = yes
+						}
+						while = {
+							count = @ag_zeta_guardian_reinforcement_fleet_num_destroyers
+							ag_zeta_destroyer_spawn = yes
+						}
+						if = {
+							limit = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty value >= 0 } } }
+							if = {
+								limit = { event_target:global_event_country = { check_variable = { which = ag_scaled_difficulty value > 2 } } }
+								event_target:ag_ancient_zeta_guardian_country = { ag_spawn_zeta_guardian_leader = yes }
+								assign_leader = last_created_leader
+							}
+							else = {
+								reroll_random = yes
+								random_list = {
+									50 = { }
+									50 = {
+										event_target:ag_ancient_zeta_guardian_country = { ag_spawn_zeta_guardian_leader = yes }
+										assign_leader = last_created_leader
+									}
+								}
+							}
+						}
+						set_location = { target = prev distance = 5 angle = random }
+						set_fleet_stance = aggressive
+						set_aggro_range_measure_from = self
+						set_aggro_range = 500
+						if = {
+							limit = { solar_system = { has_star_flag = ag_ancient_zeta_system } }
+							ag_zeta_titan_action_1 = yes
+						}
+						else_if = {
+							limit = { solar_system = { has_star_flag = ag_ancient_psi_system } }
+							ag_psi_titan_action_1 = yes
+						}
+					}
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+			}
+			solar_system = { every_fleet_in_system = {
+				limit = {
+					exists = owner
+					owner = {
+						is_ai = no
+						is_hostile = root.owner
+						NOT = { has_country_flag = ag_ancient_zeta_guardian_country }
+					}
+					is_in_combat = yes
+				}
+				owner = { country_event = { id = ag_zeta.33 } }
+			} }
+		}
+		else = {
+			random_list = {
+				10 = { }
+				40 = {
+					clear_variable = ag_num_zeta_reinforcement_spawned
+					ag_clear_disable_at_health = { ag_disable_type = zeta_station }
+					ship_event = { id = ag_zeta.34 days = 180 }
+				}
+			}
+			reroll_random = yes
+		}
+	}
+}
+
+# Notification: Zeta Installation Defensive System called reinforcement
+country_event = {
+	id = ag_zeta.33
+	title = "ag_zeta.33.name"
+	desc = "ag_zeta.33.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_unknown_ships_room }
+	show_sound = event_red_alert
+	location = event_target:ag_ancient_zeta_star
+	is_triggered_only = yes
+	trigger = { NOT = { has_country_flag = ag_zeta_33_fired } }
+	immediate = { set_timed_country_flag = { flag = ag_zeta_33_fired days = 2 } }
+	option = { name = "ag_zeta.33.a" }
+}
+
+# Allows reinforcement again
+ship_event = {
+	id = ag_zeta.34
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this }
+	immediate = { if = {
+		limit = { NOT = { is_variable_set = ag_disable_zeta_station } }
+		ag_set_disable_at_health = { ag_disable_type = zeta_station }
+	} }
+}
+ship_event = {
+	id = ag_zeta.341
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this }
+	immediate = { if = {
+		limit = { is_variable_set = ag_num_zeta_reinforcement_spawned }
+		subtract_variable = { which = ag_num_zeta_reinforcement_spawned value = 1 }
+		if = {
+			limit = { check_variable = { which = ag_num_zeta_reinforcement_spawned value <= 0 } }
+			clear_variable = ag_num_zeta_reinforcement_spawned
+		}
+	} }
+}
+
+# on_ship_destroyed_victim, Zeta Installation Defensive System Destroyed
+country_event = {
+	id = ag_zeta.35
+	hide_window = yes
+	
+	fire_only_once = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_country_flag = ag_ancient_zeta_guardian_country
+		fromfrom = { NOT = { has_ship_flag = ag_set_disable_at_health } }
+		count_controlled_ship = { count < 1 }
+	}
+	
+	immediate = {
+		set_global_flag = ag_ancient_zeta_guardian_destroyed
+		from = { set_timed_country_flag = { flag = ag_lost_ancient_ship_zeta_guardian_destroyed_recent days = 30 } }
+		ag_change_shroud_type = yes
+		event_target:global_event_country = {
+			start_situation = { type = ag_zeta_crisis_init_situation target = event_target:ag_ancient_zeta_shielded_world }
+			country_event = { id = ag_zeta_crisis.2 days = 1440 random = 360 }			# Go to Shroud Invader Crisis Stage 1.
+			country_event = { id = ag_zeta_psionics.1 days = 90 random = 90 }
+		}
+		ag_create_zeta_criris_country = yes
+		event_target:ag_ancient_zeta_shielded_world = {
+			set_planet_flag = ag_zeta_crisis_init_flag
+			solar_system = { set_star_flag = ag_zeta_crisis_core_system }
+		}
+		add_threat = { who = from amount = 50 }
+		from = {
+			save_event_target_as = ag_ancient_zeta_guardian_killer
+			set_country_flag = ag_ancient_zeta_guardian_killer
+			country_event = { id = ag_zeta.36 }
+		}
+		every_playable_country = {
+			if = {
+				limit = { NOR = { is_same_value = root is_same_value = root.from } }
+				country_event = { id = ag_zeta.37 }
+			}
+			if = {
+				limit = {  has_modifier = ag_ancient_zeta_weakness }
+				remove_modifier = "ag_ancient_zeta_weakness"
+			}
+			if = {
+				limit = { has_special_project = ag_find_ancient_zeta_weakness }
+				abort_special_project = { type = "ag_find_ancient_zeta_weakness" location = capital_scope }
+			}
+		}
+		destroy_country = yes
+	}
+}
+
+# Zeta Installation Defensive System Destroyed, Notification for its killer
+country_event = {
+	id = ag_zeta.36
+	title = "ag_zeta.36.name"
+	desc = "ag_zeta.36.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_unknown_ships_room }
+	show_sound = event_space_battle
+	location = event_target:ag_ancient_zeta_star
+
+	is_triggered_only = yes
+	trigger = { NOT = { has_country_flag = ag_zeta_36_fired } }
+
+	immediate = {
+		set_country_flag = ag_zeta_36_fired
+		set_country_flag = ag_ancient_zeta_crisis_init_site_discovered
+	}
+	after = {
+		event_target:ag_zeta_shrouded_gas_giant = { create_archaeological_site = ag_ancient_zeta_crisis_init_site }
+		hidden_effect = { country_event = { id = ag_zeta.38 days = 10 random = 10 } }
+	}
+
+	option = { name = "ag_zeta.36.a" }
+	option = { name = "ag_zeta.36.b" }
+	option = {
+		name = "ag_zeta.36.c"
+		trigger = { species = { has_trait = trait_psionic } }
+	}
+}
+
+# Zeta Installation Defensive System Destroyed, Notification for other countries
+country_event = {
+	id = ag_zeta.37
+	title = "ag_zeta.37.name"
+	desc = "ag_zeta.37.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_throne_room }
+	show_sound = event_mystic_reveal
+	location = event_target:ag_ancient_zeta_star
+	
+	is_triggered_only = yes
+	trigger = { NOT = { has_country_flag = ag_zeta_37_fired } }
+	
+	immediate = { set_country_flag = ag_zeta_37_fired }
+	after = { hidden_effect = { country_event = { id = ag_zeta.38 days = 30 random = 30 } } }
+	
+	option = { name = "ag_zeta.37.a" }
+}
+
+# Notification for ancient shield failing
+country_event = {
+	id = ag_zeta.38
+	title = "ag_zeta.38.name"
+	desc = "ag_zeta.38.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_clocks_room }
+	show_sound = event_yellow_alert
+	location = event_target:ag_ancient_zeta_shielded_world
+	is_triggered_only = yes
+	option = { name = "ag_zeta.38.a" }
+	option = { name = "ag_zeta.38.b" }
+	option = {
+		name = "ag_zeta.38.c"
+		trigger = { species = { has_trait = trait_psionic } }
+	}
+}
+country_event = {
+	id = ag_zeta.39
+	title = "ag_zeta.39.name"
+	desc = "ag_zeta.39.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_clocks_room }
+	show_sound = event_yellow_alert
+	location = event_target:ag_ancient_zeta_shielded_world
+	is_triggered_only = yes
+	option = {
+		name = "ag_zeta.39.a"
+		start_situation = { type = ag_zeta_crisis_init_situation target = event_target:ag_ancient_zeta_star }
+	}
+}
+
+# on_yearly_pulse, Failsafe for Zeta Installation Defensive System Destroyed but ag_zeta.35 didn't fired correctly for any reason
+event = {
+	id = ag_zeta.40
+	hide_window = yes
+
+	is_triggered_only = yes
+	fire_only_once = yes
+
+	trigger = {
+		NOT = { has_global_flag = ag_ancient_zeta_guardian_destroyed }
+		exists = event_target:ag_ancient_zeta_guardian_country
+		event_target:ag_ancient_zeta_guardian_country = { num_ships < 1 }
+	}
+
+	immediate = {
+		if = {
+			limit = { exists = event_target:ag_ancient_eta_shielded_world event_target:ag_ancient_eta_shielded_world = { exists = owner has_building = ag_ancient_eta_monument owner = { is_ai = no } } }
+			event_target:ag_ancient_eta_shielded_world.owner = { country_event = { id = ag_zeta_psionics.201 days = 5 random = 5 } }
+		}
+		event_target:ag_ancient_zeta_guardian_country = {
+			set_global_flag = ag_ancient_zeta_guardian_destroyed
+			ag_change_shroud_type = yes
+			set_global_flag = ag_zeta_crisis_stage_1
+			event_target:ag_ancient_zeta_shielded_world = {
+				set_planet_flag = ag_zeta_crisis_init_flag
+				ag_set_ancient_ringworld = {
+					ag_color = violet
+					ag_type = habitable
+					ag_surface_type = shrouded
+					ag_shield_color = blue
+				}
+				ag_spawn_explosion_effect = { ag_scale = xl ag_color = violet }
+				solar_system = {
+					set_star_flag = ag_zeta_crisis_core_system
+				}
+			}
+			event_target:global_event_country = {
+				save_event_target_as = ag_ancient_zeta_guardian_killer
+				set_country_flag = ag_ancient_zeta_guardian_killer
+				country_event = { id = ag_zeta.36 }
+			}
+			every_country = {
+				limit = {
+					NOR = {
+						is_same_value = event_target:ag_ancient_zeta_guardian_country
+						is_same_value = event_target:global_event_country
+					}
+				}
+				country_event = { id = ag_zeta.37 }
+			}
+			every_country = {
+				if = {
+					limit = { 
+						has_modifier = ag_ancient_zeta_weakness
+					}
+					remove_modifier = "ag_ancient_zeta_weakness"
+				}
+				if = {
+					limit = {
+						has_special_project = ag_find_ancient_zeta_weakness
+					}
+					abort_special_project = {
+						type = "ag_find_ancient_zeta_weakness"
+						location = capital_scope
+					}
+				}
+			}
+			destroy_country = yes
+		}
+	}
+}
+
+# on_ship_destroyed_victim, give Zeta Installation Defensive System's weakness research project if player lost too many ships
+country_event = {
+	id = ag_zeta.41
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = {
+			has_country_flag = ag_ancient_zeta_guardian_country
+		}
+		is_ai = no
+		NOR = {
+			has_global_flag = ag_ancient_zeta_guardian_destroyed
+			has_country_flag = ag_has_ancient_zeta_weakness
+		}
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_ancient_zeta_guardian_killcount
+					value < 1
+				}
+			}
+			set_variable = {
+				which = ag_ancient_zeta_guardian_killcount
+				value = 1
+			}
+		}
+		fromfrom = {
+			root = {
+				ag_hostile_kill_counter = {
+					ag_variable_name = ag_ancient_zeta_guardian_killcount
+				}
+			}
+		}
+		if = {
+			limit = {
+				check_variable = {
+					which = ag_ancient_zeta_guardian_killcount
+					value >= 512
+				}
+				NOR = {
+					has_global_flag = ag_zeta_titan_destroyed
+					has_country_flag = ag_has_ancient_zeta_weakness
+				}
+			}
+			set_variable = {
+				which = ag_ancient_zeta_guardian_killcount
+				value = 512
+			}
+			random_list = {
+				25 = {
+					country_event = {
+						id = ag_zeta.42
+						days = 30
+						random = 30
+					}
+					set_country_flag = ag_has_ancient_zeta_weakness
+				}
+				75 = {
+				}
+			}
+		}
+	}
+}
+
+# Notification for Zeta Installation Defensive System's weakness research project
+country_event = {
+	id = ag_zeta.42
+	title = "ag_zeta.42.name"
+	desc = "ag_zeta.42.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_sabotaged_ship_room }
+	show_sound = event_yellow_alert
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = {
+			has_global_flag = ag_ancient_zeta_guardian_destroyed
+		}
+	}
+	
+	option = {
+		name = "ag_zeta.42.a"
+		enable_special_project = {
+			name = "ag_find_ancient_zeta_weakness"
+			location = capital_scope
+			owner = root
+		}
+	}
+	option = {
+		name = "ag_zeta.42.b"
+		add_resource = { influence = @ag_end_event_influence_large }
+	}
+}
+
+# Completed special project for Zeta Installation Defensive System's weakness
+country_event = {
+	id = ag_zeta.43
+	title = "ag_zeta.43.name"
+	desc = "ag_zeta.43.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_physics_research_room }
+	show_sound = event_laboratory_sound
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_zeta.43.a"
+		if = {
+			limit = {
+				NOT = {
+					has_modifier = ag_ancient_zeta_weakness
+				}
+			}
+			add_modifier = {
+				modifier = ag_ancient_zeta_weakness
+				days = -1
+			}
+		}
+	}
+}
+
+# Archaeology Site: Gas Giant Facilities
+# Stage 1
+fleet_event = { 
+	id = ag_zeta.51
+	title = "ag_zeta.51.name"
+	desc = "ag_zeta.51.desc"
+	picture = GFX_evt_space_station
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.51.a"
+	}
+}
+# Stage 2
+fleet_event = {
+	id = ag_zeta.52
+	title = "ag_zeta.52.name"
+	desc = "ag_zeta.52.desc"
+	picture = GFX_evt_gas_giant
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.52.a"
+	}
+}
+# Stage 3
+fleet_event = {
+	id = ag_zeta.53
+	title = "ag_zeta.53.name"
+	desc = "ag_zeta.53.desc"
+	picture = GFX_evt_ag_zeta_area_gas_giant_station
+	show_sound = event_dig_site
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.53.a"
+		leader = { add_experience = 100 }
+	}
+}
+# Stage 4
+fleet_event = { 
+	id = ag_zeta.54
+	title = "ag_zeta.54.name"
+	desc = "ag_zeta.54.desc"
+	picture = GFX_evt_baol_datacrystals
+	show_sound = event_finding_loot
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.54.a"
+		leader = { add_experience = 200 }
+		owner = { ag_give_psionic_theory = yes }
+	}
+}
+# Stage 5
+fleet_event = { 
+	id = ag_zeta.55
+	title = "ag_zeta.55.name"
+	desc = "ag_zeta.55.desc"
+	picture = GFX_evt_archaeological_dig
+	show_sound = event_finding_loot
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.55.a"
+	}
+}
+# Stage 6, archaeological dig completed
+fleet_event = {
+	id = ag_zeta.56
+	title = "ag_zeta.56.name"
+	desc = "ag_zeta.56.desc"
+	picture = GFX_evt_archaeological_dig
+	show_sound = event_activating_unknown_technology
+	location = from
+	
+	archaeology = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		from = { set_site_progress_locked = yes }
+	}
+	
+	after = { 
+		from = { set_site_progress_locked = no } 
+	}
+	
+	option = {
+		name = "ag_zeta.56.a"
+		medium_artifact_reward = yes
+		owner = {
+			ag_add_research_option = { ag_tech = tech_ag_zeta_crisis_damage_buff }
+			add_tech_progress = {
+				tech = tech_ag_zeta_crisis_damage_buff
+				progress = 0.10
+			}
+		}
+		hidden_effect = {
+			owner = {
+				set_country_flag = ag_zeta_crisis_init_site_completed
+			}
+		}
+	}
+}
+
+# Enable special project for active Ancient Construction Sections
+country_event = {
+	id = ag_zeta.91
+	title = "ag_zeta.91.name"
+	desc = {
+		trigger = {
+			NOT = {
+				has_country_flag = ag_known_construction_section
+			}
+		}
+		text = "ag_zeta.91.a.desc"
+	}
+	desc = {
+		trigger = {
+			has_country_flag = ag_known_construction_section
+		}
+		text = "ag_zeta.91.b.desc"
+	}
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ringworld_room }
+	show_sound = event_finding_loot
+	location = event_target:ag_ancient_zeta_shielded_world
+	
+	mean_time_to_happen = {
+		years = 5
+		modifier = {
+			factor = 0.5
+			has_country_flag = ag_known_construction_section
+		}
+	}
+	
+	trigger = {
+		NOT = { has_global_flag = ag_zeta_construction_section_unlocked }
+		NOT = { has_country_flag = ag_zeta_91_fired }
+		has_global_flag = ag_ancient_zeta_guardian_destroyed
+		any_system_within_border = {
+			has_star_flag = ag_ancient_zeta_system
+		}
+	}
+	
+	immediate = {
+		set_country_flag = ag_zeta_91_fired
+		event_target:ag_ancient_zeta_shielded_world = {
+			solar_system = {
+				random_system_planet = {
+					limit = {
+						has_planet_flag = ag_ancient_construction_section_0
+					}
+					save_event_target_as = ag_ancient_construction_section_loc
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_zeta.91.a"
+		enable_special_project = {
+			name = "ag_zeta_construction_section"
+			location = event_target:ag_ancient_construction_section_loc
+			owner = root
+		}
+		ai_chance = {
+			factor = 1000
+		}
+	}
+	option = {
+		name = "ag_zeta.91.b"
+		add_resource = { influence = @ag_end_event_influence_medium }
+		ai_chance = {
+			factor = 0
+		}
+	}
+}
+
+# Special project for active Ancient Construction Sections completed
+country_event = {
+	id = ag_zeta.92
+	title = "ag_zeta.92.name"
+	desc = "ag_zeta.92.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ringworld_room }
+	location = from
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ag_zeta_construction_section_unlocked
+		set_country_flag = ag_known_construction_section
+		event_target:ag_ancient_zeta_shielded_world = {
+			solar_system = {
+				ag_spawn_ancient_construction_section = yes
+			}
+		}
+	}
+	
+	option = {
+		name = "ag_zeta.92.a"
+	}
+}
+
+# Salvage Ancient Ship
+country_event = {
+	id = ag_zeta.110
+	title = "ag_zeta.110.name"
+	desc = "ag_zeta.110.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_space_debris_room }
+	show_sound = event_mystic_reveal
+
+	mean_time_to_happen = { months = 20 }
+
+	trigger = {
+		NOR = {
+			has_global_flag = ag_zeta_no_ancient_debris
+			has_special_project = ag_zeta_ship_debris
+			has_country_flag = ag_zeta_110_flag
+		}
+		any_system_within_border = { has_star_flag = ag_ancient_zeta_system }
+	}
+	
+	option = {
+		name = "ag_zeta.110.a"
+		event_target:ag_ancient_zeta_shielded_world.solar_system = {
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = ag_zeta_debris_object }
+				enable_special_project = {
+					name = ag_zeta_ship_debris
+					location = this
+					owner = root
+				}
+			}
+		}
+	}
+	option = {
+		name = "ag_zeta.110.b"
+		add_resource = { influence = @ag_end_event_influence_small }
+		hidden_effect = { set_country_flag = ag_zeta_110_flag }
+	}
+}
+country_event = {
+	id = ag_zeta.111
+	title = "ag_zeta.111.name"
+	desc = "ag_zeta.111.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_m_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_ship_in_orbit_room }
+	show_sound = event_dyson_sphere_build_complete
+	is_triggered_only = yes
+
+	immediate = {
+		fromfrom = {
+			solar_system.star = {
+				subtract_variable = { which = ag_num_ancient_debris value = 1 }
+				if = {
+					limit = { star = { check_variable = { which = ag_num_ancient_debris value < 1 } } }
+					set_global_flag = ag_zeta_no_ancient_debris
+				}
+			}
+			if = {
+				limit = {
+					OR = {
+						has_ambient_object_flag = ag_zeta_titan_debris_object_1
+						has_ambient_object_flag = ag_zeta_titan_debris_object_2
+						has_ambient_object_flag = ag_zeta_titan_debris_object_3
+						has_ambient_object_flag = ag_zeta_titan_debris_object_4
+						has_ambient_object_flag = ag_zeta_titan_debris_object_5
+						has_ambient_object_flag = ag_zeta_titan_debris_object_6
+					}
+				}
+				create_fleet = {
+					name = "NAME_ag_salvaged_ancient_fleet"
+					settings = { spawn_debris = no }
+					effect = {
+						set_owner = root
+						create_ship = {
+							name = "NAME_ag_zeta_titan_ship"
+							design = "NAME_ag_zeta_titan"
+							prefix = no
+							effect = {
+								set_ship_flag = ag_zeta_titan_player
+								ag_difficulty_bonus = yes
+							}
+						}
+						set_location = {
+							target = prev
+							distance = 0
+							angle = random 
+						}
+						set_fleet_stance = aggressive
+						set_aggro_range_measure_from = self
+						set_aggro_range = 500
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					OR = {
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_1
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_2
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_3
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_4
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_5
+						has_ambient_object_flag = ag_zeta_battleship_debris_object_6
+					}
+				}
+				create_fleet = {
+					name = "NAME_ag_salvaged_ancient_fleet"
+					settings = { spawn_debris = no }
+					effect = {
+						set_owner = root
+						while = {
+							count = 2
+							create_ship = {
+								name = "NAME_ag_zeta_battleship_ship"
+								design = "NAME_ag_zeta_battleship"
+								prefix = no
+								effect = { ag_difficulty_bonus = yes }
+							}
+						}
+						set_location = {
+							target = prev
+							distance = 0
+							angle = random 
+						}
+						set_fleet_stance = aggressive
+						set_aggro_range_measure_from = self
+						set_aggro_range = 500
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					OR = {
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_1
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_2
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_3
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_4
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_5
+						has_ambient_object_flag = ag_zeta_destroyer_debris_object_6
+					}
+				}
+				create_fleet = {
+					name = "NAME_ag_salvaged_ancient_fleet"
+					settings = { spawn_debris = no }
+					effect = {
+						set_owner = root
+						while = {
+							count = 4
+							create_ship = {
+								name = "NAME_ag_zeta_destroyer_ship"
+								design = "NAME_ag_zeta_destroyer"
+								prefix = no
+								effect = { ag_difficulty_bonus = yes }
+							}
+						}
+						set_location = {
+							target = prev
+							distance = 0
+							angle = random 
+						}
+						set_fleet_stance = aggressive
+						set_aggro_range_measure_from = self
+						set_aggro_range = 500
+					}
+				}
+			}
+			ag_clear_zeta_debris_object = yes
+		}
+	}
+	
+	option = { name = "ag_zeta.111.a" }
+}
+country_event = {
+	id = ag_zeta.112
+	title = "ag_zeta.112.name"
+	desc = "ag_zeta.112.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_space_debris_room }
+	show_sound = event_yellow_alert
+	is_triggered_only = yes
+
+	immediate = {
+		fromfrom = {
+			solar_system.star = {
+				subtract_variable = { which = ag_num_ancient_debris value = 1 }
+				if = {
+					limit = { star = { check_variable = { which = ag_num_ancient_debris value < 1 } } }
+					set_global_flag = ag_zeta_no_ancient_debris
+				}
+			}
+			ag_clear_zeta_debris_object_flag = yes
+		}
+	}
+	
+	option = { name = "ag_zeta.112.a" }
+}
+country_event = {
+	id = ag_zeta.113
+	title = "ag_zeta.113.name"
+	desc = "ag_zeta.113.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_space_station_room }
+	show_sound = event_yellow_alert
+	is_triggered_only = yes
+	
+	option = { name = "ag_zeta.113.a" }
+}
+
+# Ancient Titan Megastructure
+# Stage 1/2
+country_event = {
+	id = ag_zeta.121
+	title = "ag_zeta.121.name"
+	desc = "ag_zeta.121.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_ringworld_build_start
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_zeta.121.a"
+	}
+	option = {
+		name = "ag_auto_upgrade"
+		trigger = { fromfromfrom = { NOT = { has_megastructure_flag = ag_auto_upgrade_megastructure } } }
+		ag_set_auto_upgrade_megastructure = yes
+	}
+}
+# Stage 2/2
+country_event = {
+	id = ag_zeta.122
+	title = "ag_zeta.122.name"
+	desc = "ag_zeta.122.desc"
+	inline_script = "events/ag_ancient_titan_built_options"
+}
+# Stage 1/2 (others)
+country_event = {
+	id = ag_zeta.123
+	title = "ag_zeta.123.name"
+	desc = "ag_zeta.123.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_mega_structure_other_empire_build_complete
+	location = fromfromfrom
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = "ag_zeta.123.a"
+	}
+}
+# Stage 2/2 (others)
+country_event = {
+	id = ag_zeta.124
+	title = "ag_zeta.124.name"
+	desc = "ag_zeta.124.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_megastructure_construction_room }
+	show_sound = event_mega_structure_other_empire_build_complete
+	is_triggered_only = yes
+	inline_script = "events/ag_ancient_titan_built_other_options"
+}
+
+# Notification for fallen empire's warning
+country_event = {
+	id = ag_zeta.1000
+	title = "ag_zeta.1000.name"
+	desc = "ag_zeta.1000.desc"
+	diplomatic = yes
+	custom_gui = "ag_ancient_event_s_window"
+	custom_gui_option = "ag_ancient_event_option"
+	picture_event_data = { room = ag_event_star_chart_room }
+	show_sound = event_alien_signal
+	is_triggered_only = yes
+	option = {
+		name = "ag_zeta.1000.a"
+		hidden_effect = { country_event = { id = ag_zeta.1001 } }
+	}
+}
+
+# Fallen empire's warning
+country_event = {
+	id = ag_zeta.1001
+	title = "ag_zeta.1001.name"
+	desc = {
+		trigger = { event_target:ag_target_fallen_empire = { is_fallen_empire_spiritualist = no } }
+		text = "ag_zeta.1001.a.desc"
+	}
+	desc = {
+		trigger = { event_target:ag_target_fallen_empire = { is_fallen_empire_spiritualist = yes } }
+		text = "ag_zeta.1001.b.desc"
+	}
+	diplomatic = yes
+	force_open = yes
+	custom_gui = "ag_ancient_event_diplomacy_window"
+	custom_gui_option = "ag_ancient_event_diplomacy_option"
+	picture_event_data = {
+		room = event_target:ag_target_fallen_empire
+		portrait = event_target:ag_target_fallen_empire.ruler
+		planet_background = event_target:ag_target_fallen_empire.capital_scope
+		graphical_culture = event_target:ag_target_fallen_empire
+		city_level = event_target:ag_target_fallen_empire.capital_scope
+	}
+	location = event_target:ag_target_fallen_empire.capital_scope
+	
+	is_triggered_only = yes
+
+	option = { name = "ag_zeta.1001.a" }
+	option = {
+		name = "ag_zeta.1001.b"
+		event_target:ag_target_fallen_empire = { add_opinion_modifier = { who = root modifier = ag_opinion_find_zeta_area } }
+	}
+}

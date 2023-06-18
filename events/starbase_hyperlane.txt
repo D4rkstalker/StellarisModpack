@@ -1,0 +1,293 @@
+namespace = hyperlane_sbs
+
+country_event = {
+	id = hyperlane_sbs.0
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		exists = this
+		is_scope_type = country
+		is_ai = no
+		has_technology = tech_hyperlane_sbs
+		any_owned_starbase = { has_starbase_building = hyperlane_sbs }
+	}
+
+	immediate = {
+		every_owned_starbase = {
+			limit = {
+				has_starbase_building = hyperlane_sbs
+				solar_system = {
+					NOT = {
+						has_megastructure = hyperlane_sbs
+					}
+				}
+			}
+			solar_system = {
+				spawn_megastructure = {
+					type = hyperlane_sbs
+					owner = space_owner
+					planet = star
+					orbit_distance = 50
+					orbit_angle = 270
+					init_effect = {
+						prevprev = {
+							starbase_event = { id = hyperlane_sbs.2 }
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			country_event = { id = hyperlane_sbs.3 }
+		}
+	}
+}
+
+starbase_event = {
+	id = hyperlane_sbs.2
+	title = "hyperlane_sbs.2.name"
+	desc = "hyperlane_sbs.2.desc"
+	picture = GFX_evt_worm_box
+	show_sound = event_scanner
+	location = this
+	
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+	}
+
+	option = {
+		name = EXCELLENT
+	}
+}
+
+country_event = {
+	id = hyperlane_sbs.3
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_system_within_border = {
+			limit = {
+				any_system_megastructure = { is_megastructure_type = hyperlane_sbs }
+				any_country_neighbor_to_system = {
+					is_country_type = default
+					has_communications = root
+					OR = {
+						is_at_war_with = root
+						is_hostile_to = root
+						is_domineering_to = root
+						is_unfriendly_to = root
+					}
+					NOT = { is_at_war_with = root }
+				}
+			}
+			save_global_event_target_as = hyperlane_sbs_system
+			every_neighbor_system  = {
+				limit = {
+					has_hyperlane_to = prev
+					exists = space_owner
+					space_owner = {
+						is_country_type = default
+						has_communications = root
+						OR = {
+							is_hostile_to = root
+							is_domineering_to = root
+							is_unfriendly_to = root
+						}
+						NOT = { is_at_war_with = root }
+					}
+				}
+				save_global_event_target_as = hyperlane_target_system
+			}
+		}
+		set_country_flag = hyperlane_sbs
+	}
+
+	after = {
+		hidden_effect = {
+			remove_hyperlane = {
+				from = event_target:hyperlane_target_system
+				to = event_target:hyperlane_sbs_system
+			}
+			event_target:hyperlane_sbs_system = {
+				set_star_flag = hyperlane_sbs_system
+			}
+			event_target:hyperlane_target_system = {
+				set_star_flag = hyperlane_target_system
+			}
+		}
+	}
+}
+
+# on_system_lost (from = system) crisis jump
+country_event = {
+	id = hyperlane_sbs.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = from
+		from = {
+			has_megastructure = hyperlane_sbs
+			NAND = {
+				exists = starbase
+				starbase = { has_starbase_building = hyperlane_sbs }
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			random_system_megastructure = {
+				limit = { is_megastructure_type = hyperlane_sbs }
+				remove_megastructure = this
+				create_ambient_object = {
+					type = explosion_particle_object
+					location = this
+					use_3d_location = yes
+					duration = 20
+					scale = 5
+				}
+			}
+		}
+		set_spawn_system_batch = begin
+		random_system = {
+			limit = { has_star_flag = hyperlane_sbs_system }
+			while = {
+				limit = {
+					any_system = {
+						has_star_flag = hyperlane_target_system
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						has_star_flag = hyperlane_target_system
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+		}
+		set_spawn_system_batch = end
+		hidden_effect = {
+			clear_global_event_target = hyperlane_sbs_system
+			clear_global_event_target = hyperlane_target_system
+			every_country = {
+				limit = { has_country_flag = hyperlane_sbs }
+				remove_country_flag = hyperlane_sbs
+			}
+		}
+		country_event = { id = hyperlane_sbs.6 days = 15 }
+	}
+
+	after = {
+		clear_global_event_target = hyperlane_sbs_system
+		clear_global_event_target = hyperlane_target_system
+	}
+}
+
+# destroy (on_monthly_pulse)
+event = {
+	id = hyperlane_sbs.5
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_megastructure = {
+			is_megastructure_type = hyperlane_sbs
+			solar_system = {
+				NAND = {
+					exists = starbase
+					starbase = { has_starbase_building = hyperlane_sbs }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		random_megastructure = {
+			limit = {
+				is_megastructure_type = hyperlane_sbs
+				solar_system = {
+					NAND = {
+						exists = starbase
+						starbase = { has_starbase_building = hyperlane_sbs }
+					}
+				}
+			}
+			remove_megastructure = this
+			create_ambient_object = {
+				type = explosion_particle_object
+				location = this
+				use_3d_location = yes
+				duration = 20
+				scale = 5
+			}
+		}
+		set_spawn_system_batch = begin
+		random_system = {
+			limit = { has_star_flag = hyperlane_sbs_system }
+			while = {
+				limit = {
+					any_system = {
+						has_star_flag = hyperlane_target_system
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						has_star_flag = hyperlane_target_system
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+		}
+		set_spawn_system_batch = end
+		hidden_effect = {
+			clear_global_event_target = hyperlane_sbs_system
+			clear_global_event_target = hyperlane_target_system
+			every_country = {
+				limit = { has_country_flag = hyperlane_sbs }
+				remove_country_flag = hyperlane_sbs
+			}
+		}
+		every_playable_country = {
+			limit = { is_ai = no }
+			country_event = { id = hyperlane_sbs.6 days = 15 }
+		}
+	}
+}
+
+country_event = {
+	id = hyperlane_sbs.6
+	title = "hyperlane_sbs.6.name"
+	desc = "hyperlane_sbs.6.desc"
+	picture = GFX_evt_worm_box
+	show_sound = event_scanner
+	location = this
+	
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+	}
+
+	option = {
+		name = EXCELLENT
+		hidden_effect = {
+			if = {
+				limit = { exists = event_target:hyperlane_sbs_system }
+				clear_global_event_target = hyperlane_sbs_system
+			}
+			if = {
+				limit = { exists = event_target:hyperlane_target_system }
+				clear_global_event_target = hyperlane_target_system
+			}
+		}
+	}
+}

@@ -1,0 +1,96 @@
+namespace = AAR_evt_DOMINION
+
+#	aar威压入轨
+#	aar威压循环fw触发
+
+
+
+
+###_[aar威压入轨]
+#_<on_fleet_enter_orbit>
+##_scopes	<root/this>=舰队/<from>=星球/星基/巨构
+fleet_event = {
+	id = AAR_evt_DOMINION.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fleet_size > 100	# |舰队规模|
+		#	|殖民地|
+		from = {
+			is_scope_type = planet
+			is_colony = yes
+			is_under_colonization = no
+			exists = owner
+		}
+		#	|舰队控制者|
+		exists = controller
+		controller = { has_ascension_perk = AAR_AP_dominion_FEAR }	# AP存在
+	}
+	
+	immediate = {
+		##	每次舰队(szie>100)入轨殖民地都会刷新mod_factor,如果mod不存在则触发[威压循环_DB]
+		from = {
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_CD	# |AAR威压FACTOR统计CD|清除		所有强力舰队入轨都会重置[威压VAR统计]
+			
+			#	威压循环INIT
+			if = { limit = { NOT = { has_planet_flag = AAR_flg_plnt_DOMINION_cycle_ONGOING } }	# |AAR威压循环中|
+				set_planet_flag = AAR_flg_plnt_DOMINION_cycle_ONGOING
+				planet_event = { id = AAR_evt_DOMINION.10 days = 1 }		# [aar威压循环fw触发]		延时1天,确保入轨状态
+			}
+			
+			#	态度DB
+			if = { limit = { NOT = { has_planet_flag = AAR_flg_plnt_DOMINION_CD@root.controller } }	# |AAR威压星球CD|
+				set_timed_planet_flag = { flag = AAR_flg_plnt_DOMINION_CD@root.controller	days = 360 }	
+				owner = {
+					add_opinion_modifier = { modifier = AAR_opinion_dominion_FEAR_enemy		who = root.controller }	# 恶意宣称
+				}
+			}
+		}
+	}
+}
+
+
+
+
+###	aar威压循环fw触发
+#_evt	<aar威压入轨>
+planet_event = {
+	id = AAR_evt_DOMINION.10
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { has_planet_flag = AAR_flg_plnt_DOMINION_cycle_ONGOING }	# |AAR威压循环中|
+	
+	immediate = {
+		##	威压VAR统计
+		if = { limit = { NOT = { has_planet_flag = AAR_flg_plnt_DOMINION_cycle_CD } }
+			set_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY	# |AAR月扫星准备|添加
+
+			set_timed_planet_flag = { flag = AAR_flg_plnt_DOMINION_cycle_CD days = 115 }	# |CD|=4月
+			set_planet_flag = AAR_flg_plnt_DOMINION_cycle_READY	# |威压FACTOR统计READY|
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_STOP	# |AAR威压循环截断|清除		新循环突然开始的情况debug
+		}
+		
+		##	自循环
+		if = {
+			limit = {
+				#	|殖民地条件符合|
+				is_colony = yes
+				is_under_colonization = no
+				#	|轨道存在威压AP舰队|
+				any_fleet_in_orbit = { exists = controller
+					controller = { has_ascension_perk = AAR_AP_dominion_FEAR }
+				}
+			}
+			planet_event = { id = AAR_evt_DOMINION.10 days = 40 }
+		}
+		##	循环截断
+		else = {
+			set_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY	# |AAR月扫星准备|添加
+			
+			set_planet_flag = AAR_flg_plnt_DOMINION_cycle_STOP		# |AAR威压循环截断|
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_READY	# |威压FACTOR统计READY|清除
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_ONGOING
+		}
+	} 
+}
+

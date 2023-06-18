@@ -1,0 +1,634 @@
+namespace = AAR_evt_WEBWAY
+#_DEC	网道勘探成功*/网道勘探失败
+#		网道年检*	/网道cap国家循环/网道cap延时
+#_core	aar网道星系易主/网道sstm循环
+#		aar网道入轨激活/aar网道激活节点
+#		aar网道入轨维持/aar维持网道循环/aar维持网道失败*
+#		aar网道入场遗珍节点激活/网道定位器自我清理
+#		网道通知_枢纽完成/网道通知_cap用尽	/没有枢纽通知
+
+
+
+
+###	网道勘探成功		---禁用=[直接建造枢纽]
+#_dec	<DEC网道勘探>
+planet_event = {
+	id = AAR_evt_WEBWAY.10
+	title = AAR_title_WEBWAY_exp_success
+	desc = AAR_desc_WEBWAY_exp_success
+	picture = GFX_AAR_EP_webway
+	show_sound = event_ship_thrusters
+	location = root.solar_system.star
+	is_triggered_only = yes
+
+	option = {
+		name = AAR_option_WEBWAY_exp_build_base
+		custom_tooltip = AAR_tips_WEBWAY_exp_build_base
+		hidden_effect = {
+			solar_system = {
+				## 部署基址
+				spawn_megastructure = {
+					name = "NAME_AAR_mega_WEBWAY_BASE"
+					type = AAR_MEGA_webway_BASE
+					orbit_angle = 0
+					orbit_distance = 25
+					owner = root.owner
+				#	graphical_culture = fromfrom
+					planet = star
+				}
+				## 网道基址腐化
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_base days = 90 }
+				## 网道sstm循环
+				if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+					set_star_flag = AAR_flg_sstm_WEBWAY_debug
+					system_event = { id = AAR_evt_WEBWAY.25 days = 1 random = 7 }	# 初始触发
+				}
+			}
+		}
+	}
+	option = {
+		name = CANCEL
+	}
+}
+###	网道勘探失败
+#_<DEC网道勘探>
+planet_event = {
+	id = AAR_evt_WEBWAY.11
+	title = AAR_title_WEBWAY_exp_fail
+	desc = AAR_desc_WEBWAY_exp_fail
+	picture = GFX_AAR_EP_webway
+	show_sound = event_ship_thrusters
+	location = root.solar_system.star
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+
+
+
+###	网道年检	---禁用
+#_<on_building_starbase_outpost>
+ship_event = {
+	id = AAR_evt_WEBWAY.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+	}
+}
+
+
+
+
+###	网道cap国家循环		定期|90|检测网道used/cap
+#_<AP网道行者>
+#_var输出	|AAR_var_cntr_WEBWAY_used/AAR_var_cntr_WEBWAY_cap|
+country_event = {
+	id = AAR_evt_WEBWAY.21
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { has_ascension_perk = AAR_AP_webway }
+
+	immediate = {
+		##	自循环
+		country_event = { id = AAR_evt_WEBWAY.21 days = 90 }
+		##	网道capDB
+		if = { limit = { NOT = { has_country_flag = AAR_flg_cntr_WEBWAY_cap_CD } }
+			AAR_eft_cntr_WEBWAY_cap_DB = yes
+		}
+		remove_country_flag = AAR_flg_cntr_WEBWAY_cap_CD	# 自我CD清除,因为无需自我CD
+	}
+}
+###	网道cap延时		在mega完成时mod不刷新,需要延后一天DB
+#_<网道sstm循环>
+#_<MEGA网道关闭>
+country_event = {
+	id = AAR_evt_WEBWAY.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		AAR_eft_cntr_WEBWAY_cap_DB = yes	# 网道capDB
+	}
+}
+
+
+
+
+
+
+
+
+###	aar网道星系易主
+#_<on_system_lost>		From = system/FromFrom = country (new owner)/This = country (previous owner)
+country_event = {
+	id = AAR_evt_WEBWAY.250
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		## 旧主人
+		has_ascension_perk = AAR_AP_webway
+		## 星系
+		from = {
+			OR = {
+				AND = {
+					has_star_flag = AAR_flg_sstm_WEBWAY_base
+					any_system_megastructure = { is_megastructure_type = AAR_MEGA_webway_BASE		is_upgrading = yes }
+				}
+				has_star_flag = AAR_flg_sstm_WEBWAY_nexus
+			}
+		}
+		## 新主人
+		OR = {
+			# 无新主人
+			NOT = { exists = fromfrom }
+			# 新主人无法支持更多<网道枢纽>
+			fromfrom = {
+				OR = {
+					NOT = { has_ascension_perk = AAR_AP_webway }
+					check_variable = { which = AAR_var_cntr_WEBWAY_cap		value <= AAR_var_cntr_WEBWAY_used }	# 网道容量>1
+				}
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			if = { limit = { has_star_flag = AAR_flg_sstm_WEBWAY_nexus		NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_preserve } }
+				# 网道枢纽腐化
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_preserve	days = 180 }
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node		days = 180 }
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_nexus	days = 180 }
+	
+				# 网道sstm循环
+				if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+					set_star_flag = AAR_flg_sstm_WEBWAY_debug
+					system_event = { id = AAR_evt_WEBWAY.25		days = 1 random = 30 }	# 初始触发
+				}
+			}
+			## 其他情况皆清除
+			else = {
+				AAR_eft_sstm_WEBWAY_clean = yes		# 网道星系CLEAN
+			}
+		}
+	}
+}
+
+
+###	网道sstm循环
+#_evt	<aar网道星系易主/aar网道激活节点/aar网道入场遗珍节点激活>
+#_dec	<DEC网道勘探>
+system_event = {
+	id = AAR_evt_WEBWAY.25
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { has_star_flag = AAR_flg_sstm_WEBWAY_debug }
+
+	immediate = {
+		## 截断循环
+		if = {
+			limit = {
+				NOR = {
+					has_star_flag = AAR_flg_sstm_WEBWAY_preserve
+					has_megastructure = AAR_MEGA_webway_BASE
+					has_megastructure = AAR_MEGA_webway_NODE
+					has_megastructure = AAR_MEGA_webway_NEXUS
+				}
+			}
+			## 清理flg
+			remove_star_flag = AAR_flg_sstm_WEBWAY_base
+			remove_star_flag = AAR_flg_sstm_WEBWAY_node
+			remove_star_flag = AAR_flg_sstm_WEBWAY_nexus
+			
+			remove_star_flag = AAR_flg_sstm_WEBWAY_debug	# 循环终止
+		}
+		## 枢纽DB
+		else_if = { limit = { has_star_flag = AAR_flg_sstm_WEBWAY_preserve }	# 限时|AAR_flg_sstm_WEBWAY_preserve|如果添加,则添加同步的|AAR_flg_sstm_WEBWAY_node/AAR_flg_sstm_WEBWAY_nexus|
+			# 永久化网道	=flg改永久,循环截断
+			if = {
+				limit = {
+					exists = space_owner
+					space_owner = {
+						has_ascension_perk = AAR_AP_webway
+						check_variable = { which = AAR_var_cntr_WEBWAY_cap	value > AAR_var_cntr_WEBWAY_used }	# 网道容量>1
+					}
+				}
+				# 自我截断
+				remove_star_flag = AAR_flg_sstm_WEBWAY_debug
+				# 限时flg改永久
+				remove_star_flag = AAR_flg_sstm_WEBWAY_preserve
+				set_star_flag = AAR_flg_sstm_WEBWAY_node
+				set_star_flag = AAR_flg_sstm_WEBWAY_nexus
+			}
+			# 非永久化网道	=循环继续
+			else = {
+				system_event = { id = AAR_evt_WEBWAY.25		days = 30 random = 7 }	# 自循环
+			}
+		}
+		## 基址clean
+		else_if = { limit = { has_megastructure = AAR_MEGA_webway_BASE		NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_base } }
+			AAR_eft_sstm_WEBWAY_clean = yes		# 网道星系CLEAN
+			remove_star_flag = AAR_flg_sstm_WEBWAY_debug	# 循环终止
+		}
+		## 节点clean
+		else_if = { limit = { has_megastructure = AAR_MEGA_webway_NODE		NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_node } }
+			AAR_eft_sstm_WEBWAY_clean = yes		# 网道星系CLEAN
+			remove_star_flag = AAR_flg_sstm_WEBWAY_debug	# 循环终止
+		}
+		## 枢纽clean
+		else_if = { limit = { has_megastructure = AAR_MEGA_webway_NEXUS		NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_nexus } }
+			# 网道星系CLEAN
+			AAR_eft_sstm_WEBWAY_clean = yes
+			remove_star_flag = AAR_flg_sstm_WEBWAY_debug	# 循环终止
+			# 网道capDB
+			if = { limit = { exists = space_owner		 space_owner = { has_ascension_perk = AAR_AP_webway } }
+				space_owner = { country_event = { id = AAR_evt_WEBWAY.22 days = 1 } }	# 网道cap延时
+			}
+		}
+		## 继续循环
+		else = {
+			system_event = { id = AAR_evt_WEBWAY.25 days = 30 random = 7 }	# 自循环
+		}
+	}
+}
+
+
+
+
+
+
+
+
+###_[aar网道入轨激活]
+#_<on_fleet_enter_orbit>
+##_scopes	<root/this>=舰队/<from>=星球/星基/巨构
+fleet_event = {
+	id = AAR_evt_WEBWAY.30
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|舰队|
+		num_ships = 1
+	#	fleet_size = 32		# fleet_size指真实占用的size
+		OR = {
+			is_ship_class = shipclass_military_special
+			is_ship_class = shipclass_starbase
+		#	is_ship_size = colossus
+		#	is_ship_size = juggernaut
+		}
+		##	|轨道|
+		from = {
+			is_scope_type = planet
+			is_star = yes
+			solar_system = { NOR = {
+				has_star_flag = AAR_flg_sstm_WEBWAY_node	# 没有网道节点
+				has_star_flag = AAR_flg_sstm_WEBWAY_nexus	# 没有网道枢纽
+			}}
+		}
+		##	|控制者|
+		exists = controller
+		controller = {
+			has_ascension_perk = AAR_AP_webway
+			has_policy_flag = AAR_flg_policy_WEBWAY_set
+		}
+	}
+	
+	immediate = {
+		#_|存在枢纽|
+		if = { limit = { controller = { has_megastructure = AAR_MEGA_webway_NEXUS } }
+			fleet_event = { id = AAR_evt_WEBWAY.300 }	# aar网道激活节点
+		}
+		#_|没有枢纽|
+		else = {
+			controller = { country_event = { id = AAR_evt_WEBWAY.52 } }	# 没有枢纽通知
+		}
+	} 
+}
+###_[aar网道激活节点]
+#_evt	<aar网道入轨激活>
+fleet_event = {
+	id = AAR_evt_WEBWAY.300
+	title = AAR_title_WEBWAY_flt_activate
+	desc = AAR_desc_WEBWAY_flt_activate
+	picture = GFX_AAR_EP_webway
+	show_sound = event_ship_thrusters
+	location = root
+	is_triggered_only = yes
+
+	option = {
+		name = AAR_option_WEBWAY_flt.no_note
+		custom_tooltip = AAR_tips_WEBWAY_flt.no_note
+		hidden_effect = {
+			owner = { AAR_eft_cntr_policy_webway_ignore = yes }		# AAR政策_网道激活禁止
+		}
+	}
+	option = {
+		name = AAR_option_WEBWAY_TGT_set_node
+		custom_tooltip = AAR_tips_WEBWAY_FLT_set_node
+		allow = {
+			# 资源足够
+			owner = { has_resource = { type = energy amount > 50 } }
+		}
+		hidden_effect = {
+			## 激活花费
+			owner = {
+				add_resource = {
+					energy = -50
+				}
+			}
+
+			solar_system = {
+				## 网道星系CLEAN
+				AAR_eft_sstm_WEBWAY_clean = yes
+				
+				## 激活网道节点
+				spawn_megastructure = {
+					name = "NAME_AAR_mega_WEBWAY_NODE"
+					type = "AAR_MEGA_webway_NODE"
+					orbit_angle = 0
+					orbit_distance = 25		# 45一般为第一行星轨道
+					owner = root
+				#	graphical_culture = fromfrom
+					planet = star
+				}
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node days = 45 }
+				
+				## 网道sstm循环
+				if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+					set_star_flag = AAR_flg_sstm_WEBWAY_debug
+					system_event = { id = AAR_evt_WEBWAY.25 }	# 初始触发
+				}
+			}
+		}
+	}
+	option = {
+		name = AAR_option_WEBWAY_TGT_do_nothing
+	}
+}
+
+
+
+
+###_[aar网道入轨维持]
+#_<on_fleet_enter_orbit>
+##_scopes	<root/this>=舰队/<from>=星球/星基/巨构
+fleet_event = {
+	id = AAR_evt_WEBWAY.31
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|舰队|
+		num_ships = 1
+		NOT = { has_fleet_flag = AAR_flg_flt_WEBWAY_maintenance }	# |FLT网道维持中|无
+		OR = {
+			is_ship_class = shipclass_military_special
+			is_ship_class = shipclass_starbase
+		}
+		##	|轨道|
+		from = {
+			is_scope_type = megastructure
+			is_megastructure_type = AAR_MEGA_webway_NODE
+		}
+		##	|控制者|
+		exists = controller
+		controller = { has_ascension_perk = AAR_AP_webway }
+	}
+	
+	immediate = {
+		##	开始维持循环
+		set_timed_fleet_flag = { flag = AAR_flg_flt_WEBWAY_maintenance days = 31 }	# |FLT网道维持中|
+		fleet_event = { id = AAR_evt_WEBWAY.310 }	# aar维持网道循环
+		
+		##	|超过维持上限|	---禁用
+	#	if = {
+	#		limit = {
+	#			controller = {
+	#				count_owned_fleet = { count >= 3	# |超过维持上限|	MAX=3
+	#					limit = {
+	#						num_ships = 1
+	#						OR = {
+	#							is_ship_class = shipclass_military_special
+	#							is_ship_class = shipclass_starbase
+	#						}
+	#						exists = orbit
+	#						orbit = {
+	#							is_scope_type = megastructure
+	#							is_megastructure_type = AAR_MEGA_webway_NODE
+	#						}
+	#					}
+	#				}
+	#			}
+	#		}
+	#		fleet_event = { id = AAR_evt_WEBWAY.311 }
+	#	}
+	}
+}
+###_[aar维持网道循环]
+#_evt	<aar网道入轨维持>
+fleet_event = {
+	id = AAR_evt_WEBWAY.310
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = this
+		has_fleet_flag = AAR_flg_flt_WEBWAY_maintenance
+	}
+
+	immediate = {
+		##	自循环
+		if = {
+			limit = { exists = orbit	# 存在轨道且处于<网道节点>轨道
+				orbit = {
+					is_scope_type = megastructure
+					is_megastructure_type = AAR_MEGA_webway_NODE
+				}
+			}
+			set_timed_fleet_flag = { flag = AAR_flg_flt_WEBWAY_maintenance days = 31 }
+			fleet_event = { id = AAR_evt_WEBWAY.310 days = 30 }
+			
+			#	维持网道节点存在
+			if = { limit = { exists = solar_system }
+				solar_system = {
+					set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node days = 45 }
+				}
+			}
+		}
+		##	截断循环
+		else = {
+			remove_fleet_flag = AAR_flg_flt_WEBWAY_maintenance	#_|flt网道维持中|
+		}
+	}
+}
+###_[aar维持网道失败]		超过上限|3|		---禁用|去掉维持上限|
+#_evt	<aar网道入轨维持>
+fleet_event = {
+	id = AAR_evt_WEBWAY.311
+	title = AAR_title_WEBWAY_maintenance_forbid
+	desc = AAR_desc_WEBWAY_maintenance_forbid
+	picture = GFX_AAR_EP_webway
+	show_sound = event_ship_thrusters
+	location = root
+	is_triggered_only = yes
+
+	option = {
+		name = AAR_option_WEBWAY_maintenance_forbid
+	}
+}
+
+
+
+
+
+
+
+
+
+###	aar网道入场遗珍节点激活
+#_<on_entering_system_fleet>
+fleet_event = {
+	id = AAR_evt_WEBWAY.40
+	title = AAR_title_WEBWAY_tgt_activate
+	desc = AAR_desc_WEBWAY_tgt_activate
+	picture = GFX_AAR_EP_webway
+	show_sound = event_ship_thrusters
+	location = root
+	is_triggered_only = yes
+	trigger = { has_fleet_flag = AAR_flg_flt_TGT_webway }
+	
+	after = {
+		## 定位器自毁
+		owner = { remove_country_flag = AAR_flg_cntr_JUMP_webway_TGT }	# AAR特殊跃迁
+		destroy_fleet = this
+		## 清除relicCD
+		owner = { remove_modifier = AAR_MOD_cntr_webway_CD }
+	}
+
+	option = {
+		name = AAR_option_WEBWAY_TGT_set_node
+		custom_tooltip = AAR_tips_WEBWAY_TGT_set_node
+		allow = {
+			owner = {
+				has_resource = { type = unity amount > 50 }
+				has_resource = { type = energy amount > 250 }
+			}
+			# 不能有网道mega		无视<网道base>,所以会冲掉升级中的网道base
+			custom_tooltip = {
+				fail_text = AAR_failtips_NO_webway_mega
+				hidden_trigger = {
+					solar_system = { NOR = {
+						has_star_flag = AAR_flg_sstm_WEBWAY_node	# 没有网道节点
+						has_star_flag = AAR_flg_sstm_WEBWAY_nexus	# 没有网道枢纽
+					} }
+				}
+			}
+		}
+		hidden_effect = {
+			owner = {
+				## 激活花费
+				add_resource = {
+					unity = -50
+					energy = -250
+				}
+			}
+			
+			solar_system = {
+				## 网道星系CLEAN
+				AAR_eft_sstm_WEBWAY_clean = yes
+				
+				## 激活网道节点
+				spawn_megastructure = {
+					name = "NAME_AAR_mega_WEBWAY_NODE"
+					type = "AAR_MEGA_webway_NODE"
+					orbit_angle = 0
+					orbit_distance = 25		# 45一般为第一行星轨道
+					owner = root
+				#	graphical_culture = fromfrom
+					planet = star
+				}
+				set_timed_star_flag = { flag = AAR_flg_sstm_WEBWAY_node days = 360 }
+				
+				## 网道sstm循环
+				if = { limit = { NOT = { has_star_flag = AAR_flg_sstm_WEBWAY_debug } }
+					set_star_flag = AAR_flg_sstm_WEBWAY_debug
+					system_event = { id = AAR_evt_WEBWAY.25 }	# 初始触发
+				}
+			}
+		}
+	}
+	option = {
+		name = AAR_option_WEBWAY_TGT_do_nothing
+	}
+}
+
+###	网道定位器自我清理		=45天
+#_<网道遗珍>
+fleet_event = {
+	id = AAR_evt_WEBWAY.41
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		## 定位器自毁
+		owner = { remove_country_flag = AAR_flg_cntr_JUMP_webway_TGT }	# AAR特殊跃迁
+		destroy_fleet = this
+	}
+}
+
+
+
+
+###	网道通知_枢纽完成
+country_event = {
+	id = AAR_evt_WEBWAY.50
+	title = AAR_title_WEBWAY_nexus_done
+	desc = AAR_desc_WEBWAY_nexus_done
+	picture = GFX_AAR_EP_webway_NEXUS
+	show_sound = event_ship_thrusters
+	location = from	# 巨构
+	is_triggered_only = yes
+	trigger = { has_country_flag = AAR_flg_cntr_WEBWAY_nexus_complete_NOTE }	# |网道枢纽完成通知|
+
+	option = {
+		name = OK
+	}
+	#	不再显示
+	option = {
+		name = AAR_option_WEBWAY_nexus_done.no_note
+		hidden_effect = {
+			remove_country_flag = AAR_flg_cntr_WEBWAY_nexus_complete_NOTE
+		}
+	}
+}
+###	网道通知_cap用尽
+country_event = {
+	id = AAR_evt_WEBWAY.51
+	title = AAR_title_WEBWAY_nexus_no_cap
+	desc = AAR_desc_WEBWAY_nexus_no_cap
+	picture = GFX_AAR_EP_webway_NEXUS
+	show_sound = event_ship_thrusters
+	location = from	# 巨构
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+###	没有枢纽通知
+country_event = {
+	id = AAR_evt_WEBWAY.52
+	title = AAR_title_WEBWAY_nexus_no_NEXUS
+	desc = AAR_desc_WEBWAY_nexus_no_NEXUS
+	picture = GFX_AAR_EP_webway_NEXUS
+	show_sound = event_ship_thrusters
+	location = from	# 巨构
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+

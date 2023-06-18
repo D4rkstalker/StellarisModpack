@@ -1,0 +1,149 @@
+###	铁幕effect	###############################################################
+#	AAR铁幕AURA激活
+#	AAR铁幕LAB清理/AAR铁幕SP_DB/AAR铁幕SP事故_开放
+
+
+
+
+###_[AAR铁幕AURA激活]
+#_btn	<AARbtn铁幕>
+AAR_eft_flt_VEIL_aura_SPAWN = {
+	##	创建AURA
+	create_fleet = {
+		name = AAR_design_VEIL
+		effect = {
+			set_event_locked = yes
+			set_owner = root.owner
+			create_ship = { name = AAR_design_VEIL		 design = AAR_design_VEIL }
+			fleet_event = { id = AAR_evt_VEIL.1 days = @AAR_svar_VEIL_buff }	# aar铁幕aura自毁
+		}
+	}
+	
+	solar_system = {
+		##	AURA位置
+		random_system_planet = {
+			weights = { base = 1
+				modifier = { factor = 100	is_star = yes }
+			}
+			last_created_fleet = {
+				set_location = prev
+			}
+			prev = { set_star_flag = TEMP_flg_LOC }	# |已设定位置|
+		}
+		if = { limit = { NOT = { has_star_flag = TEMP_flg_LOC } }	# |已设定位置|无
+			last_created_fleet = {
+				set_location = root
+			}
+		}
+		remove_star_flag = TEMP_flg_LOC
+		
+		##	特效AMBT
+		every_fleet_in_system = {
+			limit = { is_mobile = yes
+				controller = { is_country = root.controller }
+				OR = {
+					is_ship_class = shipclass_military_special
+					is_ship_class = shipclass_starbase
+					fleet_size > 16
+				}
+			}
+			## 添加ambt_星系缩放
+			if = { limit = { has_global_flag = has_system_scale_mod }
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_fx_VEIL_deployed		SCALE = 15	LOC = this	DAYS = 10 }		# AAR航海爆炸
+			}
+			## 添加ambt_vanilla
+			else = {
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_fx_VEIL_deployed		SCALE = 10	LOC = this	DAYS = 10 }		# AAR航海爆炸
+			}
+		}
+	}
+}
+
+
+
+
+###_[AAR铁幕LAB清理]
+#_evt	<aar铁幕ai飞升>
+#_eft	<AAR铁幕SP_DB>
+#_sp	<铁幕特殊项目>
+AAR_eft_glbl_VEIL_lab_CLEAN = {
+	every_galaxy_planet = {
+		#	|存在lab修正|
+		limit = {
+			OR = {
+				has_modifier = AAR_mod_plnt_VEIL_lab_construction
+				has_modifier = AAR_mod_plnt_VEIL_lab
+			}
+		}
+
+		if = {
+			limit = {
+				NAND = {
+					exists = owner
+					owner = {
+						is_ai = no	# PC
+						has_ascension_perk = AAR_ap_VEIL
+						NOT = { has_technology = AAR_tech_AP_VEIL }
+					}
+				}
+			}
+			remove_modifier = AAR_mod_plnt_VEIL_lab_construction
+			remove_modifier = AAR_mod_plnt_VEIL_lab
+		}
+	}
+}
+
+
+###_[AAR铁幕SP_DB]	SP进行过程中如果检测到实验室丢失则[停止项目]并重新触发[aar铁幕lab建设]
+#_sp	<铁幕特殊项目>
+AAR_eft_cntr_VEIL_sp_DB = {
+	if = {
+		limit = {#没有lab殖民地
+			NOT = {
+				any_owned_planet = {
+					has_modifier = AAR_mod_plnt_VEIL_lab
+					is_colony = yes
+				}
+			}
+		}
+		abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+		abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+		country_event = { id = AAR_evt_VEIL.300 }	# aar铁幕lab建设
+		AAR_eft_glbl_VEIL_lab_CLEAN = yes	# AAR铁幕LAB清理
+		set_timed_country_flag = { flag = AAR_flg_cntr_VEIL_sp_CANCEL days = 1 }
+	}
+}
+
+
+###_[AAR铁幕SP事故_开放]	开放实验事故,pop死亡
+#_sp	<铁幕特殊项目>
+AAR_eft_plnt_VEIL_sp_OPEN_accident = {
+	random_list = {
+		1 = {
+			while = { count = 2
+				random_owned_pop = {
+					limit = {
+						NOR = {
+							is_pop_category = complex_drone
+							is_pop_category = ruler
+						}
+					}
+					kill_pop = yes
+				}
+			}
+		}
+		1 = {
+			random_owned_pop = {
+				limit = {
+					NOR = {
+						is_pop_category = complex_drone
+						is_pop_category = ruler
+					}
+				}
+				kill_pop = yes
+			}
+		}
+	}
+}
+
+

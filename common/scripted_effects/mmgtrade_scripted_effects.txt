@@ -1,0 +1,306 @@
+mmgtrade_update_country = {
+	every_system_within_border = {
+		limit = {
+			any_neighbor_system = {
+				exists = owner
+				owner = { NOT = { is_country = prevprevprev } }
+			}
+		}
+
+		# init/reset relative network size
+		set_variable = {
+			which = mmgtrade_relative_network_size
+			value = 1
+		}
+		set_variable = {
+			which = mmgtrade_num_cbt_systems
+			value = 0
+		}
+		set_variable = {
+			which = mmgtrade_hyper_relay_multiplier
+			value = 0
+		}
+
+		# for each valid system, add trade value and check relative network size
+		every_neighbor_system = {
+			limit = {
+				exists = owner
+				owner = {
+					not = { is_country = prevprevprev }
+					is_country_type = default
+					is_gestalt = no
+					not = { has_valid_civic = civic_inwards_perfection }
+					or = {
+						has_commercial_pact = prevprevprev
+						is_in_federation_with = prevprevprev
+						has_overlord = prevprevprev
+						is_overlord_to = prevprevprev
+						# subjects of same overlord
+						and = {
+							is_subject = yes
+							prevprevprev = {
+								is_subject = yes
+								has_overlord = prev.overlord
+							}
+						}
+					}
+				}
+			}
+
+			# check for relay bonus
+			if = {
+				limit = {
+					prev = {
+						check_variable = {
+							which = mmgtrade_hyper_relay_multiplier
+							value = 0
+						}
+						OR = {
+							has_megastructure = hyper_relay
+							has_megastructure = hyper_relay_restored
+							AND = {
+								# check for lotor's upgraded hyper relay
+								mmgtrade_is_lotor = yes
+								has_megastructure = hyper_relay_2
+							}
+						}
+						is_system_connected_to_relay_network = yes
+					}
+					is_system_connected_to_relay_network = yes
+				}
+				prev = {
+					set_variable = {
+						which = mmgtrade_hyper_relay_multiplier
+						value = 100
+					}
+				}
+			}
+
+			prev = {
+				# set flag
+				set_star_flag = mmgtrade_has_cbt
+				# increment num systems
+				change_variable = {
+					which = mmgtrade_num_cbt_systems
+					value = 1
+				}
+				# propose relative size
+				set_variable = {
+					which = mmgtrade_proposed_relative_network_size
+					value = prev.owner.trigger:trade_income
+				}
+				if = {
+					limit = { owner = { trade_income > 1 } }
+					divide_variable = {
+						which = mmgtrade_proposed_relative_network_size
+						value = owner.trigger:trade_income
+					}
+				}
+				# relative network size max of 10x
+				if = {
+					limit = { check_variable = {
+						which = mmgtrade_proposed_relative_network_size
+						value > 10
+					} }
+					set_variable = {
+						which = mmgtrade_proposed_relative_network_size
+						value = 10
+					}
+				}
+				# use new proposed relative network size if bigger
+				if = {
+					limit = {
+						check_variable = {
+							which = mmgtrade_proposed_relative_network_size
+							value > mmgtrade_relative_network_size
+						}
+					}
+					set_variable = {
+						which = mmgtrade_relative_network_size
+						value = mmgtrade_proposed_relative_network_size
+					}
+				}
+				clear_variable = mmgtrade_proposed_relative_network_size
+			}
+		}
+
+		if = {
+			limit = { has_star_flag = mmgtrade_has_cbt }
+
+			# add base trade value modifier depending on technology
+			# (tier + 1) * 2
+			if = {
+				limit = { prev = { mmgtrade_has_tier_7_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 16
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_6_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 14
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_5_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 12
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_4_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 10
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_3_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 8
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_2_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 6
+				}
+			}
+			else_if = {
+				limit = { prev = { mmgtrade_has_tier_1_trade_tech = yes } }
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 4
+				}
+			}
+			else = {
+				# tier 0 starting tech tech_interplanetary commerce
+				set_variable = {
+					which = mmgtrade_cbt_from_tech
+					value = 2
+				}
+			}
+
+			# increase months and apply long term bonus
+			if = {
+				limit = { is_variable_set = mmgtrade_consecutive_cbt_months }
+				[[INCREMENT_MONTHS]
+				change_variable = {
+					which = mmgtrade_consecutive_cbt_months
+					value = 1
+				}
+				]
+			}
+			else = {
+				set_variable = {
+					which = mmgtrade_consecutive_cbt_months
+					value = 1
+				}
+			}
+
+			# calculate and set multiplier
+			set_variable = {
+				which = mmgtrade_long_term_cbt_multiplier
+				value = mmgtrade_consecutive_cbt_months
+			}
+			divide_variable = {
+				which = mmgtrade_long_term_cbt_multiplier
+				value = 12
+			}
+			floor_variable = mmgtrade_long_term_cbt_multiplier
+			# max 200 years bonus
+			if = {
+				limit = {
+					check_variable = {
+						which = mmgtrade_long_term_cbt_multiplier
+						value > 200
+					}
+				}
+				set_variable = {
+					which = mmgtrade_long_term_cbt_multiplier
+					value = 200
+				}
+			}
+
+			# final math to relative network size, for display
+			multiply_variable = {
+				which = mmgtrade_relative_network_size
+				value = 100
+			}
+			subtract_variable = {
+				which = mmgtrade_relative_network_size
+				value = 100
+			}
+			round_variable = mmgtrade_relative_network_size
+
+			# calculate multiplier
+			set_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = 100
+			}
+			change_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = mmgtrade_relative_network_size
+			}
+			change_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = mmgtrade_hyper_relay_multiplier
+			}
+			change_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = mmgtrade_long_term_cbt_multiplier
+			}
+			set_variable = {
+				which = mmgtrade_commercial_pact_multiplier
+				value = prev.modifier:commercial_pact_mult
+			}
+			multiply_variable = {
+				which = mmgtrade_commercial_pact_multiplier
+				value = 100
+			}
+			change_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = mmgtrade_commercial_pact_multiplier
+			}
+			divide_variable = {
+				which = mmgtrade_cbt_multiplier
+				value = 100
+			}
+
+			set_variable = {
+				which = mmgtrade_cbt
+				value = mmgtrade_cbt_from_tech
+			}
+			multiply_variable = {
+				which = mmgtrade_cbt
+				value = mmgtrade_num_cbt_systems
+			}
+			multiply_variable = {
+				which = mmgtrade_cbt
+				value = mmgtrade_cbt_multiplier
+			}
+
+			star = {
+				add_modifier = {
+					modifier = mmgtrade_cross_border_trade
+					multiplier = prev.mmgtrade_cbt
+				}
+			}
+		}
+		else = {
+			# no trade, clean up variables including mmgtrade_consecutive_cbt_months
+			if = {
+				limit = { is_variable_set = mmgtrade_consecutive_cbt_months }
+				clear_variable = mmgtrade_consecutive_cbt_months
+			}
+			clear_variable = mmgtrade_relative_network_size
+			clear_variable = mmgtrade_num_cbt_systems
+			clear_variable = mmgtrade_hyper_relay_multiplier
+		}
+	}
+}

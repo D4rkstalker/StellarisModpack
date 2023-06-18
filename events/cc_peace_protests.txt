@@ -1,0 +1,645 @@
+
+namespace = cc_peace
+
+
+country_event = {
+	id = cc_peace.500
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = default
+		NOT = { has_country_flag = cc_recent_pacifist_protests }
+		is_at_war = yes
+		is_war_leader = yes
+		has_faction = prosperity
+		any_pop_faction = {
+			is_pop_faction_type = prosperity
+			support > 0.1
+		}
+		any_owned_planet = {
+			count_owned_pop = {
+				limit = {
+					has_ethic = ethic_pacifist
+					has_citizenship_rights = yes
+				}
+				count > 7
+			}
+		}
+		any_war = {
+			is_war_participant = { who = root side = attackers }
+			defender_war_exhaustion > 60
+
+			NOT = {
+				root = {
+					any_war = {
+						NOT = { is_same_value = prevprev }
+						OR = {
+							is_war_participant = { who = root side = attackers }
+							is_war_participant = { who = root side = defenders }
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	# mean_time_to_happen = {
+	# 	months = 18
+	# }
+	
+	immediate = {
+		random_list = {
+			1 = {
+				country_event = { id = cc_peace.1 }
+			}
+			1 = {
+				modifier = {
+					factor = 1.5
+					has_ethic = ethic_militarist
+				}
+				modifier = {
+					factor = 2
+					has_ethic = ethic_fanatic_militarist
+				}
+				modifier = {
+					factor = 0.75
+					has_ethic = ethic_pacifist
+				}
+				modifier = {
+					factor = 0.5
+					has_ethic = ethic_fanatic_pacifist
+				}
+				modifier = { #AI will struggle more to deal with this. Best to make it mainly a player challenge.
+					factor = 2
+					is_ai = yes
+				}
+				modifier = {
+					factor = 2
+					
+					any_war = {
+						is_war_participant = { who = root side = attackers }
+						any_defender = {
+							is_homicidal = yes
+						}
+					}
+				}
+				modifier = {
+					factor = 0.5
+					any_war = {
+						is_war_participant = { who = root side = attackers }
+						defender_war_exhaustion > 80
+					}
+				}
+			}
+		}
+	}
+}
+
+country_event = {
+	id = cc_peace.1
+	title = cc_peace.1.name
+	desc = cc_peace.1.desc
+	
+	picture = GFX_evt_cc_peace_march
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_timed_country_flag = {
+			flag = cc_recent_pacifist_protests
+			years = 15
+		}
+		random_pop_faction = {
+			limit = { is_pop_faction_type = prosperity }
+			save_event_target_as = peace_faction
+		}
+		random_owned_planet = {
+			limit = {
+				count_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					count > 7
+				}
+			}
+			save_event_target_as = cc_peace_planet
+		}
+		random_country = {
+			limit = {
+				is_at_war = yes
+				is_war_leader = yes
+				any_war = {
+					is_war_participant = { who = prev side = defenders }
+					is_war_participant = { who = root side = attackers }
+				}
+			}
+			save_event_target_as = cc_war_enemy
+		}
+	}
+	
+	option = { #promise peace
+		name = cc_peace.1.A
+		add_modifier = {
+			modifier = cc_promises_to_pacifists
+			years = 2
+		}
+		custom_tooltip = cc_peace.1.A.tooltip
+		
+		hidden_effect = {
+			country_event = { id = cc_peace.2 days = 360 }
+			set_timed_country_flag = {
+				flag = cc_promised_peace
+				years = 1
+			}
+		}
+		
+		ai_chance = {
+			factor = 0.5
+			modifier = {
+				factor = 10
+				has_ethic = ethic_pacifist
+			}
+			modifier = {
+				factor = 20
+				has_ethic = ethic_fanatic_pacifist
+			}
+		}
+	}
+	option = { #ignore them
+		name = cc_peace.1.B
+		every_owned_planet = {
+			limit = {
+				count_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					count > 7
+				}
+			}
+			add_modifier = {
+				modifier = cc_peace_protests
+				years = 5
+			}
+		}
+		event_target:peace_faction = {
+			add_modifier = {
+				modifier = cc_faction_peace_protests
+				years = 5
+			}
+		}
+		
+		if = {
+			limit = {
+				any_owned_planet = {
+					has_modifier = cc_peace_protests
+					root = {
+						any_owned_planet = {
+							has_modifier = cc_peace_protests
+							NOT = { is_same_value = prevprev }
+							root = {
+								any_owned_planet = {
+									has_modifier = cc_peace_protests
+									NOR = {
+										is_same_value = prevprev
+										is_same_value = prevprevprevprev
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			add_modifier = {
+				modifier = cc_country_peace_protests
+				years = 5
+			}
+		}
+		ai_chance = {
+			factor = 3
+		}
+	}
+	option = { #oppress them
+		name = CCOPPRESS
+		
+		every_owned_planet = {
+			limit = {
+				count_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					count > 7
+				}
+			}
+			add_modifier = {
+				modifier = cc_peace_protests
+				years = 5
+			}
+			add_modifier = {
+				modifier = cc_planet_oppression
+				years = 10
+			}
+			hidden_effect = {
+				every_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					add_modifier = {
+						modifier = cc_oppression
+						years = 10
+					}
+				}
+			}
+		}
+		custom_tooltip = cc_peace.1.oppress.tooltip
+		
+		event_target:peace_faction = {
+			add_modifier = {
+				modifier = cc_faction_oppressed
+				years = 10
+			}
+		}	
+		
+		if = {
+			limit = {
+				any_owned_planet = {
+					has_modifier = cc_peace_protests
+					root = {
+						any_owned_planet = {
+							has_modifier = cc_peace_protests
+							NOT = { is_same_value = prevprev }
+							root = {
+								any_owned_planet = {
+									has_modifier = cc_peace_protests
+									NOR = {
+										is_same_value = prevprev
+										is_same_value = prevprevprevprev
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			add_modifier = {
+				modifier = cc_country_peace_protests
+				years = 5
+			}
+			random_pop_faction = {
+				limit = { is_pop_faction_type = progressive }
+				add_modifier = {
+					modifier = cc_oppress_faction
+					years = 10
+				}
+			}
+		}
+		ai_chance = {
+			factor = 1
+			modifier = {
+				factor = 1.5
+				has_ethic = ethic_militarist
+			}
+			modifier = {
+				factor = 2
+				has_ethic = ethic_fanatic_militarist
+			}
+			modifier = {
+				factor = 2
+				any_owned_planet = {
+					planet_stability < @dpe_bit_unrest_value
+					count_owned_pop = {
+						limit = {
+							has_ethic = ethic_pacifist
+							has_citizenship_rights = yes
+						}
+						count > 7
+					}
+				}
+			}
+			modifier = {
+				factor = 2
+				any_owned_planet = {
+					planet_stability < @dpe_somewhat_unrest_value
+					count_owned_pop = {
+						limit = {
+							has_ethic = ethic_pacifist
+							has_citizenship_rights = yes
+						}
+						count > 7
+					}
+				}
+			}
+			modifier = {
+				factor = 2
+				any_owned_planet = {
+					planet_stability < @dpe_risk_unrest_value
+					count_owned_pop = {
+						limit = {
+							has_ethic = ethic_pacifist
+							has_citizenship_rights = yes
+						}
+						count > 7
+					}
+				}
+				NOR = {
+					has_valid_civic = civic_fanatic_purifiers
+					has_ethic = ethic_fanatic_authoritarian
+					AND = {
+						has_ethic = ethic_authoritarian
+						OR = {
+							has_ethic = ethic_fanatic_xenophobe
+							has_ethic = ethic_fanatic_militarist
+							AND = {
+								has_ethic = ethic_xenophobe
+								has_ethic = ethic_militarist
+							}
+						}
+					}
+				}
+			}
+			modifier = {
+				factor = 0.5
+				any_pop_faction = {
+					is_pop_faction_type = progressive
+					support > 0.15
+				}
+			}
+		}
+	}
+	option = { #kill them all
+		name = CCKILLALL
+		
+		trigger = {
+			OR = {
+				has_valid_civic = civic_fanatic_purifiers
+				has_ethic = ethic_fanatic_authoritarian
+				AND = {
+					has_ethic = ethic_authoritarian
+					OR = {
+						has_ethic = ethic_fanatic_xenophobe
+						has_ethic = ethic_fanatic_militarist
+						AND = {
+							has_ethic = ethic_xenophobe
+							has_ethic = ethic_militarist
+						}
+					}
+				}
+			}
+			NOT = { has_ethic = ethic_pacifist }
+		}
+		
+
+		add_modifier = {
+			modifier = cc_empire_terror
+			years = 10
+		}
+		
+		hidden_effect = {
+			every_owned_planet = {
+				limit = {
+					count_owned_pop = {
+						limit = {
+							has_ethic = ethic_pacifist
+							has_citizenship_rights = yes
+						}
+						count > 7
+					}
+				}
+				every_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					kill_pop = yes
+				
+					every_country = {
+						limit = {
+							has_communications = root
+							NOR = {
+								is_same_empire = root
+								has_ai_personality_behaviour = purger
+							}
+							NOT = {
+								OR = {
+									has_ethic = ethic_fanatic_authoritarian
+									AND = {
+										has_ethic = ethic_authoritarian
+										OR = {
+											has_ethic = ethic_fanatic_xenophobe
+											has_ethic = ethic_fanatic_militarist
+											AND = {
+												has_ethic = ethic_xenophobe
+												has_ethic = ethic_militarist
+											}
+										}
+									}
+								}
+							}
+							OR = {
+								is_country_type = default
+								has_ai_personality = awakened_fallen_empire_xenophile				
+							}	
+						}
+						add_opinion_modifier = { who = root modifier = opinion_genocidal }
+					}
+				}
+			}
+		}
+		if = {
+			limit = { has_faction = progressive }
+			random_pop_faction = {
+				limit = { is_pop_faction_type = progressive }
+				add_modifier = {
+					modifier = cc_empire_terror_faction
+					years = 10
+				}
+			}
+		}
+		custom_tooltip = cc_peace.1.D.tooltip
+		custom_tooltip = CCKILLALL.tooltip
+		
+		ai_chance = {
+			factor = 10
+			
+			modifier = {
+				factor = 1.5
+				has_ethic = ethic_militarist
+			}
+			modifier = {
+				factor = 2
+				has_ethic = ethic_fanatic_militarist
+			}
+			modifier = {
+				factor = 0.5
+				event_target:peace_faction = { support > 0.2 }
+			}
+			modifier = {
+				factor = 0.0
+				event_target:peace_faction = { support > 0.2 }
+			}
+		}
+	}
+}
+
+
+country_event = {
+	id = cc_peace.2
+	title = cc_peace.2.name
+	desc = cc_peace.2.desc
+	
+	picture = GFX_evt_cc_peace_march
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_country_flag = cc_promised_peace
+		is_at_war = yes
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		
+		event_target:peace_faction = {
+			add_modifier = {
+				modifier = cc_peace_faction_betrayed
+				years = 10
+			}
+		}
+		
+		every_owned_planet = {
+			limit = {
+				count_owned_pop = {
+					limit = {
+						has_ethic = ethic_pacifist
+						has_citizenship_rights = yes
+					}
+					count > 7
+				}
+			}
+			add_modifier = {
+				modifier = cc_peace_protests
+				years = 5
+			}
+			add_modifier = {
+				modifier = cc_colony_distrusts
+				years = 15
+			}
+		}
+	}
+}
+
+# A war has ended
+# Root = Loser
+# From = Main Winner
+country_event = {
+	id = cc_peace.3
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = { has_country_flag = cc_promised_peace }
+	
+	immediate = {
+		country_event = { id = cc_peace.4 days = 5 }
+		remove_country_flag = cc_promised_peace
+	}
+}
+	
+
+country_event = {
+	id = cc_peace.4
+	title = cc_peace.4.name
+	desc = cc_peace.4.desc
+	
+	picture = GFX_evt_cc_peace_march
+	
+	is_triggered_only = yes
+	
+	trigger = { is_at_war = no }
+	
+	option = {
+		name = GOOD
+		hidden_effect = { remove_modifier = cc_promises_to_pacifists }
+		add_modifier = {
+			modifier = cc_made_peace
+			years = 5
+		}
+		random_pop_faction = {
+			limit = { is_pop_faction_type = prosperity }
+			add_modifier = {
+				modifier = cc_faction_peace_celebration
+				years = 5
+			}
+		}
+		every_owned_planet = {
+			limit = { has_modifier = cc_peace_protests }
+			hidden_effect = { remove_modifier = cc_peace_protests }
+			add_modifier = {
+				modifier = cc_peace_celebrations
+				years = 5
+			}
+		}
+		
+		custom_tooltip = cc_peace.4.tooltip #warning not to declare war in the next 5 years
+		
+		hidden_effect = {
+			set_timed_country_flag = {
+				flag = cc_promised_peace_continues
+				years = 5
+			}
+		}
+	}
+}
+
+
+# A war is beginning, executed for every country in the war.
+# Root = Country
+# From = War
+country_event = {
+	id = cc_peace.5
+	title = cc_peace.5.name
+	desc = cc_peace.5.desc
+	
+	picture = GFX_evt_cc_peace_march
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		is_war_leader = yes
+		has_country_flag = cc_promised_peace_continues
+		from = {
+			is_war_participant = { who = root side = attackers }
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		
+		remove_modifier = cc_made_peace
+
+		random_pop_faction = {
+			limit = { is_pop_faction_type = prosperity }
+			remove_modifier = cc_faction_peace_celebration
+			add_modifier = {
+				modifier = cc_peace_faction_betrayed
+				years = 10
+			}
+		}
+		every_owned_planet = {
+			limit = { has_modifier = cc_peace_celebrations }
+			remove_modifier = cc_peace_protests
+			add_modifier = {
+				modifier = cc_peace_protests
+				years = 5
+			}
+			add_modifier = {
+				modifier = cc_colony_distrusts
+				years = 15
+			}
+		}
+	}
+}

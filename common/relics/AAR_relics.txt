@@ -1,0 +1,192 @@
+#	魍魉之盒/维度魔方/宇宙立方
+
+@activation_cost = 150
+@triumph_duration = 3600
+
+
+
+
+###	魍魉之盒
+r_defender = {
+	activation_duration = @triumph_duration
+	portrait = "GFX_relic_defender"
+	sound = "relic_activation_miniature_galaxy"
+
+	resources = {
+		category = relics
+		# Activation cost
+		cost = {
+			influence = @activation_cost
+		}
+	}
+	
+	ai_weight = {
+		weight = 25
+		modifier = {
+			factor = 1.5
+			is_materialist = yes
+		}
+	}
+
+	triggered_country_modifier = {
+		potential = { always = yes }
+		all_technology_research_speed = 0.05
+	}
+
+	score = 1000
+
+	active_effect = {
+		custom_tooltip = "AAR_tips_r_defender_effect"
+		add_modifier = { modifier = AAR_mod_cntr_defender		 days = @triumph_duration }		# CD
+		add_modifier = { modifier = AAR_mod_cntr_defender_MOD	 days = @triumph_duration }		# 对MOD天灾
+		hidden_effect = {
+			if = { limit = { is_ai = no }	# |玩家才能用|
+				country_event = { id = AAR_evt_CRISIS.1 }	# aar天灾触发
+			}
+		}
+	}
+
+	# Possible check for activation
+	possible = {
+		custom_tooltip = {
+			fail_text = "AAR_tips_r_defender_activated"
+			NOT = { has_modifier = AAR_mod_cntr_defender }
+		}	
+	}
+}
+
+
+
+
+###	维度魔方
+AAR_R_webway = {
+	activation_duration = 0
+	portrait = "GFX_AAR_R_webway"
+	sound = "relic_activation_blade_of_the_huntress"
+
+	resources = {
+		category = relics
+		# Activation cost
+		cost = {
+			unity = 50
+		}
+	}
+	
+	ai_weight = {
+		weight = 0
+	}
+
+#	triggered_country_modifier = {
+#		potential = { always = yes }
+#		ship_ftl_jumpdrive_range_mult = 0.05
+#	}
+
+	score = 500
+
+	active_effect = {
+		custom_tooltip = "AAR_tips_R_webway"
+		hidden_effect = {
+			##_|存在枢纽|		=远程节点激活
+			if = { limit = { has_megastructure = AAR_MEGA_webway_NEXUS }
+				create_fleet = {
+					name = AAR_DESIGN_tgt_WEBWAY 
+					effect = {
+						# 绝对通行
+						set_fleet_flag = FW_flg_flt_JUMP	# FW特殊跃迁flt
+						root = { set_timed_country_flag = { flag = AAR_flg_cntr_JUMP_webway_TGT days = 90 } }	# |AAR特殊跃迁|	也作为激活开关
+						set_owner = root
+						create_ship = { name = AAR_DESIGN_tgt		 design = AAR_DESIGN_tgt }
+						set_location = root.capital_scope
+						fleet_event = { id = AAR_evt_WEBWAY.41 days = 90 }	# 网道定位器自我清理
+						
+						set_fleet_flag = AAR_flg_flt_TGT_webway
+					}
+				}
+			}
+			##_|没有枢纽|
+			else = {
+				country_event = { id = AAR_evt_WEBWAY.52 }	# 没有枢纽通知
+			}
+		}
+	}
+
+	# Possible check for activation
+	possible = {
+		custom_tooltip = {
+			fail_text = "AAR_failtips_WEBWAY_tgt_exists"
+			hidden_trigger = { NOT = { has_country_flag = AAR_flg_cntr_JUMP_webway_TGT } }
+		}	
+	}
+}
+
+
+###	宇宙立方
+AAR_R_jumper = {
+	activation_duration = 360
+	portrait = "GFX_AAR_R_jumper"
+	sound = "relic_activation_blade_of_the_huntress"
+
+	resources = {
+		category = relics
+		# Activation cost
+		cost = {
+			unity = 50
+		}
+	}
+	
+	ai_weight = {
+		weight = 100
+	}
+
+#	triggered_country_modifier = {
+#		potential = { always = yes }
+#		ship_jumpdrive_cooldown_mult = -0.15
+#		ship_ftl_jumpdrive_range_mult = 0.25
+#	}
+#	triggered_country_modifier = {
+#		potential = { check_variable = { which = AAR_var_cntr_JUMPER_worship value > 20 } }
+#		planet_jobs_produces_mult  = 0.05
+#		planet_jobs_unity_produces_mult = 0.05
+#	}
+#	triggered_country_modifier = {
+#		potential = {check_variable = { which = AAR_var_cntr_JUMPER_worship value > 60 } }
+#		planet_jobs_produces_mult  = 0.05
+#		planet_jobs_unity_produces_mult = 0.05
+#	}
+
+	score = 500
+
+	#	与[宇宙立方EXPRESS]同步,ai用flagCD控制触发,玩家用var控制
+	active_effect = {
+		custom_tooltip = "AAR_tips_R_jumper"
+		hidden_effect = {
+			set_update_modifiers_batch = begin	#_|修正更新|暂停
+			
+			#	超频
+			set_timed_country_flag = { flag = AAR_flg_cntr_JUMPER_overclock_CD days = 1080 }	# |冷却|=3年
+			add_modifier = { modifier = AAR_mod_cntr_JUMPER_overclock days = 360 }
+			#	MCM同步
+			fire_on_action = { on_action = MCM_on_country_sync }
+			
+			set_update_modifiers_batch = end	#_|修正更新|重启
+		}
+	}
+
+	# Possible check for activation
+	possible = {
+		custom_tooltip = {
+			fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_ongoing"
+			hidden_trigger = { NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock } }	# |超频中|非
+		}
+		custom_tooltip = {
+			fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_var"
+			hidden_trigger = {
+				OR = {
+					has_modifier = AAR_mod_cntr_JUMPER_overclock	# |超频中|
+					NOT = { has_country_flag = AAR_flg_cntr_JUMPER_overclock_CD }	# |充能中|非
+				}
+			}
+		}	
+	}
+}
+

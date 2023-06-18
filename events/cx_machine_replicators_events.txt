@@ -1,0 +1,204 @@
+namespace = cx_machine_replicators
+
+
+
+# change ownership
+country_event = {
+	id = cx_machine_replicators.0
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		random_owned_species = {
+			limit = { has_species_flag = replicated_species@root}
+			save_event_target_as = replicated_species
+		}
+		change_dominant_species  = { species = event_target:replicated_species change_all = yes }
+		#change_dominant_species  = { species = event_target:new_replica change_all = yes }
+		
+		#every_owned_leader = {
+		#	change_species = event_target:replicated_species
+		#	change_leader_portrait = species
+		#}
+		
+	}
+}
+
+# Necrophage Purge
+
+# on_pop_purged
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = cx_machine_replicators.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		from = { has_valid_civic = civic_machine_replicators }
+		fromfrom = {
+			has_purge_type = {
+				type = purge_necrophage
+			}
+		}
+	}
+
+	immediate = {
+		## create the new species/pop
+		FromFrom = {
+			species = {
+				save_event_target_as = replicate
+			}
+		}
+		#if = {
+		#	limit = {
+		#		from = {
+		#			count_species = {
+		#				count = 1
+		#				limit = {
+		#					species_portrait = replicate.portrait
+		#				}
+		#			}
+		#		}
+		#	}
+		#	log_error = "Creating new species"
+		#	create_replica = yes
+		#	create_pop = {
+		#		species = event_target:new_replica
+		#	}
+		#}
+		#else = {
+		#	log_error = "Not creating a new species"
+		#	from = {
+		#		random_owned_pop_species = {
+		#			limit = {
+		#				species_portrait = replicate.portrait
+		#				has_trait = trait_machine_replica
+		#			}
+		#			species = {
+		#				save_event_target_as = species_to_change_to
+		#			}
+		#		}
+		#	}
+		#	create_pop = {
+		#		species = event_target:species_to_change_to
+		#	}
+		#}
+		if = {
+			limit = {
+				count_exact_species = {
+					count = 0
+					limit = {
+						is_subspecies = event_target:replicate
+						has_trait = trait_machine_replica
+					}
+				}
+			}
+			event_target:replicate = {
+				modify_species = {
+					add_trait = trait_machine_replica
+					add_traits_at_start_of_list = yes
+				}
+			}
+			log_error = "Created New Species"
+		}
+		random_galaxy_species = {
+			limit = {
+				is_subspecies = event_target:replicate
+				has_trait = trait_machine_replica
+			}
+			species = {
+				save_event_target_as = species_to_change_to
+			}
+		}
+		create_pop = {
+			species = event_target:species_to_change_to
+		}
+						
+		## needs an eventtarget named replicate, it gives the new_replica species back
+		if = {
+			limit = {
+				from = {
+					has_active_tradition = tr_harmony_unity_of_self
+				}
+			}
+			from = {
+				add_monthly_resource_mult = {
+					resource = unity
+					value = 1.5
+					min = 5
+					max = 100
+				}
+			}
+		}
+		every_country = {
+			limit = {
+				has_communications = FROM
+				NOR = {
+					is_country = FROM
+					is_same_species = FROMFROM
+					has_ai_personality_behaviour = purger
+					has_origin = origin_necrophage
+					has_ethic = ethic_gestalt_consciousness
+					has_valid_civic = civic_death_cult
+					has_valid_civic = civic_death_cult_corporate
+				}
+				OR = {
+					is_country_type = default
+					has_ai_personality = awakened_fallen_empire_xenophile
+				}
+			}
+			add_opinion_modifier = { who = FROM modifier = opinion_necrophage }
+		}
+		every_country = {
+			limit = {
+				has_communications = FROM
+				NOT = { is_country = FROM }
+				is_same_species = FROMFROM
+			}
+			add_opinion_modifier = { who = FROM modifier = opinion_necrophage_our_species }
+		}
+	}
+}
+
+# A pop has been added to the planet
+# Root = pop
+# From = planet
+pop_event = {
+	id = cx_machine_replicators.3000
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {					
+		if = {
+			limit = {
+				exists = owner
+				owner = { has_valid_civic = civic_machine_replicators }
+				is_same_species = owner_species
+			}
+			kill_pop = yes
+			from = {
+				planet_event = { id = cx_machine_replicators.3001 }
+			}			
+		}
+	}
+}
+
+
+# A pop has been added to the planet
+# Root = planet
+## planet_pop_added
+planet_event = {
+	id = cx_machine_replicators.3001
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		while = {
+			count = 1
+			create_pop = {
+				species = event_target:replicated_species@root.owner 
+			}
+		}
+	}	
+}

@@ -1,0 +1,6130 @@
+namespace = apsr_enclave
+
+# занятые номера:
+# 1-4 окна покупки улучшений
+# 99 активация Куба и имитация покупки улучшений (для ИИ)
+# 100-108 общение с анклавом (игрок)
+# 110-114 сбой преторианцы
+# 120-124 сбой незванные
+# 130-134 сбой контингенция
+# 200 - Терминал - получение координат
+# 201-205 - Терминал - получение кода для реликвии
+# 209 - Терминал - получение реликвии
+# 211-219 - разговор угасших
+# 300-310 - активация указа на изучение Древних
+# 330-338 - Сообщения получения Опустошителя
+# 340-342 - Применение Опустошителя "Темный Ангел"
+# 343-344, 346 - Применение Опустошителя "Проектор"
+# 345 - Применение Опустошителя "Инатор"
+# 352-354 - Применение Опустошителя "Процессор"
+# 360-377 - Сообщения о результатах выстрела "Инатора"
+# 398 - при колонизации/захвате/передаче планет с спец депозитом - удаление при необходимости
+# 399 УКАЗ "ИЗУЧЕНИЕ ДРЕВНИХ" - система выдачи случайных сообщений
+
+
+
+
+country_event = {
+	id = apsr_enclave.1
+	title = "apsr_enclave_title"
+	desc = "apsr_enclave_desc"
+	diplomatic = yes
+	is_triggered_only = yes
+	custom_gui = apsr_enclave_economy_faction_overview
+}
+
+country_event = {
+	id = apsr_enclave.2
+	title = "apsr_enclave_title"
+	desc = "apsr_enclave_desc"
+	diplomatic = yes
+	is_triggered_only = yes
+	custom_gui = apsr_enclave_science_faction_overview
+}
+
+country_event = {
+	id = apsr_enclave.3
+	title = "apsr_enclave_title"
+	desc = "apsr_enclave_desc"
+	diplomatic = yes
+	is_triggered_only = yes
+	custom_gui = apsr_enclave_assault_faction_overview
+}
+
+country_event = {
+	id = apsr_enclave.4
+	title = "apsr_enclave_title"
+	desc = "apsr_enclave_desc"
+	diplomatic = yes
+	is_triggered_only = yes
+	custom_gui = apsr_enclave_defence_faction_overview
+}
+
+
+
+# АКТИВАЦИЯ КУБА
+
+country_event = {
+	id = apsr_enclave.99
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				is_ai = yes
+			}
+			if = {
+				limit = {
+					AND = {
+						is_at_war = yes
+						any_war = {
+							is_war_participant = { who = root side = attackers }
+						}
+						NOT = {
+							apsr_enclave_assault_completed = yes
+						}
+					}					
+				}
+				apsr_enclave_assault_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					AND = {
+						is_at_war = yes
+						any_war = {
+							is_war_participant = { who = root side = defenders }
+						}
+						NOT = {
+							apsr_enclave_defence_completed = yes
+						}
+					}					
+				}
+				apsr_enclave_defence_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					AND = {
+						OR = {
+							resource_income_compare = { resource = energy value < 200 }
+							resource_income_compare = { resource = minerals value < 100 }
+							AND = {
+								country_uses_food = yes
+								resource_income_compare = { resource = food value < 50 }
+							}
+							resource_income_compare = { resource = alloys value < 50 }
+							AND = {
+								country_uses_consumer_goods = yes
+								resource_income_compare = { resource = consumer_goods value < 30 }
+							}
+						}
+						NOT = {
+							apsr_enclave_economy_completed = yes
+						}					
+					}
+				}
+				apsr_enclave_economy_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					NOT = {
+						apsr_enclave_science_completed = yes
+					}				
+				}
+				apsr_enclave_science_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					NOT = {
+						apsr_enclave_assault_completed = yes
+					}				
+				}
+				apsr_enclave_assault_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					NOT = {
+						apsr_enclave_defence_completed = yes
+					}				
+				}
+				apsr_enclave_defence_ai_store = yes
+			}
+			else_if = {
+				limit = {
+					NOT = {
+						apsr_enclave_economy_completed = yes
+					}					
+				}
+				apsr_enclave_economy_ai_store = yes
+			}
+			else = {
+				set_country_flag = apsr_ai_stop_using_cube	# запрет на использование
+			}
+		}
+		else = {
+			country_event = { id = apsr_enclave.100 }
+		}
+	}
+}
+
+
+
+
+
+# АКТИВАЦИЯ КУБА ДЛЯ ИГРОКА
+
+country_event = {
+	id = apsr_enclave.100
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = apsr_enclave_welcome
+				}
+			}
+			country_event = { id = apsr_enclave.101 }
+		}
+		if = {
+			limit = {
+				has_country_flag = apsr_enclave_welcome
+			}
+			random_list = {
+			
+				85 = {	# 1 - Нормальная работа
+					country_event = { id = apsr_enclave.103 }
+				}
+				
+				5 = {	# 2 - Звонок Преторианцам
+					modifier = {
+						factor = 0
+						OR = {
+							has_global_flag = prethoryn_invasion_happened
+							has_global_flag = apsr_enclave_prethoryn_on_the_way
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_economy_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_science_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_assault_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_defence_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr16_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr17_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr18_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr19_building_part_b3
+								has_technology = tech_apsr19_building_part_m3
+							}	
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr20_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr21_building_part_b3
+								has_technology = tech_apsr21_building_part_m3
+							}
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr22_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr23_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = prethoryn_invasion_happened
+									has_global_flag = apsr_enclave_prethoryn_on_the_way
+								}
+							}
+						}
+					}
+					country_event = { id = apsr_enclave.110 } # преторианцы
+				}
+				
+				5 = {	# 3 - Звонок Незванным
+					modifier = {
+						factor = 0
+						OR = {
+							has_global_flag = extradimensional_invasion_happened
+							has_global_flag = apsr_enclave_extradimensional_on_the_way
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_economy_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_science_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_assault_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_defence_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr2_building_part5
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr7_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr8_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr9_building_part2
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr10_building_part1
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr11_building_part_b3
+								has_technology = tech_apsr11_building_part_m3
+							}
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr12_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr15_building_part41
+								has_technology = tech_apsr15_building_part42
+								has_technology = tech_apsr15_building_part43
+								has_technology = tech_apsr15_building_part44
+								has_technology = tech_apsr15_building_part45
+							}	
+							NOT = {
+								OR = {
+									has_global_flag = extradimensional_invasion_happened
+									has_global_flag = apsr_enclave_extradimensional_on_the_way
+								}
+							}
+						}
+					}
+					country_event = { id = apsr_enclave.120 } # незванные
+				}
+				
+				5 = { 	# 4 - Звонок Контингенции
+					modifier = {
+						factor = 0
+						OR = {
+							has_global_flag = ai_invasion_happened
+							has_global_flag = apsr_enclave_ai_on_the_way
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_economy_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_science_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_assault_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 15
+						AND = {
+							apsr_enclave_defence_completed = yes
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr1_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr3_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr4_building_part3
+								has_technology = tech_apsr4_building_part3_ext
+							}
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr5_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr6_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr13_building_part3
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							OR = {
+								has_technology = tech_apsr14_building_part_b3
+								has_technology = tech_apsr14_building_part_m3
+							}
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					modifier = {
+						add = 5
+						AND = {
+							has_technology = tech_apsr24_building_talisman
+							NOT = {
+								OR = {
+									has_global_flag = ai_invasion_happened
+									has_global_flag = apsr_enclave_ai_on_the_way
+								}
+							}
+						}
+					}
+					country_event = { id = apsr_enclave.130 } # контингенция
+				}	
+				
+				5 = {	# 5 - подслушивание Угасших
+					modifier = {
+						factor = 0
+						OR = {
+							has_country_flag = apsr_enclave_ancient_fact_01
+							NOT = {
+								any_country = {
+									is_country_type = fallen_empire
+									NOT = { has_ethic = ethic_gestalt_consciousness }
+									has_communications = root
+									NOT = { is_at_war_with = root }
+								}
+							}
+						}
+					}
+					country_event = { id = apsr_enclave.211 }
+				}	
+				
+				10 = {	# 6 - Терминал - получение реликвии или кодов для нее
+					modifier = {
+						factor = 0
+						has_global_flag = apsr_terminal_set_off
+					}
+					modifier = {
+						factor = 0.25
+						has_global_flag = apsr_terminal_factor_025
+					}
+					modifier = {
+						factor = 0.5
+						has_global_flag = apsr_terminal_factor_050
+					}
+					modifier = {
+						factor = 2
+						has_global_flag = apsr_terminal_factor_200
+					}
+					modifier = {
+						factor = 3
+						has_global_flag = apsr_terminal_factor_300
+					}
+					modifier = {
+						factor = 1.03
+						AND = {
+							has_technology = tech_achimod_apsr_achivement_12_stage_1
+							NOT = {
+								has_technology = tech_achimod_apsr_achivement_12_stage_2
+							}
+						}
+					}
+					modifier = {
+						factor = 1.1
+						AND = {
+							has_technology = tech_achimod_apsr_achivement_12_stage_2
+							NOT = {
+								has_technology = tech_achimod_apsr_achivement_12_stage_3
+							}
+						}
+					}
+					modifier = {
+						factor = 1.2
+						AND = {
+							has_technology = tech_achimod_apsr_achivement_12_stage_3
+							NOT = {
+								has_technology = tech_achimod_apsr_achivement_12_stage_4
+							}
+						}
+					}
+					modifier = {
+						factor = 1.35
+						AND = {
+							has_technology = tech_achimod_apsr_achivement_12_stage_4
+							NOT = {
+								has_technology = tech_achimod_apsr_achivement_12_stage_5
+							}
+						}
+					}
+					modifier = {
+						factor = 1.5
+						has_technology = tech_achimod_apsr_achivement_12_stage_5
+					}
+					modifier = {
+						factor = 1.5
+						apsr_enclave_economy_completed = yes
+					}
+					modifier = {
+						factor = 1.5
+						apsr_enclave_science_completed = yes
+					}
+					modifier = {
+						factor = 1.5
+						apsr_enclave_assault_completed = yes
+					}
+					modifier = {
+						factor = 1.5
+						apsr_enclave_defence_completed = yes
+					}
+					random_list = {
+						25 = {
+							modifier = {
+								factor = 0
+								has_relic = relic_apsr_terminal
+							}
+							modifier = {
+								factor = 2
+								mid_game_years_passed > 0
+							}
+							modifier = {
+								factor = 2
+								end_game_years_passed > 0
+							}
+							modifier = {
+								factor = 10
+								end_game_years_passed > 100
+							}
+							country_event = { id = apsr_enclave.200 }
+						}
+						15 = {
+							country_event = { id = apsr_enclave.201 }
+						}
+						15 = {
+							country_event = { id = apsr_enclave.202 }
+						}
+						15 = {
+							country_event = { id = apsr_enclave.203 }
+						}
+						15 = {
+							country_event = { id = apsr_enclave.204 }
+						}
+						15 = {
+							country_event = { id = apsr_enclave.205 }
+						}
+					}
+				}
+				
+			}
+		}
+	}
+}
+
+
+# Окно приветствия
+country_event = {
+	id = apsr_enclave.101
+	title = "apsr_enclave.101.title"
+	desc = "apsr_enclave.101.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+		
+	immediate = {
+		
+	}
+	
+	option = {
+		name = apsr_enclave.101.button1
+		response_text = apsr_enclave.101.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.101.button2
+		response_text = apsr_enclave.101.button2.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.101.button3
+		response_text = apsr_enclave.101.button3.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.101.buttonbuy
+		country_event = { id = apsr_enclave.102 }
+	}
+}
+
+
+# Окно выбора типа улучшения - первый визит
+country_event = {
+	id = apsr_enclave.102
+	title = "apsr_enclave.102.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_country_flag = apsr_enclave_welcome	
+			} 
+		}
+		text = "apsr_enclave.102.desc"
+	}
+	desc = {
+		trigger = {
+			has_country_flag = apsr_enclave_welcome	
+		}
+		text = "apsr_enclave.102.desc1"
+	}
+	desc = {
+		trigger = {
+			has_country_flag = apsr_enclave_welcome	
+		}
+		text = "apsr_enclave.102.desc2"
+	}
+	desc = {
+		trigger = {
+			has_country_flag = apsr_enclave_welcome	
+		}
+		text = "apsr_enclave.102.desc3"
+	}
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+		
+	option = {
+		name = apsr_enclave.102.button1
+		response_text = apsr_enclave.102.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.102.button2
+		response_text = apsr_enclave.102.button2.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = apsr_enclave.102.economy
+		country_event = { id = apsr_enclave.1 }
+		set_country_flag = apsr_enclave_welcome	
+	}
+	
+	option = {
+		name = apsr_enclave.102.science
+		country_event = { id = apsr_enclave.2 }
+		set_country_flag = apsr_enclave_welcome	
+	}
+	
+	option = {
+		name = apsr_enclave.102.assault
+		country_event = { id = apsr_enclave.3 }
+		set_country_flag = apsr_enclave_welcome	
+	}
+	
+	option = {
+		name = apsr_enclave.102.defence
+		country_event = { id = apsr_enclave.4 }
+		set_country_flag = apsr_enclave_welcome	
+	}
+}
+
+
+# Окно выбора типа улучшения - дальнейшие визиты
+country_event = {
+	id = apsr_enclave.103
+	title = "apsr_enclave.102.title"
+	desc = "apsr_enclave.102.desc1"
+	desc = "apsr_enclave.102.desc2"
+	desc = "apsr_enclave.102.desc3"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+		
+	immediate = {
+		set_variable = {
+			which = apsr_ancient_knowledge_count
+			value = 0
+		}	
+		set_variable = {
+			which = apsr_ancient_knowledge_monthly_count
+			value = 0
+		}	
+		
+		### ОТОБРАЖЕНИЕ СОБРАННОГО РЕСУРСА
+		export_resource_stockpile_to_variable = {
+			resource = apsr_knowledge
+			variable = apsr_ancient_knowledge_count
+		}
+		export_resource_income_to_variable = {
+			resource = apsr_knowledge
+			variable = apsr_ancient_knowledge_monthly_count
+		}
+	}
+		
+	option = {
+		name = apsr_enclave.102.balance
+		response_text = apsr_enclave.102.balance.response
+		trigger = {
+			NOT = {
+				AND = {
+					apsr_enclave_economy_completed = yes
+					apsr_enclave_science_completed = yes
+					apsr_enclave_assault_completed = yes
+					apsr_enclave_defence_completed = yes
+				}
+			}
+		}
+		is_dialog_only = yes
+	}
+		
+	option = {
+		name = apsr_enclave.102.economy
+		trigger = {
+			NOT = {
+				apsr_enclave_economy_completed = yes
+			}
+		}
+		country_event = { id = apsr_enclave.1 }
+		hidden_effect = {
+			remove_country_flag = apsr_enclave_economy_button_01_pressed
+			remove_country_flag = apsr_enclave_economy_button_02_pressed
+			remove_country_flag = apsr_enclave_economy_button_03dg_pressed
+			remove_country_flag = apsr_enclave_economy_button_03m_pressed
+			remove_country_flag = apsr_enclave_economy_button_03l_pressed
+			remove_country_flag = apsr_enclave_economy_button_04_pressed
+			remove_country_flag = apsr_enclave_economy_button_05_pressed
+			remove_country_flag = apsr_enclave_economy_button_06_pressed
+			remove_country_flag = apsr_enclave_economy_button_07_pressed
+			remove_country_flag = apsr_enclave_economy_button_08dg_pressed
+			remove_country_flag = apsr_enclave_economy_button_08m_pressed
+			remove_country_flag = apsr_enclave_economy_button_08l_pressed
+			remove_country_flag = apsr_enclave_economy_button_09_pressed
+			remove_country_flag = apsr_enclave_economy_button_10d_pressed
+			remove_country_flag = apsr_enclave_economy_button_10gm_pressed
+			remove_country_flag = apsr_enclave_economy_button_11d_pressed
+			remove_country_flag = apsr_enclave_economy_button_11gm_pressed
+			remove_country_flag = apsr_enclave_economy_button_12d_pressed
+			remove_country_flag = apsr_enclave_economy_button_12gm_pressed
+			remove_country_flag = apsr_enclave_economy_button_13_pressed
+			remove_country_flag = apsr_enclave_economy_button_14_pressed
+			remove_country_flag = apsr_enclave_economy_button_15_pressed
+			remove_country_flag = apsr_enclave_economy_button_16_pressed
+			remove_country_flag = apsr_enclave_economy_button_17_pressed
+			remove_country_flag = apsr_enclave_economy_button_18_pressed
+			remove_country_flag = apsr_enclave_economy_button_18ext_pressed
+			remove_country_flag = apsr_enclave_economy_button_19_pressed
+			remove_country_flag = apsr_enclave_economy_button_20_pressed
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.102.science
+		trigger = {
+			NOT = {
+				apsr_enclave_science_completed = yes
+			}
+		}
+		country_event = { id = apsr_enclave.2 }
+		hidden_effect = {
+			remove_country_flag = apsr_enclave_science_button_01_pressed
+			remove_country_flag = apsr_enclave_science_button_02_pressed
+			remove_country_flag = apsr_enclave_science_button_03_pressed
+			remove_country_flag = apsr_enclave_science_button_04_pressed
+			remove_country_flag = apsr_enclave_science_button_05_pressed
+			remove_country_flag = apsr_enclave_science_button_06_pressed
+			remove_country_flag = apsr_enclave_science_button_07_pressed
+			remove_country_flag = apsr_enclave_science_button_08_pressed
+			remove_country_flag = apsr_enclave_science_button_09_pressed
+			remove_country_flag = apsr_enclave_science_button_10_pressed
+			remove_country_flag = apsr_enclave_science_button_11dg_pressed
+			remove_country_flag = apsr_enclave_science_button_11m_pressed
+			remove_country_flag = apsr_enclave_science_button_12_pressed
+			remove_country_flag = apsr_enclave_science_button_13_pressed
+			remove_country_flag = apsr_enclave_science_button_14_pressed
+			remove_country_flag = apsr_enclave_science_button_15_pressed
+			remove_country_flag = apsr_enclave_science_button_16_pressed
+			remove_country_flag = apsr_enclave_science_button_17_pressed
+			remove_country_flag = apsr_enclave_science_button_18_pressed
+			remove_country_flag = apsr_enclave_science_button_18ext_pressed
+			remove_country_flag = apsr_enclave_science_button_19_pressed
+			remove_country_flag = apsr_enclave_science_button_20_pressed
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.102.assault
+		trigger = {
+			NOT = {
+				apsr_enclave_assault_completed = yes
+			}
+		}
+		country_event = { id = apsr_enclave.3 }
+		hidden_effect = {
+			remove_country_flag = apsr_enclave_assault_button_01_pressed
+			remove_country_flag = apsr_enclave_assault_button_02_pressed
+			remove_country_flag = apsr_enclave_assault_button_03_pressed
+			remove_country_flag = apsr_enclave_assault_button_04_pressed
+			remove_country_flag = apsr_enclave_assault_button_05_pressed
+			remove_country_flag = apsr_enclave_assault_button_06_pressed
+			remove_country_flag = apsr_enclave_assault_button_07_pressed
+			remove_country_flag = apsr_enclave_assault_button_08_pressed
+			remove_country_flag = apsr_enclave_assault_button_09_pressed
+			remove_country_flag = apsr_enclave_assault_button_10_pressed
+			remove_country_flag = apsr_enclave_assault_button_11_pressed
+			remove_country_flag = apsr_enclave_assault_button_12_pressed
+			remove_country_flag = apsr_enclave_assault_button_13_pressed
+			remove_country_flag = apsr_enclave_assault_button_14_pressed
+			remove_country_flag = apsr_enclave_assault_button_15_pressed
+			remove_country_flag = apsr_enclave_assault_button_15ext_pressed
+			remove_country_flag = apsr_enclave_assault_button_16_pressed
+			remove_country_flag = apsr_enclave_assault_button_17_pressed
+			remove_country_flag = apsr_enclave_assault_button_18_pressed
+			remove_country_flag = apsr_enclave_assault_button_18ext_pressed
+			remove_country_flag = apsr_enclave_assault_button_19_pressed
+			remove_country_flag = apsr_enclave_assault_button_20_pressed
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.102.defence
+		trigger = {
+			NOT = {
+				apsr_enclave_defence_completed = yes
+			}
+		}
+		country_event = { id = apsr_enclave.4 }
+		hidden_effect = {
+			remove_country_flag = apsr_enclave_defence_button_01_pressed
+			remove_country_flag = apsr_enclave_defence_button_02_pressed
+			remove_country_flag = apsr_enclave_defence_button_03_pressed
+			remove_country_flag = apsr_enclave_defence_button_04_pressed
+			remove_country_flag = apsr_enclave_defence_button_05_pressed
+			remove_country_flag = apsr_enclave_defence_button_06_pressed
+			remove_country_flag = apsr_enclave_defence_button_07_pressed
+			remove_country_flag = apsr_enclave_defence_button_08_pressed
+			remove_country_flag = apsr_enclave_defence_button_09_pressed
+			remove_country_flag = apsr_enclave_defence_button_10_pressed
+			remove_country_flag = apsr_enclave_defence_button_11_pressed
+			remove_country_flag = apsr_enclave_defence_button_12_pressed
+			remove_country_flag = apsr_enclave_defence_button_13_pressed
+			remove_country_flag = apsr_enclave_defence_button_14_pressed
+			remove_country_flag = apsr_enclave_defence_button_15_pressed
+			remove_country_flag = apsr_enclave_defence_button_16_pressed
+			remove_country_flag = apsr_enclave_defence_button_17_pressed
+			remove_country_flag = apsr_enclave_defence_button_18_pressed
+			remove_country_flag = apsr_enclave_defence_button_19_pressed
+			remove_country_flag = apsr_enclave_defence_button_20_pressed
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.102.special
+		country_event = { id = apsr_enclave.104 }
+	}
+	
+	option = {
+		name = apsr_enclave.102.no_upgrades
+		response_text = apsr_enclave.102.no_upgrades.response
+		trigger = {
+			AND = {
+				apsr_enclave_economy_completed = yes
+				apsr_enclave_science_completed = yes
+				apsr_enclave_assault_completed = yes
+				apsr_enclave_defence_completed = yes
+			}
+		}
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.102.exit
+	}
+}
+
+
+# Окно покупки Опустошителя
+country_event = {
+	id = apsr_enclave.104
+	title = "apsr_enclave.104.title"
+	desc = {
+		trigger = {
+			NOT = {
+				OR = {
+					apsr_enclave_economy_completed = yes
+					apsr_enclave_science_completed = yes
+					apsr_enclave_assault_completed = yes
+					apsr_enclave_defence_completed = yes
+				}
+			}
+		}
+		text = "apsr_enclave.104.desc_undone"
+	}
+	desc = {
+		trigger = {
+			OR = {
+				apsr_enclave_economy_completed = yes
+				apsr_enclave_science_completed = yes
+				apsr_enclave_assault_completed = yes
+				apsr_enclave_defence_completed = yes
+			}
+		}
+		text = "apsr_enclave.104.desc_done"
+	}
+	
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.104.button1
+		trigger = {
+			AND = {
+				apsr_enclave_assault_completed = yes
+				NOT = {
+					has_country_flag = apsr_enclave_this_player_buyed_angel
+				}
+			}
+		}
+		country_event = { id = apsr_enclave.105 }
+	}
+	option = {
+		name = apsr_enclave.104.button2
+		trigger = {
+			AND = {
+				apsr_enclave_defence_completed = yes
+				NOT = {
+					has_country_flag = apsr_enclave_this_player_buyed_projector
+				}
+			}
+		}
+		country_event = { id = apsr_enclave.106 }
+	}
+	option = {
+		name = apsr_enclave.104.button3
+		trigger = {
+			AND = {
+				apsr_enclave_economy_completed = yes
+				NOT = {
+					has_country_flag = apsr_enclave_this_player_buyed_inator
+				}
+			}
+		}
+		country_event = { id = apsr_enclave.107 }
+	}
+	option = {
+		name = apsr_enclave.104.button4
+		trigger = {
+			AND = {
+				apsr_enclave_science_completed = yes
+				NOT = {
+					has_country_flag = apsr_enclave_this_player_buyed_processor
+				}
+			}
+		}
+		country_event = { id = apsr_enclave.108 }
+	}
+	
+	option = {
+		name = apsr_enclave.104.back
+		country_event = { id = apsr_enclave.103 }
+	}
+}
+
+
+# Окно покупки Темного Ангела (атака)
+country_event = {
+	id = apsr_enclave.105
+	title = "apsr_enclave.105.title"
+	desc = "apsr_enclave.105.desc"
+	
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.105.buy
+		response_text = apsr_enclave.105.buy.response
+		trigger = {
+			AND = {
+				has_resource = { type = apsr_knowledge amount > 1000 }
+				has_resource = { type = energy amount > 50000 }
+				has_resource = { type = alloys amount > 20000 }
+			}
+		}
+		add_resource = {
+			apsr_knowledge = -1000
+			energy = -50000
+			alloys = -20000
+		}
+		country_event = { id = apsr_enclave.330 days = 110 }
+		set_country_flag = apsr_enclave_buy_angel
+		set_country_flag = apsr_enclave_this_player_buyed_angel
+	}	
+	option = {
+		name = apsr_enclave.105.back
+		country_event = { id = apsr_enclave.103 }
+	}
+}
+
+
+# Окно покупки Проектора (оборона)
+country_event = {
+	id = apsr_enclave.106
+	title = "apsr_enclave.106.title"
+	desc = "apsr_enclave.106.desc"
+	
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.106.buy
+		response_text = apsr_enclave.106.buy.response
+		trigger = {
+			AND = {
+				has_resource = { type = apsr_knowledge amount > 1000 }
+				has_resource = { type = energy amount > 50000 }
+				has_resource = { type = alloys amount > 20000 }
+			}
+		}
+		add_resource = {
+			apsr_knowledge = -1000
+			energy = -50000
+			alloys = -20000
+		}
+		country_event = { id = apsr_enclave.330 days = 110 }
+		set_country_flag = apsr_enclave_buy_projector
+		set_country_flag = apsr_enclave_this_player_buyed_projector
+	}	
+	option = {
+		name = apsr_enclave.106.back
+		country_event = { id = apsr_enclave.103 }
+	}
+}
+
+
+# Окно покупки Инатора (экономика)
+country_event = {
+	id = apsr_enclave.107
+	title = "apsr_enclave.107.title"
+	desc = "apsr_enclave.107.desc"
+	
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.107.buy
+		response_text = apsr_enclave.107.buy.response
+		trigger = {
+			AND = {
+				has_resource = { type = apsr_knowledge amount > 1000 }
+				has_resource = { type = energy amount > 50000 }
+				has_resource = { type = alloys amount > 20000 }
+			}
+		}
+		add_resource = {
+			apsr_knowledge = -1000
+			energy = -50000
+			alloys = -20000
+		}
+		country_event = { id = apsr_enclave.330 days = 110 }
+		set_country_flag = apsr_enclave_buy_inator
+		set_country_flag = apsr_enclave_this_player_buyed_inator
+	}	
+	option = {
+		name = apsr_enclave.107.back
+		country_event = { id = apsr_enclave.103 }
+	}
+}
+
+
+# Окно покупки Процессора (наука)
+country_event = {
+	id = apsr_enclave.108
+	title = "apsr_enclave.108.title"
+	desc = "apsr_enclave.108.desc"
+	
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.108.buy
+		response_text = apsr_enclave.108.buy.response
+		trigger = {
+			AND = {
+				has_resource = { type = apsr_knowledge amount > 1000 }
+				has_resource = { type = energy amount > 50000 }
+				has_resource = { type = alloys amount > 20000 }
+			}
+		}
+		add_resource = {
+			apsr_knowledge = -1000
+			energy = -50000
+			alloys = -20000
+		}
+		country_event = { id = apsr_enclave.330 days = 110 }
+		set_country_flag = apsr_enclave_buy_processor
+		set_country_flag = apsr_enclave_this_player_buyed_processor
+	}	
+	option = {
+		name = apsr_enclave.108.back
+		country_event = { id = apsr_enclave.103 }
+	}
+}
+
+
+
+
+
+
+### СБОИ СВЯЗИ ###
+
+## Преторианцы ##
+
+# условия показа сообщений
+country_event = {
+	id = apsr_enclave.110
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_prethoryn_1
+					has_country_flag = apsr_enclave_prethoryn_2
+					has_country_flag = apsr_enclave_prethoryn_3
+				}
+			}
+			country_event = { id = apsr_enclave.114 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_prethoryn_1
+					has_country_flag = apsr_enclave_prethoryn_2
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.113 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_prethoryn_1
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.112 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_1
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_prethoryn_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.111 }
+		}
+		else = {
+			country_event = { id = apsr_enclave.100 }
+		}
+	}
+}
+
+# Первое посещение
+country_event = {
+	id = apsr_enclave.111
+	title = "apsr_enclave.111.title"
+	desc = "apsr_enclave.111.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = swarm1
+		room = "swarm_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_prethoryn_1
+	}
+	
+	option = {
+		name = apsr_enclave.111.button1
+		response_text = apsr_enclave.111.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.111.button2
+		response_text = apsr_enclave.111.button2.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.111.exit
+	}
+}
+
+# Второе посещение
+country_event = {
+	id = apsr_enclave.112
+	title = "apsr_enclave.112.title"
+	desc = "apsr_enclave.112.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = swarm1
+		room = "swarm_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_prethoryn_2
+	}
+	
+	option = {
+		name = apsr_enclave.112.button1
+		response_text = apsr_enclave.112.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.112.exit
+	}
+}
+
+# Третье посещение
+country_event = {
+	id = apsr_enclave.113
+	title = "apsr_enclave.113.title"
+	desc = "apsr_enclave.113.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = swarm1
+		room = "swarm_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_prethoryn_3
+	}
+	
+	option = {
+		name = apsr_enclave.113.button1
+		response_text = apsr_enclave.113.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.113.exit
+	}
+}
+
+# Последнее посещение - вызывает кризис
+country_event = {
+	id = apsr_enclave.114
+	title = "apsr_enclave.114.title"
+	desc = "apsr_enclave.114.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = swarm1
+		room = "swarm_room"
+	}
+		
+	immediate = {	
+		set_country_flag = apsr_enclave_prethoryn_caller		
+		country_event = { id = crisis.10 days = 1800 random = 1800 }
+		set_global_flag = apsr_enclave_prethoryn_on_the_way
+	}
+	
+	option = {
+		name = apsr_enclave.114.button1
+		response_text = apsr_enclave.114.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.114.exit
+	}
+}
+
+
+
+
+
+## Незванные ##
+
+# условия показа сообщений
+country_event = {
+	id = apsr_enclave.120
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_extradimensional_1
+					has_country_flag = apsr_enclave_extradimensional_2
+					has_country_flag = apsr_enclave_extradimensional_3
+				}
+			}
+			country_event = { id = apsr_enclave.124 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_extradimensional_1
+					has_country_flag = apsr_enclave_extradimensional_2
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.123 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_extradimensional_1
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.122 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_1
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_extradimensional_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.121 }
+		}
+		else = {
+			country_event = { id = apsr_enclave.100 }
+		}
+	}
+}
+
+# Первое посещение
+country_event = {
+	id = apsr_enclave.121
+	title = "apsr_enclave.121.title"
+	desc = "apsr_enclave.121.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = exd1
+		room = "extradimensional_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_extradimensional_1
+	}
+	
+	option = {
+		name = apsr_enclave.121.button1
+		response_text = apsr_enclave.121.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.121.button2
+		response_text = apsr_enclave.121.button2.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.121.button3
+		response_text = apsr_enclave.121.button3.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.121.exit
+	}
+}
+
+# Второе посещение
+country_event = {
+	id = apsr_enclave.122
+	title = "apsr_enclave.122.title"
+	desc = "apsr_enclave.122.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = exd1
+		room = "extradimensional_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_extradimensional_2
+	}
+	
+	option = {
+		name = apsr_enclave.122.button1
+		response_text = apsr_enclave.122.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.122.button2
+		response_text = apsr_enclave.122.button2.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.122.exit
+	}
+}
+
+# Третье посещение
+country_event = {
+	id = apsr_enclave.123
+	title = "apsr_enclave.123.title"
+	desc = "apsr_enclave.123.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = exd1
+		room = "extradimensional_room"
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_extradimensional_3
+	}
+	
+	option = {
+		name = apsr_enclave.123.button1
+		response_text = apsr_enclave.123.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.123.exit
+	}
+}
+
+# Последнее посещение - вызывает кризис
+country_event = {
+	id = apsr_enclave.124
+	title = "apsr_enclave.124.title"
+	desc = "apsr_enclave.124.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = exd1
+		room = "extradimensional_room"
+	}
+		
+	immediate = {	
+		set_country_flag = apsr_enclave_extradimensional_caller	
+		country_event = { id = crisis.1000 days = 1800 random = 1800 }
+		set_global_flag = apsr_enclave_extradimensional_on_the_way
+	}
+	
+	option = {
+		name = apsr_enclave.124.button1
+		response_text = apsr_enclave.124.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.124.exit
+	}
+}
+
+
+
+
+
+## Контингенция ##
+
+# условия показа сообщений
+country_event = {
+	id = apsr_enclave.130
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_ai_1
+					has_country_flag = apsr_enclave_ai_2
+					has_country_flag = apsr_enclave_ai_3
+				}
+			}
+			country_event = { id = apsr_enclave.134 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_ai_1
+					has_country_flag = apsr_enclave_ai_2
+					NOT = {
+						has_country_flag = apsr_enclave_ai_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.133 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					has_country_flag = apsr_enclave_ai_1
+					NOT = {
+						has_country_flag = apsr_enclave_ai_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_ai_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.132 }
+		}
+		else_if = {
+			limit = {
+				AND = {
+					NOT = {
+						has_country_flag = apsr_enclave_ai_1
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_ai_2
+					}
+					NOT = {
+						has_country_flag = apsr_enclave_ai_3
+					}
+				}
+			}
+			country_event = { id = apsr_enclave.131 }
+		}
+		else = {
+			country_event = { id = apsr_enclave.100 }
+		}
+	}
+}
+
+# Первое посещение
+country_event = {
+	id = apsr_enclave.131
+	title = "apsr_enclave.131.title"
+	desc = "apsr_enclave.131.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = ai_crisis_2
+		room = ethic_spaceship_room
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_ai_1
+	}
+	
+	option = {
+		name = apsr_enclave.131.button1
+		response_text = apsr_enclave.131.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.131.button2
+		response_text = apsr_enclave.131.button2.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.131.button3
+		response_text = apsr_enclave.131.button3.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.131.exit
+	}
+}
+
+# Второе посещение
+country_event = {
+	id = apsr_enclave.132
+	title = "apsr_enclave.132.title"
+	desc = "apsr_enclave.132.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = ai_crisis_2
+		room = ethic_spaceship_room
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_ai_2
+	}
+	
+	option = {
+		name = apsr_enclave.132.button1
+		response_text = apsr_enclave.132.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.132.exit
+	}
+}
+
+# Третье посещение
+country_event = {
+	id = apsr_enclave.133
+	title = "apsr_enclave.133.title"
+	desc = "apsr_enclave.133.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = ai_crisis_2
+		room = ethic_spaceship_room
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_ai_3
+	}
+	
+	option = {
+		name = apsr_enclave.133.button1
+		response_text = apsr_enclave.133.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.133.exit
+	}
+}
+
+# Последнее посещение - вызывает кризис
+country_event = {
+	id = apsr_enclave.134
+	title = "apsr_enclave.134.title"
+	desc = "apsr_enclave.134.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		portrait = ai_crisis_1
+		room = ethic_spaceship_room
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_ai_caller	
+		country_event = { id = crisis.2005 days = 1800 random = 1800 }
+		if = {
+			limit = {
+				NOT = {
+					any_galaxy_planet = { 
+						has_planet_flag = machine_world_1 
+					}
+				}
+			}
+			random_galaxy_planet = {
+				limit = {
+					AND = {
+						NOT = {
+							OR = {
+								has_apsr_modifiers = yes
+								has_planet_flag = apsr_planet
+							}
+						}
+						is_planet_class = pc_barren
+						is_moon = no
+					}
+				}
+				set_planet_flag = machine_world_1
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					any_galaxy_planet = {
+						has_planet_flag = machine_world_2
+					}
+				}
+			}
+			random_galaxy_planet = {
+				limit = {
+					AND = {
+						NOT = {
+							OR = {
+								has_apsr_modifiers = yes
+								has_planet_flag = apsr_planet
+							}
+						}
+						is_planet_class = pc_molten
+						is_moon = no
+					}
+				}
+				set_planet_flag = machine_world_2
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					any_galaxy_planet = {
+						has_planet_flag = machine_world_3
+					}
+				}
+			}
+			random_galaxy_planet = {
+				limit = {
+					AND = {
+						NOT = {
+							OR = {
+								has_apsr_modifiers = yes
+								has_planet_flag = apsr_planet
+							}
+						}
+						is_planet_class = pc_gas_giant
+						is_moon = no
+					}
+				}
+				set_planet_flag = machine_world_3
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					any_galaxy_planet = {
+						has_planet_flag = machine_world_4
+					}
+				}
+			}
+			random_galaxy_planet = {
+				limit = {
+					AND = {
+						NOT = {
+							OR = {
+								has_apsr_modifiers = yes
+								has_planet_flag = apsr_planet
+							}
+						}
+						is_planet_class = pc_toxic
+						is_moon = no
+					}
+				}
+				set_planet_flag = machine_world_4
+			}
+		}
+		set_global_flag = apsr_enclave_ai_on_the_way
+	}
+	
+	option = {
+		name = apsr_enclave.134.button1
+		response_text = apsr_enclave.134.button1.response
+		is_dialog_only = yes
+	}
+	
+	option = {
+		name = apsr_enclave.134.exit
+	}
+}
+
+
+
+
+
+### ТЕРМИНАЛ 
+
+# 200 - Терминал - Получение координат проекта с Терминалом
+country_event = {
+	id = apsr_enclave.200
+	title = "apsr_enclave.200.title"
+	desc = "apsr_enclave.200.desc"
+	picture = GFX_apsr_terminal_anomaly
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+
+	immediate = {
+		random_system = {
+			limit = {
+				any_system_planet = {
+					is_star = no
+					is_colony = no
+					is_capital = no
+					habitable_structure = no
+					is_asteroid = no
+					NOT = { is_planet_class = pc_gas_giant }
+				}
+			}
+			random_system_planet = {
+				limit = {
+					is_star = no
+					is_colony = no
+					is_capital = no
+					habitable_structure = no
+					is_asteroid = no
+					NOT = { is_planet_class = pc_gas_giant }
+				}
+				save_event_target_as = apsr_terminal_site_relic
+			}		
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.200.button
+		custom_tooltip = apsr_enclave.200.button.tooltip
+		enable_special_project = {
+			name = "apsr_terminal_site_relic"
+			location = event_target:apsr_terminal_site_relic
+			owner = root
+		}
+	}
+}
+
+# 209 - Изучение проекта - получение Терминала
+ship_event = {
+	id = apsr_enclave.209
+	title = "apsr_enclave.209.title"
+	desc = {
+		trigger = {
+			owner = {
+				AND = {
+					NOT = {
+						apsr_terminal_has_any_code_info = yes
+					}
+					NOT = {
+						has_relic = relic_apsr_terminal
+					}
+				}
+			}
+		}
+		text = "apsr_enclave.209.desc1"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				AND = {
+					apsr_terminal_has_any_code_info = yes
+					NOT = {
+						has_relic = relic_apsr_terminal
+					}
+				}
+			}
+		}
+		text = "apsr_enclave.209.desc2"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.209.desc3"
+	}
+	picture = GFX_apsr_terminal_anomaly
+	show_sound = event_mystic_reveal
+	location = FROM
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.209.button1
+		custom_tooltip = apsr_enclave.209.button1.tooltip
+		trigger = {
+			owner = {
+				AND = {
+					NOT = {
+						apsr_terminal_has_any_code_info = yes
+					}
+					NOT = {
+						has_relic = relic_apsr_terminal
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			owner = {
+				add_relic = relic_apsr_terminal
+				set_country_flag = apsr_player_have_terminal
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.209.button2
+		custom_tooltip = apsr_enclave.209.button2.tooltip
+		trigger = {
+			owner = {
+				AND = {
+					apsr_terminal_has_any_code_info = yes
+					NOT = {
+						has_relic = relic_apsr_terminal
+					}
+				}
+			}
+		}
+		hidden_effect = {
+			owner = {
+				add_relic = relic_apsr_terminal
+				set_country_flag = apsr_player_have_terminal
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.209.button3
+		custom_tooltip = apsr_enclave.209.button3.tooltip
+		trigger = {
+			owner = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			owner = {
+				apsr_terminal_reward_code_level_5 = yes
+			}
+		}
+	}
+}
+
+
+# 201-205 - Терминал - получение кода для реликвии
+# Получение кода - уровень 1
+country_event = {
+	id = apsr_enclave.201
+	title = "apsr_enclave.201.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.201.desc1"
+	}
+	desc = {
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		text = "apsr_enclave.201.desc2"
+	}
+	picture = GFX_apsr_terminal_reward
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.201.button1
+		custom_tooltip = apsr_enclave.201.button1.tooltip
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_1 = yes
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.201.button2
+		custom_tooltip = apsr_enclave.201.button2.tooltip
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_1 = yes
+		}
+	}
+}
+
+# Получение кода - уровень 2
+country_event = {
+	id = apsr_enclave.202
+	title = "apsr_enclave.202.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.202.desc1"
+	}
+	desc = {
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		text = "apsr_enclave.202.desc2"
+	}
+	picture = GFX_apsr_terminal_reward
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.202.button1
+		custom_tooltip = apsr_enclave.202.button1.tooltip
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_2 = yes
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.202.button2
+		custom_tooltip = apsr_enclave.202.button2.tooltip
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_2 = yes
+		}
+	}
+}
+
+# Получение кода - уровень 3
+country_event = {
+	id = apsr_enclave.203
+	title = "apsr_enclave.203.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.203.desc1"
+	}
+	desc = {
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		text = "apsr_enclave.203.desc2"
+	}
+	picture = GFX_apsr_terminal_reward
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.203.button1
+		custom_tooltip = apsr_enclave.203.button1.tooltip
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_3 = yes
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.203.button2
+		custom_tooltip = apsr_enclave.203.button2.tooltip
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_3 = yes
+		}
+	}
+}
+
+# Получение кода - уровень 4
+country_event = {
+	id = apsr_enclave.204
+	title = "apsr_enclave.204.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.204.desc1"
+	}
+	desc = {
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		text = "apsr_enclave.204.desc2"
+	}
+	picture = GFX_apsr_terminal_reward
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.204.button1
+		custom_tooltip = apsr_enclave.204.button1.tooltip
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_4 = yes
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.204.button2
+		custom_tooltip = apsr_enclave.204.button2.tooltip
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_4 = yes
+		}
+	}
+}
+
+# Получение кода - уровень 5
+country_event = {
+	id = apsr_enclave.205
+	title = "apsr_enclave.205.title"
+	desc = {
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		text = "apsr_enclave.205.desc1"
+	}
+	desc = {
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		text = "apsr_enclave.205.desc2"
+	}
+	picture = GFX_apsr_terminal_reward
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.205.button1
+		custom_tooltip = apsr_enclave.205.button1.tooltip
+		trigger = {
+			NOT = {
+				has_relic = relic_apsr_terminal
+			}
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_5 = yes
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.205.button2
+		custom_tooltip = apsr_enclave.205.button2.tooltip
+		trigger = {
+			has_relic = relic_apsr_terminal
+		}
+		hidden_effect = {
+			apsr_terminal_reward_code_level_5 = yes
+		}
+	}
+}
+
+
+
+
+
+### УГАСШИЕ ###
+
+# Запуск
+country_event = {
+	id = apsr_enclave.211
+	title = "apsr_enclave.211.title"
+	desc = "apsr_enclave.211.desc"
+	
+	diplomatic = yes
+#	force_open = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+		
+	immediate = {		
+		set_country_flag = apsr_enclave_ancient_fact_01
+		random_country = {
+			limit = {
+				is_country_type = fallen_empire
+				NOT = { has_ethic = ethic_gestalt_consciousness }
+				NOT = { is_at_war_with = root }
+				has_communications = root
+			}
+			save_event_target_as = apsr_enclave_ancient_fact_01_fallen_empire
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.211.button1
+		custom_tooltip = apsr_enclave.211.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.212 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.211.exit
+		custom_tooltip = apsr_enclave.211.exit.tooltip
+	}
+}
+
+# Получение информации что это Угасшая
+country_event = {
+	id = apsr_enclave.212
+	title = "apsr_enclave.212.title"
+	desc = "apsr_enclave.212.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.212.button1
+		custom_tooltip = apsr_enclave.212.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.213 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.212.exit
+		custom_tooltip = apsr_enclave.212.exit.tooltip
+	}
+}
+
+# Подслушивание - 01
+country_event = {
+	id = apsr_enclave.213
+	title = "apsr_enclave.213.title"
+	desc = "apsr_enclave.213.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	immediate = {
+		set_variable = {
+			which = apsr_enclave_ancient_fact_01_reward
+			value = 0
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.213.button1
+		custom_tooltip = apsr_enclave.213.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.214 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.213.exit
+		custom_tooltip = apsr_enclave.213.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 5 }
+			country_event = { id = apsr_enclave.219 }
+		}
+	}
+}
+
+# Подслушивание - 02
+country_event = {
+	id = apsr_enclave.214
+	title = "apsr_enclave.214.title"
+	desc = "apsr_enclave.214.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.214.button1
+		custom_tooltip = apsr_enclave.214.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.215 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.214.exit
+		custom_tooltip = apsr_enclave.214.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 10 }
+			country_event = { id = apsr_enclave.219 }
+		}
+	}
+}
+
+# Подслушивание - 03
+country_event = {
+	id = apsr_enclave.215
+	title = "apsr_enclave.215.title"
+	desc = "apsr_enclave.215.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.215.button1
+		custom_tooltip = apsr_enclave.215.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.216 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.215.exit
+		custom_tooltip = apsr_enclave.215.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 15 }
+			country_event = { id = apsr_enclave.219 }
+		}
+	}
+}
+
+# Подслушивание - 04
+country_event = {
+	id = apsr_enclave.216
+	title = "apsr_enclave.216.title"
+	desc = "apsr_enclave.216.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.216.button1
+		custom_tooltip = apsr_enclave.216.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.217 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.216.exit
+		custom_tooltip = apsr_enclave.216.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 5 }
+			country_event = { id = apsr_enclave.219 }
+# отношение стороны угасших в Войне = -1 ###APSR3
+		}
+	}
+}
+
+# Подслушивание - 05
+country_event = {
+	id = apsr_enclave.217
+	title = "apsr_enclave.217.title"
+	desc = "apsr_enclave.217.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.217.button1
+		custom_tooltip = apsr_enclave.217.button1.tooltip
+		hidden_effect = {
+			country_event = { id = apsr_enclave.218 }
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.217.exit
+		custom_tooltip = apsr_enclave.217.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 20 }
+			country_event = { id = apsr_enclave.219 }
+# отношение стороны угасших в Войне = +1 ###APSR3
+		}
+	}
+}
+
+# Подслушивание - 06
+country_event = {
+	id = apsr_enclave.218
+	title = "apsr_enclave.218.title"
+	desc = "apsr_enclave.218.desc"
+	
+	diplomatic = yes
+	
+	is_triggered_only = yes
+	
+	picture_event_data = {
+		room = no_video_feed_room
+	}
+	
+	option = {
+		name = apsr_enclave.218.exit
+		custom_tooltip = apsr_enclave.218.exit.tooltip
+		hidden_effect = {
+			change_variable = { which = apsr_enclave_ancient_fact_01_reward value = 20 }
+			country_event = { id = apsr_enclave.219 }
+# отношение стороны угасших в Войне = -1 ###APSR3
+		}
+	}
+}
+
+# Результат анализа информации
+country_event = {
+	id = apsr_enclave.219
+	title = "apsr_enclave.219.title"
+	desc = "apsr_enclave.219.desc"
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = apsr_enclave.219.button
+		custom_tooltip = apsr_enclave.219.button.tooltip
+		if = {
+			limit = {
+				check_variable = {
+					which = apsr_enclave_ancient_fact_01_reward
+					value = 20
+				}
+			}
+			add_modifier = {
+				modifier = "apsr_enclave_ancient_fact_01_bonus_20"
+				days = 3600
+			}			
+		}
+		else_if = {
+			limit = {
+				check_variable = {
+					which = apsr_enclave_ancient_fact_01_reward
+					value = 15
+				}
+			}
+			add_modifier = {
+				modifier = "apsr_enclave_ancient_fact_01_bonus_15"
+				days = 3600
+			}			
+		}
+		else_if = {
+			limit = {
+				check_variable = {
+					which = apsr_enclave_ancient_fact_01_reward
+					value = 10
+				}
+			}
+			add_modifier = {
+				modifier = "apsr_enclave_ancient_fact_01_bonus_10"
+				days = 3600
+			}			
+		}
+		else_if = {
+			limit = {
+				check_variable = {
+					which = apsr_enclave_ancient_fact_01_reward
+					value = 5
+				}
+			}
+			add_modifier = {
+				modifier = "apsr_enclave_ancient_fact_01_bonus_5"
+				days = 3600
+			}			
+		}
+		else = {
+			add_modifier = {
+				modifier = "apsr_enclave_ancient_fact_01_bonus_5"
+				days = 3600
+			}	
+		}
+		hidden_effect = {
+			set_country_flag = apsr_enclave_ancient_fact_01_complete
+		}
+	}
+}
+
+
+
+
+
+### УКАЗ "ИЗУЧЕНИЕ ДРЕВНИХ" ###
+
+# Запуск
+country_event = {
+	id = apsr_enclave.300
+	title = "apsr_enclave.300.title"
+	desc = "apsr_enclave.300.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.300.close
+		custom_tooltip = apsr_enclave.300.close.tooltip
+	}
+}
+
+# система выдачи случайных сообщений
+country_event = {
+	id = apsr_enclave.399
+	hide_window = yes
+	is_triggered_only = yes
+			
+	immediate = {
+		if = {
+			limit = {
+				has_edict = apsr_enclave_science_16_edict
+			}
+			random_list = {
+				10 = {
+					country_event = { id = apsr_enclave.301 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.302 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.303 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.304 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.305 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.306 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.307 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.308 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.309 days = 5 }
+				}
+				10 = {
+					country_event = { id = apsr_enclave.310 days = 5 }
+				}
+			}
+		}
+	}
+}
+
+# Находка 1
+country_event = {
+	id = apsr_enclave.301
+	title = "apsr_enclave.301.title"
+	desc = "apsr_enclave.301.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.301.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 2
+country_event = {
+	id = apsr_enclave.302
+	title = "apsr_enclave.302.title"
+	desc = "apsr_enclave.302.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.302.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 3
+country_event = {
+	id = apsr_enclave.303
+	title = "apsr_enclave.303.title"
+	desc = "apsr_enclave.303.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.303.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 4
+country_event = {
+	id = apsr_enclave.304
+	title = "apsr_enclave.304.title"
+	desc = "apsr_enclave.304.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.304.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 5
+country_event = {
+	id = apsr_enclave.305
+	title = "apsr_enclave.305.title"
+	desc = "apsr_enclave.305.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.305.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 6
+country_event = {
+	id = apsr_enclave.306
+	title = "apsr_enclave.306.title"
+	desc = "apsr_enclave.306.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.306.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 7
+country_event = {
+	id = apsr_enclave.307
+	title = "apsr_enclave.307.title"
+	desc = "apsr_enclave.307.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.307.close
+		locked_random_list = {
+			20 = {
+				add_resource = { apsr_knowledge = 100 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 200 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 300 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 400 }
+			}
+			20 = {
+				add_resource = { apsr_knowledge = 500 }
+			}
+		}
+	}
+}
+
+# Находка 8
+country_event = {
+	id = apsr_enclave.308
+	title = "apsr_enclave.308.title"
+	desc = "apsr_enclave.308.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.308.close
+		locked_random_list = {
+			10 = {
+				add_resource = { minor_artifacts = 100 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 120 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 140 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 160 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 180 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 200 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 220 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 240 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 260 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 280 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 300 }
+			}
+		}
+	}
+}
+
+# Находка 9
+country_event = {
+	id = apsr_enclave.309
+	title = "apsr_enclave.309.title"
+	desc = "apsr_enclave.309.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.309.close
+		locked_random_list = {
+			10 = {
+				add_resource = { minor_artifacts = 100 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 120 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 140 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 160 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 180 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 200 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 220 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 240 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 260 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 280 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 300 }
+			}
+		}
+	}
+}
+
+# Находка 10
+country_event = {
+	id = apsr_enclave.310
+	title = "apsr_enclave.310.title"
+	desc = "apsr_enclave.310.desc"
+	picture = GFX_apsr_planet_view
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		random_list = {
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1000 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1100 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1200 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1300 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1400 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1500 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1600 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1700 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1800 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 1900 }
+			}
+			10 = {
+				country_event = { id = apsr_enclave.399 days = 2000 }
+			}
+		}
+	}
+	
+	option = {
+		name = apsr_enclave.310.close
+		locked_random_list = {
+			10 = {
+				add_resource = { minor_artifacts = 100 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 120 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 140 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 160 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 180 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 200 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 220 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 240 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 260 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 280 }
+			}
+			10 = {
+				add_resource = { minor_artifacts = 300 }
+			}
+		}
+	}
+}
+
+
+
+
+
+
+ # События получения Опустошителя
+country_event = {
+	id = apsr_enclave.330
+	hide_window = yes 
+	is_triggered_only = yes
+			
+	immediate = {
+		save_global_event_target_as = apsr_enclave_330_check
+		if = {     # есть уникальная/древняя планета без оккупации
+			limit = {
+				any_owned_planet = {
+					AND = {
+						OR = {
+							is_planet_class = pc_apsr_ancient
+							is_planet_class = pc_apsr_unique
+						}
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+						has_deposit = apsr_relic_cube_deposit
+					}
+				}
+			}
+			random_owned_planet = {
+				limit = {
+					AND = {
+						OR = {
+							is_planet_class = pc_apsr_ancient
+							is_planet_class = pc_apsr_unique
+						}
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+						has_deposit = apsr_relic_cube_deposit
+					}
+				}
+				planet_event = { id = apsr_enclave.331 } # Появление на планете с Кубом
+			}
+		}
+		else_if = {     # нет свободных уникальных/древних планет, спавн у столицы
+			limit = {
+				any_owned_planet = {
+					AND = {
+						is_capital = yes
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+					}
+				}
+			}
+			random_owned_planet = {
+				limit = {
+					AND = {
+						is_capital = yes
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+					}
+				}
+				planet_event = { id = apsr_enclave.332 } # Появление на столице
+			}
+		}
+		else_if = {     # спавн у любой планеты
+			limit = {
+				any_owned_planet = {
+					AND = {
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+					}
+				}
+			}
+			random_owned_planet = {
+				limit = {
+					AND = {
+						is_occupied_flag = no
+						has_ground_combat = no
+						has_orbital_bombardment = no
+						is_under_crisis_bombardment = no
+					}
+				}
+				planet_event = { id = apsr_enclave.333 } # Появление на случайной планете
+			}
+		}
+		else = {     # спавн в любой системе
+			random_system = {
+				limit = {
+					exists = space_owner
+					owner = {
+						has_communications = event_target:apsr_enclave_330_check
+						NOT = {
+							is_hostile = event_target:apsr_enclave_330_check
+						}
+						NOT = { has_closed_borders = event_target:apsr_enclave_330_check }
+					}
+					any_fleet_in_system = {
+						exists = owner
+						owner = { 
+							NOT = {
+								is_hostile = event_target:apsr_enclave_330_check
+							} 
+						}
+					}
+				}
+				random_system_planet = {
+					planet_event = { id = apsr_enclave.334 } # Появление на случайной планете у других империй
+				}
+			}
+		}
+	}
+}
+
+# Появление на планете с Кубом
+planet_event = {
+	id = apsr_enclave.331
+	title = "apsr_enclave.331.title"
+	desc = "apsr_enclave.331.desc"
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_mystic_reveal
+	location = root
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		save_event_target_as = apsr_enclave_331_planet
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_angel
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Dark_Angel"
+						design = "APSR_Dark_Angel"
+						graphical_culture = "fallen_empire_04"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_dark_angel
+							set_disabled = no
+							set_name = "apsr_enclave.104.button1"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_angel
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_projector
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Projector"
+						design = "APSR_Projector"
+						graphical_culture = "fallen_empire_03"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_projector
+							set_disabled = no
+							set_name = "apsr_enclave.104.button2"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_projector
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_inator
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Inator"
+						design = "APSR_Inator"
+						graphical_culture = "fallen_empire_01"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_inator
+							set_disabled = no
+							set_name = "apsr_enclave.104.button3"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_inator
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_processor
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Processor"
+						design = "APSR_Processor"
+						graphical_culture = "fallen_empire_02"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_processor
+							set_disabled = no
+							set_name = "apsr_enclave.104.button4"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_processor
+			}
+		}
+		clear_global_event_target = apsr_enclave_330_check
+	}
+	
+	option = {
+		name = apsr_enclave.331.ok
+	}
+}
+
+# Появление на столице
+planet_event = {
+	id = apsr_enclave.332
+	title = "apsr_enclave.332.title"
+	desc = "apsr_enclave.332.desc"
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_mystic_reveal
+	location = root
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		save_event_target_as = apsr_enclave_332_planet
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_angel
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Dark_Angel"
+						design = "APSR_Dark_Angel"
+						graphical_culture = "fallen_empire_04"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_dark_angel
+							set_disabled = no
+							set_name = "apsr_enclave.104.button1"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_angel
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_projector
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Projector"
+						design = "APSR_Projector"
+						graphical_culture = "fallen_empire_03"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_projector
+							set_disabled = no
+							set_name = "apsr_enclave.104.button2"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_projector
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_inator
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Inator"
+						design = "APSR_Inator"
+						graphical_culture = "fallen_empire_01"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_inator
+							set_disabled = no
+							set_name = "apsr_enclave.104.button3"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_inator
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_processor
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Processor"
+						design = "APSR_Processor"
+						graphical_culture = "fallen_empire_02"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_processor
+							set_disabled = no
+							set_name = "apsr_enclave.104.button4"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_processor
+			}
+		}
+		clear_global_event_target = apsr_enclave_330_check
+	}
+	
+	option = {
+		name = apsr_enclave.332.ok
+	}
+}
+
+# Появление на случайной планете
+planet_event = {
+	id = apsr_enclave.333
+	title = "apsr_enclave.333.title"
+	desc = "apsr_enclave.333.desc"
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_mystic_reveal
+	location = root
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		save_event_target_as = apsr_enclave_333_planet
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_angel
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Dark_Angel"
+						design = "APSR_Dark_Angel"
+						graphical_culture = "fallen_empire_04"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_dark_angel
+							set_disabled = no
+							set_name = "apsr_enclave.104.button1"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_angel
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_projector
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Projector"
+						design = "APSR_Projector"
+						graphical_culture = "fallen_empire_03"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_projector
+							set_disabled = no
+							set_name = "apsr_enclave.104.button2"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_projector
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_inator
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Inator"
+						design = "APSR_Inator"
+						graphical_culture = "fallen_empire_01"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_inator
+							set_disabled = no
+							set_name = "apsr_enclave.104.button3"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_inator
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_processor
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Processor"
+						design = "APSR_Processor"
+						graphical_culture = "fallen_empire_02"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_processor
+							set_disabled = no
+							set_name = "apsr_enclave.104.button4"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_processor
+			}
+		}
+		clear_global_event_target = apsr_enclave_330_check
+	}
+	
+	option = {
+		name = apsr_enclave.333.ok
+	}
+}
+
+# Появление на случайной планете у других империй
+planet_event = {
+	id = apsr_enclave.334
+	title = "apsr_enclave.334.title"
+	desc = "apsr_enclave.334.desc"
+	picture = GFX_evt_fallen_empire_awakes
+	show_sound = event_mystic_reveal
+	location = root
+	
+	is_triggered_only = yes
+			
+	immediate = {
+		save_event_target_as = apsr_enclave_334_planet
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_angel
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Dark_Angel"
+						design = "APSR_Dark_Angel"
+						graphical_culture = "fallen_empire_04"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_dark_angel
+							set_disabled = no
+							set_name = "apsr_enclave.104.button1"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_angel
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_projector
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Projector"
+						design = "APSR_Projector"
+						graphical_culture = "fallen_empire_03"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_projector
+							set_disabled = no
+							set_name = "apsr_enclave.104.button2"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_projector
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_inator
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Inator"
+						design = "APSR_Inator"
+						graphical_culture = "fallen_empire_01"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_inator
+							set_disabled = no
+							set_name = "apsr_enclave.104.button3"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_inator
+			}
+		}
+		if = {
+			limit = {
+				event_target:apsr_enclave_330_check = {
+					has_country_flag = apsr_enclave_buy_processor
+				}
+			}
+			create_fleet = {
+				settings = {
+					spawn_debris = no
+					is_boss = yes
+				}
+				effect = {
+					set_owner = event_target:apsr_enclave_330_check
+					create_ship = {
+						name = "NAME_APSR_Processor"
+						design = "APSR_Processor"
+						graphical_culture = "fallen_empire_02"
+						prefix = no
+						upgradable = no
+						effect = {
+							set_ship_flag = apsr_ship_processor
+							set_disabled = no
+							set_name = "apsr_enclave.104.button4"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 30
+						angle = random
+					}
+				}
+			}
+			event_target:apsr_enclave_330_check = {
+				remove_country_flag = apsr_enclave_buy_processor
+			}
+		}
+		clear_global_event_target = apsr_enclave_330_check
+	}
+	
+	option = {
+		name = apsr_enclave.334.ok
+	}
+}
+
+
+# Выстрел Темного Ангела
+planet_event = {
+	id = apsr_enclave.340
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { is_planet_class = pc_ai }
+			}
+			from.owner = { country_event = { id = apsr_enclave.341 } }
+		}
+
+		#Dismantle observation post
+		if = {
+			limit = {
+				has_observation_outpost = yes
+			}
+			observation_outpost_owner = {
+				country_event = { id = apsr_enclave.342 days = 1 }
+			}
+		}
+
+		# Contingency Machine World
+		if = {
+			limit = {
+				is_planet_class = pc_ai
+				NOT = { has_planet_flag = machine_lair }
+			}
+			set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_cracked
+			planet_event = { id = crisis.2040 }
+		}
+
+		# Contingency Final Machine World
+		if = {
+			limit = {
+				is_planet_class = pc_ai
+				has_planet_flag = machine_lair
+			}
+			set_planet_flag = destroyed_by_colossus
+			set_planet_flag = planet_cracked
+			from.owner = { save_event_target_as = final_machine_world_destroyer }
+			stop_crisis_sound = yes
+			planet_event = { id = crisis.2046 }
+		}
+
+		# Swarm Situation Log counter
+		if = {
+			limit = {
+				exists = owner
+				owner = { is_country_type = swarm }
+			}
+			every_country = {
+				limit = { has_event_chain = "prethoryn_scourge_chain" }
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds"
+					amount = -1
+				}
+				add_event_chain_counter = {
+					event_chain = "prethoryn_scourge_chain"
+					counter = "infested_worlds_cleansed"
+					amount = 1
+				}
+			}
+		}
+
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_rulesofwar_reverence_for_life"
+					is_active_resolution = "resolution_rulesofwar_independent_tribunals"
+					is_active_resolution = "resolution_rulesofwar_last_resort_doctrine"
+					is_active_resolution = "resolution_rulesofwar_demobilization_initiative"
+				}
+			}
+			from.owner = {
+				set_timed_country_flag = { flag = resolution_breached_fired_cracker days = 3600 }
+			}
+		}
+
+		# Понижение доверия
+		if = {
+			limit = {
+				exists = owner
+				owner = {
+					NOT = { is_same_value = from.owner }
+					OR = {
+						is_country_type = default
+						is_country_type = fallen_empire
+						is_country_type = awakened_fallen_empire
+					}
+				}
+			}
+			# Generate threat
+			if = {
+				limit = {
+					is_colony = yes
+				}
+				add_threat = { who = from.owner amount = 3 }
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOR = {
+							is_same_value = from.owner
+							is_same_value = root.owner
+							AND = {
+								has_federation = yes
+								is_in_federation_with = from.owner
+							}
+						}
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							AND = {
+								has_federation = yes
+								is_in_federation_with = root.owner
+							}
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								OR = {
+									is_egalitarian = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					if = {
+						limit = { root = { is_colony = yes } }
+						add_opinion_modifier = {
+							modifier = opinion_apsr_dark_angel_destroy_a_world
+							who = from.owner
+						}
+					}
+				}
+			}
+			else = {
+				add_threat = { who = from.owner amount = 1 }
+			}
+			# modifiers for victim
+			owner = {
+				if = {
+					limit = { root = { is_colony = yes } }
+					add_opinion_modifier = {
+						modifier = opinion_apsr_dark_angel_destroy_my_world
+						who = from.owner
+					}
+				}
+				if = {
+					limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+					add_modifier = {
+						modifier = colossus_victim
+						days = 10800 # 30 years
+					}
+				}
+			}
+			if = {
+				limit = {
+					exists = owner
+					owner = { is_country_type = primitive }
+				}
+				# modifier for allies + those upset by genocide
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								NOR = {
+									is_xenophobe = yes
+									is_homicidal = yes
+									is_xenophile = yes
+								}
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_apsr_dark_angel_destroy_a_primitive_world
+						who = from.owner
+					}
+				}
+				every_country = {
+					limit = {
+						NOT = { is_same_value = from.owner }
+						OR = {
+							has_communications = from.owner
+							has_communications = root.owner
+						}
+						OR = {
+							has_ai_personality = awakened_fallen_empire_xenophile
+							AND = {
+								is_country_type = default
+								is_xenophile = yes
+							}
+						}
+					}
+					add_opinion_modifier = {
+						modifier = opinion_apsr_dark_angel_destroy_a_primitive_world_phile
+						who = from.owner
+					}
+				}
+			}
+		}
+		# Add war exhaustion to planet owner
+		if = {
+			limit = {
+				exists = owner
+			}
+			owner = {
+				if = {
+					limit = { #isn't the case when the crisis bombards planets, for instance
+						is_at_war_with = from.fleet.owner
+					}
+					add_static_war_exhaustion = {
+						attacker = from.fleet.owner
+						location = root
+						value_for_planet_destruction = 1.0
+					}
+				}
+			}
+		}
+		every_owned_pop = {
+			kill_pop = yes
+		}
+		if = {
+			limit = {
+				exists = orbital_defence
+			}
+			destroy_fleet = orbital_defence
+		}
+		remove_all_buildings = yes
+		
+		# destroy planets
+		set_planet_size = 1
+		change_pc = pc_apsr_dark
+		set_planet_entity = { 
+			entity = "black_hole_entity" 
+		}
+		clear_deposits = yes
+		random_list = {
+			1 = {
+				add_deposit = d_physics_10
+				add_deposit = d_physics_10
+				add_deposit = d_physics_10
+			}
+			1 = {
+				add_deposit = d_physics_10
+				add_deposit = d_physics_10
+				add_deposit = d_engineering_10
+				add_deposit = d_engineering_10
+			}
+			1 = {
+				add_deposit = d_engineering_10
+				add_deposit = d_engineering_10
+				add_deposit = d_engineering_10
+			}
+			1 = {
+				add_deposit = d_dark_matter_deposit_3
+			}
+		}
+	}
+}
+
+# сообщение о применении
+country_event = {
+	id = apsr_enclave.341
+	title = apsr_enclave.341.name
+	desc = apsr_enclave.341.desc
+	picture = GFX_apsr_dark_angel_message
+	show_sound = event_super_explosion
+	location = from
+
+
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = apsr_fired_dark_angel }
+	}
+
+	immediate = {
+		set_country_flag = apsr_fired_dark_angel
+	}
+
+	option = {
+		name = apsr_enclave.341.button1
+		trigger = {
+			NOR = {
+				has_valid_civic = civic_fanatic_purifiers
+				has_valid_civic = civic_machine_terminator
+			}
+		}
+	}
+
+	option = {
+		name = apsr_enclave.341.button2
+		trigger = {
+			OR = {
+				has_valid_civic = civic_fanatic_purifiers
+				has_valid_civic = civic_machine_terminator
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = 60
+			min = 600
+			max = 7000
+		}
+	}
+}
+
+#Уничтожение примитивов со станцией наблюдения
+country_event = {
+	id = apsr_enclave.342
+	title = apsr_enclave.342.name
+	desc = {
+		trigger = {
+			is_same_value = fromfrom.owner
+		}
+		text = apsr_enclave.342.desc.self
+	}
+	desc = {
+		trigger = {
+			NOT = { is_same_value = fromfrom.owner }
+		}
+		text = apsr_enclave.342.desc.not_self
+	}
+	picture = GFX_apsr_dark_angel_message
+	trigger = {
+		from = {
+			has_observation_outpost = yes
+		}
+	}
+
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.342.button1
+		trigger = {
+			NOR = {
+				is_homicidal = yes
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		from = {
+			observation_outpost = {
+				dismantle = yes
+			}
+		}
+	}
+	option = {
+		name = apsr_enclave.342.button2
+		trigger = {
+			OR = {
+				is_homicidal = yes
+				has_ethic = ethic_xenophobe
+				has_ethic = ethic_fanatic_xenophobe
+			}
+		}
+		from = {
+			observation_outpost = {
+				dismantle = yes
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = 2
+		}
+	}
+}
+
+
+
+# Выстрел Проектора
+planet_event = {
+	id = apsr_enclave.343
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		# усиление  планеты
+		if = {
+			limit = {
+				has_modifier = apsr_projector_defence_buff
+			}
+			remove_modifier = "apsr_projector_defence_buff"
+		}
+		add_modifier = {
+			modifier = apsr_projector_defence_buff
+			days = 3600
+		}
+		# сообщение стреляющему
+		from.from = {
+			if = {
+				limit = {
+					owner = {
+						NOT = { has_country_flag = apsr_fired_projector }
+					}
+				}
+				fleet_event = { id = apsr_enclave.344 }
+			}
+		}
+		# сообщение владельцу (если не тот же)
+		if = {
+			limit = {
+				owner = {
+					NOT = { is_same_value = from.from.owner  }
+				}
+			}
+			planet_event = { id = apsr_enclave.346 }
+		}
+	}
+}
+
+# сообщение о применении
+fleet_event = {
+	id = apsr_enclave.344
+	title = apsr_enclave.344.name
+	desc = apsr_enclave.344.desc
+	picture = GFX_apsr_projector_message
+	show_sound = event_mystic_reveal
+	location = from
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			set_country_flag = apsr_fired_projector
+		}
+	}
+
+	option = {
+		name = apsr_enclave.344.button1
+	}
+}
+planet_event = {
+	id = apsr_enclave.346
+	title = apsr_enclave.344.name
+	desc = apsr_enclave.344.desc_2
+	picture = GFX_apsr_projector_message
+	show_sound = event_mystic_reveal
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.344.button1
+	}
+}
+
+
+
+# Выстрел Инатора
+planet_event = {
+	id = apsr_enclave.345
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		# смена класса планеты
+		if = {
+			limit = {
+				planet_size > 25
+			}
+			set_planet_size = 5
+		}
+		else_if = {
+			limit = {
+				planet_size > 20
+			}
+			set_planet_size = 4
+		}
+		else_if = {
+			limit = {
+				planet_size > 15
+			}
+			set_planet_size = 3
+		}
+		else_if = {
+			limit = {
+				planet_size > 10
+			}
+			set_planet_size = 2
+		}
+		else = {
+			set_planet_size = 1
+		}
+		change_pc = pc_apsr_ex
+		
+		set_planet_entity = { 
+			entity = "asteroid" 
+		}
+		clear_deposits = yes
+			
+		create_ambient_object = {
+			location = this
+			type = habitat_cracker_object
+			duration = 20
+
+			use_3d_location = yes
+			base_angle_towards = star
+			entity_face_object = star
+
+			entity_offset = { min = 0 max = 0 }
+
+			entity_scale_to_size = yes
+			scale = 0.2
+		}
+		
+		if = {
+			limit = {
+				exists = mining_station
+			}
+			mining_station = {
+				delete_fleet = this
+			}
+		}
+		if = {
+			limit = {
+				exists = research_station
+			}
+			research_station = {
+				delete_fleet = this
+			}
+		}
+		
+		# сообщения
+		if = {		# нет владельца или владелец игрок
+			limit = {
+				OR = {
+					NOT = { exists = space_owner }
+					AND = {
+						exists = space_owner
+						space_owner = { 
+							is_same_value = from.owner 
+						}
+					}
+				}
+			}
+			from.from = {
+				random_list = {
+					30 = { # минералы - мало
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.360 }
+						}
+						else = {
+							owner = {
+								add_monthly_resource_mult = {
+									resource = minerals
+									value = 10
+									min = 1000
+									max = 10000
+								}
+							}
+						}
+					}
+					15 = { # минералы - много
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.361 }
+						}
+						else = {
+							owner = {
+								add_monthly_resource_mult = {
+									resource = minerals
+									value = 20
+									min = 1000
+									max = 30000
+								}
+							}
+						}
+					}
+					20 = { # сплавы - мало
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.362 }
+						}
+						else = {
+							owner = {
+								add_monthly_resource_mult = {
+									resource = alloys
+									value = 5
+									min = 100
+									max = 5000
+								}
+							}
+						}
+					}
+					10 = { # сплавы - много
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.363 }
+						}
+						else = {
+							owner = {
+								add_monthly_resource_mult = {
+									resource = alloys
+									value = 10
+									min = 500
+									max = 15000
+								}
+							}
+						}
+					}
+					5 = { # редкие ресурсы
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.364 }
+						}
+						else = {
+							owner = {
+								add_monthly_resource_mult = {
+									resource = rare_crystals
+									value = 5
+									min = 10
+									max = 500
+								}
+								add_monthly_resource_mult = {
+									resource = exotic_gases
+									value = 5
+									min = 10
+									max = 500
+								}
+								add_monthly_resource_mult = {
+									resource = volatile_motes
+									value = 5
+									min = 10
+									max = 500
+								}
+							}
+						}
+					}
+					20 = { # пусто
+						if = {
+							limit = {
+								owner = {
+									NOT = {
+										has_country_flag = apsr_inator_stop_message
+									}
+								}
+							}
+							fleet_event = { id = apsr_enclave.365 }
+						}
+						else = {
+							# none
+						}
+					}
+				}
+			}
+		}
+		else = {		# владелец - вассал, надо делиться - 20-25%
+			random_list = {
+				30 = { # минералы - мало
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.366 }
+						}
+					}
+					else = {
+						from.from.owner = {
+							add_monthly_resource_mult = {
+								resource = minerals
+								value = 10
+								min = 750
+								max = 7500
+							}
+						}
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.367 }
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+					else = {
+						space_owner = {
+							add_monthly_resource_mult = {
+								resource = minerals
+								value = 10
+								min = 250
+								max = 2500
+							}
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+				}
+				15 = { # минералы - много
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.368 }
+						}
+					}
+					else = {
+						from.from.owner = {
+							add_monthly_resource_mult = {
+								resource = minerals
+								value = 20
+								min = 750
+								max = 22500
+							}
+						}
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.369 }
+							while = {
+								count = 10
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+					else = {
+						space_owner = {
+							add_monthly_resource_mult = {
+								resource = minerals
+								value = 20
+								min = 250
+								max = 7500
+							}
+							while = {
+								count = 10
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+				}
+				20 = { # сплавы - мало
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.370 }
+						}
+					}
+					else = {
+						from.from.owner = {
+							add_monthly_resource_mult = {
+								resource = alloys
+								value = 5
+								min = 75
+								max = 4000
+							}
+						}
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.371 }
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+					else = {
+						space_owner = {
+							add_monthly_resource_mult = {
+								resource = alloys
+								value = 5
+								min = 25
+								max = 1000
+							}
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+				}
+				10 = { # сплавы - много
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.372 }
+						}
+					}
+					else = {
+						from.from.owner = {
+							add_monthly_resource_mult = {
+								resource = alloys
+								value = 10
+								min = 400
+								max = 12000
+							}
+						}
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.373 }
+							while = {
+								count = 10
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+					else = {
+						space_owner = {
+							add_monthly_resource_mult = {
+								resource = alloys
+								value = 10
+								min = 100
+								max = 3000
+							}
+							while = {
+								count = 10
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+				}
+				5 = { # редкие ресурсы
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.374 }
+						}
+					}
+					else = {
+						from.from.owner = {
+							add_monthly_resource_mult = {
+								resource = rare_crystals
+								value = 5
+								min = 10
+								max = 400
+							}
+							add_monthly_resource_mult = {
+								resource = exotic_gases
+								value = 5
+								min = 10
+								max = 400
+							}
+							add_monthly_resource_mult = {
+								resource = volatile_motes
+								value = 5
+								min = 10
+								max = 400
+							}
+						}
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.375 }
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+					else = {
+						space_owner = {
+							add_monthly_resource_mult = {
+								resource = rare_crystals
+								value = 5
+								min = 5
+								max = 100
+							}
+							add_monthly_resource_mult = {
+								resource = exotic_gases
+								value = 5
+								min = 5
+								max = 100
+							}
+							add_monthly_resource_mult = {
+								resource = volatile_motes
+								value = 5
+								min = 5
+								max = 100
+							}
+							while = {
+								count = 5
+								add_opinion_modifier = {
+									who = from.from.owner
+									modifier = opinion_apsr_inator_resources
+								}
+							}
+						}
+					}
+				}
+				20 = { # пусто
+					if = {	# сюзерен
+						limit = {
+							from.from.owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						from.from = {
+							fleet_event = { id = apsr_enclave.376 }
+						}
+					}
+					else = {
+						# none
+					}
+					if = {	# вассал
+						limit = {
+							space_owner = {
+								NOT = {
+									has_country_flag = apsr_inator_stop_message
+								}
+							}
+						}
+						space_owner = {
+							country_event = { id = apsr_enclave.377 }
+						}
+					}
+					else = {
+						# none
+					}
+				}		
+			}
+		}
+	}
+}
+
+# сообщения о применении - 100% ресурсов себе
+fleet_event = {
+	id = apsr_enclave.360
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc1
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = minerals
+				value = 10
+				min = 1000
+				max = 10000
+			}
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.361
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc2
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = minerals
+				value = 20
+				min = 1000
+				max = 30000
+			}
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.362
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc3
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = alloys
+				value = 5
+				min = 100
+				max = 5000
+			}
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.363
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc4
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = alloys
+				value = 10
+				min = 500
+				max = 15000
+			}
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.364
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc5
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = rare_crystals
+				value = 5
+				min = 10
+				max = 500
+			}
+			add_monthly_resource_mult = {
+				resource = exotic_gases
+				value = 5
+				min = 10
+				max = 500
+			}
+			add_monthly_resource_mult = {
+				resource = volatile_motes
+				value = 5
+				min = 10
+				max = 500
+			}
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.365
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc6
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+	}
+	option = {
+		name = apsr_enclave.346.button2
+		hidden_effect = {
+			owner = {
+				set_country_flag = apsr_inator_stop_message
+			}
+		}
+	}
+}
+
+# сообщения о применении - надо поделиться с владельцем системы
+fleet_event = {
+	id = apsr_enclave.366
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc11
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = minerals
+				value = 10
+				min = 750
+				max = 7500
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.367
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc21
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = 10
+			min = 250
+			max = 2500
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.368
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc12
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = minerals
+				value = 20
+				min = 750
+				max = 22500
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.369
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc22
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = 20
+			min = 250
+			max = 7500
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.370
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc13
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = alloys
+				value = 5
+				min = 75
+				max = 4000
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.371
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc23
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		add_monthly_resource_mult = {
+			resource = alloys
+			value = 5
+			min = 25
+			max = 1000
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.372
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc14
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = alloys
+				value = 10
+				min = 400
+				max = 12000
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.373
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc24
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		add_monthly_resource_mult = {
+			resource = alloys
+			value = 10
+			min = 100
+			max = 3000
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.374
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc15
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		owner = {
+			add_monthly_resource_mult = {
+				resource = rare_crystals
+				value = 5
+				min = 10
+				max = 400
+			}
+			add_monthly_resource_mult = {
+				resource = exotic_gases
+				value = 5
+				min = 10
+				max = 400
+			}
+			add_monthly_resource_mult = {
+				resource = volatile_motes
+				value = 5
+				min = 10
+				max = 400
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.375
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc25
+	picture = GFX_apsr_inator_2_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+		add_monthly_resource_mult = {
+			resource = rare_crystals
+			value = 5
+			min = 5
+			max = 100
+		}
+		add_monthly_resource_mult = {
+			resource = exotic_gases
+			value = 5
+			min = 5
+			max = 100
+		}
+		add_monthly_resource_mult = {
+			resource = volatile_motes
+			value = 5
+			min = 5
+			max = 100
+		}
+	}
+}
+fleet_event = {
+	id = apsr_enclave.376
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc16
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+	}
+	option = {
+		name = apsr_enclave.346.button2
+		hidden_effect = {
+			owner = {
+				set_country_flag = apsr_inator_stop_message
+			}
+		}
+	}
+}
+country_event = {
+	id = apsr_enclave.377
+	title = apsr_enclave.346.name
+	desc = apsr_enclave.346.desc26
+	picture = GFX_apsr_inator_3_message
+	show_sound = event_ship_explosion
+	location = this
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.346.button1
+	}
+	option = {
+		name = apsr_enclave.346.button2
+		hidden_effect = {
+			set_country_flag = apsr_inator_stop_message
+		}
+	}
+}
+
+
+
+# Выстрел Процессора
+planet_event = {
+	id = apsr_enclave.352
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		# усиление планеты
+		if = {
+			limit = {
+				has_modifier = apsr_processor_science_buff
+			}
+			remove_modifier = "apsr_processor_science_buff"
+		}
+		add_modifier = {
+			modifier = apsr_processor_science_buff
+			days = 3600
+		}
+		# сообщение стреляющему
+		from.from = {
+			if = {
+				limit = {
+					owner = {
+						NOT = { has_country_flag = apsr_fired_processor }
+					}
+				}
+				fleet_event = { id = apsr_enclave.353 }
+			}
+		}
+		# сообщение владельцу (если не тот же)
+		if = {
+			limit = {
+				owner = {
+					NOT = { is_same_value = from.from.owner  }
+				}
+			}
+			planet_event = { id = apsr_enclave.354 }
+		}
+	}
+}
+
+# сообщение о применении
+fleet_event = {
+	id = apsr_enclave.353
+	title = apsr_enclave.353.name
+	desc = apsr_enclave.353.desc
+	picture = GFX_apsr_processor_message
+	show_sound = event_mystic_reveal
+	location = from
+
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			set_country_flag = apsr_fired_processor
+		}
+	}
+
+	option = {
+		name = apsr_enclave.353.button1
+	}
+}
+planet_event = {
+	id = apsr_enclave.354
+	title = apsr_enclave.353.name
+	desc = apsr_enclave.353.desc_2
+	picture = GFX_apsr_processor_message
+	show_sound = event_mystic_reveal
+	location = from
+
+	is_triggered_only = yes
+
+	option = {
+		name = apsr_enclave.353.button1
+	}
+}
+
+
+
+
+
+
+# при колонизации/захвате/передаче планет с спец депозитом
+planet_event = { 
+	id = apsr_enclave.398
+	hide_window = yes 
+	is_triggered_only = yes
+	
+	immediate = {
+	
+		# экономика
+		if = {
+			limit = {
+				AND = {
+					has_deposit = apsr_enclave_economy_20_deposit
+					owner = {
+						NOT = {
+							has_technology = tech_apsr_enclave_economy_button_20_bonus
+						}
+					}
+				}
+			}
+			remove_deposit = apsr_enclave_economy_20_deposit
+		}
+	
+		# наука
+		if = {
+			limit = {
+				AND = {
+					has_deposit = apsr_enclave_science_20_deposit
+					owner = {
+						NOT = {
+							has_technology = tech_apsr_enclave_science_button_20_bonus
+						}
+					}
+				}
+			}
+			remove_deposit = apsr_enclave_science_20_deposit
+		}
+		if = {
+			limit = {
+				OR = {
+					has_modifier = apsr_enclave_science_19_decision_1_mod
+					has_modifier = apsr_enclave_science_19_decision_2_mod
+					has_modifier = apsr_enclave_science_19_decision_3_mod
+				}
+			}
+			remove_modifier = apsr_enclave_science_19_decision_1_mod
+			remove_modifier = apsr_enclave_science_19_decision_2_mod
+			remove_modifier = apsr_enclave_science_19_decision_3_mod
+		}
+	
+		# оборона
+		if = {
+			limit = {
+				AND = {
+					has_deposit = apsr_enclave_defence_20_deposit
+					owner = {
+						NOT = {
+							has_technology = tech_apsr_enclave_defence_button_20_bonus
+						}
+					}
+				}
+			}
+			remove_deposit = apsr_enclave_defence_20_deposit
+		}
+	}
+}

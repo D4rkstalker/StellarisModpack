@@ -1,0 +1,76 @@
+namespace = AAR_evt_VIGOR
+#	aar极效循环*
+#	aar极效降级
+
+
+
+
+###	aar极效循环	---禁用
+#_ap	<AP极效政府>
+country_event = {
+	id = AAR_evt_VIGOR.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { always = no }
+
+	immediate = {
+		##	factorINIT
+		if = { limit = { NOT = { is_variable_set = AAR_factor_cntr_VIGOR } }
+			set_variable = { which = AAR_factor_cntr_VIGOR value = 0 }
+		}
+		##	执行DB
+		else = {
+			#	旧FACTOR记录
+			set_variable = { which = TEMP_factor_VIGOR_old value = AAR_factor_cntr_VIGOR }
+			
+			#	factorTRANS
+			set_variable = { which = TRANS_VAR_cntr_VIGOR value = AAR_factor_cntr_VIGOR }
+			#	factorDB
+			export_modifier_to_variable = { modifier = edicts_upkeep_mult variable = AAR_factor_cntr_VIGOR }	# 新factorINIT
+			subtract_variable = { which = AAR_factor_cntr_VIGOR value = TRANS_VAR_cntr_VIGOR }	# 真实mod值
+			clear_variable = TRANS_VAR_cntr_VIGOR
+
+			#	|需要缩减|
+			if = { limit = { check_variable = {which = AAR_factor_cntr_VIGOR value > -1 } }
+				change_variable = { which = AAR_factor_cntr_VIGOR value = 1 }	# 乘数化
+				set_variable = { which = TEMP_var value = AAR_factor_cntr_VIGOR }	# 总乘数
+				multiply_variable = { which = AAR_factor_cntr_VIGOR value = 0.6 }	#_[-40%]新乘数
+				subtract_variable = { which = AAR_factor_cntr_VIGOR value = TEMP_var }	# factor=新乘数-总乘数
+				
+				clear_variable = TEMP_var	# clear
+			}
+			#	|无需缩减|
+			else = {
+				set_variable = { which = AAR_factor_cntr_VIGOR value = 0 }
+				remove_modifier = AAR_mod_cntr_VIGOR
+			}
+			
+			#	modDB
+			if = { limit = { NOT = { check_variable = { which = AAR_factor_cntr_VIGOR value = TEMP_factor_VIGOR_old } } }	# |FACTOR变动|
+				add_modifier = { modifier = AAR_mod_cntr_VIGOR			 days = -1 multiplier = AAR_factor_cntr_VIGOR }
+			}
+			clear_variable = TEMP_factor_VIGOR_old
+		}
+
+		## 自循环
+		country_event = { id = AAR_evt_VIGOR.1 days = 90 }
+	}
+}
+
+
+
+
+###	aar极效降级
+#_edict	<AAR法令极效>
+country_event = {
+	id = AAR_evt_VIGOR.2
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		every_owned_pop = { limit = { is_unemployed = yes }
+			clear_pop_category = yes
+		}
+	}
+}
+

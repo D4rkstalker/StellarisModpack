@@ -1,0 +1,222 @@
+
+mold_assimilation = {
+	#Determine the mold country, if there is not exists in which case create.
+	if = {
+		limit = { NOT = { any_country = { has_origin = origin_exomycosis } } }
+		create_species = {
+			name = "NAME_Molded"
+			class = FUN
+			portrait = fun9
+			traits = {
+				trait = trait_molded
+				trait = random_traits
+			}
+			homeworld = root
+		}
+		create_country = {
+			name = "NAME_Immersion"
+			species = last_created_species
+			type = default
+			ethos = { ethic = ethic_gestalt_consciousness }
+			authority = auth_hive_mind
+			origin = origin_exomycosis
+			civics = {
+				civic = civic_hive_devouring_swarm
+				civic = random
+			}
+			flag = {
+				icon = {
+					category = "spherical"
+					file = "flag_spherical_4.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "00_solid.dds"
+				}
+				colors={
+					"black"
+					"null"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				save_event_target_as = mold_country
+			}
+		}
+	}
+	else = {
+		random_country = {
+			limit = { has_origin = origin_exomycosis }
+			save_event_target_as = mold_country
+		}
+	}
+	
+	
+	set_owner = event_target:mold_country
+	set_controller = event_target:mold_country
+	
+	random_planet_army = {
+		limit = { army_type = infected_army }
+		set_owner = event_target:mold_country
+	}
+	
+	if = {
+		limit = { has_modifier = planetary_quarantine }
+		remove_modifier = planetary_quarantine
+	}
+	if = {
+		limit = { has_modifier = planetary_quarantine_gestalt }
+		remove_modifier = planetary_quarantine_gestalt
+	}
+	
+	#The infected pops turns into molded, others will go to feed.
+	
+	create_pop = {
+		species = event_target:mold_country.species
+	}
+	create_pop = {
+		species = event_target:mold_country.species
+	}
+	
+	every_owned_pop = {
+		if = {
+			limit = {
+				OR = {
+					pop_has_trait = trait_exomycosis_infected
+					pop_has_trait = trait_exomycosis_corrupted
+				}
+			}
+			kill_pop = yes
+			prev = {
+				while = {
+					count = 2
+					create_pop = {
+						species = event_target:mold_country.species
+					}
+				}
+			}
+		}
+		else = {
+			limit = { NOT = { pop_has_trait = trait_molded } }
+			kill_pop = yes
+			event_target:mold_country = { 
+				add_resource = {
+					food = 20
+				}
+			}
+		}
+	}
+	# flip starbase
+	solar_system = {
+		if = {
+			limit = { exists = starbase }
+			starbase = { set_owner = event_target:mold_country }
+		}
+	}
+	
+	event_target:mold_country = { country_event = { id = theinfestation_exomycosis_event.100 days = 1 } }
+}
+
+exomycosis_contact = {
+	set_country_flag = exomycosis_contact
+	if  = {
+		limit = { is_regular_empire = yes }
+		begin_event_chain = {
+			event_chain = "exomycosis_infestation_chain"
+			target = this
+		}
+		random_galaxy_planet = {
+			limit = { is_planet_class = pc_mycelium }
+			weights = {
+				base = 50
+				modifier = {
+					add = 100
+					distance_to_empire = {
+						who = prev
+						distance < 150
+						type = hyperlane
+					}
+				}
+				modifier = {
+					add = 50
+					is_surveyed = {
+						who = ROOT
+						status = yes
+					}
+				}
+			}
+			enable_special_project = {
+				name = "MYCELIUM_WORLD_SURVEY_PROJECT"
+				location = this
+				owner = root
+			}
+		}
+		capital_scope = {
+			enable_special_project = {
+				name = "EXOMYCOSIS_RESEARCH_PROJECT"
+				location = this
+				owner = ROOT
+			}
+		}
+	}
+	else = {
+		begin_event_chain = {
+			event_chain = "exomycosis_infestation_chain_gestalt"
+			target = this
+		}
+		random_galaxy_planet = {
+			limit = {
+				distance = {
+					source = event_target:capital
+					max_distance <= 20
+					min_distance >= 5
+				}
+				is_surveyed = {
+					who = ROOT
+					status = yes
+				}
+				is_planet_class = pc_mycelium
+				solar_system = {
+					OR = {
+						NOT = { exists = space_owner }
+						AND = {
+							exists = space_owner
+							space_owner = {
+								NOT = { is_country_type = fallen_empire }
+								NOT = { is_country_type = awakened_fallen_empire }
+							}
+						}
+					}
+				}
+			}
+			weights = {
+				base = 0
+				modifier = {
+					add = 100
+					distance_to_empire = {
+						who = prev
+						distance < 150
+						type = hyperlane
+					}
+				}
+			}
+			enable_special_project = {
+				name = "MYCELIUM_WORLD_SURVEY_PROJECT_GESTALT"
+				location = this
+				owner = root
+			}
+		}
+		
+		capital_scope = {
+			enable_special_project = {
+				name = "EXOMYCOSIS_RESEARCH_PROJECT_GESTALT"
+				location = this
+				owner = ROOT
+			}
+		}
+	}
+	
+	#Create a variable for the correct calculation of the second counter.
+	set_variable = { which = infectious_constructions value = 1 }
+}

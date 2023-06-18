@@ -1,0 +1,1260 @@
+####################
+# The Hunters
+# Solar Storm
+####################
+
+namespace = ss_sacred
+
+# Test Event for PF portrait and interface
+
+country_event = {
+	id = ss_sacred.1499
+	hide_window = yes
+	
+	immediate = {
+		save_global_event_target_as = ss_pf_country
+		set_variable = { which = ss_pf_appeasement value = 15 }
+		set_variable = { which = ss_pf_growth value = 85 }
+		set_variable = { which = ss_pf_attitude value = 2 }
+		set_variable = { which = ss_pf_agreement value = 0 }
+		export_trigger_value_to_variable = { trigger = fleet_power variable = ss_pf_fleet_power }
+		set_variable = { which = ss_pf_defence_power value = 0 }
+		every_owned_starbase = {
+			root = { change_variable = { which = ss_pf_defence_power value = prev.fleet.trigger:fleet_power } }
+		}
+		country_event = { id = ss_sacred.1500 }
+	}
+
+	is_triggered_only = yes
+}
+
+country_event = {
+	id = ss_sacred.1500
+	title = "TRANSMISSION"
+	desc = "ss_sacred.1499.desc"
+	custom_gui = "ss_pf_menu_window"
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = prime_flesh_portrait
+		room = swarm_room
+	}
+	
+	immediate = {
+	}
+
+	is_triggered_only = yes
+	
+	option = {
+		name = ss_sacred.1499.a
+	}
+}
+
+# Picks random rim system and begins the event chain.
+# Fired in on_actions
+event = {
+	id = ss_sacred.1
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	fire_only_once = yes
+
+	trigger = {
+		NOT = { has_global_flag = ss_sacred_intelligence_fired }
+		any_playable_country = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	immediate = {
+		set_global_flag = ss_sacred_intelligence_fired
+		random_rim_system = {
+			weights = {
+				base = 1
+				modifier = {
+					factor = 10
+					has_owner = yes
+				}
+				modifier = {
+					factor = 2
+					owner = { is_ai = no }
+				}
+			}
+			save_global_event_target_as = ss_sacred_wormhole_system
+			random_list = {
+				66 = {
+					if = {
+						limit = {
+							has_global_flag = ss_sacred_guaranteed
+						}
+						if = {
+							limit = {
+								has_owner = yes
+							}
+							owner = { country_event = { id = ss_sacred.10 days = 150 random = 1950 } }
+						}
+						else = {
+							random_playable_country = {
+								limit = {
+									is_ai = no
+								}
+								country_event = { id = ss_sacred.10 days = 150 random = 1950 }
+							}
+						}
+						every_playable_country = {
+							limit = {
+								has_authority = auth_hive_mind
+							}
+							country_event = { id = ss_sacred.2 days = 25 random = 225 }
+						}
+					}
+				}
+				33 = {
+					if = {
+						limit = {
+							has_owner = yes
+						}
+						owner = { country_event = { id = ss_sacred.10 days = 150 random = 1950 } }
+					}
+					else = {
+						random_playable_country = {
+							limit = {
+								is_ai = no
+							}
+							country_event = { id = ss_sacred.10 days = 150 random = 1950 }
+						}
+					}
+					every_playable_country = {
+						limit = {
+							has_authority = auth_hive_mind
+						}
+						country_event = { id = ss_sacred.2 days = 25 random = 225 }
+					}
+				}
+			}
+		}
+	}
+}
+
+# Hive minds get wind of the coming events, just some spooky flavour text
+country_event = {
+	id = ss_sacred.2
+	title = ss_sacred.2.title
+	desc = ss_sacred.2.desc
+	picture = GFX_evt_surreal_visions
+	show_sound = event_mystic_reveal
+
+	is_triggered_only = yes
+	
+	immediate = {
+		begin_event_chain = { 
+			event_chain = ss_sacred_landing_evt
+			target = this 
+		}
+		create_point_of_interest = {
+			id = ss_sacred_landing_point
+			name = ss_sacred_landing_point_name
+			desc = ss_sacred_landing_point_desc
+			event_chain = ss_sacred_landing_evt
+			location = event_target:ss_sacred_wormhole_system
+		}
+	}
+	
+	option = {
+		name = ss_sacred.2.a
+		trigger = {
+			NOT = { has_civic = civic_hive_devouring_swarm }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.2.a
+		trigger = {
+			has_civic = civic_hive_devouring_swarm 
+		}
+	}
+}
+
+# The Prime Flesh's scout ship arrives in a rim system. Initialises a whole load of things.
+country_event = {
+	id = ss_sacred.10
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		create_country = {
+			name = "NAME_prime_flesh_scout"
+			type = faction
+			effect = {
+				save_event_target_as = ss_flesh_scout_country
+				create_fleet = {
+					name = "NAME_From_Beyond"
+					effect = {
+						set_owner = prev
+						create_ship = {
+							name = "NAME_prime_flesh_scout_ship"
+							design = "NAME_prime_flesh_scout_ship"
+							prefix = no
+							effect = {
+								set_ship_flag = ss_pf_scout_ship
+							}
+						}
+						set_location = event_target:ss_sacred_wormhole_system
+						save_event_target_as = ss_sacred_scout_fleet
+					}
+				}
+				set_faction_hostility = { set_neutral = yes }
+				country_event = { id = ss_sacred.20 days = 50 }
+			}
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			establish_communications_no_message = event_target:ss_flesh_scout_country
+			if = {
+				limit = {
+					OR = {
+						is_in_sensor_range = event_target:ss_pf_scout_fleet
+						has_authority = auth_hive_mind
+					}
+				}
+				country_event = { id = ss_sacred.11 days = 30 }
+			}
+		}
+	}
+}
+
+# If countries can see that ship or they are a hive mind, they get an event which alerts them to it's presence.
+country_event = {
+	id = ss_sacred.11
+	title = ss_sacred.11.title
+	picture = GFX_evt_unidentified_ship
+	show_sound = event_sensor_ping
+	location = event_target:ss_sacred_wormhole_system
+
+	desc = {
+		text = ss_sacred.11.desc_01
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	desc = {
+		text = ss_sacred.11.desc_02
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.11.a
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.11.b
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+}
+
+# If something destroys the ship, then the whole event chain stops, let players know what happened.
+country_event = {
+	id = ss_sacred.12
+	hide_window = yes
+	
+	trigger = {
+		#FROM = { is_same_value = event_target:ss_flesh_scout_country }
+		exists = event_target:ss_flesh_scout_country
+		exists = this
+		FromFromFrom = { has_ship_flag = ss_pf_scout_ship }
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_global_flag = ss_pf_scout_killer
+		every_playable_country = {
+			limit = {
+				AND = {
+					OR = {
+						has_authority = auth_hive_mind
+						is_in_sensor_range = event_target:ss_sacred_wormhole_system
+					}
+					NOT = { is_same_value = root }
+				}
+			}
+			country_event = { id = ss_sacred.13 days = 5 }
+		}
+		country_event = { id = ss_sacred.14 days = 30 }
+	}
+}
+
+# If something destroys the ship, then the whole event chain stops, let players know what happened.
+country_event = {
+	id = ss_sacred.13
+	title = ss_sacred.13.title
+	picture = GFX_evt_exploding_ship
+	show_sound = event_ship_explosion
+	location = event_target:ss_sacred_wormhole_system
+
+	desc = {
+		text = ss_sacred.13.desc_01
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	desc = {
+		text = ss_sacred.13.desc_02
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.13.a
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.13.b
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+}
+
+# The killer of the vessel is given a small consolation prize.
+country_event = {
+	id = ss_sacred.14
+	title = ss_sacred.14.title
+	picture = GFX_evt_exploding_ship
+	show_sound = event_ship_explosion
+	location = event_target:ss_sacred_wormhole_system
+
+	desc = {
+		text = ss_sacred.14.desc_01
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	desc = {
+		text = ss_sacred.14.desc_02
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.14.a
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.14.b
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	after = {
+		add_monthly_resource_mult = {
+			resource = physics_research
+			value = 12
+			min = 5000
+			max = 50000
+		}
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = 12
+			min = 5000
+			max = 50000
+		}
+		add_monthly_resource_mult = {
+			resource = engineering_research
+			value = 12
+			min = 5000
+			max = 50000
+		}
+	}
+}
+
+# If the ship is left alone it will fly around the system a little bit before settling down.
+country_event = {
+	id = ss_sacred.20
+	hide_window = yes
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:ss_sacred_wormhole_system = {
+			random_system_planet = {
+				save_event_target_as = ss_dest_1
+			}
+			random_system_planet = {
+				limit = {
+					NOT = { is_same_value = event_target:ss_dest_1 }
+				}
+				save_event_target_as = ss_dest_2
+			}
+			random_system_planet = {
+				limit = {
+					AND = {
+						NOT = { is_same_value = event_target:ss_dest_1 }
+						NOT = { is_same_value = event_target:ss_dest_2 }
+					}
+				}
+				save_event_target_as = ss_dest_3
+			}
+		}
+		event_target:ss_sacred_scout_fleet = {
+			queue_actions = {
+				wait = {
+					duration = 25
+					random = 10
+				}
+				move_to = event_target:ss_dest_1
+				wait = {
+					duration = 25
+					random = 10
+				}
+				move_to = event_target:ss_dest_2
+				wait = {
+					duration = 25
+					random = 10
+				}
+				move_to = event_target:ss_dest_3
+			}
+		}
+		country_event = { id = ss_sacred.21 days = 135 random = 40 }
+	}
+}
+
+# Then the ship disappears and creates a wormhole.
+# Also initialises the Ultana Dwarf systems.
+
+country_event = {
+	id = ss_sacred.21
+	hide_window = yes
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:ss_sacred_scout_fleet = {
+			delete_fleet = this
+		}
+		set_spawn_system_batch = begin
+		no_scope = {
+			# makes system positions originate from galactic core
+			spawn_system = {
+				min_distance >= 540
+				max_distance <= 580
+				min_orientation_angle = 130
+				max_orientation_angle = 140
+				initializer = prime_flesh_home_system
+				hyperlane = no
+				effect = {
+					save_global_event_target_as = ss_pf_home_system
+				}
+			}
+			event_target:ss_pf_home_system  = {
+				spawn_system = {
+					min_distance >= 50
+					max_distance <= 75
+					min_orientation_angle = 90
+					max_orientation_angle = 140
+					initializer = prime_flesh_exp_1_system
+					hyperlane = no
+					effect = {
+						save_global_event_target_as = ss_pf_exp_1
+					}
+				}
+				spawn_system = {
+					min_distance >= 20
+					max_distance <= 25
+					min_orientation_angle = 180
+					max_orientation_angle = 240
+					initializer = prime_flesh_exp_2_system
+					hyperlane = no
+					effect = {
+						save_global_event_target_as = ss_pf_exp_2
+					}
+				}
+				random_system_planet = {
+					limit = {
+						has_planet_flag = ss_pf_home_world
+					}
+					save_global_event_target_as = ss_pf_home_world
+				}
+				create_ambient_object = {
+					type = "ss_pf_repository"
+				}
+				last_created_ambient_object = {
+					set_location = {
+						target = event_target:ss_pf_home_world
+						distance = 5
+						angle = random
+					}
+					set_ambient_object_flag = ss_pf_repository
+				}
+			}
+			event_target:ss_pf_exp_2 = {
+				spawn_system = {
+					min_distance >= 20
+					max_distance <= 50
+					min_orientation_angle = 0
+					max_orientation_angle = 40
+					initializer = prime_flesh_exp_3_system
+					hyperlane = no
+					effect = {
+						save_global_event_target_as = ss_pf_exp_3
+					}
+				}
+			}
+		}
+
+		# add hyperlanes
+		event_target:ss_pf_exp_3 = {
+			add_hyperlane = {
+				from = event_target:ss_pf_exp_3
+				to = event_target:ss_pf_exp_2
+			}
+		}
+		event_target:ss_pf_exp_2 = {
+			add_hyperlane = {
+				from = event_target:ss_pf_exp_2
+				to = event_target:ss_pf_home_system
+			}
+		}
+		event_target:ss_pf_exp_1 = {
+			add_hyperlane = {
+				from = event_target:ss_pf_exp_1
+				to = event_target:ss_pf_home_system
+			}
+		}
+		set_spawn_system_batch = end
+		
+		event_target:ss_pf_home_system = {
+			spawn_natural_wormhole = {
+				bypass_type = wormhole
+				orbit_distance = 300
+				orbit_angle = 270
+			}
+			random_system_planet = {
+				limit = {
+					has_planet_flag = ss_pf_home_world
+				}
+				save_global_event_target_as = ss_pf_home_world
+			}
+		}
+		event_target:ss_sacred_wormhole_system = {
+			spawn_natural_wormhole = {
+				bypass_type = wormhole
+				orbit_angle = 360
+				random_pos = yes
+			}
+			link_wormholes = event_target:ss_pf_home_system
+		}
+		every_playable_country = {
+			limit = {
+				OR = {
+					has_authority = auth_hive_mind
+					is_in_sensor_range = event_target:ss_sacred_wormhole_system
+				}
+			}
+			country_event = { id = ss_sacred.22 days = 15 }
+		}
+	}
+}
+
+# Lets players know a wormhole has appeared connecting to other galaxy, also ship disappeared.
+country_event = {
+	id = ss_sacred.22
+	title = ss_sacred.22.title
+	picture = GFX_evt_wormhole
+	show_sound = event_sensor_ping
+	location = event_target:ss_sacred_wormhole_system
+
+	desc = {
+		text = ss_sacred.22.desc_01
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	desc = {
+		text = ss_sacred.22.desc_02
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.22.a
+		trigger = {
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.22.b
+		trigger = {
+			has_authority = auth_hive_mind
+		}
+	}
+}
+
+# Anomaly Event around PF homeworld. Adds research bonus deposit.
+
+ship_event = {
+	id = ss_sacred.23
+	title = ss_sacred.23.title
+	desc = ss_sacred.23.desc
+	picture = GFX_evt_warm_barren
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.23.a
+		trigger = {
+			owner = { NOT = { has_civic = civic_hive_devouring_swarm } }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.23.b
+		trigger = {
+			owner = { has_civic = civic_hive_devouring_swarm }
+		}
+	}
+	
+	after = {
+		from = { add_deposit = d_ss_pf_repository }
+		hidden_effect = {
+			owner = { country_event = { id = ss_sacred.24 days = 50 } }
+			set_variable = { which = ss_pf_rep_free_techs value = 0 }
+		}
+	}
+}
+
+# The Repository gives the players some unique technologies.
+# Hive minds get special hive-only techs
+
+country_event = {
+	id = ss_sacred.24
+	hide_window = yes
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				AND = {
+					event_target:ss_pf_home_system = {
+						has_orbital_station = yes
+					}
+					NOT = { has_country_flag = ss_pf_home_rep_tech_fin }
+				}
+			}
+			if = {
+				limit = {
+					has_authority = auth_hive_mind
+				}
+				random_list = {
+					30 = {
+						if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 1 }
+							}
+							event_target:ss_pf_home_system.owner = {
+								country_event = { id = ss_sacred.27 days = 100 }
+							}
+							country_event = { id = ss_sacred.24 days = 100 }
+						}
+						else_if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 2 }
+							}
+							event_target:ss_pf_home_system.owner = {
+								country_event = { id = ss_sacred.28 days = 100 }
+							}
+							country_event = { id = ss_sacred.24 days = 100 }
+						}
+						else_if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 3 }
+							}
+							country_event = { id = ss_sacred.30 days = 50 }
+						}
+					}
+					70 = {
+						country_event = { id = ss_sacred.24 days = 100 }
+					}
+				}
+			}
+			else = {
+				random_list = {
+					15 = {
+						if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 1 }
+							}
+							event_target:ss_pf_home_system.owner = {
+								country_event = { id = ss_sacred.25 days = 100 }
+							}
+							country_event = { id = ss_sacred.24 days = 100 }
+						}
+						else_if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 2 }
+							}
+							event_target:ss_pf_home_system.owner = {
+								country_event = { id = ss_sacred.26 days = 100 }
+							}
+							country_event = { id = ss_sacred.24 days = 100 }
+						}
+						else_if = {
+							limit = {
+								check_variable = { which = ss_pf_rep_free_techs value = 3 }
+							}
+							country_event = { id = ss_sacred.30 days = 50 }
+						}
+					}
+					85 = {
+						country_event = { id = ss_sacred.24 days = 100 }
+					}
+				}
+			}
+		}
+	}
+}
+
+# Ordinary empire first free tech
+country_event = {
+	id = ss_sacred.25
+	title = ss_sacred.25.title
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	desc = {
+		text = ss_sacred.25.desc_01
+		trigger = {
+			NOT = { has_authority = auth_machine_intelligence }
+		}
+	}
+	desc = {
+		text = ss_sacred.25.desc_02
+		trigger = {
+			has_authority = auth_machine_intelligence
+		}
+	}
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.25.a
+		add_modifier = {
+			modifier = ss_pf_normal_free_1
+			days = -1
+		}
+		trigger = {
+			NOT = { has_authority = auth_machine_intelligence }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.25.b
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = 6
+			min = 1000
+			max = 25000
+		}
+		trigger = {
+			NOT = { has_authority = auth_machine_intelligence }
+		}
+	}
+	
+	option = {
+		name = ss_sacred.25.c
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = 6
+			min = 1000
+			max = 25000
+		}
+		trigger = {
+			has_authority = auth_machine_intelligence
+		}
+	}
+}
+
+# Ordinary empire second free tech
+country_event = {
+	id = ss_sacred.26
+	title = ss_sacred.26.title
+	desc = ss_sacred.26.desc
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.26.a
+		add_modifier = {
+			modifier = ss_pf_normal_free_1
+			days = -1
+		}
+	}
+	
+	option = {
+		name = ss_sacred.26.b
+		add_monthly_resource_mult = {
+			resource = engineering_research
+			value = 6
+			min = 1000
+			max = 25000
+		}
+	}
+}
+
+# Hive Minds first free tech
+country_event = {
+	id = ss_sacred.27
+	title = ss_sacred.27.title
+	desc = ss_sacred.27.desc
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.27.a
+		add_modifier = {
+			modifier = ss_pf_hive_free_1
+			days = -1
+		}
+	}
+}
+
+# Hive Minds second free tech
+country_event = {
+	id = ss_sacred.28
+	title = ss_sacred.28.title
+	desc = ss_sacred.28.desc
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.28.a
+		add_modifier = {
+			modifier = ss_pf_hive_free_2
+			days = -1
+		}
+	}
+}
+
+# The repository tells player what happened, but demands that you give it energy and food.
+country_event = {
+	id = ss_sacred.30
+	title = ss_sacred.30.title
+	desc = ss_sacred.30.desc
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		export_resource_stockpile_to_variable = { resource = food variable = ss_pf_food }
+		export_resource_stockpile_to_variable = { resource = energy variable = ss_pf_energy }
+		multiply_variable = { which = ss_pf_food value = -0.5 }
+		multiply_variable = { which = ss_pf_energy value = -0.33 }
+		floor_variable = ss_pf_food
+		floor_variable = ss_pf_energy
+	}
+	
+	option = {
+		name = ss_sacred.30.a
+		custom_tooltip = ss_sacred.30.a.tooltip
+		add_resource = {
+			food = 1
+			mult = ss_pf_food
+		}
+		add_resource = {
+			energy = 1
+			mult = ss_pf_energy
+		}
+	}
+	
+	option = {
+		name = ss_sacred.30.b
+		custom_tooltip = ss_sacred.30.b.tooltip
+		hidden_effect = {
+			country_event = { id = ss_sacred.31 days = 100 random = 50 }
+		}
+	}
+}
+
+# If you don't give the repository food, it will ask again at some point
+country_event = {
+	id = ss_sacred.31
+	title = ss_sacred.31.title
+	desc = ss_sacred.31.desc
+	picture = GFX_evt_think_tank
+	show_sound = event_mystic_reveal
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = ss_sacred.31.a
+		add_resource = {
+			food = 1
+			mult = ss_pf_food
+		}
+		add_resource = {
+			energy = 1
+			mult = ss_pf_energy
+		}
+	}
+	
+	option = {
+		name = ss_sacred.31.b
+		hidden_effect = {
+			country_event = { id = ss_sacred.32 days = 25 random = 25 }
+		}
+	}
+}
+
+#If you refuse the repositories request again, it detonates itself.
+country_event = {
+	id = ss_sacred.32
+	title = ss_sacred.32.title
+	desc = ss_sacred.32.desc
+	picture = GFX_evt_exploding_ship
+	show_sound = event_ship_explosion
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		event_target:ss_pf_home_system = {
+			every_system_ambient_object = {
+				destroy_ambient_object = this
+			}
+		}
+	}
+	
+	option = {
+		name = ss_sacred.32.a
+	}
+}
+
+# The Prime Flesh is revived! But it must wake first.
+# First alerts player activity on the home world is rapidly increasing.
+# Also creates country
+
+
+country_event = {
+	id = ss_sacred.50
+	title = ss_sacred.50.title
+	desc = ss_sacred.50.desc
+	picture = GFX_evt_infested_planet
+	show_sound = event_alien_nature
+	location = event_target:ss_pf_home_world
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		country_event = { id = ss_sacred.51 days = 50 random = 50 }
+		set_country_flag = ss_pf_saviour
+	}
+	
+	option = {
+		name = ss_sacred.50.a
+	}
+}
+
+# The prime flesh Suddenly gets their hive planet back.
+
+country_event = {
+	id = ss_sacred.51
+	hide_window = yes
+	
+	trigger = {
+	}
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		create_species = {
+			name = "NAME_pf_species"
+			plural = "NAME_pf_species_plural"
+			class = PRIME_FLESH_CLASS
+			portrait = prime_flesh_portrait
+			namelist = "ss_prime_flesh"
+			traits = {
+				trait = trait_very_strong
+				trait = trait_venerable
+				trait = trait_fertile
+				trait = trait_robust
+				trait = trait_erudite
+				trait = trait_hive_mind
+			}
+			effect = {
+				save_global_event_target_as = ss_pf_species
+			}
+		}
+		create_country = {
+			name = "NAME_pf_country"
+			adjective = "NAME_pf_country_adjective"
+			ship_prefix = "NAME_pf_ship_prefix"
+			authority = auth_hive_mind
+			#civics = 
+			type = prime_flesh_country_type
+			species = event_target:ss_pf_species
+			name_list = ss_prime_flesh
+			flag = {
+				icon= {
+					category = "spherical"
+					file = "flag_spherical_11.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "00_solid.dds"
+				}
+				colors={
+					"teal"
+					"dark_grey"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				create_ship_design = { design = "NAME_prime_flesh_Starbase" }
+				add_ship_design = last_created_design
+				save_event_target_as = ss_pf_country
+			}
+		}
+		event_target:ss_pf_home_world = {
+			change_pc = pc_hive
+			create_colony = {
+				owner = event_target:ss_pf_country
+				species = event_target:ss_pf_species
+			}
+			while = {
+				count = 20
+				create_pop = {
+					species = event_target:ss_pf_species
+					ethos = event_target:ss_pf_country
+				}
+			}
+			add_district = district_hive
+			add_district = district_hive 
+			add_district = district_hive 
+			add_district = district_hive 
+			add_district = district_hive
+			add_district = district_industrial
+			add_district = district_industrial
+			add_district = district_industrial
+			add_district = district_mining_uncapped
+			add_district = district_mining_uncapped
+			add_district = district_generator_uncapped
+			add_district = district_generator_uncapped
+			add_district = district_farming_uncapped
+			add_district = district_farming_uncapped
+			add_building = building_hive_major_capital
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			establish_communications_no_message = event_target:ss_pf_country
+			country_event = { id = ss_sacred.52 days = 50 random = 50 }
+		}
+	}
+}
+
+country_event = {
+	id = ss_sacred.52
+	title = "TRANSMISSION"
+	desc = "ss_sacred.52.desc"
+	
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = prime_flesh_portrait
+		room = swarm_room
+	}
+
+	is_triggered_only = yes
+	
+	option = {
+		name = ss_sacred.52.a
+		country_event = { id = ss_sacred.53 }
+	}
+}
+
+country_event = {
+	id = ss_sacred.53
+	title = "TRANSMISSION"
+	
+	desc = {
+		text = ss_sacred.53.desc_01
+		trigger = { 
+			NOT = { has_authority = auth_hive_mind }
+		}
+	}
+	desc = {
+		text = ss_sacred.53.desc_02
+		trigger = { 
+			has_authority = auth_hive_mind
+		}
+	}
+
+	diplomatic = yes
+
+	picture_event_data = {
+		portrait = prime_flesh_portrait
+		room = swarm_room
+	}
+
+	is_triggered_only = yes
+	
+	option = {
+		name = ss_sacred.53.a
+		response_text = ss_sacred.53.a.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = ss_sacred.53.b
+		response_text = ss_sacred.53.b.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = ss_sacred.53.c
+		response_text = ss_sacred.53.c.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = ss_sacred.53.d
+		response_text = ss_sacred.53.d.response
+		is_dialog_only = yes
+	}
+	option = {
+		name = ss_sacred.53.e
+	}
+}
+
+# The Prime Flesh re-acquires its surrounding territories, asks other players for it back.
+

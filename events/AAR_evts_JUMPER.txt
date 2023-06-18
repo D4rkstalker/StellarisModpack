@@ -1,0 +1,231 @@
+namespace = AAR_evt_JUMPER
+#	神速ap通知
+#	aar神速循环*/aar神速充能*
+#	神速用法*
+namespace = AAR_evt_JUMPER_fw
+#	aar神速跃迁fw
+
+
+
+
+###	神速ap通知
+#_ap	<AP神速信仰>
+country_event = {
+	id = AAR_evt_JUMPER.0
+	title = AAR_title_AP_jumper_evt
+	desc = AAR_desc_AP_jumper_evt
+	picture = GFX_AAR_EP_jumper
+	show_sound = relic_activation_blade_of_the_huntress
+	location = capital_scope
+	is_triggered_only = yes
+	
+	after = { add_relic = AAR_R_jumper }
+
+	option = {
+		name = AAR_option_AP_jumper_evt
+	#	custom_tooltip = AAR_tips_AP_jumper_evt
+	}
+}
+
+
+
+
+###_[aar神速循环]	---禁用
+#_list	每月充能	/信仰BUFF*/信仰值DB*
+country_event = {
+	id = AAR_evt_JUMPER.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_scope_type = country
+		has_ascension_perk = AAR_AP_jumper
+		NOT = { has_country_flag = AAR_flg_cntr_JUMPER_cycle_CD }	# |未在CD中|
+	}
+	
+	immediate = {
+		set_timed_country_flag = { flag = AAR_flg_cntr_JUMPER_cycle_CD days = 30 }	# |CD|
+		country_event = { id = AAR_evt_JUMPER.10 }	# aar神速充能
+		
+		##	每月充能
+	#	if = { limit = { NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock } }	# |超频激活|无
+	#		change_variable = { which = AAR_var_cntr_JUMPER_charge	value = @AAR_svar_JUMP_recharge }	# 每月+6%
+	#		#	MAX限定
+	#		if = { limit = { check_variable = { which = AAR_var_cntr_JUMPER_charge	value > 120 } }	# 最高充能120%
+	#			set_variable = { which = AAR_var_cntr_JUMPER_charge	value = 120 }
+	#		}
+	#	}
+		
+		##	信仰BUFF
+	#	if = { limit = { check_variable= { which = AAR_var_cntr_JUMPER_worship value > 0 } }
+	#		add_modifier = { modifier = AAR_mod_cntr_JUMPER_worship		 days = -1 multiplier = AAR_var_cntr_JUMPER_worship }
+	#	}
+	#	else_if = { limit = { always = yes }
+	#		remove_modifier = AAR_mod_cntr_JUMPER_worship
+	#	}
+		
+		##	信仰值DB
+	#	if = { limit = { check_variable = { which = AAR_var_cntr_JUMPER_worship value > 3 } }	# 每月衰减3%
+	#		subtract_variable = { which = AAR_var_cntr_JUMPER_worship value = 3 }
+	#	}
+	#	else = {
+	#		set_variable = { which = AAR_var_cntr_JUMPER_worship value = 0 }
+	#	}
+	} 
+}
+###_[aar神速充能]	---禁用
+#_evt	<aar神速循环>
+country_event = {
+	id = AAR_evt_JUMPER.10
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_ai = no	# |仅玩家|
+		NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock }	# |超频激活|无
+	}
+	
+	immediate = {
+		change_variable = { which = AAR_var_cntr_JUMPER_charge	value = @AAR_svar_JUMP_recharge }	# 每月+6%
+		#	MAX限定
+		if = { limit = { check_variable = { which = AAR_var_cntr_JUMPER_charge	value > 120 } }	# 最高充能120%
+			set_variable = { which = AAR_var_cntr_JUMPER_charge	value = 120 }
+		}
+	} 
+}
+
+
+
+
+###	神速用法	---禁用
+#_<宇宙立方>
+country_event = {
+	id = AAR_evt_JUMPER.2
+	title = AAR_title_JUMPER_relic_evt
+	desc = AAR_desc_JUMPER_relic_evt
+	picture = GFX_AAR_EP_jumper
+	show_sound = event_ship_thrusters
+	location = capital_scope
+	is_triggered_only = yes
+
+	option = {
+		name = { text = AAR_tips_JUMPER_relic_evt_on
+			trigger = {
+				OR = {
+					has_modifier = AAR_mod_cntr_JUMPER_cube
+					has_modifier = AAR_mod_cntr_JUMPER_overclock
+				}
+			}
+		}
+		name = { text = AAR_tips_JUMPER_relic_evt_off
+			trigger = {
+				NOR = {
+					has_modifier = AAR_mod_cntr_JUMPER_cube
+					has_modifier = AAR_mod_cntr_JUMPER_overclock
+				}
+			}
+		}
+		custom_tooltip = AAR_tips_JUMPER_relic_evt_switch
+		allow = {
+			NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock }
+		}
+		hidden_effect = {
+			# 添加基础buff
+			if = { limit = { has_modifier = AAR_mod_cntr_JUMPER_cube }
+				remove_modifier = AAR_mod_cntr_JUMPER_cube
+			}
+			# 清除
+			else = {
+				add_modifier = { modifier = AAR_mod_cntr_JUMPER_cube days = -1 }
+			}
+			country_event = { id = AAR_evt_JUMPER.2 }	# 不退出
+		}
+	}
+	option = {
+		name = AAR_option_JUMPER_relic_evt_MAX
+		custom_tooltip = AAR_tips_JUMPER_relic_evt_MAX
+		allow = {
+			custom_tooltip = {
+				fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_ongoing"
+				hidden_trigger = { NOT = { has_modifier = AAR_mod_cntr_JUMPER_overclock } }	# |冷却中|
+			}
+			custom_tooltip = {
+				fail_text = "AAR_failtips_JUMPER_relic_evt_OVERC_var"
+				hidden_trigger = { check_variable = { which = AAR_var_cntr_JUMPER_charge value >= 100 } }	# |充能不足|
+			}
+		}
+		hidden_effect = {
+			set_variable = { which = AAR_var_cntr_JUMPER_charge value = 0 }	# 充能消耗
+			add_modifier = { modifier = AAR_mod_cntr_JUMPER_overclock days = 360 }
+		}
+	}
+	option = {
+		name = CANCEL
+	}
+}
+
+
+
+
+
+
+
+
+###	aar神速跃迁fw
+#_eft	<AAR神速跃迁FW>
+#_list	varINIT	/超频中/未在充能	/快速冷却DB	/CLEAR
+fleet_event = {
+	id = AAR_evt_JUMPER_fw.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = controller
+		controller = { has_ascension_perk = AAR_AP_jumper }
+	}
+
+	immediate = {
+		##	varINIT
+		set_variable = { which = TEMP_var_CD_mult		value = modifier:ship_jumpdrive_cooldown_mult }	# 1+mod
+		change_variable = { which = TEMP_var_CD_mult	value = 1 }	# 乘数化
+		set_variable = { which = TEMP_var				value = trigger:fleet_size }
+
+		##	|超频中|
+		if = { limit = { owner = { has_modifier = AAR_mod_cntr_JUMPER_overclock } }
+			add_modifier = { modifier = AAR_mod_ship_JUMPER_battle_OVERLOCK		days = 90 }
+		}
+		#	|未在充能|
+		else_if = { limit = { owner = { NOT = { has_country_flag = AAR_flg_cntr_JUMPER_overclock_CD } } }
+			add_modifier = { modifier = AAR_mod_ship_JUMPER_battle		days = 90 }
+		}
+
+		##	快速冷却DB
+		if = { limit = { check_variable = { which = TEMP_var_CD_mult	value > 0 } }	# |跃迁CD仍然存在|	来自<国家/光环/指挥官/星系等>	如果修正到<=0则不再有CD也无需快速冷却
+		
+			##	|快速冷却CD中|
+			if = { limit = { any_owned_ship = { has_modifier = AAR_MOD_ship_JUMPER_fast_CD } }	# 其持续时间为上次统计的|@AAR_svar_JUMP_cd×TEMP_var_CD_mult|,也就是快速冷却充能所需时间
+				remove_modifier = AAR_MOD_ship_JUMPER_fast_CD
+				#	"CD惩罚抵消"添加
+				add_modifier = { modifier = AAR_mod_ship_JUMPER_cd_OFFSET		 days = @AAR_svar_JUMP_cd time_multiplier = TEMP_var_CD_mult }	# 添加[CD惩罚抵消]	|define设置jump冷却为200天|
+				#	|PC|添加|jump充能flg|用于被动技能显示
+				if = { limit = { controller = { is_ai = no } }
+					set_variable = { which = TEMP_var_DAYS			value = @AAR_svar_JUMP_cd }
+					multiply_variable = { which = TEMP_var_DAYS		value = TEMP_var_CD_mult }
+					every_owned_ship = { set_timed_ship_flag = { flag = AAR_flg_ship_JUMPER_jump_CD	days = prev.TEMP_var_DAYS } }
+					# clear
+					clear_variable = TEMP_var_DAYS
+				}
+			}
+			##	快速冷却执行
+			else = {
+				# 快速冷却mod
+				set_variable = { which = FACTOR_var_FAST_cd			value = 0.01 }	# |快速冷却_强度参数|
+				subtract_variable = { which = FACTOR_var_FAST_cd	value = TEMP_var_CD_mult }
+				add_modifier = { modifier = AAR_MOD_ship_JUMPER_fast_CD		multiplier = FACTOR_var_FAST_cd days = @AAR_svar_JUMP_cd time_multiplier = TEMP_var_CD_mult }
+				# clear
+				clear_variable = FACTOR_var_FAST_cd
+			}
+		}
+
+		##	CLEAR
+		clear_variable = TEMP_var_CD_mult
+	}
+}
+

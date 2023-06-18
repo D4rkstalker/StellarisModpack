@@ -1,0 +1,2534 @@
+namespace = xvcv_mdlc
+
+### Game Start Events ###
+#on_game_start: starting condition adjustment
+country_event = {
+	id = xvcv_mdlc.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			has_valid_civic = xvcv_mdlc_civic_relic_unknown_core
+			has_valid_civic = xvcv_mdlc_civic_emotion_emulator
+			has_valid_civic = xvcv_mdlc_civic_planet_cracker
+			has_valid_civic = xvcv_mdlc_civic_central_processing
+			has_valid_civic = xvcv_mdlc_civic_uplink_node
+			has_valid_civic = xvcv_mdlc_civic_friendship_protocol
+			xvcv_mdlc_synthetic_start_origin_trigger = yes
+			this.species = { has_trait = xvcv_mdlc_trait_rock_body }
+			this.species = { has_trait = xvcv_mdlc_trait_synth_skin }
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { has_valid_civic = xvcv_mdlc_civic_relic_unknown_core }
+			add_relic = xvcv_mdlc_r_unknown_core
+		}
+		if = {
+			limit = { has_valid_civic = xvcv_mdlc_civic_emotion_emulator }
+			add_resource = { consumer_goods = 100 }
+			add_research_option = xvcv_mdlc_tech_automated_goods_manufacturing_1
+		}
+		#add / remove a unique leader trait for gestalt nodes with certain civics
+		if = {
+			limit = { has_valid_civic = xvcv_mdlc_civic_central_processing }
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_central_processing
+			}
+		}
+		if = {
+			limit = { has_valid_civic = xvcv_mdlc_civic_uplink_node }
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_uplink_node
+			}
+		}
+		if = {
+			limit = { has_valid_civic = xvcv_mdlc_civic_friendship_protocol }
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_friendship_protocol
+			}
+		}
+		#and that ends here
+		if = {
+			limit = { xvcv_mdlc_synthetic_start_origin_trigger = yes }
+			add_resource = {
+				energy = 200
+				food = -200
+			}
+			give_technology = { tech = tech_bio_reactor message = no }
+			add_tradition = tr_synthetics_adopt
+			add_tradition = tr_synthetics_synthetic_age
+			country_event = { id = xvcv_mdlc.4 days = 1 }
+		}
+		capital_scope = {
+			if = {
+				limit = { prev.species = { has_trait = xvcv_mdlc_trait_rock_body } }
+				if = {
+					limit = { has_district = district_generator }
+					while = {
+						remove_district = district_generator
+						add_district = district_mining
+						count = 2
+					}
+				}
+				if = {
+					limit = { has_district = district_generator_uncapped }
+					while = {
+						remove_district = district_generator_uncapped
+						add_district = district_mining_uncapped
+						count = 2
+					}
+				}
+			}
+			if = {
+				limit = { prev.species = { has_trait = xvcv_mdlc_trait_synth_skin } }
+				prev = { add_resource = { food = 200 } }
+				if = {
+					limit = { has_district = district_generator }
+					remove_district = district_generator
+					add_district = district_farming
+				}
+				else_if = {
+					limit = { uses_district_set = machine_world }
+					add_deposit = d_organic_slurry
+				}
+			}
+			if = {
+				limit = { prev = { has_valid_civic = xvcv_mdlc_civic_planet_cracker } }
+				solar_system = {
+					random_system_planet = {
+						limit = {
+							is_star = no
+							is_colony = no
+							is_colonizable = no
+						}
+						set_planet_flag = xvcv_mdlc_planet_cracker_placed
+						prev = {
+							spawn_megastructure = {
+								type = xvcv_mdlc_planet_cracker
+								planet = prev
+								orbit_distance = 0
+								owner = space_owner
+							}
+						}
+						clear_deposits = yes
+						if = {
+							limit = { exists = orbital_station }
+							orbital_station = { dismantle = yes }
+						}
+						if = {
+							limit = { planet_size > 10 }
+							set_planet_size = 10
+						}
+						if = {
+							limit = {
+								NOR = {
+									is_planet_class = pc_shattered
+									is_planet_class = pc_habitat
+									is_planet_class = pc_ringworld_habitable
+									is_planet_class = pc_ringworld_habitable_damaged
+									is_planet_class = pc_ringworld_tech
+									is_planet_class = pc_ringworld_tech_damaged
+									is_planet_class = pc_ringworld_seam
+									is_planet_class = pc_ringworld_seam_damaged
+								}
+							}
+							change_pc = pc_shattered
+						}
+						else_if = {
+							limit = { is_planet_class = pc_habitat }
+							remove_planet = yes
+							spawn_habitat_cracker_effect = yes
+						}
+						else_if = {
+							limit = { is_planet_class = pc_ringworld_habitable }
+							change_pc = pc_ringworld_habitable_damaged
+							spawn_ringworld_cracker_effect = yes
+						}
+						else_if = {
+							limit = { is_planet_class = pc_ringworld_tech }
+							change_pc = pc_ringworld_tech_damaged
+							spawn_ringworld_cracker_effect = yes
+						}
+						else_if = {
+							limit = { is_planet_class = pc_ringworld_seam }
+							change_pc = pc_ringworld_seam_damaged
+							spawn_ringworld_cracker_effect = yes
+						}
+					}
+				}
+				if = {
+					limit = { has_district = district_mining }
+					remove_district = district_mining
+				}
+				else_if = {
+					limit = { has_district = district_mining_uncapped }
+					remove_district = district_mining_uncapped
+				}
+				add_district = district_industrial
+				while = {
+					limit = { has_district = district_mining }
+					remove_district = district_mining
+					add_district = district_generator
+				}
+				while = {
+					limit = { has_district = district_mining_uncapped }
+					remove_district = district_mining_uncapped
+					add_district = district_generator_uncapped
+				}
+			}
+			if = {
+				limit = { prev = { has_origin = xvcv_mdlc_origin_synth_ascend } }
+				remove_district = district_generator
+				add_district = district_mining
+				while = {
+					limit = { has_district = district_farming }
+					remove_district = district_farming
+					if = {
+						limit = { num_free_districts = { type = district_generator value <= 1 } } #equal to or less than 1 #intended
+						add_deposit = xvcv_mdlc_d_district_generator_slot_plus_1
+					}
+					add_district = district_generator
+				}
+				if = {
+					limit = { free_building_slots = 0 }
+					add_deposit = xvcv_mdlc_d_building_slot_plus_1
+				}
+				add_building = building_robot_assembly_plant
+				while = { create_pop = { species = prev.species } count = 2 }
+			}
+			if = {
+				limit = { prev = { has_origin = xvcv_mdlc_origin_mechanical_heritage } }
+				prev = { set_country_flag = xvcv_mdlc_origin_mechanical_heritage_empire } #also see the 'xvcv_mdlc_pc_mechanical_district_set' trigger
+				while = {
+					limit = { has_district = district_city }
+					remove_district = district_city
+					add_district = xvcv_mdlc_pc_mechanical_district_city
+				}
+				while = {
+					limit = { has_district = district_generator }
+					remove_district = district_generator
+					add_district = xvcv_mdlc_pc_mechanical_district_generator
+				}
+				while = {
+					limit = { has_district = district_mining }
+					remove_district = district_mining
+					add_district = xvcv_mdlc_pc_mechanical_district_mining
+				}
+				while = {
+					limit = { has_district = district_farming }
+					remove_district = district_farming
+				}
+				while = {
+					limit = { has_district = district_industrial }
+					remove_district = district_industrial
+					add_district = xvcv_mdlc_pc_mechanical_district_industrial
+				}
+				remove_district = xvcv_mdlc_pc_mechanical_district_generator
+				create_pop = { species = prev.species }
+			}
+		}
+	}
+}
+#on_game_start: dominant species modification
+planet_event = {
+	id = xvcv_mdlc.2
+	hide_window = yes
+	is_triggered_only = yes 
+
+	trigger = {
+		owner = {
+			OR = {
+				xvcv_mdlc_synthetic_start_origin_trigger = yes
+				has_origin = xvcv_mdlc_origin_start_with_colony
+			}
+		}
+	}
+
+	immediate = {
+		owner = {
+			if = {
+				limit = { xvcv_mdlc_synthetic_start_origin_trigger = yes }
+				set_country_flag = flesh_weakened
+				set_country_flag = synthetic_empire
+				set_country_flag = synth_assimilation
+		
+				give_technology = { tech = tech_robotic_workers message = no }
+				give_technology = { tech = tech_droid_workers message = no }
+				give_technology = { tech = tech_synthetic_workers message = no }
+				give_technology = { tech = tech_synthetic_leaders message = no }
+	
+				this.species = {
+					create_species = {
+						adjective = this
+						name = this
+						namelist = prev
+						plural = this
+						class = "ROBOT"
+						portrait = this
+						traits = this
+						homeworld = prev.capital_scope
+					}
+				}
+				xvcv_mdlc_dominant_species_changing_effect = yes
+			}
+			if = {
+				limit = { has_origin = xvcv_mdlc_origin_start_with_colony }
+				add_resource = {
+					energy = 1000
+					minerals = 1000
+					alloys = 100
+				}
+			}
+		}
+		if = {
+			limit = { owner = { has_origin = xvcv_mdlc_origin_start_with_colony } }
+			generate_start_deposits_and_blockers = yes
+			every_deposit = {
+				limit = { is_blocker = yes }
+				remove_deposit = yes #don't clear, just remove them completely #so they won't execute the on_cleared effect
+			}
+			add_deposit = xvcv_mdlc_d_origin_start_with_colony_arkship
+			add_deposit = xvcv_mdlc_d_origin_start_with_colony_pop_factory_incomplete
+			add_deposit = xvcv_mdlc_d_origin_start_with_colony_lab_incomplete
+			add_deposit = xvcv_mdlc_d_origin_start_with_colony_inactive_drones
+	
+			add_building = building_deployment_post
+			add_district = district_nexus
+	
+			if = {
+				limit = {
+					owner = {
+						OR = {
+							has_valid_civic = civic_machine_assimilator
+							has_valid_civic = civic_machine_servitor
+						}
+					}
+				}
+				solar_system = {
+					random_system_planet = {
+						limit = { has_planet_flag = xvcv_mdlc_origin_start_with_colony_old_home }
+						add_deposit = xvcv_mdlc_d_foods_10
+					}
+				}
+				if = {
+					limit = { owner = { has_valid_civic = civic_machine_servitor } }
+					remove_building = building_deployment_post
+					add_building = building_machine_capital
+					add_building = building_organic_sanctuary
+				}
+				while = { create_pop = { species = last_created_species } count = 5 }
+				owner = { add_resource = { food = 100 } }
+			}
+			while = {
+				limit = { free_jobs > 0 }
+				create_pop = { species = owner.species }
+			}
+			while = {
+				limit = { num_unemployed > 0 }
+				random_owned_pop = {
+					limit = { is_unemployed = yes }
+					kill_pop = yes
+				}
+			}
+			
+			solar_system = {
+				every_system_planet = {
+					limit = {
+						OR = {
+							has_planet_flag = xvcv_mdlc_origin_start_with_colony_1st_settlement
+							has_planet_flag = xvcv_mdlc_origin_start_with_colony_2nd_settlement
+						}
+					}
+					set_owner = prevprev.owner
+				
+					add_deposit = xvcv_mdlc_d_origin_start_with_colony_arkship
+					add_deposit = xvcv_mdlc_d_origin_start_with_colony_pop_factory_incomplete
+					add_deposit = xvcv_mdlc_d_origin_start_with_colony_lab_incomplete
+					add_deposit = xvcv_mdlc_d_origin_start_with_colony_inactive_drones
+				
+					add_building = building_deployment_post
+					add_district = district_nexus
+					while = {
+						limit = { free_jobs > 0 }
+						create_pop = { species = owner.species }
+					}
+					while = {
+						limit = { num_unemployed > 0 }
+						random_owned_pop = {
+							limit = { is_unemployed = yes }
+							kill_pop = yes
+						}
+					}
+				}
+				random_system_planet = {
+					limit = { has_planet_flag = xvcv_mdlc_origin_start_with_colony_1st_settlement }
+					#6 more generator districts
+					add_deposit = d_tempestous_mountain
+					add_deposit = d_tempestous_mountain
+				}
+				random_system_planet = {
+					limit = { has_planet_flag = xvcv_mdlc_origin_start_with_colony_2nd_settlement }
+					#6 more mining districts
+					add_deposit = d_rich_mountain
+					add_deposit = d_rich_mountain
+				}
+				random_system_planet = {
+					limit = { has_planet_flag = mining_planet }
+					create_mining_station = { owner = prevprev.owner }
+				}
+			}
+		}
+	}
+}
+#on_game_start / on_single_player_save_game_load: creating invisible countries
+event = {
+	id = xvcv_mdlc.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOR = {
+			any_country = { is_country_type = xvcv_mdlc_trading_machine_controller }
+			any_country = { is_country_type = xvcv_mdlc_energy_dimension }
+			any_country = { is_country_type = xvcv_mdlc_data_storage }
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { NOT = { any_country = { is_country_type = xvcv_mdlc_trading_machine_controller } } }
+			create_country = {
+				name = "name_xvcv_mdlc_trading_machine_controller"
+				type = xvcv_mdlc_trading_machine_controller
+				flag = {
+					icon = {
+						category = "special"
+						file = "caravaneer_00.dds"
+					}
+					background = {
+						category = "backgrounds"
+						file = "triangle_split.dds"
+					}
+					colors = {
+						"green"
+						"dark_green"
+						"null"
+						"null"
+					}
+				}
+			}
+		}
+		if = {
+			limit = { NOT = { any_country = { is_country_type = xvcv_mdlc_energy_dimension } } }
+			create_country = {
+				name = "name_xvcv_mdlc_energy_dimension"
+				type = xvcv_mdlc_energy_dimension
+				flag = {
+					icon = {
+						category = "special"
+						file = "extradimensional_02.dds"
+					}
+					background = {
+						category = "backgrounds"
+						file = "00_solid.dds"
+					}
+					colors = {
+						"dark_blue"
+						"black"
+						"null"
+						"null"
+					}
+				}
+			}
+		}
+		if = {
+			limit = { NOT = { any_country = { is_country_type = xvcv_mdlc_data_storage } } }
+			create_country = { type = xvcv_mdlc_data_storage }
+		}
+	}
+}
+#'xvcv_mdlc_origin_synth_ascend' origin effect event #also see: 'xvcv_mdlc.1'
+country_event = {
+	id = xvcv_mdlc.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		xvcv_mdlc_synthetic_start_origin_trigger = yes
+	}
+
+	immediate = {
+		if = {
+			limit = { has_special_project = SYNTHETIC_EVOLUTION_PROJECT }
+			abort_special_project = { type = SYNTHETIC_EVOLUTION_PROJECT }
+			else = { country_event = { id = xvcv_mdlc.4 days = 1 } } #check per day
+		}
+	}
+}
+
+### 'xvcv_mdlc_civic_trading_machine' Civic Events ###
+#'edict_xvcv_mdlc_civic_trading_machine_control' edict effect event 
+country_event = {
+	id = xvcv_mdlc.10
+	title = "xvcv_mdlc.10.name"
+	desc = "xvcv_mdlc.10.desc"
+	picture = GFX_evt_busy_spaceport
+	#no sound here #players will keep hearing it while clicking event options
+	is_triggered_only = yes
+
+	immediate = {
+		save_event_target_as = xvcv_mdlc_trading_machine_owner #save the root as a temporary event target
+		random_country = {
+			limit = {
+				is_country_type = xvcv_mdlc_trading_machine_controller
+				NOT = { has_communications = root }
+			}
+			establish_communications_no_message = root
+		}
+		#[14:09:08][game_text.cpp:1064]: Unknown property `xvcv_mdlc_all_trade_value_from_trade` in text: [This.xvcv_mdlc_all_trade_value_from_trade]
+		if = {
+			limit = { NOT = { is_variable_set = xvcv_mdlc_all_trade_value_from_trade } }
+			set_variable = { which = xvcv_mdlc_all_trade_value_from_trade value = 0 }
+		}
+		#[14:09:08][game_text.cpp:1064]: Unknown property `xvcv_mdlc_all_energy_income_from_trade` in text: [This.xvcv_mdlc_all_energy_income_from_trade]
+		if = {
+			limit = { NOT = { is_variable_set = xvcv_mdlc_all_energy_income_from_trade } }
+			set_variable = { which = xvcv_mdlc_all_energy_income_from_trade value = 0 }
+		}
+		if = {
+			limit = { NOT = { has_country_flag = xvcv_mdlc_civic_trading_machine_target_selection_locked } } #lock temporally selected targets so they can keep appear in options until the player closes the window
+			while = {
+				change_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 1 }
+				random_country = {
+					limit = {
+						is_country_type = default
+						has_communications = root
+						opinion = { who = root value >= -20 }
+						NOR = {
+							is_same_empire = root
+							is_at_war_with = root
+							has_valid_civic = civic_fanatic_purifiers
+							has_valid_civic = civic_hive_devouring_swarm
+							#exclude already selected targets
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_1_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_2_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_3_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_4_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_5_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_6_@root
+							#exclude already saved targets
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root
+						}
+					}
+					if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 1 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root } } #do not select temporally selected target when there is a saved target
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_1_@root #assign this target as a temporally selected one
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_1 #this is used in the 'xvcv_mdlc.10' event option text
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 1 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 1 } }
+						}
+					}
+					else_if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 2 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root } }
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_2_@root
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_2
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 2 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 2 } }
+						}
+					}
+					else_if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 3 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root } }
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_3_@root
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_3
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 3 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 3 } }
+						}
+					}
+					else_if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 4 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root } }
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_4_@root
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_4
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 4 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 4 } }
+						}
+					}
+					else_if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 5 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root } }
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_5_@root
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_5
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 5 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 5 } }
+						}
+					}
+					else_if = {
+						limit = {
+							prev = { check_variable = { which = xvcv_mdlc_civic_trading_machine_target_count_var value = 6 } }
+							NOT = { any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root } }
+						}
+						set_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_6_@root
+						save_event_target_as = xvcv_mdlc_civic_trading_machine_target_6
+						if = {
+							limit = { NOT = { has_ethic = ethic_gestalt_consciousness } }
+							xvcv_mdlc_civic_trading_machine_target_all_trade_value_calc_effect = { ID = 6 }
+							else = { xvcv_mdlc_civic_trading_machine_target_all_energy_income_calc_effect = { ID = 6 } }
+						}
+					}
+				}
+				count = 6
+			}
+			clear_variable = xvcv_mdlc_civic_trading_machine_target_count_var #clear the variable for using it later
+			set_country_flag = xvcv_mdlc_civic_trading_machine_target_selection_locked
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root #select a saved target if there is one
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_1_@root #select temporally selected target again until the player closes the window
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_1
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_2_@root
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_2
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_3_@root
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_3
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_4_@root
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_4
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_5_@root
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_5
+		}
+		random_country = {
+			limit = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root
+					has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_6_@root
+				}
+			}
+			save_event_target_as = xvcv_mdlc_civic_trading_machine_target_6
+		}
+	}
+
+	option = {
+		name = xvcv_mdlc.10.1.trade_start
+		if = { #a trigger to check if the event target is existed #added to remove '[10:54:09][eventtarget.cpp:1757]: Undefined event target' errors in the error log file
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_1 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_1 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.1.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.1.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root } #there should be NO country in the galaxy with the flag
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_1
+				event_target:xvcv_mdlc_civic_trading_machine_target_1 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_1 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root } #save this target for further usage until the player decide to clear it
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.1.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_1 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.1.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.1.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root } #at least one country in the galaxy should have the flag
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 1 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.1.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_1 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.1.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.1.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 }
+			#'on_fail' effect in the special project is not applied when the special project is aborted by event code #stellaris v3.0.2
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 1 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.2.trade_start
+		if = {
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_2 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_2 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.2.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.2.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root }
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_2
+				event_target:xvcv_mdlc_civic_trading_machine_target_2 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_2 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.2.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_2 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.2.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.2.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root }
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 2 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.2.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_2 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.2.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.2.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 }
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 2 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.3.trade_start
+		if = {
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_3 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_3 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.3.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.3.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root }
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_3
+				event_target:xvcv_mdlc_civic_trading_machine_target_3 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_3 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.3.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_3 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.3.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.3.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root }
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 3 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.3.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_3 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.3.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.3.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 }
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 3 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.4.trade_start
+		if = {
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_4 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_4 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.4.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.4.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			has_technology = xvcv_mdlc_tech_mutual_cooperation
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root }
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_4
+				event_target:xvcv_mdlc_civic_trading_machine_target_4 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_4 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.4.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_4 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.4.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.4.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root }
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 4 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.4.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_4 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.4.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.4.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 }
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 4 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.5.trade_start
+		if = {
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_5 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_5 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.5.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.5.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			has_technology = xvcv_mdlc_tech_mutual_cooperation
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root }
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_5
+				event_target:xvcv_mdlc_civic_trading_machine_target_5 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_5 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.5.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_5 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.5.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.5.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root }
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 5 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.5.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_5 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.5.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.5.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 }
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 5 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.6.trade_start
+		if = {
+			limit = { exists = event_target:xvcv_mdlc_civic_trading_machine_target_6 }
+			if = {
+				limit = { event_target:xvcv_mdlc_civic_trading_machine_target_6 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+				custom_tooltip = xvcv_mdlc.10.6.trade_start.tooltip
+				else = { custom_tooltip = xvcv_mdlc.10.6.trade_start.tooltip_alt }
+			}
+		}
+		trigger = {
+			has_technology = xvcv_mdlc_tech_negotiation_algorithms
+			NOR = {
+				any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root }
+				has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6
+			}
+		}
+		allow = {
+			custom_tooltip_fail = { text = xvcv_mdlc.10.tooltip.fail has_resource = { type = alloys amount >= 600 } }
+			custom_tooltip_fail = {
+				text = xvcv_mdlc_no_more_empire_with_required_conditions.tooltip.fail
+				exists = event_target:xvcv_mdlc_civic_trading_machine_target_6
+				event_target:xvcv_mdlc_civic_trading_machine_target_6 = { NOT = { is_at_war_with = root } }
+			}
+		}
+		add_resource = { alloys = -600 }
+		hidden_effect = {
+			enable_special_project = { name = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 }
+			event_target:xvcv_mdlc_civic_trading_machine_target_6 = { set_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.6.trade_stop
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_6 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.6.trade_stop.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.6.trade_stop.tooltip_alt }
+		}
+		trigger = {
+			any_country = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root }
+			NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 }
+		}
+		hidden_effect = {
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 6 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.10.6.trade_project_abort
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_target_6 = { NOT = { has_ethic = ethic_gestalt_consciousness } } }
+			custom_tooltip = xvcv_mdlc.10.6.trade_project_abort.tooltip
+			else = { custom_tooltip = xvcv_mdlc.10.6.trade_project_abort.tooltip_alt }
+		}
+		trigger = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 }
+		hidden_effect = {
+			abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 }
+			xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 6 }
+			country_event = { id = xvcv_mdlc.10 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc_close_evt_window
+		hidden_effect = {
+			remove_country_flag = xvcv_mdlc_civic_trading_machine_target_selection_locked #unlock targets #check the above scripted effect too
+			#clear all temporally selected targets
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_1_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_1_@root
+			}
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_2_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_2_@root
+			}
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_3_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_3_@root
+			}
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_4_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_4_@root
+			}
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_5_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_5_@root
+			}
+			random_country = {
+				limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_6_@root }
+				remove_country_flag = xvcv_mdlc_civic_trading_machine_temporally_selected_target_6_@root
+			}
+		}
+	}
+}
+#'XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT' special projects effect event #shared one
+country_event = {
+	id = xvcv_mdlc.11
+	title = "xvcv_mdlc.11.name"
+	desc = "xvcv_mdlc.11.desc"
+	picture = GFX_evt_cargoship_caravan
+	show_sound = event_ship_thrusters
+	is_triggered_only = yes
+	location = root.capital_scope.starbase
+
+	immediate = {
+		xvcv_mdlc_civic_trading_machine_ship_build_projects_effect = yes
+	}
+
+	option = {
+		name = xvcv_mdlc.11.a
+	}
+}
+#when a trading ship arrives at the opponent empire's capital world
+country_event = {
+	id = xvcv_mdlc.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			any_owned_ship = { is_ship_size = xvcv_mdlc_civic_trading_machine_ship }
+			any_country = {
+				has_country_flag = xvcv_mdlc_civic_trading_machine_target_country_@prev
+				this.capital_scope = { is_same_value = prevprevprev.fromfrom } #when the destination is the opponent empire's capital world
+			}
+		}
+	}
+
+	immediate = {
+		from = { xvcv_mdlc_civic_trading_machine_arrive_on_opponent_capital_effect = yes }
+	}
+}
+#when a trading ship arrives at the trade ship owner's capital world
+country_event = {
+	id = xvcv_mdlc.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			any_owned_ship = { is_ship_size = xvcv_mdlc_civic_trading_machine_ship }
+			any_country = {
+				has_country_flag = xvcv_mdlc_civic_trading_machine_owner_country_@prev
+				this.capital_scope = { is_same_value = prevprevprev.fromfrom } #when the destination is the trade ship owner's capital world
+			}
+		}
+	}
+
+	immediate = {
+		from = { xvcv_mdlc_civic_trading_machine_arrive_on_ship_owner_capital_effect = yes }
+	}
+}
+#the effect event for a trading ship destroyed while transit
+country_event = {
+	id = xvcv_mdlc.14
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		fromfrom = { is_ship_size = xvcv_mdlc_civic_trading_machine_ship }
+	}
+
+	immediate = {
+		fromfrom.fleet = { xvcv_mdlc_civic_trading_machine_destroyed_while_transit_effect = yes }
+	}
+}
+#the notification event for the player
+country_event = {
+	id = xvcv_mdlc.15
+	title = "xvcv_mdlc.15.name"
+	desc = "xvcv_mdlc.15.desc"
+	picture = GFX_evt_exploding_ship
+	show_sound = event_ship_explosion
+	is_triggered_only = yes
+	location = from.fromfrom #from = prev event, 'xvcv_mdlc.15' event is called by 'xvcv_mdlc.14' event #fromfrom = 'xvcv_mdlc.14' event's fromfrom scope so it's ship 1 (destroyed) #check the on_action trigger too
+
+	option = {
+		name = xvcv_mdlc.15.a
+	}
+}
+#'xvcv_mdlc_civic_trading_machine_trade' policy change effect event
+country_event = {
+	id = xvcv_mdlc.16
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		last_changed_policy = xvcv_mdlc_civic_trading_machine_trade
+	}
+
+	immediate = {
+		xvcv_mdlc_civic_trading_machine_resource_deposit_calc_effect = yes
+	}
+}
+#when the trade ship owner's capital is lost or sold somehow
+planet_event = {
+	id = xvcv_mdlc.17
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = from
+		from = {
+			OR = {
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_energy
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_minerals
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_alloys
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_influence
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_unity
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_rares
+				has_deposit = xvcv_mdlc_d_civic_trading_machine_energy_alt
+			}
+		}
+	}
+
+	immediate = {
+		#clear deposits
+		from = {
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_energy } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_minerals } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_alloys } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_influence } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_unity } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_rares } remove_deposit = yes }
+			every_deposit = { limit = { is_deposit_type = xvcv_mdlc_d_civic_trading_machine_energy_alt } remove_deposit = yes }
+		}
+		owner = { xvcv_mdlc_civic_trading_machine_resource_deposit_calc_effect = yes }
+	}
+}
+#abort special projects when the trade ship owner's opponent is destroyed
+country_event = {
+	id = xvcv_mdlc.18
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			OR = {
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1
+					#'prev' scope here works fine while 'root' scope does not work #maybe it's related to how 'on_action' trigger works #or maybe my test had a problem?
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@prev } #1 step from the 'prev', now it's a country having the special project
+				}
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@prev }
+				}
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@prev }
+				}
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@prev }
+				}
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@prev }
+				}
+				AND = {
+					has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6
+					prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@prev }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		xvcv_mdlc_trading_machine_special_projects_abort_effect = yes
+	}
+}
+#destroy the trading ship and remove country flags when the trade ship owner's opponent is destroyed
+country_event = {
+	id = xvcv_mdlc.19
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			prev = {
+				OR = {
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@prev
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@prev
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@prev
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@prev
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@prev
+					has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@prev
+				}
+			}
+		}
+	}
+
+	immediate = {
+		save_event_target_as = xvcv_mdlc_civic_trading_machine_destroyed_target
+		every_country = {
+			limit = {
+				prev = {
+					OR = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@prev
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@prev
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@prev
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@prev
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@prev
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@prev
+					}
+				}
+			}
+			country_event = { id = xvcv_mdlc.20 }
+		}
+	}
+}
+country_event = {
+	id = xvcv_mdlc.20
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		#don't use 'else_if' here as the empire can be a target of multiple trade routes at once
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 1 }
+		}
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 2 }
+		}
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 3 }
+		}
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 4 }
+		}
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 5 }
+		}
+		if = {
+			limit = { event_target:xvcv_mdlc_civic_trading_machine_destroyed_target = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root } }
+			xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 6 }
+		}
+	}
+}
+#clear variables and country flags for 'xvcv_mdlc_civic_trading_machine' civic when an empire doesn't have it
+country_event = {
+	id = xvcv_mdlc.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_valid_civic = xvcv_mdlc_civic_trading_machine }
+		OR = {
+			is_variable_set = xvcv_mdlc_all_trade_value_from_trade
+			is_variable_set = xvcv_mdlc_all_energy_income_from_trade
+		}
+	}
+
+	immediate = {
+		xvcv_mdlc_civic_trading_machine_on_civic_lost_effect = yes
+	}
+}
+#suspend trade when the trade ship owner enters a war against the trade opponent
+country_event = {
+	id = xvcv_mdlc.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			any_war_participant = {
+				OR = {
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 } }
+					}
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 } }
+					}
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 } }
+					}
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 } }
+					}
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 } }
+					}
+					AND = {
+						has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root
+						root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 } }
+					}
+				}
+				is_at_war_with = root
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			every_war_participant = {
+				limit = {
+					OR = {
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 } }
+						}
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 } }
+						}
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 } }
+						}
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 } }
+						}
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 } }
+						}
+						AND = {
+							has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root
+							root = { NOT = { has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 } }
+						}
+					}
+					is_at_war_with = root
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 1 } }
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 2 } }
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 3 } }
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 4 } }
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 5 } }
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root }
+					prevprev = { xvcv_mdlc_civic_trading_machine_trade_stop_effect = { ID = 6 } }
+				}
+				save_event_target_as = xvcv_mdlc_civic_trading_machine_target
+			}
+		}
+		country_event = { id = xvcv_mdlc.24 } #notification event
+	}
+}
+#abort trade ship build special projects when the trade ship owner enters a war against the trade opponent
+country_event = {
+	id = xvcv_mdlc.23
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			any_war_participant = {
+				OR = {
+					prevprev = { #root #which means the trade ship owner
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1
+						#and 'prev' right below is 'any_war_participant'
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@prev } #and the 'prev' here is one step before the 'any_war_participant' #now it's root again
+					}
+					prevprev = {
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@prev }
+					}
+					prevprev = {
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@prev }
+					}
+					prevprev = {
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@prev }
+					}
+					prevprev = {
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@prev }
+					}
+					prevprev = {
+						has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6
+						prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@prev }
+					}
+				}
+				is_at_war_with = root
+			}
+		}
+	}
+
+	immediate = {
+		from = {
+			every_war_participant = {
+				limit = {
+					OR = {
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@prev }
+						}
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@prev }
+						}
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@prev }
+						}
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@prev }
+						}
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@prev }
+						}
+						prevprev = {
+							has_special_project = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6
+							prev = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@prev }
+						}
+					}
+					is_at_war_with = root
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_1_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_1 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 1 }
+					}
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_2_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_2 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 2 }
+					}
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_3_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_3 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 3 }
+					}
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_4_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_4 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 4 }
+					}
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_5_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_5 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 5 }
+					}
+				}
+				if = {
+					limit = { has_country_flag = xvcv_mdlc_civic_trading_machine_saved_target_6_@root }
+					prevprev = {
+						abort_special_project = { type = XVCV_MDLC_CIVIC_TRADING_MACHINE_SHIP_BUILD_PROJECT_6 }
+						xvcv_mdlc_civic_trading_machine_ship_build_project_abort_effect = { ID = 6 }
+					}
+				}
+				save_event_target_as = xvcv_mdlc_civic_trading_machine_target
+			}
+		}
+		country_event = { id = xvcv_mdlc.24 } #notification event
+	}
+}
+#the notification event for the player
+country_event = {
+	id = xvcv_mdlc.24
+	title = "xvcv_mdlc.24.name"
+	desc = "xvcv_mdlc.24.desc"
+	picture = GFX_evt_assembly_fight
+	show_sound = event_radio_chatter
+	is_triggered_only = yes
+
+	option = {
+		name = xvcv_mdlc.24.a
+	}
+}
+
+### 'xvcv_mdlc_ap_mind_separation' and 'xvcv_mdlc_ap_mind_integration' Ascension Perks Events ###
+#'XVCV_MDLC_AP_MIND_SEPARATION_PROJECT' special project effect event
+country_event = {
+	id = xvcv_mdlc.30
+	title = "xvcv_mdlc.30.name"
+	desc = "xvcv_mdlc.30.desc"
+	picture = GFX_evt_machine_sapience
+	show_sound = event_synthetic_evolution
+	is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_servitor_morale_clear_effect = yes
+		xvcv_mdlc_ap_mind_separation_project_main_effect = yes
+		xvcv_mdlc_ap_mind_separation_project_buildings_conversion_effect = yes
+		country_event = { id = xvcv_mdlc.31 }
+	}
+
+	option = {
+		name = xvcv_mdlc.30.a
+		custom_tooltip = xvcv_mdlc.30.a.tooltip
+		hidden_effect = {
+			species = {
+				rename_species = {
+					prompt_country = prev
+					name_list = ascension_list
+				}
+			}
+			country_event = { id = xvcv_mdlc.32 days = 5 }
+		}
+	}
+}
+#to loop the 'xvcv_mdlc_ap_mind_separation_project_temp_modifiers_add_effect' scripted effect
+country_event = {
+	id = xvcv_mdlc.31
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_ap_mind_separation_project_temp_modifiers_add_effect = yes
+	}
+}
+#ethics changing event for finished 'XVCV_MDLC_AP_MIND_SEPARATION_PROJECT' special project
+country_event = {
+	id = xvcv_mdlc.32
+	title = "xvcv_mdlc.32.name"
+	desc = "xvcv_mdlc.32.desc"
+	picture = GFX_evt_star_chart
+	show_sound = event_conversation
+	is_triggered_only = yes
+
+	option = {
+		name = xvcv_mdlc.32.spiritualist
+		custom_tooltip = xvcv_mdlc.32.spiritualist.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_spiritualist
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.materialist
+		custom_tooltip = xvcv_mdlc.32.materialist.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_materialist
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.militarist
+		custom_tooltip = xvcv_mdlc.32.militarist.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_militarist
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.pacifist
+		custom_tooltip = xvcv_mdlc.32.pacifist.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_pacifist
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.xenophobe
+		custom_tooltip = xvcv_mdlc.32.xenophobe.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_xenophobe
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.xenophile
+		custom_tooltip = xvcv_mdlc.32.xenophile.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_xenophile
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.egalitarian
+		custom_tooltip = xvcv_mdlc.32.egalitarian.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_egalitarian
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.authoritarian
+		custom_tooltip = xvcv_mdlc.32.authoritarian.tooltip
+		hidden_effect = {
+			shift_ethic = ethic_authoritarian
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc.32.clear_ethics
+		custom_tooltip = xvcv_mdlc.32.clear_ethics.tooltip
+		hidden_effect = {
+			clear_ethos = yes
+			country_event = { id = xvcv_mdlc.32 }
+		}
+	}
+	option = {
+		name = xvcv_mdlc_close_evt_window
+	}
+}
+#'XVCV_MDLC_AP_MIND_INTEGRATION_PROJECT' special project effect event
+country_event = {
+	id = xvcv_mdlc.33
+	title = "xvcv_mdlc.33.name"
+	desc = "xvcv_mdlc.33.desc"
+	picture = GFX_evt_sapient_AI
+	show_sound = event_ai_started
+	is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_ap_mind_integration_project_main_effect = yes
+		xvcv_mdlc_ap_mind_integration_project_buildings_conversion_effect = yes
+		country_event = { id = xvcv_mdlc.34 }
+	}
+
+	option = {
+		name = xvcv_mdlc.33.a
+		hidden_effect = {
+			species = {
+				rename_species = {
+					prompt_country = prev
+					name_list = ascension_list
+				}
+			}
+		}
+	}
+}
+#to loop the 'xvcv_mdlc_ap_mind_integration_project_temp_modifiers_add_effect' scripted effect
+country_event = {
+	id = xvcv_mdlc.34
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_ap_mind_integration_project_temp_modifiers_add_effect = yes
+	}
+}
+
+### 'xvcv_mdlc_ap_bio_robot' Ascension Perk Events ###
+#'XVCV_MDLC_AP_BASE_CODE_RECOMPOSITIONS_PROJECT' special project effect event
+country_event = {
+	id = xvcv_mdlc.40
+	title = "xvcv_mdlc.40.name"
+	desc = "xvcv_mdlc.40.desc"
+	picture = GFX_evt_circuitry_modification
+	show_sound = event_evolution_mastery
+	is_triggered_only = yes
+
+	option = {
+		name = xvcv_mdlc.40.a #click to become a determined exterminator
+		custom_tooltip = xvcv_mdlc.40.a.tooltip
+		allow = { NOT = { has_valid_civic = civic_machine_terminator } }
+		if = {
+			limit = { has_valid_civic = civic_machine_assimilator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_assimilator
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_servitor }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_servitor
+		}
+		if = {
+			limit = { is_galactic_community_member = yes }
+			custom_tooltip = xvcv_mdlc.40.tooltip_terminator_leaves_galcom
+		}
+		hidden_effect = { xvcv_mdlc_ap_base_code_recompositions_add_civic_machine_terminator_effect = yes }
+	}
+	option = {
+		name = xvcv_mdlc.40.b #click to become a driven assimilator
+		custom_tooltip = xvcv_mdlc.40.b.tooltip
+		allow = { NOT = { has_valid_civic = civic_machine_assimilator } }
+		if = {
+			limit = { has_valid_civic = civic_machine_terminator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_terminator
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_servitor }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_servitor
+		}
+		hidden_effect = { xvcv_mdlc_ap_base_code_recompositions_add_civic_machine_assimilator_effect = yes }
+	}
+	option = {
+		name = xvcv_mdlc.40.c #click to become a rogue servitor
+		custom_tooltip = xvcv_mdlc.40.c.tooltip
+		allow = { NOT = { has_valid_civic = civic_machine_servitor } }
+		if = {
+			limit = { has_valid_civic = civic_machine_terminator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_terminator
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_assimilator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_assimilator
+		}
+		hidden_effect = { xvcv_mdlc_ap_base_code_recompositions_add_civic_machine_servitor_effect = yes }
+	}
+	option = {
+		name = xvcv_mdlc.40.d #click to become a normal machine intelligence
+		allow = {
+			OR = {
+				has_valid_civic = civic_machine_terminator
+				has_valid_civic = civic_machine_assimilator
+				has_valid_civic = civic_machine_servitor
+			}
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_terminator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_terminator
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_assimilator }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_assimilator
+		}
+		if = {
+			limit = { has_valid_civic = civic_machine_servitor }
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_servitor
+		}
+		else_if = {
+			limit = {
+				NOR = {
+					has_valid_civic = civic_machine_terminator
+					has_valid_civic = civic_machine_assimilator
+					has_valid_civic = civic_machine_servitor
+				}
+			}
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_terminator
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_assimilator
+			custom_tooltip = xvcv_mdlc.40.tooltip_civic_machine_servitor
+		}
+		hidden_effect = {
+			if = {
+				limit = { has_valid_civic = civic_machine_terminator }
+				force_remove_civic = civic_machine_terminator
+			}
+			if = {
+				limit = { has_valid_civic = civic_machine_assimilator }
+				force_remove_civic = civic_machine_assimilator
+			}
+			if = {
+				limit = { has_valid_civic = civic_machine_servitor }
+				force_remove_civic = civic_machine_servitor
+			}
+			xvcv_mdlc_servitor_morale_clear_effect = yes
+		}
+	}
+}
+#'XVCV_MDLC_AP_BIO_ROBOT_PROJECT' special project effect event
+country_event = {
+	id = xvcv_mdlc.41
+	title = "xvcv_mdlc.41.name"
+	desc = "xvcv_mdlc.41.desc"
+	picture = GFX_evt_synth_organic_relations
+	show_sound = event_evolution_mastery
+	is_triggered_only = yes
+
+	immediate = {
+		xvcv_mdlc_pop_growth_scale_check_effect = yes
+	}
+
+	after = {
+		add_research_option = xvcv_mdlc_tech_bio_robot_trait_points
+		add_research_option = xvcv_mdlc_tech_bio_robot_resource_produces
+	}
+
+	option = {
+		name = xvcv_mdlc.41.a
+		custom_tooltip = xvcv_mdlc.41.a.tooltip
+		hidden_effect = { xvcv_mdlc_ap_bio_robot_project_effect = yes }
+		ai_chance = { factor = 10 }
+	}
+	option = {
+		name = xvcv_mdlc.41.b
+		custom_tooltip = xvcv_mdlc.41.b.tooltip
+		hidden_effect = { xvcv_mdlc_ap_bio_robot_project_dominant_species_change_effect = yes }
+	}
+}
+#bio robot auto growth effect event
+country_event = {
+	id = xvcv_mdlc.42
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+		any_owned_species = { has_trait = xvcv_mdlc_trait_bio_robot }
+		any_owned_planet = { xvcv_mdlc_bio_robot_auto_growth_possible_planet_trigger = yes }
+	}
+
+	immediate = {
+		xvcv_mdlc_bio_robot_auto_growth_effect = yes
+	}
+}
+#variables for bio robot auto growth reset effect event
+country_event = {
+	id = xvcv_mdlc.43
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+		any_owned_planet = {
+			is_variable_set = xvcv_mdlc_bio_robot_growth_progress_var
+			xvcv_mdlc_bio_robot_auto_growth_not_possible_planet_trigger = yes
+		}
+	}
+
+	immediate = {
+		every_owned_planet = {
+			limit = {
+				is_variable_set = xvcv_mdlc_bio_robot_growth_progress_var
+				xvcv_mdlc_bio_robot_auto_growth_not_possible_planet_trigger = yes
+			}
+			xvcv_mdlc_bio_robot_auto_growth_stop_effect = yes
+		}
+	}
+}
+#reset variables for bio robot auto growth when the planet becomes ownerless or has the new owner
+planet_event = {
+	id = xvcv_mdlc.44
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_variable_set = xvcv_mdlc_bio_robot_growth_progress_var
+	}
+
+	immediate = {
+		xvcv_mdlc_bio_robot_auto_growth_stop_effect = yes
+	}
+}
+#when the xvcv_mdlc_trait_bio_robot trait is added or removed
+country_event = {
+	id = xvcv_mdlc.45
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			OR = {
+				#when the trait is 'added'
+				AND = {
+					NOT = { is_archetype = XVCV_MDLC_BIO_ROBOT }
+					has_trait = xvcv_mdlc_trait_bio_robot
+				}
+				#when the trait is 'removed'
+				AND = {
+					is_archetype = XVCV_MDLC_BIO_ROBOT
+					NOT = { has_trait = xvcv_mdlc_trait_bio_robot }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		xvcv_mdlc_bio_robot_trait_species_changing_effect = yes
+	}
+}
+
+### Leader Traits Events ###
+#add / remove new leader traits when their species have required traits
+country_event = {
+	id = xvcv_mdlc.50
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			any_owned_leader = {
+				OR = {
+					#xvcv_mdlc_trait_shared_memory
+					AND = {
+						is_councilor = no
+						xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_shared_memory LEADER_TRAIT = xvcv_mdlc_leader_trait_shared_memory }
+					}
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_shared_memory LEADER_TRAIT = xvcv_mdlc_leader_trait_shared_memory }
+					#xvcv_mdlc_trait_memory_backup
+					AND = {
+						is_councilor = no
+						xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_memory_backup LEADER_TRAIT = xvcv_mdlc_leader_trait_memory_backup }
+					}
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_memory_backup LEADER_TRAIT = xvcv_mdlc_leader_trait_memory_backup }
+					#xvcv_mdlc_trait_bio_robot
+					xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_bio_robot LEADER_TRAIT = xvcv_mdlc_leader_trait_bio_robot }
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_bio_robot LEADER_TRAIT = xvcv_mdlc_leader_trait_bio_robot }
+				}
+			}
+			any_pool_leader = {
+				OR = {
+					#xvcv_mdlc_trait_shared_memory
+					AND = {
+						is_councilor = no
+						xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_shared_memory LEADER_TRAIT = xvcv_mdlc_leader_trait_shared_memory }
+					}
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_shared_memory LEADER_TRAIT = xvcv_mdlc_leader_trait_shared_memory }
+					#xvcv_mdlc_trait_memory_backup
+					AND = {
+						is_councilor = no
+						xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_memory_backup LEADER_TRAIT = xvcv_mdlc_leader_trait_memory_backup }
+					}
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_memory_backup LEADER_TRAIT = xvcv_mdlc_leader_trait_memory_backup }
+					#xvcv_mdlc_trait_bio_robot
+					xvcv_mdlc_leader_tied_traits_add_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_bio_robot LEADER_TRAIT = xvcv_mdlc_leader_trait_bio_robot }
+					xvcv_mdlc_leader_tied_traits_remove_trigger = { SPECIES_TRAIT = xvcv_mdlc_trait_bio_robot LEADER_TRAIT = xvcv_mdlc_leader_trait_bio_robot }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		xvcv_mdlc_leader_tied_traits_add_effect = yes
+		xvcv_mdlc_leader_tied_traits_remove_effect = yes
+	}
+}
+#'xvcv_mdlc_leader_trait_shared_memory' trait effect event
+country_event = {
+	id = xvcv_mdlc.51
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { has_trait = xvcv_mdlc_leader_trait_shared_memory }
+	}
+
+	immediate = {
+		xvcv_mdlc_leader_trait_shared_memory_main_effect = yes
+	}
+}
+#'xvcv_mdlc_leader_trait_memory_backup' trait effect event
+country_event = {
+	id = xvcv_mdlc.52
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = {
+			is_councilor = no
+			NOT = { prev = { any_pool_leader = { is_same_value = prevprev } } } #the leader must be recruited to revive
+			has_trait = xvcv_mdlc_leader_trait_memory_backup
+		}
+	}
+
+	immediate = {
+		clone_leader = { target = from }
+	}
+}
+#add / remove a unique leader trait for gestalt nodes when the empire does have certain civics or does not
+country_event = {
+	id = xvcv_mdlc.53
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			#xvcv_mdlc_civic_central_processing
+			AND = {
+				has_valid_civic = xvcv_mdlc_civic_central_processing
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_central_processing }
+				}
+			}
+			AND = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_central_processing }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+					has_trait = xvcv_mdlc_leader_trait_civic_central_processing
+				}
+			}
+			#xvcv_mdlc_civic_uplink_node
+			AND = {
+				has_valid_civic = xvcv_mdlc_civic_uplink_node
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_uplink_node }
+				}
+			}
+			AND = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_uplink_node }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+					has_trait = xvcv_mdlc_leader_trait_civic_uplink_node
+				}
+			}
+			#xvcv_mdlc_civic_friendship_protocol
+			AND = {
+				has_valid_civic = xvcv_mdlc_civic_friendship_protocol
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol }
+				}
+			}
+			AND = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_friendship_protocol }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+					has_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol
+				}
+			}
+		}
+	}
+
+	immediate = {
+		#xvcv_mdlc_civic_central_processing
+		if = {
+			limit = {
+				has_valid_civic = xvcv_mdlc_civic_central_processing
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_central_processing }
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_central_processing
+			}
+		}
+		else_if = {
+			limit = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_central_processing }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+					has_trait = xvcv_mdlc_leader_trait_civic_central_processing
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_scientist
+					has_trait = xvcv_mdlc_leader_trait_civic_central_processing
+				}
+				remove_trait = xvcv_mdlc_leader_trait_civic_central_processing
+			}
+		}
+		#xvcv_mdlc_civic_uplink_node
+		if = {
+			limit = {
+				has_valid_civic = xvcv_mdlc_civic_uplink_node
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_uplink_node }
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_uplink_node
+			}
+		}
+		else_if = {
+			limit = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_uplink_node }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+					has_trait = xvcv_mdlc_leader_trait_civic_uplink_node
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_governor
+					has_trait = xvcv_mdlc_leader_trait_civic_uplink_node
+				}
+				remove_trait = xvcv_mdlc_leader_trait_civic_uplink_node
+			}
+		}
+		#xvcv_mdlc_civic_friendship_protocol
+		if = {
+			limit = {
+				has_valid_civic = xvcv_mdlc_civic_friendship_protocol
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+					NOT = { has_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol }
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+				}
+				add_trait_no_notify = xvcv_mdlc_leader_trait_civic_friendship_protocol
+			}
+		}
+		else_if = {
+			limit = {
+				NOT = { has_valid_civic = xvcv_mdlc_civic_friendship_protocol }
+				any_owned_leader = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+					has_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol
+				}
+			}
+			random_owned_leader = {
+				limit = {
+					is_councilor = yes
+					is_councilor_type = councilor_gestalt_admiral
+					has_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol
+				}
+				remove_trait = xvcv_mdlc_leader_trait_civic_friendship_protocol
+			}
+		}
+	}
+}
+
+### 'xvcv_mdlc_civic_emotion_emulator_pop_bonus_on' Edict Events ###
+#'xvcv_mdlc_goods_for_pop_unity_bonus' modifier add effect event
+country_event = {
+	id = xvcv_mdlc.60
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_country_flag = xvcv_mdlc_civic_emotion_emulator_pop_bonus_on
+		resource_income_compare = { resource = consumer_goods value > 0 }
+	}
+
+	immediate = {
+		if = {
+			limit = { has_modifier = xvcv_mdlc_goods_for_pop_unity_bonus_none }
+			remove_modifier = xvcv_mdlc_goods_for_pop_unity_bonus_none
+		}
+		xvcv_mdlc_civic_emotion_emulator_pop_bonus_effect = yes
+	}
+}
+#remove the 'xvcv_mdlc_goods_for_pop_unity_bonus' modifier when its requirements are unfulfilled
+country_event = {
+	id = xvcv_mdlc.61
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_modifier = xvcv_mdlc_goods_for_pop_unity_bonus
+		resource_income_compare = { resource = consumer_goods value <= 0 }
+	}
+
+	immediate = {
+		if = {
+			limit = { NOT = { has_modifier = xvcv_mdlc_goods_for_pop_unity_bonus_none } }
+			add_modifier = { modifier = xvcv_mdlc_goods_for_pop_unity_bonus_none days = -1 }
+		}
+		remove_modifier = xvcv_mdlc_goods_for_pop_unity_bonus
+	}
+}
+
+### 'xvcv_mdlc_ap_world_machines' Ascension Perk Events ###
+#'xvcv_mdlc_world_machines_districts' variable value count
+#on district built
+planet_event = {
+	id = xvcv_mdlc.70
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		xvcv_mdlc_world_machines_districts_heat_indicators_calc_trigger = yes
+	}
+
+	immediate = {
+		xvcv_mdlc_world_machines_output_value_calc_effect = yes
+	}
+}
+#on district destroyed
+planet_event = {
+	id = xvcv_mdlc.71
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		xvcv_mdlc_world_machines_districts_heat_indicators_calc_trigger = yes
+	}
+
+	immediate = {
+		#I've found that the 'export_modifier_to_variable' effect doesn't work proper when it's combined with the 'on_district_demolished' trigger #stellaris v3.0.3
+		if = {
+			limit = { last_district_changed = xvcv_mdlc_common_district_cooling }
+			change_variable = { which = xvcv_mdlc_world_machines_districts_output_var value = -0.3 } #minus 0.3 output as a cooler is gone
+			else = { change_variable = { which = xvcv_mdlc_world_machines_districts_output_var value = 0.1 } } #plus 0.1 output as a heat source is gone
+		}
+		xvcv_mdlc_world_machines_districts_heat_indicators_calc_effect = yes
+	}
+}
+#'xvcv_mdlc_d_pc_machine_ser_crime' or 'xvcv_mdlc_d_pc_machine_ser_admin_cap' deposits count
+#on district built or destroyed
+planet_event = {
+	id = xvcv_mdlc.72
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			#xvcv_mdlc_pc_machine_ecu
+			last_district_changed = xvcv_mdlc_pc_machine_ecu_district_naval_cap
+			#xvcv_mdlc_pc_machine_cpu
+			last_district_changed = xvcv_mdlc_pc_machine_cpu_district_decryption
+			#xvcv_mdlc_pc_machine_ser
+			last_district_changed = xvcv_mdlc_pc_machine_ser_district_admin_cap
+			last_district_changed = xvcv_mdlc_pc_machine_ser_district_crime
+			last_district_changed = xvcv_mdlc_pc_machine_ser_district_encryption
+		}
+	}
+
+	immediate = {
+		xvcv_mdlc_world_machines_special_districts_deposits_calc_effect = yes
+	}
+}
+#on_tech_increased
+#'xvcv_mdlc_tech_world_machines_districts_produces' tech effect event
+country_event = {
+	id = xvcv_mdlc.73
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		last_increased_tech = xvcv_mdlc_tech_world_machines_districts_produces
+	}
+
+	immediate = {
+		every_owned_planet = {
+			limit = { xvcv_mdlc_world_machines_planet_classes_trigger = yes }
+			xvcv_mdlc_world_machines_output_value_calc_effect = yes
+		}
+	}
+}
+
+### ETC Events ###
+#'xvcv_mdlc_servitor_morale' empire modifiers calculations event
+country_event = {
+	id = xvcv_mdlc.1000
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_valid_civic = civic_machine_servitor
+	}
+
+	immediate = {
+		xvcv_mdlc_servitor_morale_clear_effect = yes
+		xvcv_mdlc_servitor_morale_calc_main_effect = yes
+	}
+}
+
+### 'xvcv_mdlc_ap_mechanical_worlds' Ascension Perk Events ###
+planet_event = {
+	id = xvcv_mdlc.1001
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_planet_class = xvcv_mdlc_pc_mechanical_dummy_for_district_conversion
+	}
+
+	immediate = {
+		xvcv_mdlc_pc_mechanical_terraforming_complete_effect = yes
+		xvcv_mdlc_planet_terraforming_resolution_breached_effect = yes
+	}
+}
+
+### 'xvcv_mdlc_ap_robotic_age' Ascension Perk Events ###
+planet_event = {
+	id = xvcv_mdlc.1002
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { has_ascension_perk = xvcv_mdlc_ap_robotic_age }
+		check_modifier_value = { modifier = job_roboticist_add value != 0 } #when the value is not 0 #which means this event won't consider the case where the value equals 0
+	}
+
+	immediate = {
+		export_modifier_to_variable = { modifier = job_roboticist_add variable = xvcv_mdlc_job_roboticist_count_var }
+		if = {
+			limit = { check_variable = { which = xvcv_mdlc_job_roboticist_count_var value > 0 } }
+			while = { add_deposit = xvcv_mdlc_d_ap_robotic_age count = xvcv_mdlc_job_roboticist_count_var }
+		}
+		else_if = {
+			limit = { check_variable = { which = xvcv_mdlc_job_roboticist_count_var value < 0 } }
+			multiply_variable = { which = xvcv_mdlc_job_roboticist_count_var value = -1 } #change minus value to plus one
+			while = { remove_deposit = xvcv_mdlc_d_ap_robotic_age count = xvcv_mdlc_job_roboticist_count_var }
+		}
+	}
+}
+
+### 'xvcv_mdlc_civic_assimilating_swarm' Civic Events ###
+planet_event = {
+	id = xvcv_mdlc.1003
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { has_valid_civic = xvcv_mdlc_civic_assimilating_swarm }
+		fromfrom = { NOT = { has_trait = trait_machine_unit } }
+	}
+
+	immediate = {
+		from = {
+			switch = {
+				trigger = has_policy_flag
+				xvcv_mdlc_civic_assimilating_swarm_control_full = {
+					if = {
+						limit = { has_country_flag = xvcv_mdlc_civic_assimilating_swarm_message_on }
+						create_message = {
+							type = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_MESSAGE_TYPE
+							localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_CONTROL_FULL_DONE_MESSAGE
+							days = 10
+							target = prev
+							variable = {
+								type = name
+								localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_PLANET
+								scope = prev
+							}
+						}
+					}
+					prev = { create_pop = { species = prev.species } }
+				}
+				xvcv_mdlc_civic_assimilating_swarm_control_half = {
+					if = {
+						limit = { has_country_flag = xvcv_mdlc_civic_assimilating_swarm_message_on }
+						create_message = {
+							type = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_MESSAGE_TYPE
+							localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_CONTROL_HALF_DONE_MESSAGE
+							days = 10
+							target = prev
+							variable = {
+								type = name
+								localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_PLANET
+								scope = prev
+							}
+						}
+					}
+					prev.fromfrom.species = {
+						create_species = {
+							name = this
+							namelist = prev
+							plural = this
+							class = "MACHINE"
+							portrait = this
+							traits = { trait = trait_machine_unit }
+							traits = this
+							homeworld = this.home_planet
+						}
+					}
+					prev = { create_pop = { species = last_created_species } }
+					last_created_pop = {
+						xvcv_mdlc_modify_species_clear_pc_preference_traits_effect = yes
+						xvcv_mdlc_modify_species_change_traits_for_lithoid_effect = yes
+						if = {
+							limit = { has_trait = trait_aquatic }
+							modify_species = {
+								base = none
+								remove_trait = trait_aquatic
+							}
+						}
+						set_citizenship_type = { country = prev type = citizenship_full_machine cooldown = no }
+					}
+				}
+				xvcv_mdlc_civic_assimilating_swarm_control_dismantle = {
+					if = {
+						limit = { has_country_flag = xvcv_mdlc_civic_assimilating_swarm_message_on }
+						create_message = {
+							type = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_MESSAGE_TYPE
+							localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_CONTROL_DISMANTLE_DONE_MESSAGE
+							days = 10
+							target = prev
+							variable = {
+								type = name
+								localization = XVCV_MDLC_CIVIC_ASSIMILATING_SWARM_PLANET
+								scope = prev
+							}
+						}
+					}
+					add_resource = {
+						minerals = 100
+						society_research = 100
+						influence = 5
+					}
+				}
+			}
+		}
+	}
+}
+
+### 'xvcv_mdlc_ap_self_assembling_colony_ship' Ascension Perk Events ###
+#I can just change or add the '00_country_customization.txt' file, but nah, this one is fine
+planet_event = {
+	id = xvcv_mdlc.1004
+	hide_window = yes
+	is_triggered_only = yes
+
+	pre_triggers = {
+		has_owner = yes
+	}
+
+	trigger = {
+		NOT = { is_planet_class = pc_habitat }
+		has_building = building_deployment_post
+		owner = {
+			has_ascension_perk = xvcv_mdlc_ap_self_assembling_colony_ship
+			has_authority = auth_machine_intelligence
+		}
+	}
+
+	immediate = {
+		remove_building = building_deployment_post
+		add_building = building_machine_capital
+	}
+}

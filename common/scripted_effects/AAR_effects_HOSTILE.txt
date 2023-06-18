@@ -1,0 +1,169 @@
+###	防御AP_敌对海域	###############################################################
+#	AAR敌对海域FW
+
+
+
+
+###_[AAR敌对海域FW]
+#_evt	<aar敌对海域接战/aar敌对海域入场/aar敌对海域雇主切换	/fw战斗循环框架/fw脱战框架>
+AAR_eft_flt_HOSTILE_modifier_FW = {
+	if = { limit = { is_mobile = yes }	# |非防御设施|
+		switch = { trigger = has_fleet_flag
+		
+			###	aar敌对海域入场		##############################################################################
+			#_list		削弱DB/庇护DB/清理DB
+			##_detail	仅对"环境修正"进行DB	/通过|途经状态|作为CD,减少执行触发
+			##_scopes	<root/this>=舰队/<from>=星系
+			TEMP_flg_flt_SYSTEM_enter = {
+				##	削弱DB	|敌方空域|
+				if = {
+					limit = {
+						exists = from.space_owner
+						from.space_owner = {
+							has_ascension_perk = AAR_AP_hostile_territory
+							is_hostile = root.controller
+						}
+					}
+					#	|途经状态|DB
+					set_timed_fleet_flag = { flag = AAR_flg_flt_HOSTILE_cross_ENEMY	days = 180 }
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_OWN
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_NON
+					#	添加"削弱"
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_territory		days = 360 multiplier = -0.5 }
+				}
+				##	庇护DB	|我方空域|
+				else_if = {
+					limit = {
+						exists = from.space_owner
+						controller = {
+							has_ascension_perk = AAR_AP_hostile_territory
+							OR = {
+								is_same_value = from.space_owner	# |自己领地|
+								is_overlord_to = from.space_owner	# |附庸领地|
+							}
+						}
+					}
+					#	|途经状态|DB
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_ENEMY
+					set_timed_fleet_flag = { flag = AAR_flg_flt_HOSTILE_cross_OWN	days = 180 }
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_NON
+					#	添加"庇护"
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_territory		days = 360 }
+				}
+				##	清理DB	|其他|
+				else = {
+					#	|途经状态|DB
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_ENEMY
+					remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_OWN
+					set_timed_fleet_flag = { flag = AAR_flg_flt_HOSTILE_cross_NON	days = 180 }	# |已清理|
+					#	|存在mod|	=清理mod
+					if = { limit = { any_owned_ship = { has_modifier = AAR_mod_ship_HOSTILE_territory } }
+						remove_modifier = AAR_mod_ship_HOSTILE_territory
+					}
+				}
+			}
+
+
+			###	fw接战框架pc|单次触发|	##############################################################################
+			#_list		仅对"战斗修正"进行ADD
+			TEMP_flg_flt_BATTLE_begin = {
+				#	|AI领地_己方|
+				if = {
+					limit = {
+						solar_system.space_owner = { is_ai = yes }
+						controller = {
+							OR = {
+								is_same_value = prev.solar_system.space_owner
+								is_overlord_to = prev.solar_system.space_owner
+							}
+						}
+					}		
+					set_timed_fleet_flag = { flag = AAR_flt_flt_HOSTILE_combat_MOD			days = 360 }	# 状态flg添加
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_combat_own_AI_space	days = 360 }	# modDB
+				}
+				#	|AI领地_敌对|
+				else_if = {
+					limit = {
+						solar_system.space_owner = { is_ai = yes }
+						controller = { is_hostile = prev.solar_system.space_owner }
+					}		
+					set_timed_fleet_flag = { flag = AAR_flt_flt_HOSTILE_combat_MOD			days = 360 }	# 状态flg添加
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_combat_enemy_AI_space	days = 360 }	# modDB
+				}
+				#	|PC领地_己方|
+				else_if = {
+					limit = {
+						solar_system.space_owner = { is_ai = no }
+						controller = {
+							OR = {
+								is_same_value = prev.solar_system.space_owner
+								is_overlord_to = prev.solar_system.space_owner
+							}
+						}
+					}		
+					set_timed_fleet_flag = { flag = AAR_flt_flt_HOSTILE_combat_MOD			days = 360 }	# 状态flg添加
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_combat_own_PC_space	days = 360 }	# modDB
+				}
+				#	|PC领地_敌对|
+				else_if = {
+					limit = {
+						solar_system.space_owner = { is_ai = no }
+						controller = { is_hostile = prev.solar_system.space_owner }
+					}		
+					set_timed_fleet_flag = { flag = AAR_flt_flt_HOSTILE_combat_MOD			days = 360 }	# 状态flg添加
+					add_modifier = { modifier = AAR_mod_ship_HOSTILE_combat_enemy_PC_space	days = 360 }	# modDB
+				}
+			}
+
+
+			###	fw战斗循环框架	##############################################################################
+			TEMP_flg_flt_BATTLE_end = {
+				##	|执行FLG|切换	#####################################
+				switch = { trigger = has_fleet_flag
+					##	|条件检测|
+					TEMP_flg_flt_FW_condition = {
+						##	标签INIT
+						remove_fleet_flag = EXECUTE_flg_flt_HOSTILE_combat_FW_clean
+						
+						#	|航海AP国家|	=添加"AAR航海修正抵消",改变|途经状态|
+						if = { limit = { has_fleet_flag = AAR_flt_flt_HOSTILE_combat_MOD }
+							#	|执行FLG|DB
+							set_fleet_flag = EXECUTE_flg_flt_BATTLE_end		# |框架执行|
+							set_fleet_flag = EXECUTE_flg_flt_HOSTILE_combat_FW_clean	# |EFT执行|
+						}
+					}
+					##	|EFT执行|=清理
+					EXECUTE_flg_flt_HOSTILE_combat_FW_clean = {
+						remove_fleet_flag = EXECUTE_flg_flt_HOSTILE_combat_FW_clean
+						#	modDB
+						remove_fleet_flag = AAR_flt_flt_HOSTILE_combat_MOD
+						remove_modifier = AAR_mod_ship_HOSTILE_combat_enemy_AI_space
+						remove_modifier = AAR_mod_ship_HOSTILE_combat_enemy_PC_space
+						remove_modifier = AAR_mod_ship_HOSTILE_combat_own_AI_space
+						remove_modifier = AAR_mod_ship_HOSTILE_combat_own_PC_space
+					}
+				}
+			}
+
+
+			###	aar敌对海域雇主切换	##############################################################################
+			##_detail	|归还时|	清理|途经状态|	/清理所有"环境修正"和"战斗修正"
+			##_scopes	<this/root>=舰队/<from>=租借者/<fromfrom>=所有者
+			TEMP_flg_flt_CONTROLLER_switch = {
+				#	|途经状态|清理
+				remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_ENEMY
+				remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_OWN
+				remove_fleet_flag = AAR_flg_flt_HOSTILE_cross_NON
+				#	清理mod
+				remove_modifier = AAR_mod_ship_HOSTILE_combat_enemy_AI_space
+				remove_modifier = AAR_mod_ship_HOSTILE_combat_enemy_PC_space
+				remove_modifier = AAR_mod_ship_HOSTILE_combat_own_AI_space
+				remove_modifier = AAR_mod_ship_HOSTILE_combat_own_PC_space
+				remove_modifier = AAR_mod_ship_HOSTILE_territory
+			}
+			
+		}
+	}
+}
+
+

@@ -1,0 +1,622 @@
+# Available requirements:
+#
+#	SKILLS
+#	#skill = 2
+#
+#	LEADER
+#	leader = scientist
+#	leader = admiral
+#	leader = general
+#	leader = ruler
+#	leader = governor
+#	
+#	MILITARY SHIPS
+#	shipclass_military = 1
+#	
+#	CIVILIAN SHIPS
+#	shipclass_constructor = 2
+#	shipclass_science_ship = 1
+#	shipclass_colonizer = 2
+#	
+#	ARMIES
+#	shipclass_transport = 1
+#	assault_armies = 2
+#	defense_armies = 1
+#	
+#	STATIONS
+#	research_station = yes
+#	mining_station = yes
+#	observation_station = yes
+#
+#	SCOPES
+#	abort_trigger
+#	this = country (project owner)
+#	from = event scope (planet or ship, MIGHT NOT EXIST)
+#	fromfrom = project creation scope (usually equals location)
+#	
+#	on_success
+#	this = event scope (ship or planet)
+#	from = project creation scope (usually equals location)
+#	
+#	on_cancel 
+#	this = country (project owner)
+#	from = event scope (planet or ship, MIGHT NOT EXIST)
+#	fromfrom = project creation scope (usually equals location)
+#
+#	on_fail
+#	this = country (project owner)
+#	from = project creation scope (usually equals location)
+
+special_project = {
+	key = "CURIOUS_TREES_PROJECT"
+	cost = 0
+	days_to_research = 60
+	tech_department = society_technology
+	picture = GFX_evt_baol_5
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_military = 1
+	}
+	
+	on_success = {
+		ship_event = { id = mzilli_arch_events.13 }
+	}
+	
+	on_fail = {
+	}
+}
+
+special_project = {
+	key = "REVERSE_AGING_PROJECT"
+	cost = 0
+	days_to_research = 180
+	tech_department = physics_technology
+	picture = GFX_evt_surreal_visions
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_science_ship = 1
+	}
+	
+	on_success = {
+		FROM = {
+			reset_planet = yes
+			random_list = {
+				20 = {
+					change_pc = pc_shattered
+					set_ring = no
+					prev = { ship_event = { id = mzilli_anomaly_events.6 } }
+				}
+				80 = {
+					add_modifier = { modifier = mzilli_tachyon_core }
+					change_pc = rl_habitable_normal
+					reroll_planet = yes
+					random_list = {
+						50 = {
+							optimize_memory
+							set_default_origin = yes
+							create_pre_ftl_species = yes
+							create_early_pre_ftl_empire = yes
+							setup_pre_ftl_planet = yes
+							pre_ftl_clean_up_effect = yes
+							solar_system = { set_star_flag = primitive_system }
+							last_created_country = {
+								if = {
+									limit = { NOT = { has_origin = origin_default_pre_ftl } }
+									set_origin = origin_default_pre_ftl
+								}
+							}
+						}
+						50 = { }
+					}
+					prev = { ship_event = { id = mzilli_anomaly_events.7 } }
+				}
+			}
+		}
+	}
+}
+
+special_project = {
+	key = "DISARM_FE_BOMB_PROJECT"
+	cost = 0
+	days_to_research = 180
+	tech_department = physics_technology
+	picture = GFX_evt_ship_in_orbit_2
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_science_ship = 1
+	}
+	
+	on_success = {
+		leader = { save_event_target_as = mzilli_bomb_leader }
+		random_list = {
+			#70 = { ship_event = { id = mzilli_arch_events.26 } }
+			15 = { ship_event = { id = mzilli_arch_events.27 } }
+			15 = { ship_event = { id = mzilli_arch_events.28 } }
+		}
+	}
+}
+
+special_project = {
+	key = "HELP_LANDLOCKED_PLANET_1"
+	event_chain = "help_landlocked_planet"
+	cost = 0
+	days_to_research = 180
+	#tech_department = physics_technology
+	picture = GFX_evt_fleet_from_surface
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_transport = 3
+	}
+	on_success = {
+		event_target:landlocked_planet = {
+			set_planet_flag = has_been_helped
+			owner = {
+				create_leader = {
+					class = scientist
+					name = random
+					species = event_target:landlocked_species
+				}
+			}
+		}
+		last_created_leader = { save_event_target_as = landlocked_leader }
+		owner = {
+			save_event_target_as = landlocked_saviors
+			abort_special_project = {
+				type = HELP_LANDLOCKED_PLANET_2
+				location = event_target:landlocked_planet
+			}
+		}
+		random_galaxy_planet = {
+			limit = {
+				is_ideal_planet_class = {
+					who = event_target:landlocked_planet.owner
+					status = yes
+				}
+				non_landlocked_planet_criteria = yes
+			}
+			save_global_event_target_as = non_landlocked_planet
+		}
+		if = {
+			limit = { NOT = { exists = event_target:non_landlocked_planet } }
+			random_galaxy_planet = {
+				limit = {
+					OR = {
+						is_planet_class = pc_mzilli_shadow
+						habitability = {
+							who = event_target:landlocked_species
+							value >= 0.60
+						}
+					}
+					non_landlocked_planet_criteria = yes
+				}
+				save_global_event_target_as = non_landlocked_planet
+			}
+		}
+		random_galaxy_planet = {
+			limit = {
+				habitability = {
+					who = event_target:landlocked_species
+					value >= 0.60
+				}
+				exists = owner
+				owner = { is_country = event_target:landlocked_saviors }
+			}
+			save_global_event_target_as = non_landlocked_immigration_planet
+		}
+		if = {
+			limit = { NOT = { exists = event_target:non_landlocked_immigration_planet } }
+			random_galaxy_planet = {
+				limit = {
+					habitability = {
+						who = event_target:landlocked_species
+						value >= 0.40
+					}
+					exists = owner
+					owner = { is_country = event_target:landlocked_saviors }
+				}
+				save_global_event_target_as = non_landlocked_immigration_planet
+			}
+		}
+		if = {
+			limit = { NOT = { exists = event_target:non_landlocked_immigration_planet } }
+			random_galaxy_planet = {
+				limit = {
+					exists = owner
+					owner = { is_country = event_target:landlocked_saviors }
+				}
+				save_global_event_target_as = non_landlocked_immigration_planet
+			}
+		}
+		ship_event = { id = mzilli_anomaly_events.17 }
+	}
+}
+
+special_project = {
+	key = "HELP_LANDLOCKED_PLANET_2"
+	event_chain = "help_landlocked_planet"
+	cost = 500
+	#days_to_research = 180
+	tech_department = engineering_technology
+	picture = GFX_evt_asteroid_approaching_planet
+
+	same_option_group_as = { HELP_LANDLOCKED_PLANET_1 }
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_constructor = 1
+	}
+	on_success = {
+		owner = {
+			abort_special_project = {
+				type = HELP_LANDLOCKED_PLANET_1
+				location = event_target:landlocked_planet
+			}
+		}
+		event_target:landlocked_planet = {
+			set_planet_flag = has_been_helped
+			solar_system = {
+				spawn_planet = {
+					name = "88D2-35-D"
+					class = pc_rare_crystal_asteroid
+					location = this
+					orbit_distance_offset = 70
+					orbit_angle_offset = 30
+					size = 5
+					has_ring = no
+					init_effect = {
+						save_global_event_target_as = landlocked_asteroid
+						clear_deposits = yes
+					}
+				}
+			}
+			owner = { remove_country_flag = tech_frozen }
+		}
+		event_target:landlocked_asteroid = { planet_event = { id = mzilli_anomaly_events.23 days = 90 } }
+		ship_event = { id = mzilli_anomaly_events.20 }
+	}
+}
+
+special_project = {
+	key = "HELP_LANDLOCKED_PLANET_3"
+	event_chain = "help_landlocked_planet"
+	cost = 0
+	days_to_research = 30
+	#tech_department = physics_technology
+	picture = GFX_evt_big_landing_ship
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_transport = 3
+	}
+	on_success = {
+		if = {
+			limit = {
+				event_target:non_landlocked_planet = {
+					NOR = {
+						exists = owner
+						is_planet_class = pc_nuked
+						is_colonizable = no
+					}
+				}
+			}
+			event_target:non_landlocked_planet = {
+				solar_system = {
+					if = {
+						limit = { NOT = { has_star_flag = primitive_system } }
+						set_star_flag = primitive_system
+					}
+				}
+				create_country = {
+					name = random
+					authority = random
+					civics = {
+						civic = civic_increasing_urbanization
+						civic = civic_atmospheric_pollution
+					}
+					species = event_target:landlocked_species
+					ethos = random
+					flag = {
+						icon = {
+							category = "special"
+							file = "primitive.dds"
+						}
+						background= {
+							category = "backgrounds"
+							file = "new_dawn.dds"
+						}
+						colors={
+							"beige"
+							"yellow"
+							"null"
+							"null"
+						}
+					}
+					origin = "origin_doomsday"
+					type = primitive
+				}
+				last_created_country = {
+					set_name = {
+						key = "new_landlocked_civ"
+						variable_string = "[This.GetName]"
+					}
+					#set_name = "New [This.GetName]"
+					set_graphical_culture = industrial_01
+					set_country_flag = industrial_age 
+					set_pre_ftl_age = industrial_age
+				}
+				set_owner = last_created_country
+				set_capital = yes
+				while = {
+					count = 22
+					create_pop = {
+						species = event_target:landlocked_species
+					}					
+				}
+				add_building = building_primitive_farm
+				add_building = building_primitive_factory
+				add_building = building_primitive_mine
+				add_building = building_primitive_power_plant
+				add_building = building_primitive_capital
+				add_building = building_urban_dwellings
+				remove_building = building_colony_shelter
+				if = {
+					limit = { is_planet_class = pc_mzilli_shadow }
+					last_created_country = { add_modifier = { modifier = "mzilli_shadow_world_discovered" } }
+				}
+			}
+			ship_event = { id = mzilli_anomaly_events.18 }
+		}
+		else = {
+			event_target:non_landlocked_planet = { save_global_event_target_as = owned_non_landlocked_planet }
+			clear_global_event_target = non_landlocked_planet
+			random_galaxy_planet = {
+				limit = {
+					is_ideal_planet_class = {
+						who = event_target:landlocked_planet.owner
+						status = yes
+					}
+					non_landlocked_planet_criteria = yes
+				}
+				save_global_event_target_as = non_landlocked_planet
+			}
+			if = {
+				limit = { NOT = { exists = event_target:non_landlocked_planet } }
+				random_galaxy_planet = {
+					limit = {
+						OR = {
+							is_planet_class = pc_mzilli_shadow
+							habitability = {
+								who = event_target:landlocked_species
+								value >= 0.60
+							}
+						}
+						non_landlocked_planet_criteria = yes
+					}
+					save_global_event_target_as = non_landlocked_planet
+				}
+			}
+			ship_event = { id = mzilli_anomaly_events.19 }
+		}
+	}
+}
+
+special_project = {
+	key = "DOOMED_MOON_PROJECT_1"
+	cost = 0
+	days_to_research = 180
+	tech_department = engineering_technology
+	picture = GFX_evt_alien_city
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_constructor = 1
+	}
+	on_success = {
+		ship_event = { id = mzilli_anomaly_events.32 }
+	}
+}
+
+special_project = {
+	key = "DOOMED_MOON_PROJECT_2"
+	cost = 0
+	days_to_research = 180
+	tech_department = engineering_technology
+	picture = GFX_evt_asteroid_approaching_planet
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_constructor = 1
+	}
+	on_success = {
+		ship_event = { id = mzilli_anomaly_events.33 }
+	}
+}
+
+special_project = {
+	key = "REVERSE_GREENHOUSE"
+	cost = 0
+	days_to_research = 180
+	tech_department = engineering_technology
+	picture = GFX_evt_megastructure_construction
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_constructor = 1
+	}
+	
+	on_success = {
+		solar_system = {
+			random_system_planet = {
+				limit = { has_planet_flag = greenhouse_sun }
+				remove_planet_flag = greenhouse_sun
+				save_global_event_target_as = greenhouse_sun
+			}
+		}
+		ship_event = { id = mzilli_anomaly_events.48 }
+	}
+}
+
+special_project = {
+	key = "FIND_ROGUE_PLANET_PROJECT"
+	tech_department = physics_technology
+	cost = 1000
+	location = no
+	picture = GFX_evt_star_chart
+	icon = "gfx/interface/icons/situation_log/situation_log_quest.dds"
+
+	event_scope = planet_event
+
+	requirements = {
+	}
+
+	on_success = {
+		event_target:rogue_planet_lament = {
+			solar_system = {
+				if = {
+					limit = { has_mzilli_10x = yes }
+					spawn_system = {
+						min_distance = 10
+						max_distance = 30
+						initializer = "mzilli_rogue_planet_system_10x"
+					}
+				}
+				else = {
+					spawn_system = {
+						min_distance = 10
+						max_distance = 30
+						initializer = "mzilli_rogue_planet_system"
+					}
+				}
+			}
+		}
+		event_target:rogue_planet_system = { isolate_system = yes }
+		owner = {
+			random_owned_leader = {
+				limit = { is_researching_area = physics }
+				save_global_event_target_as = rogue_planet_scientist
+			}
+			country_event = { id = mzilli_anomaly_events.69 }
+		}
+	}
+}
+
+special_project = {
+	key = "NEUTRON_TO_BLACK_HOLE_PROJECT"
+	cost = 2000
+	#days_to_research = 60
+	tech_department = physics_technology
+	picture = GFX_evt_star_neutron
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_science_ship = 1
+	}
+	
+	on_success = {
+		FROM = {
+			change_pc = pc_black_hole
+			set_planet_size = 15
+			solar_system = {
+				if = {
+					limit = { is_star_class = sc_binary_1 }
+					set_star_class = sc_binary_1_bh
+				}
+				else_if = {
+					limit = { is_star_class = sc_binary_2 }
+					set_star_class = sc_binary_2_bh
+				}
+				else = { set_star_class = sc_black_hole }
+				every_system_megastructure = {
+					limit = {
+						OR = {
+							is_megastructure_type = quantum_catapult_1
+							is_megastructure_type = quantum_catapult_2
+							is_megastructure_type = quantum_catapult_3
+							is_megastructure_type = quantum_catapult_ruined
+							is_megastructure_type = quantum_catapult_restored
+						}
+					}
+					solar_system = {
+						spawn_megastructure = {
+							type = "quantum_catapult_permanently_ruined"
+							coords_from = prev
+						}
+					}
+					remove_megastructure = this
+				}
+			}
+		}
+		ship_event = { id = mzilli_anomaly_events.90 }
+	}
+	
+	on_fail = {
+	}
+}
+
+special_project = {
+	key = "ASCEND_PRIMITIVES_PROJECT"
+	cost = 0
+	days_to_research = 180
+	tech_department = society_technology
+	picture = GFX_evt_hive_mind
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_science_ship = 1
+	}
+	
+	on_success = {
+		random_list = {
+			80 = { ship_event = { id = mzilli_anomaly_events.94 } }
+			20 = {
+				FROM = { owner_species = { save_global_event_target_as = lost_to_shroud_species } }
+				ship_event = { id = mzilli_anomaly_events.95 }
+			}
+		}
+	}
+}
+
+special_project = {
+	key = "ABSORB_PRIMITIVES_PROJECT"
+	cost = 0
+	days_to_research = 180
+	tech_department = society_technology
+	picture = GFX_evt_hive_mind
+
+	event_scope = ship_event
+
+	requirements = {
+		shipclass_science_ship = 1
+	}
+	
+	on_success = {
+		FROM = {
+			owner = {
+				modify_species = {
+					species = this
+					remove_trait = trait_latent_psionic
+					add_trait = trait_hive_mind
+				}
+			}
+		}
+		random_list = {
+			80 = { ship_event = { id = mzilli_anomaly_events.96 } }
+			20 = { ship_event = { id = mzilli_anomaly_events.97 } }
+		}
+	}
+}

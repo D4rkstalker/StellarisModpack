@@ -1,0 +1,94 @@
+######################################
+#									 #
+######## Security Strike Forces #######
+#									 #
+######################################
+
+create_security_forces_country = {
+	# save_event_target_as = main_country
+	if = {
+		limit = { NOT = { exists = event_target:security_forces_country } }
+		if = {
+			limit = { any_relation = { has_relation_flag = { who = root flag = security_strike_force } } }
+			random_relation = {
+				limit = { has_relation_flag = { who = root flag = security_strike_force } }
+				save_event_target_as = security_forces_country
+			}
+		} else_if = {
+			limit = {
+				is_overlord = yes
+				any_subject = { has_relation_flag = { who = root flag = security_strike_force } }
+			}
+			random_subject = {
+				limit = { has_relation_flag = { who = root flag = security_strike_force } }
+				save_event_target_as = security_forces_country
+			}
+		} else_if = {
+			limit = {
+				any_country = { has_relation_flag = { who = root flag = security_strike_force } }
+			}
+			random_country = {
+				limit = { has_relation_flag = { who = root flag = security_strike_force } }
+				save_event_target_as = security_forces_country
+			}
+		} else = {
+			set_update_modifiers_batch = begin
+			create_country = {
+				name = "Security Forces"
+				type = security_forces
+				flag = {
+					icon = { category = "spherical" file = "flag_spherical_3.dds" }
+					background= { category = "backgrounds" file = "diagonal.dds" }
+					colors = { "black" "blue" "null" "null" }
+				}
+				effect = {
+					save_event_target_as = security_forces_country
+					set_country_flag = security_strike_force
+					set_relation_flag = { who = root flag = security_strike_force }
+					if = { limit = { root = { OR = { is_ai = no is_overlord = yes } } }
+						set_subject_of = { who = root preset = preset_machine_follower }
+					}
+					add_trust = { amount = 95 who = root }
+					# Opinion hack
+					add_opinion_modifier = { who = root modifier = opinion_common_ground }
+					add_opinion_modifier = { who = root modifier = opinion_ceded_starbase }
+					add_opinion_modifier = { who = root modifier = opinion_shade_giver }
+					add_opinion_modifier = { who = root modifier = opinion_enlightened_us }
+					add_opinion_modifier = { who = root modifier = opinion_liberated_us }
+					add_opinion_modifier = { who = root modifier = opinion_imperial_vassal_ai_opinion }
+					root = {
+						add_trust = { amount = 95 who = prev }
+						add_opinion_modifier = { who = prev modifier = opinion_common_ground }
+						add_opinion_modifier = { who = prev modifier = opinion_ceded_starbase }
+						add_opinion_modifier = { who = prev modifier = opinion_shade_giver }
+						add_opinion_modifier = { who = prev modifier = opinion_imperial_overlord_ai_opinion }
+						every_relation = {
+							limit = { has_communications = root }
+							establish_communications_no_message = prevprev
+						}
+						sync_subjects_virtual_relation = yes
+					}
+					establish_communications_no_message = root
+					random_agreement = {
+						limit = { is_owned_by = root target = { is_same_empire = prev } }
+						add_loyalty = 95
+					}
+					add_modifier = { modifier = pledged_allegiance }
+					add_modifier = { modifier = pledge_loyalty_2 }
+				}
+			}
+			set_update_modifiers_batch = end
+		}
+	}
+	if = {
+		limit = { exists = event_target:security_forces_country }
+		event_target:security_forces_country = {
+			random_agreement = {
+				limit = { is_owned_by = root target = { is_same_empire = prev } }
+				add_loyalty = 10
+			}
+			add_trust = { amount = 10 who = root }
+			root = { add_trust = { amount = 10 who = prev } }
+		}
+	}
+}

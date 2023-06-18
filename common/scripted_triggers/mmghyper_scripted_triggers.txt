@@ -1,0 +1,135 @@
+mmghyper_has_hyper_relay = {
+	OR = {
+		has_megastructure = hyper_relay
+		has_megastructure = hyper_relay_restored
+	}
+}
+
+mmghyper_has_wormhole_gate_or_catapult = {
+	OR = {
+		has_natural_wormhole = yes
+		has_megastructure = lgate_base
+		has_megastructure = gateway_final
+		has_megastructure = gateway_restored
+		has_megastructure = quantum_catapult_1
+		has_megastructure = quantum_catapult_2
+		has_megastructure = quantum_catapult_3
+		has_megastructure = quantum_catapult_restored
+		has_megastructure = quantum_catapult_restored_slingshot
+		has_megastructure = quantum_catapult_improved_slingshot
+	}
+}
+
+mmghyper_has_border_fortress = {
+	exists = owner
+	exists = starbase
+	starbase = {
+		has_starbase_size >= starbase_starfortress
+	}
+	any_neighbor_system = {
+		exists = owner
+		owner = {
+			NOT = { is_same_empire = prevprev.owner }
+		}
+	}
+}
+
+mmghyper_is_starless = {
+	NOT = { exists = system_star } # sparsity and wild space support
+}
+
+mmghyper_is_ai_build_target = {
+	OR = {
+		# is capital
+		AND = {
+			exists = owner
+			owner = { is_same_empire = root }
+			is_capital_system = yes
+		}
+		# or is isolated sector capital
+		AND = {
+			exists = owner
+			owner = { is_same_empire = root }
+			NOT = { has_star_flag = mmghyper_path_to_capital@$COUNTRY$ }
+			any_system_planet = {
+				is_sector_capital = yes
+				colony_age > 120 # wait at least 10 years
+			}
+		}
+		# or neighbor has hyper relay and is on path
+		AND = {
+			# neighbor has relay and one of the following
+			# - neighbor is owned by country
+			# - neighbor is in starless space path
+			any_neighbor_system = {
+				OR = {
+					AND = {
+						exists = owner
+						owner = {
+							OR = {
+								is_country = $COUNTRY$
+								has_overlord = $COUNTRY$
+							}
+						}
+						mmghyper_has_hyper_relay = yes
+					}
+					AND = {
+						mmghyper_is_starless = yes
+						mmghyper_has_hyper_relay = yes
+						OR = {
+							has_star_flag = mmghyper_path_to_capital@$COUNTRY$
+							has_star_flag = mmghyper_path_to_sector_capital@$COUNTRY$
+							has_star_flag = mmghyper_path_to_overlord_capital@$COUNTRY$
+						}
+					}
+				}
+			}
+			# on path to (sector) capital
+			OR = {
+				has_star_flag = mmghyper_path_to_capital@$COUNTRY$
+				has_star_flag = mmghyper_path_to_sector_capital@$COUNTRY$
+				has_star_flag = mmghyper_path_to_overlord_capital@$COUNTRY$
+			}
+		}
+	}
+}
+
+mmghyper_can_auto_build_hyper_relay = {
+	AND = {
+		# owned (and unoccupied) or starless
+		OR = {
+			AND = {
+				exists = owner
+				exists = starbase
+				exists = starbase.controller
+				owner = {
+					is_same_empire = prev.starbase.controller
+					OR = {
+						is_same_empire = root
+						has_overlord = root
+					}
+				}
+			}
+			mmghyper_is_starless = yes
+		}
+		# no relay
+		mmghyper_has_hyper_relay = no
+		# no hostile fleet
+		NOT = {
+			any_fleet_in_system = {
+				exists = controller
+				controller = {
+					is_hostile = root
+				}
+			}
+		}
+		# no one building megastructure (ie hyper relay)
+		NOT = {
+			any_fleet_in_system = {
+				has_fleet_order = build_megastructure_fleet_order
+			}
+		}
+		# is build target, using same logic as hyper relay AI weights
+		mmghyper_is_ai_build_target = { COUNTRY = root }
+	}
+}

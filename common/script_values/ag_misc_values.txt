@@ -1,0 +1,292 @@
+
+ag_negative_variable = { base = 0 add = $ag_which$ mult = -1 }
+ag_negative_trigger = { base = 0 add = trigger:$ag_which$ mult = -1 }
+ag_negative_modifier = { base = 0 add = modifier:$ag_which$ mult = -1 }
+ag_add_trigger = { base = 0 add = trigger:$ag_which$ add = $ag_value$ }
+ag_subtract_trigger = { base = 0 add = trigger:$ag_which$ subtract = $ag_value$ }
+ag_modify_variable = { base = 0 add = $ag_which$ $ag_op$ = $ag_value$ }
+ag_capped_variable = { base = 0 add = $ag_which$ [[ag_min]min = $ag_min$] [[ag_max]max = $ag_max$] }
+
+ag_modifier_mult_multiplier = {
+	base = 0
+	add = 1
+	add = modifier:$ag_modifier$
+	min = 0
+}
+ag_aura_difficulty_factor = {
+	base = 0
+	add = 5
+	add = event_target:global_event_country.ag_scaled_difficulty
+	mult = 0.1
+	max = 1.0625
+}
+ag_num_ships_difficulty_factor = {
+	base = 0
+	add = 0.05
+	add = event_target:global_event_country.ag_scaled_difficulty
+	min = 0
+	mult = 0.5
+	ceiling = yes
+	max = 6
+}
+
+ag_resource_stockpile = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = resource_stockpile_compare
+		trigger_scope = this
+		parameters = { resource = $ag_resource$ }
+		mode = add
+	}
+}
+
+ag_anti_penetration_factor = {
+	base = 0
+	add = modifier:ship_$ag_target$_penetration_mult
+	add = 1
+}
+ag_anti_hardening_locked_value = {
+	base = 0
+	add = modifier:ship_$ag_target$_hardening_add
+	mult = prevprev.modifier:ag_$ag_target$_hardening_reduction
+	mult = -1
+	min = 0
+}
+ag_anti_hardening_factor = {
+	base = 0
+	add = modifier:ship_$ag_target$_hardening_add
+	subtract = ag_$ag_target$_hardening_locked
+	min = 0
+}
+ag_no_weapon_damage_factor = {
+	base = 0
+	add = modifier:ship_$ag_target$_damage_mult
+	mult = -1
+	subtract = 1
+}
+ag_aura_modifier_multiplier = {
+	base = 0
+	[[ag_modifier] add = modifier:$ag_modifier$ mult = $ag_base_factor|1$ ]
+	add = $ag_base_factor|1$
+	modifier = { mult = ag_scaled_difficulty_ship_temp is_variable_set = ag_scaled_difficulty_ship_temp }
+	modifier = { mult = value:ag_aura_difficulty_factor NOT = { is_variable_set = ag_scaled_difficulty_ship_temp } }
+	min = 0
+}
+ag_aura_modifier_multiplier_fixup = {
+	base = 0
+	add = ag_ancient_weapon_debuff_aura_$ag_index$
+	[[ag_modifier] add = modifier:$ag_modifier$ mult = $ag_base_factor|1$ ]
+	add = $ag_base_factor|1$
+	modifier = { mult = ag_scaled_difficulty_ship_temp is_variable_set = ag_scaled_difficulty_ship_temp }
+	modifier = { mult = value:ag_aura_difficulty_factor NOT = { is_variable_set = ag_scaled_difficulty_ship_temp } }
+	min = 0
+}
+ag_aura_modifier_multiplier_alt = {
+	base = 0
+	add = modifier:$ag_modifier$
+	mult = $ag_base_factor|1$
+	mult = -1
+	add = $ag_base_factor|1$
+	modifier = { mult = ag_scaled_difficulty_ship_temp is_variable_set = ag_scaled_difficulty_ship_temp }
+	modifier = { mult = value:ag_aura_difficulty_factor NOT = { is_variable_set = ag_scaled_difficulty_ship_temp } }
+}
+ag_modifier_fixup_multiplier = {
+	base = 0
+	add = modifier:$ag_modifier$
+	mult = -1
+	add = @ag_$ag_modifier$_min
+}
+ag_modifier_fixup_multiplier_alt = {
+	base = 0
+	add = modifier:$ag_modifier$
+	subtract = ag_$ag_modifier$_buff
+	mult = -1
+	add = @ag_$ag_modifier$_min
+}
+ag_special_modifier_debuff = {
+	base = 0
+	add = modifier:$ag_modifier$
+	mult = -1
+	subtract = 2
+}
+
+ag_building_produces_factor = {
+	base = 0
+	add = 1.0
+	add = owner.modifier:planet_jobs_$ag_resource_type$_produces_mult
+	add = modifier:planet_jobs_$ag_resource_type$_produces_mult
+	min = 0
+}
+
+ag_num_assigned_researcher_factor = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = researcher }
+		mode = add
+	}
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = brain_drone }
+		mode = add
+	}
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = calculator }
+		mode = add
+	}
+}
+ag_num_assigned_soldier_factor = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = soldier }
+		mode = add
+	}
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = warrior_drone }
+		mode = add
+	}
+}
+ag_num_garrison_army_factor = {
+	base = 0
+	add = 1
+	complex_trigger_modifier = {
+		trigger = count_planet_army
+		trigger_scope = this
+		parameters = { limit = { exists = owner exists = this.owner this.owner = { has_overlord = prev.owner } } }
+		mode = add
+	}
+	max = 6
+}
+ag_num_sr_produce_job_factor = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = $ag_job$ }
+		mode = add
+	}
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = $ag_job$_gestalt }
+		mode = add
+	}
+}
+ag_num_sr_produce_job_factor_alt = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = $ag_job$ }
+		mode = add
+	}
+	complex_trigger_modifier = {
+		trigger = num_assigned_jobs
+		trigger_scope = this
+		parameters = { job = $ag_job$_drone }
+		mode = add
+	}
+}
+
+ag_instant_kill_weapon_damage_factor_1 = {
+	base = 0
+	add = 1
+	add = modifier:ship_hull_damage_mult
+	min = 0.05
+}
+ag_instant_kill_weapon_damage_factor_2 = {
+	base = 0
+	add = modifier:weapon_type_instant_kill_effect_weapon_damage_mult
+	mult = -1
+}
+ag_instant_kill_weapon_damage_factor = {
+	base = 0
+	add = @ag_primary_weapon_multiplier
+	subtract = modifier:ship_weapon_damage
+	subtract = modifier:weapon_type_energy_weapon_damage_mult
+	subtract = modifier:weapon_type_difficulty_scale_weapon_damage_mult
+	subtract = modifier:weapon_archaeotech_weapon_damage_mult
+	subtract = modifier:t_slot_weapon_damage_mult
+	modifier = {
+		subtract = modifier:weapon_type_psionic_weapon_damage_mult
+		OR = {
+			is_ship_size = ag_zeta_crisis_large_ship
+			is_ship_size = ag_zeta_crisis_special_ship
+		}
+	}
+	modifier = {
+		subtract = modifier:weapon_type_gravity_weapon_damage_mult
+		NOR = {
+			is_ship_size = ag_zeta_crisis_large_ship
+			is_ship_size = ag_zeta_crisis_special_ship
+		}
+	}
+	divide = value:ag_instant_kill_weapon_damage_factor_1
+	add = value:ag_instant_kill_weapon_damage_factor_2
+	min = 0
+}
+
+ag_total_disable_lvl = {
+	base = 0
+	add = ag_disable_common
+	add = ag_disable_invincible
+	add = ag_disable_extra_life
+	add = ag_disable_difficulty
+	add = ag_disable_gamma_station
+	add = ag_disable_zeta_station
+	add = ag_disable_subsystem_emergency_repair
+	add = ag_disable_zeta_ship
+	add = ag_disable_event
+}
+
+ag_leader_cost = {
+	base = 0
+	add = 1.4
+	pow = root.owner.ag_auto_leader_extra_skills
+	mult = 70
+}
+
+ag_num_ships_spawn = {
+	base = 0
+	add = @ag_$ag_fleet_index$[[ag_fleet_variant_a]_$ag_fleet_variant_a$]_num_$ag_ship_index$[[ag_ship_variant_a]_$ag_ship_variant_a$]_additional
+	mult = value:ag_num_ships_difficulty_factor
+	min = 0
+	add = @ag_$ag_fleet_index$[[ag_fleet_variant_b]_$ag_fleet_variant_b$]_num_$ag_ship_index$[[ag_ship_variant_b]_$ag_ship_variant_b$]_basic
+	round = yes
+	min = 0
+	[[ag_max]max = $ag_max$]
+}
+
+ag_ancient_building_core_cost = {
+	base = 0
+	add = @ag_ancient_building_cores_cost_factor
+	pow = ag_num_constructed_ancient_building_cores
+	mult = @ag_ancient_building_cores_cost_$ag_resource$
+}
+ag_ancient_building_core_time = {
+	base = 0
+	add = @ag_ancient_building_cores_construction_days_factor
+	pow = ag_num_constructed_ancient_building_cores
+	mult = @ag_ancient_building_cores_construction_days
+	min = 360
+}
+
+ag_ancient_knowlege_leader_lvl_cost = {
+	base = 0
+	complex_trigger_modifier = {
+		trigger = count_owned_leader
+		trigger_scope = this
+		parameters = { limit = { has_skill < 10 } }
+		mode = add
+	}
+	mult = 1.25
+	min = 1
+}

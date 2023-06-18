@@ -1,0 +1,772 @@
+# Government Variety Pack
+# Events - For Discovery / Tradeways / Grand Alliance
+# Author: littleraskol
+
+namespace = lrsk_gov_var_new_fed_starts
+
+# Sets up the research coop/trade league/martial alliance for the related origins.
+country_event = {
+	id = lrsk_gov_var_new_fed_starts.1
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_country_flag = first_contact_event
+		set_country_flag = Story2 # Already encountered spacefarers
+		add_tradition = tr_diplomacy_adopt
+		add_tradition = tr_diplomacy_the_federation
+
+		if = {
+			limit = { num_guaranteed_colonies >= 2 }
+			capital_scope = {
+				solar_system = {
+					closest_system = {
+						limit = { has_star_flag = neighbor_t1_first_colony }
+						random_system_planet = {
+							limit = { has_planet_flag = prescripted_ideal }
+							save_event_target_as = lrsk_fed_planet_1
+							federation_origin_planet_setup = yes
+						}
+					}
+					closest_system = {
+						limit = { has_star_flag = neighbor_t2_second_colony }
+						random_system_planet = {
+							limit = { has_planet_flag = prescripted_ideal }
+							save_event_target_as = lrsk_fed_planet_2
+							federation_origin_planet_setup = yes
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = { num_guaranteed_colonies = 1 }
+			capital_scope = {
+				solar_system = {
+					closest_system = {
+						limit = { has_star_flag = neighbor_t1_first_colony }
+						random_system_planet = {
+							limit = { has_planet_flag = prescripted_ideal }
+							save_event_target_as = lrsk_fed_planet_1
+							federation_origin_planet_setup = yes
+						}
+					}
+					closest_system = {
+						limit = { 
+							NOT = { has_star_flag = neighbor_t1_first_colony }
+							lrsk_system_vacant = yes
+							any_system_planet = {
+								is_ringworld = no
+								is_asteroid = no
+								is_star = no
+								is_moon = no
+							}
+						}
+						if = {
+							limit = {
+								any_system_planet = { habitable_planet = yes }
+							}
+							random_system_planet = {
+								limit = { habitable_planet = yes }
+								save_event_target_as = lrsk_fed_planet_2
+								set_planet_size = 16
+							}
+						}
+						else = {
+							random_system_planet = {
+								limit = {
+									is_ringworld = no
+									is_asteroid = no
+									is_star = no
+									is_moon = no
+								}
+								save_event_target_as = lrsk_fed_planet_2
+								federation_origin_planet_setup = yes
+							}
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = { num_guaranteed_colonies = 0 }
+			capital_scope = {
+				solar_system = {
+					closest_system = {
+						limit = { lrsk_system_vacant = yes }
+						set_star_flag = lrsk_fed_origin_system_1
+						if = {
+							limit = {
+								any_system_planet = { habitable_planet = yes }
+							}
+							random_system_planet = {
+								limit = { habitable_planet = yes }
+								save_event_target_as = lrsk_fed_planet_1
+								set_planet_size = 16
+							}
+						}
+						else = {
+							random_system_planet = {
+								limit = {
+									is_ringworld = no
+									is_asteroid = no
+									is_star = no
+									is_moon = no
+								}
+								save_event_target_as = lrsk_fed_planet_1
+								federation_origin_planet_setup = yes
+							}
+						}
+					}
+					closest_system = {
+						limit = { 
+							NOT = { has_star_flag = lrsk_fed_origin_system_1 }
+							lrsk_system_vacant = yes
+							any_system_planet = {
+								is_ringworld = no
+								is_asteroid = no
+								is_star = no
+								is_moon = no
+							}
+						}
+						if = {
+							limit = {
+								any_system_planet = { habitable_planet = yes }
+							}
+							random_system_planet = {
+								limit = { habitable_planet = yes }
+								save_event_target_as = lrsk_fed_planet_2
+								set_planet_size = 16
+							}
+						}
+						else = {
+							random_system_planet = {
+								limit = {
+									is_ringworld = no
+									is_asteroid = no
+									is_star = no
+									is_moon = no
+								}
+								save_event_target_as = lrsk_fed_planet_2
+								federation_origin_planet_setup = yes
+							}
+						}
+					}
+				}
+			}
+		}
+
+		# First Member
+		event_target:lrsk_fed_planet_1 = {
+			solar_system = { generate_home_system_resources = yes }
+			create_species = {
+				name = random
+				class = random_non_machine
+				portrait = random
+				traits = random
+				homeworld = this
+				effect = {
+					save_event_target_as = lrsk_next_fed_planet_species
+				}
+			}
+			if = {
+				limit = { root = { lrsk_gov_var_has_discovery_origin = yes } }
+				random_list = {
+					20 = {
+						modifier = {
+							factor = 2
+							root = { has_origin = lrsk_gov_var_origin_for_discovery_mi }
+						}
+						create_species = {
+							name = random
+							class = MACHINE # MIs allowed in RCs
+							portrait = random
+							traits = {
+								trait = trait_machine_unit
+								trait = random_traits
+							}
+							homeworld = this
+							effect = {
+								save_event_target_as = lrsk_next_fed_planet_species
+							}
+						}
+						#Need to use this semi-random selection to exclude some of the less savory options...
+						random_list = {
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_introspective
+										civic = civic_machine_delegated_functions
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_1
+										establish_communications_no_message = root
+									}
+								}
+							}
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_predictive_analysis
+										civic = civic_machine_delegated_functions
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_1
+										establish_communications_no_message = root
+									}
+								}
+							}
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_introspective
+										civic = civic_machine_predictive_analysis
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_1
+										establish_communications_no_message = root
+									}
+								}
+							}
+							#1 = {
+							#	create_country = {
+							#		name_list = random
+							#		species = event_target:lrsk_next_fed_planet_species
+							#		type = default
+							#		origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+							#		ignore_initial_colony_error = yes
+							#		day_zero_contact = no
+							#		ethos = {
+							#			ethic = ethic_gestalt_consciousness
+							#		}
+							#		authority = auth_machine_intelligence
+							#		civics = {
+							#			civic = civic_machine_servitor
+							#			civic = random
+							#		}
+							#		effect = {
+							#			save_event_target_as = lrsk_fed_member_1
+							#			establish_communications_no_message = root
+							#		}
+							#	}
+							#}
+						}
+					}
+					80 = {
+						modifier = {
+							factor = 0.75
+							root = { has_origin = lrsk_gov_var_origin_for_discovery_mi }
+						}
+						create_country = {
+							name_list = random
+							species = event_target:lrsk_next_fed_planet_species
+							type = default
+							origin = "lrsk_gov_var_origin_for_discovery_npc"
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							randomize_ethos = yes
+							ethos = {
+								ethic = "ethic_xenophile"
+								ethic = "ethic_materialist"
+								ethic = "ethic_fanatic_materialist"
+							}
+							effect = {
+								save_event_target_as = lrsk_fed_member_1
+								establish_communications_no_message = root
+							}
+						}
+					}
+				}
+			}
+			if = {
+				limit = { root = { lrsk_gov_var_has_tradeways_origin = yes } }
+				random_list = {
+					30 = {
+						lrsk_create_tradeways_member_mg = yes
+						last_created_country = {
+							save_event_target_as = lrsk_fed_member_1
+							establish_communications_no_message = root
+						}
+					}
+					70 = {
+						modifier = {
+							factor = 0
+							root = { has_authority = auth_corporate }
+						}	
+						lrsk_create_tradeways_member_mc = yes
+						last_created_country = {
+							save_event_target_as = lrsk_fed_member_1
+							establish_communications_no_message = root
+						}
+					}
+				}
+			}
+			if = {
+				limit = { root = { has_origin = lrsk_gov_var_origin_grand_alliance } }
+				create_country = {
+					name_list = random
+					species = event_target:lrsk_next_fed_planet_species
+					type = default
+					origin = "lrsk_gov_var_origin_grand_alliance_npc"
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					randomize_ethos = yes
+					ethos = {
+						ethic = "ethic_xenophile"
+						ethic = "ethic_militarist"
+						ethic = "ethic_fanatic_militarist"
+					}
+					effect = {
+						save_event_target_as = lrsk_fed_member_1
+						establish_communications_no_message = root
+					}
+				}
+			}
+			if = {
+				limit = { root = { has_origin = lrsk_gvp_origin_convened_providence } }
+				lrsk_create_providence_member = yes
+				last_created_country = {
+					save_event_target_as = lrsk_fed_member_1
+					establish_communications_no_message = root
+				}
+			}
+			create_colony = {
+				owner = event_target:lrsk_fed_member_1
+			}
+
+			generate_start_deposits_and_blockers = yes
+			generate_start_buildings_and_districts = yes
+			generate_start_pops = yes
+			solar_system = {
+				if = { limit = { event_target:lrsk_fed_member_1 = { is_gestalt = yes } }
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						building = crew_quarters
+						owner = event_target:lrsk_fed_member_1
+						effect = {
+							set_starbase_module = {
+								slot = 1
+								module = solar_panel_network
+							}
+						}
+					}
+				}
+				else = {
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						building = crew_quarters
+						owner = event_target:lrsk_fed_member_1
+						effect = {
+							set_starbase_module = {
+								slot = 1
+								module = trading_hub
+							}
+						}
+					}
+				}
+			}
+		}
+
+		# Second Member
+		event_target:lrsk_fed_planet_2 = {
+			solar_system = { generate_home_system_resources = yes }
+			create_species = {
+				name = random
+				class = random_non_machine
+				portrait = random
+				traits = random
+				homeworld = this
+				effect = {
+					save_event_target_as = lrsk_next_fed_planet_species
+				}
+			}
+			if = {
+				limit = { root = { lrsk_gov_var_has_discovery_origin = yes } }
+				random_list = {
+					20 = {
+						modifier = {
+							factor = 0.5
+							event_target:lrsk_fed_member_1 = { has_authority = auth_machine_intelligence }
+							root = { NOT = { has_origin = lrsk_gov_var_origin_for_discovery_mi } }
+						}
+						create_species = {
+							name = random
+							class = MACHINE # MIs allowed in RCs
+							portrait = random
+							traits = {
+								trait = trait_machine_unit
+								trait = random_traits
+							}
+							homeworld = this
+							effect = {
+								save_event_target_as = lrsk_next_fed_planet_species
+							}
+						}
+						#Need to use this semi-random selection to exclude some of the less savory options...
+						random_list = {
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_introspective
+										civic = civic_machine_delegated_functions
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_2
+										establish_communications_no_message = root
+									}
+								}
+							}
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_predictive_analysis
+										civic = civic_machine_delegated_functions
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_2
+										establish_communications_no_message = root
+									}
+								}
+							}
+							1 = {
+								create_country = {
+									name_list = random
+									species = event_target:lrsk_next_fed_planet_species
+									type = default
+									origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+									ignore_initial_colony_error = yes
+									day_zero_contact = no
+									ethos = {
+										ethic = ethic_gestalt_consciousness
+									}
+									authority = auth_machine_intelligence
+									civics = {
+										civic = civic_machine_introspective
+										civic = civic_machine_predictive_analysis
+									}
+									effect = {
+										save_event_target_as = lrsk_fed_member_2
+										establish_communications_no_message = root
+									}
+								}
+							}
+							#1 = {
+							#	create_country = {
+							#		name_list = random
+							#		species = event_target:lrsk_next_fed_planet_species
+							#		type = default
+							#		origin = "lrsk_gov_var_origin_for_discovery_mi_npc"
+							#		ignore_initial_colony_error = yes
+							#		day_zero_contact = no
+							#		ethos = {
+							#			ethic = ethic_gestalt_consciousness
+							#		}
+							#		authority = auth_machine_intelligence
+							#		civics = {
+							#			civic = civic_machine_servitor
+							#			civic = random
+							#		}
+							#		effect = {
+							#			save_event_target_as = lrsk_fed_member_2
+							#			establish_communications_no_message = root
+							#		}
+							#	}
+							#}
+						}
+					}
+					80 = {
+						modifier = {
+							factor = 1.125
+							event_target:lrsk_fed_member_1 = { has_authority = auth_machine_intelligence }
+							root = { NOT = { has_origin = lrsk_gov_var_origin_for_discovery_mi } }
+						}
+						create_country = {
+							name_list = random
+							species = event_target:lrsk_next_fed_planet_species
+							type = default
+							origin = "lrsk_gov_var_origin_for_discovery_npc"
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							authority = random
+							randomize_ethos = yes
+							ethos = {
+								ethic = "ethic_xenophile"
+								ethic = "ethic_materialist"
+								ethic = "ethic_fanatic_materialist"
+							}
+							effect = {
+								save_event_target_as = lrsk_fed_member_2
+								establish_communications_no_message = root
+							}
+						}
+					}
+				}
+			}
+			if = {
+				limit = { root = { lrsk_gov_var_has_tradeways_origin = yes } }
+				random_list = {
+					40 = {
+						modifier = {
+							add = 50
+							event_target:lrsk_fed_member_1 = { has_authority = auth_corporate }
+						}		
+						lrsk_create_tradeways_member_mg = yes
+						last_created_country = {
+							save_event_target_as = lrsk_fed_member_2
+							establish_communications_no_message = root
+						}
+					}
+					60 = {
+						modifier = {
+							add = -50
+							event_target:lrsk_fed_member_1 = { has_authority = auth_corporate }
+						}
+						modifier = {
+							factor = 0
+							root = { has_authority = auth_corporate }
+						}					
+						lrsk_create_tradeways_member_mc = yes
+						last_created_country = {
+							save_event_target_as = lrsk_fed_member_2
+							establish_communications_no_message = root
+						}
+					}
+				}
+			}
+			if = {
+				limit = { root = { has_origin = lrsk_gov_var_origin_grand_alliance } }
+				create_country = {
+					name_list = random
+					species = event_target:lrsk_next_fed_planet_species
+					type = default
+					origin = "lrsk_gov_var_origin_grand_alliance_npc"
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					authority = random
+					randomize_ethos = yes
+					ethos = {
+						ethic = "ethic_xenophile"
+						ethic = "ethic_militarist"
+						ethic = "ethic_fanatic_militarist"
+					}
+					effect = {
+						save_event_target_as = lrsk_fed_member_2
+						establish_communications_no_message = root
+					}
+				}
+			}
+			if = {
+				limit = { root = { has_origin = lrsk_gvp_origin_convened_providence } }
+				lrsk_create_providence_member = yes
+				last_created_country = {
+					save_event_target_as = lrsk_fed_member_2
+					establish_communications_no_message = root
+				}
+			}
+			create_colony = {
+				owner = event_target:lrsk_fed_member_2
+			}
+
+			generate_start_deposits_and_blockers = yes
+			generate_start_buildings_and_districts = yes
+			generate_start_pops = yes
+			solar_system = {
+				if = { limit = { event_target:lrsk_fed_member_2 = { is_gestalt = yes } }
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						building = crew_quarters
+						owner = event_target:lrsk_fed_member_2
+						effect = {
+							set_starbase_module = {
+								slot = 1
+								module = solar_panel_network
+							}
+						}
+					}
+				}
+				else = {
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						building = crew_quarters
+						owner = event_target:lrsk_fed_member_2
+						effect = {
+							set_starbase_module = {
+								slot = 1
+								module = trading_hub
+							}
+						}
+					}
+				}
+			}
+		}
+		event_target:lrsk_fed_member_1 = {
+			create_starting_leaders = yes
+			country_event = { id = game_start.9 }
+			country_event = { id = game_start.33 days = 1 } # needs delay for system ownership to settle
+			join_alliance = { who = root override_requirements = yes }
+			set_name = random # Fixes some naming issues
+		}
+		event_target:lrsk_fed_member_2 = {
+			create_starting_leaders = yes
+			country_event = { id = game_start.9 }
+			country_event = { id = game_start.33 days = 1 } # needs delay for system ownership to settle
+			join_alliance = { who = root override_requirements = yes }
+			set_name = random # Fixes some naming issues
+		}
+		if = {
+			limit = { lrsk_gov_var_has_discovery_origin = yes }
+			federation = { 
+				set_federation_type = research_federation
+				set_federation_leader = root
+				set_name = random
+			}
+		}
+		if = {
+			limit = { lrsk_gov_var_has_tradeways_origin = yes }
+			federation = { 
+				set_federation_type = trade_federation
+				set_federation_leader = root
+				set_name = random
+			}
+		}
+		if = {
+			limit = { root = { has_origin = lrsk_gov_var_origin_grand_alliance } }
+			federation = { 
+				set_federation_type = military_federation
+				set_federation_leader = root
+				set_name = random
+			}
+		}
+		if = {
+			limit = { root = { has_origin = lrsk_gvp_origin_convened_providence } }
+			federation = { 
+				set_federation_type = spiritualist_federation
+				set_federation_leader = root
+				set_name = random
+			}
+		}
+		event_target:lrsk_fed_member_1 = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_lrsk_gov_var_new_feds
+			}
+			add_trust = {
+				amount = 50
+				who = root
+			}
+			add_trust = {
+				amount = 50
+				who = event_target:lrsk_fed_member_2
+			}
+			add_intel = {
+				amount = 60
+				who = root
+			}
+			add_intel = {
+				amount = 60
+				who = event_target:lrsk_fed_member_2
+			}
+		}
+		event_target:lrsk_fed_member_2 = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_lrsk_gov_var_new_feds
+			}
+			add_trust = {
+				amount = 50
+				who = root
+			}
+			add_trust = {
+				amount = 50
+				who = event_target:lrsk_fed_member_1
+			}
+			add_intel = {
+				amount = 60
+				who = root
+			}
+			add_intel = {
+				amount = 60
+				who = event_target:lrsk_fed_member_1
+			}
+		}
+		add_opinion_modifier = {
+			who = event_target:lrsk_fed_member_1
+			modifier = opinion_lrsk_gov_var_new_feds
+		}
+		add_opinion_modifier = {
+			who = event_target:lrsk_fed_member_2
+			modifier = opinion_lrsk_gov_var_new_feds
+		}
+		add_trust = {
+			amount = 50
+			who = event_target:lrsk_fed_member_1
+		}
+		add_trust = {
+			amount = 50
+			who = event_target:lrsk_fed_member_2
+		}
+		add_intel = {
+			amount = 60
+			who = event_target:lrsk_fed_member_1
+		}
+		add_intel = {
+			amount = 60
+			who = event_target:lrsk_fed_member_2
+		}
+	}
+}

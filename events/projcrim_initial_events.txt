@@ -1,0 +1,2113 @@
+namespace = projcrim
+
+# Selects origin world
+country_event = { 
+	id = projcrim.0
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		OR = {
+			has_global_flag = projcrim_in_progress
+			has_global_flag = project_crimson_debug
+		}
+	}
+
+	immediate = {
+		random_playable_country = {
+			weights = {
+				base = 10
+				modifier = {
+					factor = 0.5
+					is_ai = yes
+				}
+			}
+			random_planet_within_border = {
+				limit = {
+					is_colony = yes
+					is_capital = no
+					is_controlled_by = prev
+				}
+				set_planet_flag = throng_origin_world
+				set_planet_flag = throng_present
+				save_global_event_target_as = throng_origin_world
+			}
+			set_country_flag = throng_origin_country
+			save_global_event_target_as = throng_origin_country
+			country_event = { id = projcrim.1 days = 30 random = 30 }
+		}
+	}
+}
+
+# Owner of origin world - Reports of large-scale fatigue and nausea
+country_event = {
+	id = projcrim.1
+	title = "projcrim.1.name"
+	desc = "projcrim.1.desc"
+	picture = GFX_evt_tradedeal
+	show_sound = event_activating_unknown_technology
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		country_event = { id = projcrim.2 days = 60 random = 30 }
+	}
+	
+	option = {
+		name = "projcrim.1.a"
+	}
+}
+
+# Owner of origin world - Violence on the rise
+country_event = {
+	id = projcrim.2
+	title = "projcrim.2.name"
+	desc = "projcrim.2.desc"
+	picture = GFX_evt_black_market
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = "projcrim.2.a"
+		event_target:throng_origin_world = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_1
+				days = 100
+			}
+			enable_special_project = {
+				name = "projcrim_investigation"
+				location = this
+				owner = root.owner
+			}
+		}
+	}
+	option = {
+		name = "projcrim.2.b"
+		event_target:throng_origin_world = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_1
+				days = 100
+			}
+		}
+		add_resource = {
+			influence = 100
+		}
+		hidden_effect = {
+			country_event = { id = projcrim.3 days = 100 random = 20 }
+		}
+	}
+}
+
+# Owner of origin world - Crime and aggression increasing
+country_event = {
+	id = projcrim.3
+	title = "projcrim.3.name"
+	desc = "projcrim.3.desc"
+	picture = GFX_evt_civil_action
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = "projcrim.3.a"
+		add_resource = {
+			unity = -500
+		}
+		event_target:throng_origin_world = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_2
+			}
+			enable_special_project = {
+				name = "projcrim_investigation"
+				location = this
+				owner = root.owner
+			}
+		}
+	}
+}
+
+# Owner of origin world - Parasite!
+country_event = {
+	id = projcrim.4
+	title = "projcrim.4.name"
+	desc = "projcrim.4.desc"
+	picture = GFX_evt_disease_outbreak
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = plague_present
+		every_playable_country = {
+			begin_event_chain = {
+				event_chain = projcrim_main_chain
+				target = this
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.1
+				name = "projcrim_main_chain.1"
+				desc = "projcrim_main_chain.1.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.2
+				name = "projcrim_main_chain.2"
+				desc = "projcrim_main_chain.2.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.3
+				name = "projcrim_main_chain.3"
+				desc = "projcrim_main_chain.3.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.4
+				name = "projcrim_main_chain.4"
+				desc = "projcrim_main_chain.4.desc"
+				event_chain = "projcrim_main_chain"
+			}
+		}
+		random_country = {
+			limit = { is_country_type = global_event }
+			country_event = { id = projcrim_random.50 days = 720 }
+		}
+	}
+	
+	option = {
+		name = "projcrim.4.a"
+		custom_tooltip = projcrim_parasite_start
+		event_target:throng_origin_world = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_2
+			}
+		}
+		hidden_effect = {
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = 3
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = 3
+				}
+			}
+			country_event = { id = projcrim.6 }
+			event_target:throng_origin_world = {
+				random_owned_species = {
+					limit = {
+						is_sapient = yes
+						#is_robotic = no 	# removed to work for machine empires
+					}
+					modify_species = {
+						species = this
+						base = auto
+						add_trait = trait_crimson_infected
+						add_traits_at_start_of_list = yes
+						change_scoped_species = yes
+						effect = {
+							set_species_flag = initial_crimson_infected_species
+							set_species_flag = crimson_infected_species
+							save_global_event_target_as = infected_species_initial
+							prevprev = {
+								while = {
+									count = 3
+									create_pop = {
+										species = prev
+										ethos = random
+									}
+								}
+							}
+						}
+					}
+				}
+				while = {
+					count = 3
+					random_owned_pop = {
+						limit = {
+							NOT = { pop_has_trait = trait_crimson_infected }
+							is_being_purged = no
+							is_sapient = yes
+						}
+						kill_pop = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+# Owner of origin world - Parasite! (SP failed)
+country_event = {
+	id = projcrim.5
+	title = "projcrim.5.name"
+	desc = "projcrim.5.desc"
+	picture = GFX_evt_disease_outbreak
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = plague_present
+		every_playable_country = {
+			begin_event_chain = {
+				event_chain = projcrim_main_chain
+				target = this
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.1
+				name = "projcrim_main_chain.1"
+				desc = "projcrim_main_chain.1.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.2
+				name = "projcrim_main_chain.2"
+				desc = "projcrim_main_chain.2.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.3
+				name = "projcrim_main_chain.3"
+				desc = "projcrim_main_chain.3.desc"
+				event_chain = "projcrim_main_chain"
+			}
+			create_point_of_interest = {
+				id = projcrim_main_chain.4
+				name = "projcrim_main_chain.4"
+				desc = "projcrim_main_chain.4.desc"
+				event_chain = "projcrim_main_chain"
+			}
+		}
+		random_country = {
+			limit = { is_country_type = global_event }
+			country_event = { id = projcrim_random.50 days = 720 }
+			country_event = { id = projcrim_end.15 days = 10800 }
+		}
+	}
+	
+	option = {
+		name = "projcrim.5.a"
+		custom_tooltip = projcrim_info_log
+		custom_tooltip = projcrim_parasite_start2
+		event_target:throng_origin_world = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_3
+			}
+		}
+		add_resource = {
+			energy = -2000
+			influence = -100
+		}
+		hidden_effect = {
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = 5
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = 5
+				}
+			}
+			country_event = { id = projcrim.6 }
+			event_target:throng_origin_world = {
+				set_variable = {
+					which = projcrim_infection_percent_planet
+					value = value:projcrim_infection_percent
+				}
+				random_owned_species = {
+					limit = {
+						is_sapient = yes
+						#is_robotic = no 	# removed to work for machine empires
+					}
+					modify_species = {
+						species = this
+						base = auto
+						add_trait = trait_crimson_infected
+						add_traits_at_start_of_list = yes
+						change_scoped_species = yes
+						effect = {
+							set_species_flag = initial_crimson_infected_species
+							save_global_event_target_as = infected_species_initial
+						}
+					}
+				}
+				while = {
+					count = 5
+					random_owned_pop = {
+						limit = {
+							is_being_purged = no
+							is_sapient = yes
+						}
+						kill_pop = yes
+					}
+					create_pop = {
+						species = event_target:infected_species_initial
+						ethos = random
+					}
+				}
+			}
+		}
+	}
+}
+
+# Owner of origin world - Initial Approach
+country_event = {
+	id = projcrim.6
+	title = "projcrim.6.name"
+	desc = "projcrim.6.desc"
+	picture = GFX_evt_decryption
+	location = event_target:throng_origin_world
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		create_crimson_throng_species = yes
+		create_crimson_throng_country = yes
+	}
+	
+	option = {
+		name = "projcrim.6.a" # Prioritise Research
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		icon = {
+			icon = GFX_situation_approach_research
+			icon_background = GFX_situation_approach_bg_green
+			text = set_situation_approach_icon_text
+		}
+		event_target:projcrim_sit1 = {
+			set_situation_approach = approach_projcrim_research
+		}
+		hidden_effect = {
+			# every_playable_country = {
+			# 	country_event = {
+			# 		id = projcrim.10
+			# 		days = 60
+			# 		random = 60
+			# 	}
+			# }
+			random_country = {
+				limit = { is_country_type = global_event }
+				country_event = { id = projcrim.7 days = 60 }
+			}
+		}
+	}
+	option = {
+		name = "projcrim.6.b" # Focus on Restrictions
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		icon = {
+			icon = GFX_situation_approach_scales
+			icon_background = GFX_situation_approach_bg_yellow
+			text = set_situation_approach_icon_text
+		}
+		event_target:projcrim_sit1 = {
+			set_situation_approach = approach_projcrim_restrictions
+		}
+		hidden_effect = {
+			random_country = {
+				limit = { is_country_type = global_event }
+				country_event = { id = projcrim.7 days = 60 }
+			}
+		}
+	}
+	option = {
+		name = "projcrim.6.c" # Contain the Infected
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		icon = {
+			icon = GFX_situation_approach_fist
+			icon_background = GFX_situation_approach_bg_red
+			text = set_situation_approach_icon_text
+		}
+		event_target:projcrim_sit1 = {
+			set_situation_approach = approach_projcrim_containment
+		}
+		hidden_effect = {
+			random_country = {
+				limit = { is_country_type = global_event }
+				country_event = { id = projcrim.7 days = 60 }
+			}
+		}
+	}
+	option = {
+		name = "projcrim.6.d" # Kill the Infected
+		custom_tooltip = projcrim_kill
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		icon = {
+			icon = GFX_situation_approach_fist
+			icon_background = GFX_situation_approach_bg_red
+			text = set_situation_approach_icon_text
+		}
+		event_target:projcrim_sit1 = {
+			set_situation_approach = approach_projcrim_containment
+		}
+		hidden_effect = {
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = -2
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = -2
+				}
+			}
+			random_country = {
+				limit = { is_country_type = global_event }
+				country_event = { id = projcrim.7 days = 90 }
+			}
+			while = {
+				count = 2
+				event_target:throng_origin_world = {
+					random_owned_pop = {
+						limit = {
+							pop_has_trait = trait_crimson_infected
+						}
+						kill_pop = yes
+					}
+				}
+			}
+		}
+		trigger = {
+			OR = {
+				is_militarist = yes
+				is_authoritarian = yes
+			}
+		}
+	}
+}
+
+# Hidden event - Select new world to spread to
+country_event = {
+	id = projcrim.7
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_country = {
+			limit = { is_country_type = global_event }
+			country_event = {
+				id = projcrim.9
+				days = 90
+				random = 10
+			}
+		}
+		random_playable_country = {
+			limit = {
+				NOT = { has_country_flag = throng_origin_country }
+			}
+			set_country_flag = throng_spread_to_country
+			random_planet_within_border = {
+				limit = {
+					is_colony = yes
+					is_capital = no
+					is_controlled_by = prev
+				}
+				set_planet_flag = throng_present
+				save_event_target_as = throng_spread
+			}
+			set_country_flag = plague_present
+		}
+		every_playable_country = {
+			country_event = {
+				id = projcrim.8
+			}
+		}
+	}
+}
+
+# Global event - Signs of Plague Appear Elsewhere
+country_event = {
+	id = projcrim.8
+	title = "projcrim.8.name"
+	desc = "projcrim.8.desc"
+	picture = GFX_evt_disease_outbreak
+	location = event_target:throng_spread
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = "projcrim.8.a"	# Most countries
+		trigger = {
+			NOR = {
+				has_country_flag = throng_origin_country
+				has_country_flag = throng_spread_to_country
+			}
+		}
+	}
+	option = {
+		name = "projcrim.8.b"	# Initial infected country
+		trigger = {
+			has_country_flag = throng_origin_country
+		}
+	}
+	option = {
+		name = "projcrim.8.c"	# Newly infected country
+		trigger = {
+			has_country_flag = throng_spread_to_country
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		event_target:projcrim_sit = {
+			set_situation_approach = approach_projcrim_research
+		}
+		custom_tooltip = projcrim_parasite_spread1
+		event_target:throng_spread = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_2
+			}
+		}
+		hidden_effect = {
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = 3
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = 3
+				}
+			}
+			event_target:throng_spread = {
+				while = {
+					count = 3
+					projcrim_infect_pops = yes
+				}
+				set_variable = {
+					which = projcrim_infection_percent_planet
+					value = value:projcrim_infection_percent
+				}
+			}
+			remove_country_flag = throng_spread_to_country
+		}
+	}
+}
+
+# Hidden event - Select 3 new worlds to spread to
+country_event = {
+	id = projcrim.9
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_global_flag = projcrim_spread_active
+		#set_global_flag = projcrim_spread_high
+		random_country = {
+			limit = { is_country_type = global_event }
+			country_event = { id = projcrim.12 days = 60 }
+		}
+		while = {
+			count = 3	# Num new worlds infected
+			random_playable_country = {
+				limit = {
+					NOR = {
+						has_country_flag = throng_origin_country
+						has_country_flag = plague_present
+					}
+				}
+				weights = {
+					base = 10
+					modifier = {
+						factor = 0.75
+						is_ai = yes
+					}
+				}
+				set_country_flag = throng_spread_to_country
+				set_country_flag = plague_present
+				random_planet_within_border = {
+					limit = {
+						is_colony = yes
+						is_controlled_by = prev
+					}
+					set_planet_flag = throng_present
+					#save_event_target_as = throng_spread
+					set_planet_flag = throng_spread
+				}
+			}
+		}
+		every_playable_country = {
+			country_event = {
+				id = projcrim.11
+			}
+		}
+	}
+}
+
+# Global event - Plague Spreading Quickly
+country_event = {
+	id = projcrim.11
+	title = "projcrim.11.name"
+	desc = "projcrim.11.desc"
+	picture = GFX_evt_disease_outbreak
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+
+	
+	option = {
+		name = "projcrim.11.a"	# Most countries
+		trigger = {
+			NOR = {
+				has_country_flag = throng_origin_country
+				has_country_flag = throng_spread_to_country
+			}
+		}
+	}
+	option = {
+		name = "projcrim.11.b"	# Initial infected country
+		trigger = {
+			has_country_flag = throng_origin_country
+		}
+	}
+	option = {
+		name = "projcrim.8.c"	# Newly infected country
+		trigger = {
+			has_country_flag = throng_spread_to_country
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		event_target:projcrim_sit = {
+			set_situation_approach = approach_projcrim_research
+		}
+		custom_tooltip = projcrim_parasite_spread1
+		every_owned_planet = {
+			limit = {
+				has_planet_flag = throng_spread
+			}
+			add_modifier = {
+				modifier = projcrim_initial_crime_2
+			}
+		}
+		hidden_effect = {
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = 3
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = 3
+				}
+			}
+			every_owned_planet = {
+				limit = {
+					has_planet_flag = throng_spread
+				}
+				while = {
+					count = 3
+					projcrim_infect_pops = yes
+				}
+				remove_planet_flag = throng_spread
+				set_variable = {
+					which = projcrim_infection_percent_planet
+					value = value:projcrim_infection_percent
+				}
+			}
+			remove_country_flag = throng_spread_to_country
+		}
+	}
+}
+
+# GATEKEEPER - The Spread of the Plague 
+country_event = {
+	id = projcrim.12
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		# Loop while Plague spreads
+		if = {
+			limit = {
+				has_global_flag = projcrim_spread_active
+				NOT = { has_country_flag = projcrim_plague_cured }
+			}
+			country_event = { id = projcrim.12 days = 30 random = 60 } # Every 1-3 months
+		}
+		# Infected nations
+		every_playable_country = {
+			limit = {
+				any_owned_pop = {
+					pop_has_trait = trait_crimson_infected
+				}
+				NOT = { has_country_flag = projcrim_plague_cured }
+			}
+			# New pop(s) infected?
+			random_list = {
+				50  = {
+					random_list = {		# More pops on 1 world infected
+						55 = {
+							random_owned_planet = {
+								limit = {
+									any_owned_pop = {
+										pop_has_trait = trait_crimson_infected
+									}
+									any_owned_pop = {
+										NOT = { pop_has_trait = trait_crimson_infected }
+									}
+									is_colony = yes
+								}
+								# weights = {
+								# 	base = 100
+								# 	modifier = {
+								# 		factor = value:projcrim_conformity_reduction_effect
+								# 		always = yes
+								# 	}
+								# }
+								random_list = {
+									150 = {
+										projcrim_infect_pops = yes
+										owner = {
+											# add_event_chain_counter = {
+											# 	event_chain = projcrim_main_chain
+											# 	counter = afflicted_pops_national
+											# 	amount = 1
+											# }
+										}
+										every_playable_country = {
+											limit = { has_event_chain = "projcrim_main_chain" }
+											add_event_chain_counter = {
+												event_chain = projcrim_main_chain
+												counter = afflicted_pops_galaxy
+												amount = 1
+											}
+										}
+									}
+									10 = {
+										modifier = {
+											factor = value:projcrim_conformity_effect|WEIGHT|10|
+										}
+									}
+								}
+							}
+						}
+						45 = {
+							random_owned_planet = {
+								limit = {
+									any_owned_pop = {
+										pop_has_trait = trait_crimson_infected
+									}
+									is_colony = yes
+								}
+								# weights = {
+								# 	base = 100
+								# 	modifier = {
+								# 		factor = value:projcrim_conformity_reduction_effect
+								# 		always = yes
+								# 	}
+								# }
+								random_list = {
+									150 = {
+										while = {
+											count = 2
+											projcrim_infect_pops = yes
+										}
+										owner = {
+											# add_event_chain_counter = {
+											# 	event_chain = projcrim_main_chain
+											# 	counter = afflicted_pops_national
+											# 	amount = 2
+											# }
+										}
+										every_playable_country = {
+											limit = { has_event_chain = "projcrim_main_chain" }
+											add_event_chain_counter = {
+												event_chain = projcrim_main_chain
+												counter = afflicted_pops_galaxy
+												amount = 2
+											}
+										}
+									}
+									10 = {
+										modifier = {
+											factor = value:projcrim_conformity_effect|WEIGHT|10|
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				50 = {
+					modifier = {
+						factor = 0
+						num_owned_planets < 3
+					}
+					random_list = {		# More pops on 2 worlds infected
+						65 = {
+							while = {
+								count = 2
+								random_owned_planet = {
+									limit = {
+										any_owned_pop = {
+											pop_has_trait = trait_crimson_infected
+										}
+										any_owned_pop = {
+											NOT = { pop_has_trait = trait_crimson_infected }
+										}
+										is_colony = yes
+									}
+									# weights = {
+									# 	base = 100
+									# 	modifier = {
+									# 		factor = value:projcrim_conformity_reduction_effect
+									# 		always = yes
+									# 	}
+									# }
+									random_list = {
+										150 = {
+											projcrim_infect_pops = yes
+											owner = {
+												# add_event_chain_counter = {
+												# 	event_chain = projcrim_main_chain
+												# 	counter = afflicted_pops_national
+												# 	amount = 1
+												# }
+											}
+											every_playable_country = {
+												limit = { has_event_chain = "projcrim_main_chain" }
+												add_event_chain_counter = {
+													event_chain = projcrim_main_chain
+													counter = afflicted_pops_galaxy
+													amount = 1
+												}
+											}
+										}
+										10 = {
+											modifier = {
+												factor = value:projcrim_conformity_effect|WEIGHT|10|
+											}
+										}
+									}
+								}
+							}
+						}
+						35 = {
+							while = {
+								count = 2
+								random_owned_planet = {
+									limit = {
+										any_owned_pop = {
+											pop_has_trait = trait_crimson_infected
+										}
+										is_colony = yes
+									}
+									# weights = {
+									# 	base = 100
+									# 	modifier = {
+									# 		factor = value:projcrim_conformity_reduction_effect
+									# 		always = yes
+									# 	}
+									# }
+									random_list = {
+										150 = {
+											while = {
+												count = 2
+												projcrim_infect_pops = yes
+											}
+											owner = {
+												# add_event_chain_counter = {
+												# 	event_chain = projcrim_main_chain
+												# 	counter = afflicted_pops_national
+												# 	amount = 1
+												# }
+											}
+											every_playable_country = {
+												limit = { has_event_chain = "projcrim_main_chain" }
+												add_event_chain_counter = {
+													event_chain = projcrim_main_chain
+													counter = afflicted_pops_galaxy
+													amount = 1
+												}
+											}
+										}
+										10 = {
+											modifier = {
+												factor = value:projcrim_conformity_effect|WEIGHT|10|
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			# New planet infected?
+			if = {
+				limit = {
+					any_owned_pop = {
+						pop_has_trait = trait_crimson_infected
+					}
+					any_owned_planet = {
+						count_owned_pop = {		#every_owned_pop is for effects
+							count = all
+							limit = { NOT = { pop_has_trait = trait_crimson_infected } }
+						}
+					}
+				}
+				random_list = {
+					60 = {
+						random_owned_planet = {
+							limit = {
+								is_colony = yes
+								is_under_colonization = no
+								count_owned_pop = {
+									count = all
+									limit = { NOT = { pop_has_trait = trait_crimson_infected } }
+								}
+								num_pops > 3
+							}
+							projcrim_infect_pops = yes
+							planet_event = { id = projcrim_game_start.5 }
+							set_variable = {
+								which = projcrim_infection_percent_planet
+								value = value:projcrim_infection_percent
+							}
+							owner = {
+								# add_event_chain_counter = {
+								# 	event_chain = projcrim_main_chain
+								# 	counter = afflicted_pops_national
+								# 	amount = 1
+								# }
+							}
+							every_playable_country = {
+								limit = { has_event_chain = "projcrim_main_chain" }
+								add_event_chain_counter = {
+									event_chain = projcrim_main_chain
+									counter = afflicted_pops_galaxy
+									amount = 1
+								}
+							}
+						}
+					}
+					40 = {
+						# Nothing
+					}
+				}
+			}
+			# Unrest effects
+			every_owned_planet = {
+				limit = {
+					any_owned_pop = {
+						pop_has_trait = trait_crimson_infected
+					}
+				}
+				add_modifier = {	# Negative modifier scales with infected pops
+					modifier = projcrim_pop_unrest
+					multiplier = value:projcrim_infected_pops
+				}
+				set_variable = {
+					which = infected_pops_planet
+					value = value:projcrim_infected_pops
+				}
+				set_variable = {	# Reset every check
+					which = projcrim_infection_percent_planet
+					value = value:projcrim_infection_percent
+				}
+				random_list = {		# Chances of revolt
+					50 = {
+						# Nothing
+					}
+					50 = {
+						modifier = {
+							factor = 0
+							OR = {
+								check_variable = {
+									which = projcrim_infection_percent_planet
+									value < 30
+								}
+								has_planet_flag = projcrim_no_revolts
+								has_planet_flag = throng_occupied_world
+							}
+						}
+						modifier = {
+							factor = 0.1
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value > 30
+							}
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value < 50
+							}
+						}
+						modifier = {
+							factor = 0.2
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value > 50
+							}
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value < 75
+							}
+						}
+						modifier = {
+							factor = 0.5
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value > 75
+							}
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value < 100	
+							}
+						}
+						modifier = {
+							factor = 1
+							check_variable = {
+								which = projcrim_infection_percent_planet
+								value >= 99
+							}
+						}
+						planet_event = { id = projcrim_unrest.1 days = 1 random = 9 }
+					}
+				}
+			}
+		}
+		# Un-infected nations: check for spread from neighbouring nation
+		every_playable_country = {
+			limit = {
+				count_owned_pop = {		#every_owned_pop is for effects
+					count = all
+					limit = { NOT = { pop_has_trait = trait_crimson_infected } }
+				}
+				NOT = { has_country_flag = projcrim_plague_cured }
+			}
+			if = {
+				limit = {
+					any_neighbor_country = {
+						any_owned_pop = {
+							pop_has_trait = trait_crimson_infected
+						}
+					}
+				}
+				every_neighbor_country = {		#ordered/random_neighbour_country?
+					limit = {
+						any_owned_pop = {
+							pop_has_trait = trait_crimson_infected
+						}
+					}
+					save_event_target_as = infected_nation
+				}
+				random_list = {
+					30 = {
+						# Nothing
+						log = "Crimson Plague did not spread to [Root.GetName]."
+					}
+					70 = {
+						modifier = {
+							factor = 0.75
+							OR = {
+								AND = {
+									num_closed_borders >= 3
+									num_closed_borders < 5
+								}
+								has_closed_borders = event_target:infected_nation
+							}
+						}
+						modifier = {
+							factor = 0.50
+							has_closed_borders = event_target:infected_nation
+							num_closed_borders >= 5
+							num_closed_borders < 7
+						}
+						modifier = {
+							factor = 0.35
+							num_closed_borders >= 7
+							has_closed_borders = event_target:infected_nation
+						}
+						# Spreads to nation from an infected neighbour
+						country_event = { id = projcrim.13 days = 1 random = 2 }
+					}
+				}
+			}
+		}
+	}
+}
+
+# Plague Spreads from Neighbour
+country_event = {
+	id = projcrim.13
+	title = "projcrim.13.name"
+	desc = "projcrim.13.desc"
+	picture = GFX_evt_disease_outbreak
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = plague_present
+		random_planet_within_border = {
+			limit = {
+				is_colony = yes
+			}
+			set_planet_flag = throng_present
+			save_event_target_as = throng_spread
+		}
+	}
+	
+	option = {
+		name = "projcrim.13.a"
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = projcrim_sit1_started
+				}
+			}
+			set_country_flag = projcrim_sit1_started
+			start_situation = {
+				type = projcrim_initial_research
+				target = root
+				effect = {
+					save_event_target_as = projcrim_sit1
+				}
+			}
+		}
+		custom_tooltip = projcrim_parasite_spread2
+		event_target:throng_spread = {
+			add_modifier = {
+				modifier = projcrim_initial_crime_2
+			}
+		}
+		hidden_effect = {
+			# EVENT FOR NEW EMPIRE INFECTED?
+			# every_playable_country = {
+			# 	limit = {
+			# 		NOT = { is_same_value = event_target:@root_infected_nation }
+			# 	}
+			# 	country_event = { id = projcrim.14 days = 5 }
+			# }
+			event_target:throng_spread = {
+				while = {
+					count = 2
+					projcrim_infect_pops = yes
+				}
+			}
+			# add_event_chain_counter = {
+			# 	event_chain = projcrim_main_chain
+			# 	counter = afflicted_pops_national
+			# 	amount = 2
+			# }
+			every_playable_country = {
+				limit = { has_event_chain = "projcrim_main_chain" }
+				add_event_chain_counter = {
+					event_chain = projcrim_main_chain
+					counter = afflicted_pops_galaxy
+					amount = 2
+				}
+			}
+		}
+	}
+}
+
+# # Global event - Plague Spreads to New Nation
+# country_event = {
+# 	id = projcrim.14
+# 	title = "projcrim.14.name"
+# 	desc = "projcrim.14.desc"
+# 	picture = GFX_evt_disease_outbreak
+	
+# 	is_triggered_only = yes
+	
+# 	immediate = {
+# 	}
+	
+# 	option = {
+# 		name = "projcrim.14.a"
+# 		custom_tooltip = new_nation_infected
+# 	}
+# }
+
+# Orbital Purifier Used
+planet_event = {
+	id = projcrim.15
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			country_event = {
+				id = projcrim_end.0
+			}
+		}
+		set_timed_planet_flag = {
+			flag = projcrim_no_revolt
+			days = 3600
+		}
+		every_playable_country = {
+			limit = { has_event_chain = "projcrim_main_chain" }
+			add_event_chain_counter = {
+				event_chain = projcrim_main_chain
+				counter = afflicted_worlds
+				amount = -1
+			}
+		}
+		# Purify world
+		if = {
+			limit = {
+				is_planet_class = pc_projcrim_afflicted
+			}
+			restore_pc = yes
+		}
+		# Heal Pops
+		if = {
+			limit = {
+				any_owned_pop = {
+					pop_has_trait = trait_crimson_infected
+				}
+			}
+			every_owned_species	= {
+				limit = {
+					OR = {
+						has_trait = trait_crimson_infected
+						has_species_flag = crimson_infected_species
+					}
+				}
+				change_species_characteristics = {
+					remove_trait = trait_crimson_infected
+					add_trait = trait_crimson_recovered
+				}
+			}
+		}
+		# Restore control
+		set_controller = owner
+		# Mark as no longer afflicted
+		remove_planet_flag = throng_afflicted_world
+		remove_planet_flag = throng_occupied_world
+		# Updates tracked variables
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			subtract_variable = {
+				which = projcrim_throng_worlds
+				value = 1
+			}
+		}
+	}
+}
+
+# Cracker/Pacifier Used
+planet_event = {
+	id = projcrim.16
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			country_event = {
+				id = projcrim_end.0
+			}
+		}
+		set_timed_planet_flag = {
+			flag = projcrim_no_revolt
+			days = 3600
+		}
+		every_playable_country = {
+			limit = { has_event_chain = "projcrim_main_chain" }
+			add_event_chain_counter = {
+				event_chain = projcrim_main_chain
+				counter = afflicted_worlds
+				amount = -1
+			}
+		}
+		# Mark as no longer afflicted
+		remove_planet_flag = throng_afflicted_world
+		remove_planet_flag = throng_occupied_world
+		# Updates tracked variables
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			subtract_variable = {
+				which = projcrim_throng_worlds
+				value = 1
+			}
+		}
+	}
+}
+
+# Neutron Sweep Used
+planet_event = {
+	id = projcrim.17
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			country_event = {
+				id = projcrim_end.0
+			}
+		}
+		set_timed_planet_flag = {
+			flag = projcrim_no_revolt
+			days = 3600
+		}
+		every_playable_country = {
+			limit = { has_event_chain = "projcrim_main_chain" }
+			add_event_chain_counter = {
+				event_chain = projcrim_main_chain
+				counter = afflicted_worlds
+				amount = -1
+			}
+		}
+		# Becomes tomb world
+		if = {
+			limit = {
+				is_planet_class = pc_projcrim_afflicted
+			}
+			change_pc = pc_nuked
+		}
+		# Mark as no longer afflicted
+		remove_planet_flag = throng_afflicted_world
+		remove_planet_flag = throng_occupied_world
+		# Updates tracked variables
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			subtract_variable = {
+				which = projcrim_throng_worlds
+				value = 1
+			}
+		}
+	}
+}
+
+# Nanobots/Godray/Deluge Used
+planet_event = {
+	id = projcrim.18
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			country_event = {
+				id = projcrim_end.0
+			}
+		}
+		set_timed_planet_flag = {
+			flag = projcrim_no_revolt
+			days = 3600
+		}
+		every_playable_country = {
+			limit = { has_event_chain = "projcrim_main_chain" }
+			add_event_chain_counter = {
+				event_chain = projcrim_main_chain
+				counter = afflicted_worlds
+				amount = -1
+			}
+		}
+		# Becomes tomb world
+		if = {
+			limit = {
+				is_planet_class = pc_projcrim_afflicted
+			}
+			change_pc = pc_nuked
+		}
+		# Restore control
+		set_controller = owner
+		# Mark as no longer afflicted
+		remove_planet_flag = throng_occupied_world
+		remove_planet_flag = throng_afflicted_world
+		# Updates tracked variables
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			subtract_variable = {
+				which = projcrim_throng_worlds
+				value = 1
+			}
+		}
+	}
+}
+
+# Bombarded
+planet_event = {
+	id = projcrim.19
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		is_planet_class = pc_projcrim_afflicted
+		NOT = { has_planet_flag = projcrim_sp_present }
+		planet_devastation >= 50
+	}
+
+	immediate = {
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			country_event = {
+				id = projcrim_end.0
+			}
+		}
+		set_timed_planet_flag = {
+			flag = projcrim_no_revolt
+			days = 3600
+		}
+		every_playable_country = {
+			limit = { has_event_chain = "projcrim_main_chain" }
+			add_event_chain_counter = {
+				event_chain = projcrim_main_chain
+				counter = afflicted_worlds
+				amount = -1
+			}
+		}
+		change_pc = pc_nuked
+		# Restore control
+		set_controller = owner
+		# Mark as no longer afflicted
+		remove_planet_flag = throng_occupied_world
+		remove_planet_flag = throng_afflicted_world
+		# Updates tracked variables
+		random_country = {
+			limit = {
+				is_country_type = global_event
+			}
+			subtract_variable = {
+				which = projcrim_throng_worlds
+				value = 1
+			}
+		}
+	}
+}
+
+# Story Chain: Finding the Throng's Origin
+country_event = {
+	id = projcrim.20
+	title = "projcrim.20.name"
+	desc = "projcrim.20.desc"
+	picture = GFX_evt_binary_stars
+	
+	is_triggered_only = yes
+
+	trigger = {
+		NOR = {
+			has_global_flag = projcrim_story_end_triggered
+			has_country_flag = projcrim_story_chain_completed
+			has_country_flag = projcrim_origin_chain
+		}
+	}
+	
+	immediate = {
+		set_country_flag = projcrim_origin_chain
+		random_galaxy_planet = {
+			limit = {
+				is_colonizable = no
+				root = {
+					capital_scope = {
+						distance = {
+							source = prevprev
+							min_jumps = 5
+							max_jumps = 20
+						}
+					}
+				}
+				if = {
+					limit = { exists = space_owner }
+					space_owner = {
+						NOR = {
+							is_country_type = fallen_empire
+							is_country_type = awakened_fallen_empire
+							is_country_type = dormant_marauders
+							is_country_type = awakened_marauders
+						}
+					}
+				}
+			}
+			save_event_target_as = projcrim_origin_chain1
+			set_planet_flag = projcrim_origin_chain1_planet
+		}
+		if = {
+			limit = {
+				any_planet_within_border = { is_planet_class = pc_gas_giant }
+			}
+			random_planet_within_border = {
+				limit = {
+					is_planet_class = pc_gas_giant
+				}
+				save_event_target_as = projcrim_origin_chain2
+				set_planet_flag = projcrim_origin_chain2_planet
+				create_archaeological_site = projcrim_site1
+			}
+		}
+		else = {
+			random_galaxy_planet = {
+				limit = {
+					is_planet_class = pc_gas_giant
+					is_in_frontier_space = yes
+				}
+				save_event_target_as = projcrim_origin_chain2
+				set_planet_flag = projcrim_origin_chain2_planet
+				create_archaeological_site = projcrim_site1
+			}
+		}
+	}
+	
+	option = {
+		name = "projcrim.20.a"
+		begin_event_chain = {
+			event_chain = projcrim_story_chain
+		}
+		event_target:projcrim_origin_chain1 = {
+			enable_special_project = {
+				name = projcrim_origin_chain1_project
+				location = this
+				owner = root.owner
+			}
+		}
+		# event_target:projcrim_origin_chain2 = {
+		# 	create_archaeological_site = projcrim_site1
+		# }
+		create_point_of_interest = {
+			id = projcrim_origin_chain1_project2
+			name = "projcrim_origin_chain2"
+			desc = "projcrim_origin_chain2_desc"
+			event_chain = projcrim_story_chain
+		   location = event_target:projcrim_origin_chain2
+	   }
+	}
+}
+
+# Path 1: SP Complete
+country_event = {
+	id = projcrim.21
+	title = "projcrim.21.name"
+	desc = "projcrim.21.desc"
+	picture = GFX_evt_ship_in_orbit_3
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = projcrim_path1_done
+		country_event = {
+			id = projcrim.30
+			days = 3
+		}
+	}
+	
+	option = {
+		name = "projcrim.21.a"
+		add_research_option = tech_projcrim_deep_space_signalling
+		add_modifier = {
+			modifier = projcrim_advanced_transceivers
+		}
+	}
+}
+
+# Path 2: Entering POI System
+# fleet_event = {
+# 	id = projcrim.22
+# 	title = "projcrim.22.name"
+# 	desc = "projcrim.22.desc"
+# 	picture = GFX_evt_gas_giant
+
+# 	is_triggered_only = yes
+
+# 	trigger = {
+# 		NOT = { has_global_flag = crimson_throng_defeated }
+# 		owner = {
+# 			has_country_flag = projcrim_origin_chain
+# 			NOT = { has_country_flag = projcrim_origin_path2_started }
+# 		}
+# 		from.solar_system = {
+# 			any_system_planet = {
+# 				has_planet_flag = projcrim_origin_chain2_planet
+# 			}
+# 		}
+# 	}
+	
+# 	immediate = {
+# 		owner = {
+# 			set_country_flag = projcrim_origin_path2_started
+# 			remove_point_of_interest = projcrim_origin_chain1_project2
+# 		}
+# 		# from.solar_system = {
+# 		# 	random_system_planet = {
+# 		# 		limit = { has_planet_flag = projcrim_origin_chain2_planet }
+# 		# 		save_event_target_as = projcrim_origin_chain2
+# 		# 	}
+# 		# }
+# 	}
+
+# 	option = {
+# 		name = "projcrim.22.a"
+# 		# event_target:projcrim_origin_chain2 = {
+# 		# 	create_archaeological_site = projcrim_site1
+# 		# }
+# 		random_system_planet = {
+# 			limit = { has_planet_flag = projcrim_origin_chain2_planet }
+# 			save_event_target_as = projcrim_origin_chain2
+# 			create_archaeological_site = projcrim_site1
+# 		}
+# 	}
+# }
+
+# Path 2: Digsite 1 (I)
+fleet_event = {
+	id = projcrim.23
+	title = "projcrim.23.name"
+	desc = "projcrim.23.desc"
+	picture = GFX_evt_gas_giant_station
+	show_sound = event_default
+	location = from
+
+	archaeology = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		fromfrom = {
+			set_archaeology_flag = projcrim_origin_chain2_site
+			save_event_target_as = projcrim_origin_chain2_site_@root.owner
+			set_site_progress_locked = yes
+		}
+	}
+
+	after = {
+		fromfrom = { set_site_progress_locked = no }
+	}
+
+	# option = {
+	# 	name = "projcrim.23.a"	# Hack
+	# 	small_artifact_reward = yes
+	# 	fromfrom = { add_stage_clues = -5 }
+	# }
+
+	option = {
+		name = "projcrim.23.b"	# Infiltrate
+		small_artifact_reward = yes
+		from = {
+			enable_special_project = {
+				name = projcrim_origin_chain2_optiona
+				location = this
+				owner = root.owner
+			}
+		}
+		hidden_effect = {
+			destroy_archaeological_site = fromfrom
+		}
+	}
+}
+
+# Path 2: Option A
+country_event = {
+	id = projcrim.24
+	title = "projcrim.24.name"
+	desc = "projcrim.24.desc"
+	picture = GFX_evt_archaeologists_escaping
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_global_flag = projcrim_benefactor_system_made }
+			}
+			capital_scope.solar_system = {
+				# min_steps = 5
+				# max_steps = 10
+				# limit = {
+				# 	has_access_fleet = root.owner
+				# 	has_owner = no
+				# 	NOT = {
+				# 		any_fleet_in_system = {
+				# 			owner = { 
+				# 				is_hostile = root.owner
+				# 			}
+				# 		}
+				# 	}
+				# }
+				spawn_system = {
+					min_distance >= 10
+					max_distance <= 50
+					min_orientation_angle = 24
+					max_orientation_angle = 66
+					initializer = projcrim_benefactor_system
+				}
+			}
+			set_global_flag = projcrim_benefactor_system_made
+		}
+		set_country_flag = projcrim_origin_progress
+	}
+	
+	option = {
+		name = "projcrim.24.a"
+		create_point_of_interest = {
+			id = projcrim_origin_chain3
+			name = "projcrim_origin_chain3"
+			desc = "projcrim_origin_chain3_desc"
+			event_chain = projcrim_story_chain
+			location = event_target:projcrim_benefactors_homeworld
+		}
+	}
+}
+
+# Path 2: Option B
+# country_event = {
+# 	id = projcrim.25
+# 	title = "projcrim.25.name"
+# 	desc = "projcrim.25.desc"
+# 	picture = GFX_evt_ancient_databank
+	
+# 	is_triggered_only = yes
+	
+# 	immediate = {
+# 	}
+	
+# 	option = {
+# 		name = "projcrim.25.a"
+# 		custom_tooltip = projcrim_origin_continued
+# 		hidden_effect = {
+# 			event_target:projcrim_origin_chain2_site_@root = {
+# 				set_site_progress_locked = no
+# 			}
+# 		}
+			
+# 	}
+# }
+
+# Path 2: Digsite 1 (II)
+fleet_event = {
+	id = projcrim.26
+	title = "projcrim.26.name"
+	desc = "projcrim.26.desc"
+	picture = GFX_evt_analyzing_artifacts
+	show_sound = event_default
+	location = from
+
+	archaeology = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		owner = {
+			capital_scope.solar_system = {
+				# min_steps = 5
+				# max_steps = 10
+				# limit = {
+				# 	has_access_fleet = root.owner
+				# 	has_owner = no
+				# 	NOT = {
+				# 		any_fleet_in_system = {
+				# 			owner = { 
+				# 				is_hostile = root.owner
+				# 			}
+				# 		}
+				# 	}
+				# }
+				spawn_system = {
+					min_distance >= 10
+					max_distance <= 50
+					min_orientation_angle = 24
+					max_orientation_angle = 66
+					initializer = projcrim_benefactor_system
+				}
+			}
+		}
+		set_global_flag = projcrim_benefactor_system_made
+		owner = { set_country_flag = projcrim_origin_progress }
+	}
+
+	option = {
+		name = "projcrim.26.a"
+		small_artifact_reward = yes
+		hidden_effect = {
+			destroy_archaeological_site = fromfrom
+		}
+		owner = {
+			create_point_of_interest = {
+				id = projcrim_origin_chain3
+				name = "projcrim_origin_chain3"
+				desc = "projcrim_origin_chain3_desc"
+				event_chain = projcrim_story_chain
+				location = event_target:projcrim_origin_chain3
+			}
+		}
+	}
+}
+
+# Entering Benefactor's Homesystem
+ship_event = {
+	id = projcrim.27
+	title = "projcrim.27.name"
+	desc = "projcrim.27.desc"
+	picture = GFX_evt_ruined_system
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			NOT = { has_country_flag = projcrim_benefactor_system_entered }
+			has_country_flag = projcrim_origin_progress
+		}
+		from = { has_star_flag = projcrim_benefactors }
+	}
+
+	immediate = {
+		owner = { set_country_flag = projcrim_benefactor_system_entered }
+	}
+
+	option = {
+		name = "projcrim.27.a"
+		event_target:projcrim_benefactors_homeworld = {
+			enable_special_project = {
+				name = projcrim_benefactor_study
+				location = this
+				owner = root.owner
+			}
+		}
+	}
+}
+
+# Story Chain: Project Complete
+country_event = {
+	id = projcrim.28
+	title = "projcrim.28.name"
+	desc = "projcrim.28.desc"
+	picture = GFX_evt_ancient_alien_temple
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = projcrim_path2_done
+		country_event = {
+			id = projcrim.30
+			days = 3
+		}
+	}
+	
+	option = {
+		name = "projcrim.28.a"
+		add_resource = {
+			energy = 5000
+			alloys = 2500
+			unity = 1000
+		}
+			
+	}
+}
+
+# Story Chain: Complete
+country_event = {
+	id = projcrim.30
+	title = "projcrim.30.name"
+	desc = "projcrim.30.desc"
+	picture = GFX_evt_decryption
+	
+	is_triggered_only = yes
+
+	trigger = {
+		has_country_flag = projcrim_path1_done
+		has_country_flag = projcrim_path2_done
+		NOR = {
+			has_country_flag = projcrim_story_chain_completed
+			has_global_flag = projcrim_story_end_triggered
+		}
+	}
+	
+	immediate = {
+		set_country_flag = projcrim_story_chain_completed
+		set_country_flag = throng_translated
+	}
+	
+	option = {
+		name = "projcrim.30.a"
+		end_event_chain = projcrim_story_chain
+		add_modifier = {
+			modifier = projcrim_story_bonus
+		}
+		hidden_effect = {
+			country_event = {
+				id = projcrim_diplo.2
+			}
+		}
+	}
+}
+
+# Story Chain: Check for Completion
+country_event = {
+	id = projcrim.31
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				any_playable_country = {
+					has_country_flag = projcrim_story_chain_completed
+				}
+			}
+			every_playable_country = {
+				country_event = {
+					id = projcrim.32
+				}
+			}
+		}
+		else = {
+			country_event = {	# If no country has finished chain, checks again in a year
+				id = projcrim.31
+				days = 360
+			}
+		}
+	}
+}
+
+# Story Chain: Triggered End
+country_event = {
+	id = projcrim.32
+	title = "projcrim.32.name"
+	desc = "projcrim.32.desc"
+	picture = GFX_evt_decryption
+	
+	is_triggered_only = yes
+
+	trigger = {
+		NOT = { has_country_flag = projcrim_story_chain_completed }
+	}
+	
+	immediate = {
+		set_country_flag = projcrim_story_chain_completed
+		set_country_flag = throng_translated
+		set_global_flag = projcrim_story_end_triggered
+		end_event_chain = projcrim_story_chain
+	}
+	
+	option = {
+		name = "projcrim.30.a"
+		hidden_effect = {
+			country_event = {
+				id = projcrim_diplo.2
+			}
+		}
+	}
+}

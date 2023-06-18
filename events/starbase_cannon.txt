@@ -1,0 +1,368 @@
+namespace = sbscannon
+
+country_event = {
+	id = sbscannon.1
+	is_triggered_only = yes
+	hide_window = yes
+	location = event_target:sbs_cannon_system_0
+
+	trigger = {
+		exists = this
+		is_scope_type = country
+		is_ai = no
+		has_technology = tech_sbs_cannon
+		any_owned_starbase = { has_starbase_building = sbs_cannon }
+		NOT = { has_country_flag = sbs_cannon_target }
+	}
+
+	immediate = {
+		set_timed_country_flag = { flag = sbs_cannon_target days = 2700 }
+		every_owned_starbase = {
+			limit = {
+				has_starbase_building = sbs_cannon
+				solar_system = {
+					NOT = {
+						has_megastructure = sbs_cannon
+					}
+				}
+			}
+			save_global_event_target_as = sbs_cannon_system_0
+			solar_system = {
+				spawn_megastructure = {
+					type = sbs_cannon
+					owner = space_owner
+					planet = star
+					orbit_distance = 50
+					orbit_angle = 270
+					init_effect = {
+						prevprev = {
+							starbase_event = { id = sbscannon.2 }
+						}
+					}
+				}
+			}
+		}
+		owner = {
+			country_event = { id = sbscannon.3 days = 360 }
+		}
+	}
+}
+
+starbase_event = {
+	id = sbscannon.2
+	title = "sbscannon.2.name"
+	desc = "sbscannon.2.desc"
+	picture = GFX_evt_sarmat
+	show_sound = event_super_explosion
+	location = this
+	
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+country_event = {
+	id = sbscannon.3
+	title = "sbscannon.3.name"
+	desc = "sbscannon.3.desc"
+	picture = GFX_evt_sarmat_out
+	show_sound = sbs_event_siren
+	location = event_target:sbs_cannon_system_0
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_system_within_border = {
+			limit = {
+				any_system_megastructure = { is_megastructure_type = sbs_cannon }
+				any_country_neighbor_to_system = {
+					is_country_type = default
+					has_communications = root
+					NOT = { is_at_war_with = root }
+				}
+			}
+			save_global_event_target_as = sbs_cannon_system_0
+			while = {
+				count = 1
+				random_neighbor_system  = {
+					limit = {
+						has_hyperlane_to = prev
+						exists = space_owner
+						space_owner = {
+							is_country_type = default
+							has_communications = root
+							NOT = { is_at_war_with = root }
+						}
+					}
+					save_global_event_target_as = sbs_cannon_system
+					set_star_flag = sbs_cannon_system
+				}
+			}
+		}
+	}
+
+	option = {
+		name = BATTLESTATIONS
+		trigger = {
+			owner = {
+				resource_stockpile_compare = {
+					resource = energy
+					value >= 5000
+				}
+			}
+		}
+		owner = {
+			add_resource = { energy = -5000 }
+		}
+		hidden_effect = {
+			every_playable_country = {
+				limit = {
+					has_communications = root
+					NOT = { is_same_value = root }
+				}
+				add_opinion_modifier = { who = root modifier = opinion_genocidal } #-10 or -5
+			}
+			random_system_within_border = {
+				limit = {
+					any_system_megastructure = { is_megastructure_type = sbs_cannon }
+					any_country_neighbor_to_system = {
+						is_country_type = default
+						has_communications = root
+						NOT = { is_at_war_with = root }
+					}
+				}
+				while = {
+					count = 1
+					random_neighbor_system = {
+						limit = {
+							has_hyperlane_to = prev
+							exists = event_target:sbs_cannon_system
+							has_star_flag = sbs_cannon_system
+							exists = space_owner
+							space_owner = {
+								is_country_type = default
+								has_communications = root
+								NOT = { is_at_war_with = root }
+							}
+						}
+						solar_system = {
+							every_fleet_in_system = { destroy_fleet = this }
+							every_system_planet = {
+								limit = {
+									is_star = no
+									is_asteroid = no
+									NOR = {
+										is_planet_class = pc_shattered
+										is_planet_class = pc_shattered_2
+										is_planet_class = pc_shielded
+										is_planet_class = pc_ringworld_habitable_damaged
+										is_planet_class = pc_ringworld_tech_damaged
+										is_planet_class = pc_ringworld_seam_damaged
+									}
+								}
+								if = {
+									limit = { is_planet_class = pc_habitat } # uncolonized
+									spawn_habitat_cracker_effect = yes
+									remove_planet = yes
+								}
+								if = {
+									limit = { is_colony = yes }
+									if = {
+										limit = {
+											exists = orbital_defence
+										}
+										destroy_fleet = orbital_defence
+									}
+									remove_all_buildings = yes
+									destroy_colony = yes
+									if = {
+										limit = { is_planet_class = pc_habitat }
+										spawn_habitat_cracker_effect = yes
+										remove_planet = yes
+									}
+									else_if = {
+										limit = { is_ringworld = yes }
+										spawn_ringworld_cracker_effect = yes
+										change_pc = pc_ringworld_habitable_damaged
+									}
+								}
+								else_if = {
+									limit = { is_ringworld = yes }
+									spawn_ringworld_cracker_effect = yes
+									change_pc = pc_ringworld_habitable_damaged
+								}
+								else_if = {
+									limit = { is_planet_class = pc_ringworld_tech }
+									spawn_ringworld_cracker_effect = yes
+									change_pc = pc_ringworld_tech_damaged
+								}
+								else_if = {
+									limit = { is_planet_class = pc_ringworld_seam }
+									spawn_ringworld_cracker_effect = yes
+									change_pc = pc_ringworld_seam_damaged
+								}
+							}
+							every_system_planet = {
+								limit = {
+									exists = orbital_station
+								}
+								orbital_station = { dismantle = yes }
+							}
+							every_system_planet = {
+								limit = { is_star = yes }
+								create_ambient_object = {
+									type = "star_explosion"
+									play_animation_once = yes
+									location = this
+								}
+								last_created_ambient_object = {
+									set_location = {
+										target = prev
+										distance = 0
+										angle = random
+									}
+								}
+							}
+							star = {
+								create_ambient_object = {
+									type = "destroyed_system"
+									location = this
+								}
+								last_created_ambient_object = {
+									set_ambient_object_flag = destroyed_system_effect
+									set_location = {
+										target = prev
+										distance = 0
+										angle = random
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		name = TOOPOOR
+	}
+
+	after = {
+		hidden_effect = {
+			random_owned_starbase = {
+				limit = {
+					has_starbase_building = sbs_cannon
+				}
+				remove_starbase_building = { building = sbs_cannon }
+			}
+			clear_global_event_target = sbs_cannon_system
+			clear_global_event_target = sbs_cannon_system_0
+			random_system = {
+				limit = { has_star_flag = sbs_cannon_system }
+				remove_star_flag = sbs_cannon_system
+			}
+			country_event = { id = sbscannon.4 days = 360 }
+		}
+	}
+}
+
+country_event = {
+	id = sbscannon.4
+	is_triggered_only = yes
+	hide_window = yes
+
+	immediate = {
+		from = { 
+			solar_system = { 			
+				every_system = {
+					random_system_ambient_object = {
+						limit = { has_ambient_object_flag = destroyed_system_effect }
+						destroy_ambient_object = this
+					}	
+				}
+			}
+		}
+	}
+}
+
+# on_system_lost (from = system)
+country_event = {
+	id = sbscannon.5
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		exists = from
+		from = {
+			has_megastructure = sbs_cannon
+			NAND = {
+				exists = starbase
+				starbase = { has_starbase_building = sbs_cannon }
+			}
+		}
+	}
+	immediate = {
+		from = {
+			random_system_megastructure = {
+				limit = { is_megastructure_type = sbs_cannon }
+				remove_megastructure = this
+				create_ambient_object = {
+					type = explosion_particle_object
+					location = this
+					use_3d_location = yes
+					duration = 20
+					scale = 5
+				}
+			}
+		}
+	}
+}
+
+# destroy (on_monthly_pulse)
+event = {
+	id = sbscannon.6
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		any_megastructure = {
+			is_megastructure_type = sbs_cannon
+			solar_system = {
+				NAND = {
+					exists = starbase
+					starbase = { has_starbase_building = sbs_cannon }
+				}
+			}
+		}
+	}
+	immediate = {
+		random_megastructure = {
+			limit = {
+				is_megastructure_type = sbs_cannon
+				solar_system = {
+					NAND = {
+						exists = starbase
+						starbase = { has_starbase_building = sbs_cannon }
+					}
+				}
+			}
+			remove_megastructure = this
+			create_ambient_object = {
+				type = explosion_particle_object
+				location = this
+				use_3d_location = yes
+				duration = 20
+				scale = 5
+			}
+		}
+	}
+}

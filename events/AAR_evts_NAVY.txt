@@ -1,0 +1,186 @@
+namespace = AAR_evt_NAVY
+#	aar海军大建/aar海军大建pc
+#	aar海军ap改船
+
+#	ship_hull_add		军备竞赛=大建：强大的实验性武器	/钢铁巨兽=护甲+船体+射程	/未来战舰=护盾+护甲+船体+特殊buff
+
+
+
+
+### aar海军大建
+#_<VOP_on_five_year_pulse>
+event = {
+	id = AAR_evt_NAVY.2
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_country = { limit = { has_ascension_perk = eap_galactic_force_projection }
+			#	|AI|
+			if = { limit = { is_ai = yes }
+				AAR_eft_cntr_NAVY_force_construction_AI = yes	# AAR海军大建AI
+			}
+			#	|PC|
+			else = {
+				country_event = { id = AAR_evt_NAVY.20 }	# aar海军大建pc
+			}
+		}		
+	}
+}
+
+### aar海军大建pc
+#_evt	<aar海军大建>
+country_event = {
+	id = AAR_evt_NAVY.20
+	title = AAR_EP_Navy_construction_title
+	desc = AAR_EP_Navy_construction_desc
+	picture = GFX_AAR_EP_Navy_construction
+	show_sound = event_ship_thrusters
+	location = root.capital_scope.starbase
+
+	is_triggered_only = yes
+
+	# AI
+	option = {
+		name = OK
+		trigger = { is_ai = yes }
+	}
+	# PC
+	option = {
+		name = force_event.a
+		custom_tooltip = force_event.tooltip 
+		trigger = { is_ai = no }
+		hidden_effect = {
+			create_fleet = {
+				name = "NAME_AAR_FLEET"
+				effect = {
+					set_owner = root
+					random_list = {
+						2 = { AAR_prmt_eft_cntrl_NAVY_force_construction = { REPEAT = 3 } }	# AAR海军大建舰队创建
+						3 = { AAR_prmt_eft_cntrl_NAVY_force_construction = { REPEAT = 4 } }
+						3 = { AAR_prmt_eft_cntrl_NAVY_force_construction = { REPEAT = 5 } }
+						2 = { AAR_prmt_eft_cntrl_NAVY_force_construction = { REPEAT = 6 } }
+						1 = { AAR_prmt_eft_cntrl_NAVY_force_construction = { REPEAT = 7 } }	
+					}
+					# 放置在首都
+					set_location = {
+						target = root.capital_scope.starbase
+						distance = 5
+						angle = random
+					}
+					# 添加属性
+					every_owned_ship = {
+						## AAR海军属性VAR	=战列舰
+						AAR_prmt_eft_ship_NAVY_build_VAR = { SIZE = battleship }
+						
+						## factorMOD
+						add_modifier = { modifier = AAR_mod_ship_NAVY_build_factor		 days = -1 multiplier = TEMP_var_factor }
+						## 固定属性
+						add_modifier = { modifier = AAR_mod_ship_NAVY_build_common		 days = -1 }
+						## 随机属性
+						AAR_prmt_eft_ship_NAVY_build_random_mod_DB = { FACTOR = 2 }		# AAR海军随机属性
+						
+						## clear
+						clear_variable = TEMP_var_factor
+					}
+				}
+			}
+		}
+	}
+	option = {	
+		name = force_event.b
+		custom_tooltip = force_event_b.tooltip 
+		trigger = { is_ai = no }
+		hidden_effect = { 
+			add_resource = { alloys = 10000 }
+			add_resource = { influence = 100 }
+		}
+	}
+}
+
+
+
+
+###	aar海军ap改船
+#_evt	<aar月检>
+country_event = {
+	id = AAR_evt_NAVY.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		OR = {
+			has_ascension_perk = AAR_fleet_armor
+			has_ascension_perk = AAR_fleet_shield
+		}
+		any_owned_ship = {
+			OR = {
+				is_ship_class = shipclass_starbase	# 主宰
+				is_ship_class = shipclass_military	# 普通
+				is_ship_class = shipclass_military_special	# 巨神兵
+			}
+		}
+	}
+
+	immediate = {
+		### 钢铁巨兽		血50%/甲50%/射程15%
+		if = { limit = { has_ascension_perk = AAR_fleet_armor }
+			every_owned_ship = {
+				limit = {
+					NOT = { has_modifier = AAR_mod_ship_NAVY_armor_common }
+					OR = {
+						is_ship_class = shipclass_starbase	# 主宰
+						is_ship_class = shipclass_military	# 普通
+						is_ship_class = shipclass_military_special	# 巨神兵
+					}
+				}
+				## AAR海军属性VAR
+				AAR_eft_ship_NAVY_build_VAR = yes
+				
+				##	factorMOD
+				if = { limit = { check_variable = { which = TEMP_var_factor value > 0 } }
+					add_modifier = { modifier = AAR_mod_ship_NAVY_armor_factor		days = -1	multiplier = TEMP_var_factor }
+				}
+				##	固定属性
+				add_modifier = { modifier = AAR_mod_ship_NAVY_armor_common		days = -1 }
+				
+				##	clear
+				clear_variable = TEMP_var_factor
+			}
+		}
+		###	未来战舰		血15%/甲25%/盾25%+固定盾+5%逃逸+random特殊属性
+		else = {
+			every_owned_ship = {
+				limit = {
+					NOT = { has_modifier = AAR_mod_ship_NAVY_shield_common }
+					OR = {
+						is_ship_class = shipclass_starbase	# 主宰
+						is_ship_class = shipclass_military	# 普通
+						is_ship_class = shipclass_military_special	# 巨神兵
+					}
+				}
+				
+				##	AAR海军属性VAR
+				AAR_eft_ship_NAVY_build_VAR = yes
+
+				##	factorMOD
+				if = { limit = { check_variable = { which = TEMP_var_factor value > 0 } }
+					random_list = {
+						2 = { add_modifier = { modifier = AAR_mod_ship_NAVY_shield_factor_C		days = -1	multiplier = TEMP_var_factor } }
+						2 = { add_modifier = { modifier = AAR_mod_ship_NAVY_shield_factor_H		days = -1	multiplier = TEMP_var_factor } }
+						2 = { add_modifier = { modifier = AAR_mod_ship_NAVY_shield_factor_S		days = -1	multiplier = TEMP_var_factor } }
+						2 = { add_modifier = { modifier = AAR_mod_ship_NAVY_shield_factor_A		days = -1	multiplier = TEMP_var_factor } }
+						1 = { add_modifier = { modifier = AAR_mod_ship_NAVY_shield_factor_X		days = -1	multiplier = TEMP_var_factor } }
+					}
+				}
+				##	固定属性
+				add_modifier = { modifier = AAR_mod_ship_NAVY_shield_common	 days = -1 }
+				##	随机属性
+				AAR_prmt_eft_ship_NAVY_build_random_mod_DB = yes	# AAR海军随机属性
+				
+				##	clear
+				clear_variable = TEMP_var_factor
+			}
+
+		}
+	}
+}
+

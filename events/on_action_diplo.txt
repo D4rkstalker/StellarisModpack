@@ -1,0 +1,1975 @@
+############################
+#
+# Expanded Game Start Events
+#
+############################
+
+namespace = onactiondiplo
+
+# Set original owner of systems
+country_event = {
+	id = onactiondiplo.1
+	hide_window = yes
+	fire_only_once = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = fromfrom
+		from = {
+			NOT = { has_star_flag = has_original_owner }
+		}
+		fromfrom = {
+			# won't punish primitives for going into the space age
+			NAND = {
+				has_country_flag = primitives_can_into_space
+				num_owned_planets < 2
+			}
+		}
+	}
+	
+	immediate = {
+		from = {
+			set_star_flag = has_original_owner
+			set_star_flag = original_owner_is@root
+		}
+	}
+}
+
+# Administrative Subsidies
+country_event = {
+	id = onactiondiplo.2
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			is_active_resolution = "resolution_lawandorder_administrative_subsidies"
+			is_active_resolution = "resolution_lawandorder_free_migration"
+			is_active_resolution = "resolution_lawandorder_informed_governance"
+			AND = {
+				FROM = { leader_class = scientist }
+				OR = {
+					is_active_resolution = "resolution_republic_science_academy"
+					is_active_resolution = "resolution_empire_science_academy"
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		FROM = { add_skill = 1 }
+	}
+}
+
+# Neutral Fleets Attacked
+country_event = {
+	id = onactiondiplo.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = from
+		from = {
+			OR = {
+				is_country_type = nomad
+				is_country_type = enclave
+				is_country_type = enclave_mercenary
+				is_country_type = caravaneer_home
+				is_country_type = caravaneer_fleet
+				is_country_type = enigmatic_cache
+				is_country_type = guardian_sphere
+				is_country_type = vluur
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				from = {
+					OR = {
+						is_country_type = nomad
+						is_country_type = enclave
+						is_country_type = enclave_mercenary
+						is_country_type = caravaneer_home
+						is_country_type = caravaneer_fleet
+						is_country_type = enigmatic_cache
+						is_country_type = guardian_sphere
+					}
+				}
+			}
+			remove_country_flag = attacked_neutrals
+			set_timed_country_flag = { flag = attacked_neutrals days = 7200 }
+		}
+		if = {
+			limit = {
+				from = { is_country_type = vluur }
+			}
+			remove_country_flag = attacked_void_clouds
+			set_timed_country_flag = { flag = attacked_void_clouds days = 7200 }
+		}
+	}
+}
+
+# Mutual Assistance
+country_event = {
+	id = onactiondiplo.4
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_galactic_community_member = yes
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_mutual_assistance"
+			is_active_resolution = "resolution_galacticcooperation_pan_galactic_migration"
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+	}
+
+	immediate = {
+		refresh_mutual_aid_energy_modifier = yes
+		refresh_mutual_aid_minerals_modifier = yes
+		refresh_mutual_aid_food_modifier = yes
+		refresh_mutual_aid_goods_modifier = yes
+		refresh_mutual_aid_crystals_modifier = yes
+		refresh_mutual_aid_motes_modifier = yes
+		refresh_mutual_aid_gases_modifier = yes
+	}
+}
+
+# Pan-Galactic Migration
+country_event = {
+	id = onactiondiplo.5
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_pan_galactic_migration"
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = { has_global_flag = expanded_pops_active }
+				is_galactic_community_member = yes
+			}
+			galactic_cooperation_migration_update = yes
+		}
+		else = {
+			remove_galactic_cooperation_migration_modifiers = yes
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.6
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_galactic_community_member = yes
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_pan_galactic_migration"
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+		any_relation = { has_diplo_migration_treaty = root }
+	}
+
+	immediate = {
+		random_list = {
+			1 = {
+				# do nothing
+			}
+			1 = {
+				random_owned_pop = {
+					limit = {
+						is_sapient = yes
+						is_robot_pop = no
+						has_migration_control = { type = yes }
+						is_enslaved = no
+						is_being_purged = no
+						OR = {
+							is_unemployed = yes
+							happiness <= 20
+						}
+					}
+					save_event_target_as = greater_than_ourselves_target_pop
+				}
+				random_relation = {
+					limit = {
+						has_diplo_migration_treaty = root
+						any_owned_planet = { habitability = { who = event_target:greater_than_ourselves_target_pop value >= 0.5 } }
+					}
+					random_owned_planet = {
+						limit = {
+							habitability = { who = event_target:greater_than_ourselves_target_pop value >= 0.5 }
+							free_housing >= 1
+							free_jobs >= 1
+							is_under_colonization = no
+							is_controlled_by = owner
+							has_orbital_bombardment = no
+						}
+						save_event_target_as = greater_than_ourselves_target_planet
+					}
+				}
+				if = {
+					limit = {
+						exists = event_target:greater_than_ourselves_target_pop
+						exists = event_target:greater_than_ourselves_target_planet
+						event_target:greater_than_ourselves_target_pop = {
+							NOR ={
+								has_citizenship_type = { country = event_target:greater_than_ourselves_target_planet.owner type = citizenship_slavery }
+								has_citizenship_type = { country = event_target:greater_than_ourselves_target_planet.owner type = citizenship_purge }
+							}
+						}
+					}
+					resettle_pop = {
+						pop = event_target:greater_than_ourselves_target_pop
+						planet = event_target:greater_than_ourselves_target_planet
+					}
+					event_target:greater_than_ourselves_target_pop = { clear_pop_category = yes }
+				}
+			}
+		}
+	}
+}
+
+# Indigenous Protection Protocols
+planet_event = {
+	id = onactiondiplo.7
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_galactic_community_member = yes }
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+	}
+
+	immediate = {
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier5researchreward
+				min = @tier5researchmin
+				max = @tier5researchmax
+			}
+			add_monthly_resource_mult = {
+				resource = unity
+				value = @tier4unityreward
+				min = @tier4unitymin
+				max = @tier4unitymax
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.8
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_galactic_community_member = yes
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+		FROM = {
+			OR = {
+				is_country_type = primitive
+			}
+		}
+	}
+
+	immediate = {
+		remove_country_flag = recently_invaded_primitives
+		set_timed_country_flag = { flag = recently_invaded_primitives days = 7200 }
+	}
+}
+planet_event = {
+	id = onactiondiplo.9
+	is_triggered_only = yes
+	hide_window = yes
+	
+	trigger = {
+		from.owner = { is_galactic_community_member = yes }
+		OR = {
+			is_active_resolution = "resolution_galacticcooperation_indigenous_protection_protocols"
+			is_active_resolution = "resolution_galacticcooperation_interstellar_mediation"
+			is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		}
+		exists = owner
+		owner = {
+			OR = {
+				is_country_type = primitive
+			}
+		}
+	}
+
+	immediate = {
+		from.owner = {
+			remove_country_flag = recently_invaded_primitives
+			set_timed_country_flag = { flag = recently_invaded_primitives days = 7200 }
+		}
+	}
+}
+
+# Sanctity of Life
+country_event = {
+	id = onactiondiplo.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_galactic_community_member = yes
+		is_active_resolution = "resolution_galacticcooperation_sanctity_of_life"
+		has_policy_flag = purge_not_allowed
+		From = {
+			NAND = {
+				has_country_flag = fe_task_stop_atrocity_target # expanded events already takes care of this
+				is_homicidal = yes
+			}
+		}
+		FromFrom = {
+			any_owned_pop = {
+				is_being_purged = yes
+				is_valid_refugee_pop = yes
+			}
+		}
+	}
+
+	immediate = {
+		FromFrom = {
+			while = {
+				limit = {
+					any_owned_pop = {
+						is_being_purged = yes
+						is_valid_refugee_pop = yes
+					}
+				}
+				ROOT = { add_resource = { influence = 1 } }
+				random_owned_pop = {
+					limit = {
+						is_being_purged = yes
+						is_valid_refugee_pop = yes
+					}
+					random_list = {
+						2 = {
+							modifier = {
+								factor = 0
+								ROOT = {
+									NOT = {
+										any_owned_planet = {
+											habitability = { who = prevprev value > 0.2 }
+											is_under_colonization = no
+											is_controlled_by = owner
+											has_orbital_bombardment = no
+										}
+									}
+								}
+							}
+							remove_modifier = "pop_recently_conquered"
+							remove_culture_shock = yes
+							ROOT = {
+								random_owned_planet = {
+									limit = {
+										habitability = { who = prevprev value > 0.2 }
+										is_under_colonization = no
+										is_controlled_by = owner
+										has_orbital_bombardment = no
+									}
+									resettle_pop = {
+										pop = prevprev
+										planet = this
+									}
+								}
+							}
+							clear_pop_category = yes
+							add_modifier = { modifier = recent_refugee days = 3600 } 
+						}
+						1 = {
+							save_event_target_as = refugee_pop #Must be saved for refugee_pop_effect to work
+							refugee_pop_effect = yes
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Senate Headquarters Events
+country_event = {
+	id = onactiondiplo.11
+	title = onactiondiplo.11.name
+	desc = {
+		text = onactiondiplo.11.desc
+		trigger = {
+			is_xenophobe = no
+			is_xenophobic_isolationists = no
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+	}
+	desc = {
+		text = onactiondiplo.11.desc.phobe
+		trigger = {
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				has_ascension_perk = ap_become_the_crisis
+			}
+		}
+	}
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+
+	is_triggered_only = yes
+
+	fire_only_once = yes # failsafe
+
+	immediate = {
+		set_global_flag = ongoing_headquarter_nomination
+		set_country_flag = headquarter_nomination_eligible
+		event_target:global_event_country = {
+			country_event = { id = onactiondiplo.13 days = 1800 }
+		}
+		begin_event_chain = {
+			event_chain = headquarter_founding_chain
+			target = this
+		}
+		every_playable_country = {
+			limit = {
+				NOT = { is_same_value = root }
+				is_galactic_community_member = yes
+			}
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+			country_event = { id = onactiondiplo.12 }
+		}
+	}
+
+	after = {
+		custom_tooltip = enable_decision_headquarter_nomination
+		# Notification
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+
+	option = {
+		name = action.96.b
+	}
+}
+country_event = {
+	id = onactiondiplo.12
+	title = onactiondiplo.11.name
+	desc = {
+		text = onactiondiplo.11.desc
+		trigger = {
+			is_xenophobe = no
+			is_xenophobic_isolationists = no
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+	}
+	desc = {
+		text = onactiondiplo.11.desc.phobe
+		trigger = {
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				has_ascension_perk = ap_become_the_crisis
+			}
+		}
+	}
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_country_flag = headquarter_nomination_eligible
+	}
+
+	after = {
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+
+	option = {
+		name = action.96.b
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+}
+country_event = {
+	id = onactiondiplo.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_playable_country = {
+			limit = { has_event_chain = headquarter_founding_chain }
+			end_event_chain = headquarter_founding_chain
+		}
+		remove_global_flag = ongoing_headquarter_nomination
+		# nominees start equal, modifiers improve chances
+		random_country = {
+			limit = {
+				is_country_type = default
+				has_country_flag = headquarter_nomination_eligible
+				NOT = { has_ascension_perk = ap_become_the_crisis }
+			}
+			weights = {
+				# can use add or factor
+				base = 1
+				modifier = {
+					owner = { is_variable_set = headquarter_rating }
+					add = owner.headquarter_rating
+				}
+				modifier = {
+					factor = 2
+					is_galactic_custodian = yes
+				}
+				modifier = {
+					factor = 0.1
+					NOT = {
+						any_owned_planet = {
+							OR = {
+								has_modifier = headquarter_nominee_level_1
+								has_modifier = headquarter_nominee_level_2
+								has_modifier = headquarter_nominee_level_3
+								has_modifier = headquarter_nominee_level_4
+								has_modifier = headquarter_nominee_level_5
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0.5
+					OR = {
+						is_xenophobe = yes
+						is_xenophobic_isolationists = yes
+					}
+				}
+				pow = 1.5
+			}
+			save_global_event_target_as = headquarter_founder
+			capital_scope = {
+				save_global_event_target_as = headquarter_founder_planet
+			}
+			country_event = { id = onactiondiplo.14 }
+		}
+		every_playable_country = {
+			limit = { has_country_flag = headquarter_nomination_eligible }
+			every_owned_planet = {
+				limit = {
+					OR = {
+						has_modifier = headquarter_nominee_level_1
+						has_modifier = headquarter_nominee_level_2
+						has_modifier = headquarter_nominee_level_3
+						has_modifier = headquarter_nominee_level_4
+						has_modifier = headquarter_nominee_level_5
+					}
+				}
+				# remove boosted flags
+				if = {
+					limit = { has_planet_flag = boosted_once_h }
+					remove_planet_flag = boosted_once_h
+				}
+				if = {
+					limit = { has_planet_flag = boosted_twice_h }
+					remove_planet_flag = boosted_twice_h
+				}
+				# remove modifiers
+				if = {
+					limit = { has_modifier = headquarter_nominee_level_1 }
+					remove_modifier = headquarter_nominee_level_1
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_2 }
+					remove_modifier = headquarter_nominee_level_2
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_3 }
+					remove_modifier = headquarter_nominee_level_3
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_4 }
+					remove_modifier = headquarter_nominee_level_4
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_5 }
+					remove_modifier = headquarter_nominee_level_5
+				}
+			}
+			remove_country_flag = headquarter_nomination_eligible
+			set_variable = {
+				which = headquarter_rating
+				value = 0
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.14
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		set_global_flag = galactic_headquarter_founded
+		country_event = { id = onactiondiplo.15 days = 5 }
+	}
+}
+country_event = {
+	id = onactiondiplo.15
+	title = onactiondiplo.15.name
+	desc = {
+		text = onactiondiplo.15.desc
+		trigger = {
+			is_xenophobe = no
+			is_xenophobic_isolationists = no
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+	}
+	desc = {
+		text = onactiondiplo.15.desc.phobe
+		trigger = {
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				has_ascension_perk = ap_become_the_crisis
+			}
+		}
+	}
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+	location = event_target:headquarter_founder_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		add_modifier = {
+			modifier = galactic_headquarter_founder
+			days = -1
+		}
+		event_target:headquarter_founder_planet = {
+			add_deposit = d_galactic_senate
+		}
+
+		set_timed_global_flag = { flag = resolution_galactic_headquarter_relocated_recently days = 18000 }
+		
+		every_playable_country = {
+			limit = {
+				is_galactic_community_member = yes
+				NOT = { is_same_value = root }
+			}
+			country_event = { id = onactiondiplo.16 }
+		}
+	}
+
+	option = {
+		name = OK
+		trigger = {
+			is_xenophobe = no
+			is_xenophobic_isolationists = no
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+		custom_tooltip = established_galactic_senate
+		tooltip = {
+			end_event_chain = headquarter_founding_chain
+			add_modifier = {
+				modifier = galactic_headquarter_founder
+				days = -1
+			}
+		}
+	}
+	option = {
+		name = TERRIBLE
+		trigger = {
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				has_ascension_perk = ap_become_the_crisis
+			}
+		}
+		custom_tooltip = established_galactic_senate
+		tooltip = {
+			end_event_chain = headquarter_founding_chain
+			add_modifier = {
+				modifier = galactic_headquarter_founder
+				days = -1
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.16
+	title = onactiondiplo.16.name
+	desc = {
+		text = onactiondiplo.16.desc
+		trigger = {
+			is_xenophobe = no
+			is_xenophobic_isolationists = no
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+	}
+	desc = {
+		text = onactiondiplo.16.desc.phobe
+		trigger = {
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				has_ascension_perk = ap_become_the_crisis
+			}
+		}
+	}
+	picture = GFX_evt_galactic_senate
+	location = event_target:headquarter_founder_planet
+
+	immediate = {
+	}
+
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+		tooltip = { end_event_chain = headquarter_founding_chain }
+	}
+}
+country_event = {
+	id = onactiondiplo.17
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = event_target:headquarter_founder_planet
+		from = {
+			any_system_planet = {
+				is_same_value = event_target:headquarter_founder_planet
+			}
+		}
+	}
+
+	immediate = {
+		if = { # no new owner or homicidal empire
+			limit = {
+				OR = {
+					NOT = { exists = fromfrom }
+					AND = {
+						exists = fromfrom
+						fromfrom = {
+							OR = {
+								is_homicidal = yes
+								is_galactic_community_member = no
+							}
+						}
+					}
+				}
+			}
+			event_target:headquarter_founder_planet = {
+				remove_deposit = d_galactic_senate
+			}
+			clear_global_event_target = headquarter_founder
+			clear_global_event_target = headquarter_founder_planet
+			remove_modifier = galactic_headquarter_founder
+			remove_global_flag = galactic_headquarter_founded
+			set_global_flag = ongoing_headquarter_nomination
+			event_target:global_event_country = {
+				country_event = { id = onactiondiplo.13 days = 1800 }
+			}
+		}
+		else = {
+			remove_modifier = galactic_headquarter_founder
+			fromfrom = {
+				add_modifier = {
+					modifier = galactic_headquarter_founder
+					days = -1
+				}
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.18
+	title = onactiondiplo.18.name
+	desc = {
+		text = onactiondiplo.18.desc
+		trigger = { exists = FromFromFrom }
+	}
+	desc = {
+		text = onactiondiplo.18.desc_no_new_owner
+		trigger = { NOT = { exists = FromFromFrom } }
+	}
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = headquarter_nomination_eligible
+		begin_event_chain = {
+			event_chain = headquarter_founding_chain
+			target = this
+		}
+	}
+
+	after = {
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+
+	option = {
+		name = galcom.63.A
+		trigger = { is_civic_diplomatic_corps = yes }
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+
+	option = {
+		name = OK
+		trigger = { is_civic_diplomatic_corps = no }
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+}
+country_event = {
+	id = onactiondiplo.19
+	title = onactiondiplo.19.name
+	desc = onactiondiplo.19.desc
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+	location = event_target:headquarter_founder_planet
+
+	is_triggered_only = yes
+
+	trigger = {
+		any_owned_planet = {
+			is_same_value = event_target:headquarter_founder_planet
+		}
+	}
+
+	immediate = {
+	}
+
+	option = {
+		name = onactiondiplo.19.a
+		tooltip = { remove_modifier = galactic_headquarter_founder }
+	}
+	after = {
+		hidden_effect = {
+			event_target:headquarter_founder_planet = {
+				remove_deposit = d_galactic_senate
+			}
+			clear_global_event_target = headquarter_founder
+			clear_global_event_target = headquarter_founder_planet
+			remove_modifier = galactic_headquarter_founder
+			remove_global_flag = galactic_headquarter_founded
+			set_global_flag = ongoing_headquarter_nomination
+			event_target:global_event_country = {
+				country_event = { id = onactiondiplo.13 days = 1800 }
+			}
+			every_playable_country = {
+				limit = {
+					is_galactic_community_member = yes
+					NOT = { is_same_value = root }
+				}
+				country_event = { id = onactiondiplo.20 }
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.20
+	title = onactiondiplo.18.name
+	desc = onactiondiplo.20.desc
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = headquarter_nomination_eligible
+		begin_event_chain = {
+			event_chain = headquarter_founding_chain
+			target = this
+		}
+	}
+
+	after = {
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+
+	option = {
+		name = galcom.63.A
+		trigger = { is_civic_diplomatic_corps = yes }
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+
+	option = {
+		name = galcom.63.B
+		trigger = { is_civic_diplomatic_corps = no }
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+}
+
+country_event = {
+	id = onactiondiplo.21
+	title = onactiondiplo.18.name
+	desc = onactiondiplo.21.desc
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+	location = event_target:headquarter_founder_planet
+
+	is_triggered_only = yes
+
+	trigger = {
+		any_owned_planet = {
+			is_same_value = event_target:headquarter_founder_planet
+		}
+	}
+
+	immediate = {
+		set_global_flag = ongoing_headquarter_nomination
+		set_country_flag = market_nomination_eligible
+		event_target:global_event_country = {
+			country_event = { id = onactiondiplo.23 days = 1800 }
+		}
+		every_playable_country = {
+			limit = {
+				is_galactic_community_member = yes
+				NOT = { is_same_value = root }
+			}
+			country_event = { id = onactiondiplo.22 }
+		}
+		
+		set_country_flag = headquarter_nomination_eligible
+		begin_event_chain = {
+			event_chain = headquarter_founding_chain
+			target = this
+		}
+	}
+
+	option = {
+		name = galcom.63.A
+		trigger = {
+			is_civic_diplomatic_corps = yes
+			NOT = { has_modifier = galactic_headquarter_founder }
+		}
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+
+	option = {
+		name = action.96.b
+		trigger = {
+			OR = {
+				is_civic_diplomatic_corps = no
+				has_modifier = galactic_headquarter_founder
+			}
+		}
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+	
+	after = {
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+}
+country_event = {
+	id = onactiondiplo.22
+	title = onactiondiplo.18.name
+	desc = onactiondiplo.21.desc
+	picture = GFX_evt_galactic_senate
+	show_sound = event_factions
+
+	is_triggered_only = yes
+	
+	immediate = {
+		set_country_flag = headquarter_nomination_eligible
+		begin_event_chain = {
+			event_chain = headquarter_founding_chain
+			target = this
+		}
+	}
+
+	after = {
+		tooltip = {
+			begin_event_chain = {
+				event_chain = headquarter_founding_chain
+				target = this
+			}
+		}
+	}
+
+	option = {
+		name = galcom.63.A
+		trigger = {
+			is_civic_diplomatic_corps = yes
+			NOT = { has_modifier = galactic_headquarter_founder }
+		}
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+
+	option = {
+		name = action.96.b
+		trigger = {
+			OR = {
+				is_civic_diplomatic_corps = no
+				has_modifier = galactic_headquarter_founder
+			}
+		}
+		custom_tooltip = enable_decision_headquarter_nomination
+	}
+}
+
+country_event = {
+	id = onactiondiplo.23
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		event_target:headquarter_founder_planet = {
+			remove_deposit = d_galactic_senate
+		}
+		event_target:headquarter_founder = {
+			remove_modifier = galactic_headquarter_founder
+		}
+		clear_global_event_target = headquarter_founder
+		clear_global_event_target = headquarter_founder_planet
+		country_event = { id = onactiondiplo.24 }
+	}
+}
+
+country_event = {
+	id = onactiondiplo.24
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_playable_country = {
+			limit = { has_event_chain = headquarter_founding_chain }
+			end_event_chain = headquarter_founding_chain
+		}
+		remove_global_flag = ongoing_headquarter_nomination
+		# nominees start equal, modifiers improve chances
+		random_country = {
+			limit = {
+				is_country_type = default
+				has_country_flag = headquarter_nomination_eligible
+				NOT = { has_ascension_perk = ap_become_the_crisis }
+			}
+			weights = {
+				# can use add or factor
+				base = 1
+				modifier = {
+					add = 75
+					OR = {
+						check_variable = {
+							which = headquarter_rating
+							value = 5
+						}
+						any_owned_planet = { has_modifier = headquarter_nominee_level_5 }
+					}
+				}
+				modifier = {
+					add = 50
+					OR = {
+						check_variable = {
+							which = headquarter_rating
+							value = 4
+						}
+						any_owned_planet = { has_modifier = headquarter_nominee_level_4 }
+					}
+				}
+				modifier = {
+					add = 30
+					OR = {
+						check_variable = {
+							which = headquarter_rating
+							value = 3
+						}
+						any_owned_planet = { has_modifier = headquarter_nominee_level_3 }
+					}
+				}
+				modifier = {
+					add = 20
+					OR = {
+						check_variable = {
+							which = headquarter_rating
+							value = 2
+						}
+						any_owned_planet = { has_modifier = headquarter_nominee_level_2 }
+					}
+				}
+				modifier = {
+					add = 10
+					OR = {
+						check_variable = {
+							which = headquarter_rating
+							value = 1
+						}
+						any_owned_planet = { has_modifier = headquarter_nominee_level_1 }
+					}
+				}
+				modifier = {
+					factor = 2
+					is_galactic_custodian = yes
+				}
+				modifier = {
+					factor = 0.5
+					NOT = {
+						any_owned_planet = {
+							OR = {
+								has_modifier = headquarter_nominee_level_1
+								has_modifier = headquarter_nominee_level_2
+								has_modifier = headquarter_nominee_level_3
+								has_modifier = headquarter_nominee_level_4
+								has_modifier = headquarter_nominee_level_5
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 0.5
+					OR = {
+						is_xenophobe = yes
+						is_xenophobic_isolationists = yes
+					}
+				}
+			}
+			save_global_event_target_as = headquarter_founder
+			capital_scope = {
+				save_global_event_target_as = headquarter_founder_planet
+			}
+			country_event = { id = onactiondiplo.14 }
+		}
+		every_playable_country = {
+			limit = { has_country_flag = headquarter_nomination_eligible }
+			every_owned_planet = {
+				limit = {
+					OR = {
+						has_modifier = headquarter_nominee_level_1
+						has_modifier = headquarter_nominee_level_2
+						has_modifier = headquarter_nominee_level_3
+						has_modifier = headquarter_nominee_level_4
+						has_modifier = headquarter_nominee_level_5
+					}
+				}
+				# remove boosted flags
+				if = {
+					limit = { has_planet_flag = boosted_once_h }
+					remove_planet_flag = boosted_once_h
+				}
+				if = {
+					limit = { has_planet_flag = boosted_twice_h }
+					remove_planet_flag = boosted_twice_h
+				}
+				# remove modifiers
+				if = {
+					limit = { has_modifier = headquarter_nominee_level_1 }
+					remove_modifier = headquarter_nominee_level_1
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_2 }
+					remove_modifier = headquarter_nominee_level_2
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_3 }
+					remove_modifier = headquarter_nominee_level_3
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_4 }
+					remove_modifier = headquarter_nominee_level_4
+				}
+				else_if = {
+					limit = { has_modifier = headquarter_nominee_level_5 }
+					remove_modifier = headquarter_nominee_level_5
+				}
+			}
+			remove_country_flag = headquarter_nomination_eligible
+			set_variable = {
+				which = headquarter_rating
+				value = 0
+			}
+		}
+	}
+}
+
+country_event = {
+	id = onactiondiplo.25
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_galactic_community_member = yes
+		OR = {
+			is_active_resolution = "resolution_healthcare_war_relief"
+			is_active_resolution = "resolution_healthcare_clonal_medicine"
+			is_active_resolution = "resolution_healthcare_universal_healthcare"
+		}
+		any_owned_planet = {
+			planet_devastation >= 1
+			has_orbital_bombardment = no
+			has_ground_combat = no
+		}
+	}
+
+	immediate = {
+		every_owned_planet = {
+			limit = {
+				planet_devastation >= 1
+				has_orbital_bombardment = no
+				has_ground_combat = no
+			}
+			add_planet_devastation = -1
+		}
+	}
+}
+
+# De-increment variable for counting republic legion armies
+country_event = {
+	id = onactiondiplo.26
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { army_type = republic_legion }
+	}
+
+	immediate = {
+		change_variable = {
+			which = republic_legion_soldier_count
+			value = -1
+		}
+	}
+}
+
+# Modifying operation difficulty
+espionage_operation_event = {
+	id = onactiondiplo.27
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_custodian_expand_galpol"
+					is_active_resolution = "resolution_emperor_isd"
+				}
+				owner = {
+					OR = {
+						is_galactic_emperor = yes
+						is_galactic_custodian = yes
+					}
+				}
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_custodian_isd days = -1 }
+		}
+		else_if = {
+			limit = {
+				is_active_resolution = "resolution_custodian_galpol"
+				owner = { is_galactic_custodian = yes }
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_custodian_galpol days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.28
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_galacticstudies_cooperative_research_channels"
+					is_active_resolution = "resolution_galacticstudies_astral_studies_network"
+					is_active_resolution = "resolution_galacticstudies_advanced_xenostudies"
+					is_active_resolution = "resolution_galacticstudies_ethical_guideline_refactoring"
+					is_active_resolution = "resolution_galacticstudies_extradimensional_experimentation"
+				}
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_cooperative_research_channels days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.29
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_custodian_anti_piracy"
+					is_active_resolution = "resolution_emperor_repeal_anti_piracy"
+				}
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_custodian_anti_piracy days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.30
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value > 1.4 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_1 days = -1 }
+		}
+		else_if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value > 1.2 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_2 days = -1 }
+		}
+		else_if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value < 0.8 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_3 days = -1 }
+		}
+		else_if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value < 0.6 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_4 days = -1 }
+		}
+		else_if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value < 0.4 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_5 days = -1 }
+		}
+		else_if = {
+			limit = {
+				owner = {
+					relative_encryption_decryption = { target = root.target value < 0.2 }
+				}
+			}
+			add_modifier = { modifier = spynetwork_counter_spy_6 days = -1 }
+		}
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_custodian_expand_galpol"
+					is_active_resolution = "resolution_emperor_isd"
+				}
+				owner = {
+					OR = {
+						is_galactic_emperor = yes
+						is_galactic_custodian = yes
+					}
+				}
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_custodian_isd days = -1 }
+		}
+		else_if = {
+			limit = {
+				is_active_resolution = "resolution_custodian_galpol"
+				owner = { is_galactic_custodian = yes }
+				target = { is_galactic_community_member = yes }
+			}
+			add_modifier = { modifier = spynetwork_custodian_galpol days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.31
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = { target_has_antagonistic_ethics = yes }
+			add_modifier = { modifier = spynetwork_bad_ethics days = -1 }
+		}
+		else_if = {
+			limit = { target_has_similar_ethics = yes }
+			add_modifier = { modifier = spynetwork_good_ethics days = -1 }
+		}
+	}
+}
+
+# Remove modifiers on owner change
+planet_event = {
+	id = onactiondiplo.32
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			OR = {
+				is_playable = yes
+				is_country_type = awakened_marauders
+				is_country_type = rebel
+				is_country_type = swarm
+				is_country_type = extradimensional
+				is_country_type = extradimensional_2
+				is_country_type = extradimensional_3
+				is_country_type = ai_empire
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				solar_system = { has_star_flag = original_owner_is@root.owner }
+			}
+			# planet liberated
+			remove_modifier = diplo_recently_conquered_planet
+		}
+		else_if = {
+			limit = { owner = { is_country_type = rebel } }
+			# planet conquered (lesser)
+			remove_modifier = diplo_recently_conquered_planet
+			add_modifier = { modifier = diplo_recently_conquered_planet days = 1800 }
+		}
+		else = {
+			# planet conquered
+			remove_modifier = diplo_recently_conquered_planet
+			add_modifier = { modifier = diplo_recently_conquered_planet days = 3600 }
+		}
+	}
+}
+
+# More modifying operation difficulty
+espionage_operation_event = {
+	id = onactiondiplo.33
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				target = {
+					OR = {
+						is_militarist = yes
+						is_xenophobe = yes
+						is_homicidal = yes
+						is_civic_militarist = yes
+						is_xenophobic_isolationists = yes
+					}
+				}
+			}
+			add_modifier = { modifier = spynetwork_antiwar_bad days = -1 }
+		}
+		else_if = {
+			limit = {
+				target = {
+					OR = {
+						is_pacifist = yes
+						is_open_gestalt = yes
+						is_civic_machine_servitor = yes
+					}
+				}
+			}
+			add_modifier = { modifier = spynetwork_antiwar_good days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.34
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				target = { is_criminal_syndicate = yes }
+			}
+			add_modifier = { modifier = spynetwork_expel_criminals days = -1 }
+		}
+	}
+}
+espionage_operation_event = {
+	id = onactiondiplo.35
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				owner = { has_active_tradition = tr_subterfuge_double_agents }
+			}
+			add_modifier = { modifier = spynetwork_expel_double_agents days = -1 }
+		}
+	}
+}
+
+# Starvation kills a pop
+situation_event = {
+	id = onactiondiplo.36
+	title = "onactiondiplo.36.name"
+	desc = "onactiondiplo.36.desc"
+	picture = GFX_evt_dead_city
+	show_sound = event_ghost_town
+	location = event_target:starvation_planet
+	situation = this
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			NOT = { has_country_flag = recent_starvation }
+			any_owned_planet = {
+				num_pops > 3
+				any_owned_pop = {
+					is_robot_pop = no
+					OR = {
+						AND = {
+							is_lithoid = no
+							root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+						}
+						AND = {
+							is_lithoid = yes
+							root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+						}
+					}
+				}
+			}
+		}
+	}
+	immediate = {
+		owner = {
+			random_owned_planet = {
+				limit = {
+					num_pops > 3
+					any_owned_pop = {
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+					}
+				}
+				save_event_target_as = starvation_planet
+			}
+		}
+	}
+	option = {
+		name = "TERRIBLE"
+		trigger = {
+			owner = {
+				NOR = {
+					has_valid_civic = civic_hive_devouring_swarm
+					has_valid_civic = civic_machine_terminator
+				}
+			}
+		}
+		owner = {
+			hidden_effect = {
+				set_timed_country_flag = {
+					flag = recent_starvation
+					days = 180
+				}
+			}
+			event_target:starvation_planet = {
+				random_owned_pop = {
+					limit = {
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+						OR = {
+							is_pop_category = specialist
+							is_pop_category = worker
+							is_pop_category = simple_drone
+							is_enslaved = yes
+							is_being_purged = yes
+						}
+					}
+					if = {
+						limit = {
+							is_being_purged = yes
+							root.owner = { has_valid_civic = civic_fanatic_purifiers }
+						}
+						root.owner = {
+							add_monthly_resource_mult = {
+								resource = unity
+								value = 1.5
+								min = 5
+								max = 100
+							}
+						}
+					}
+					kill_pop = yes
+				}
+				if = {
+					limit = { num_pops > 6 }
+					random_owned_pop = {
+						limit = {
+							is_robot_pop = no
+							OR = {
+								AND = {
+									is_lithoid = no
+									root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+								}
+								AND = {
+									is_lithoid = yes
+									root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+								}
+							}
+							OR = {
+								is_pop_category = specialist
+								is_pop_category = worker
+								is_pop_category = simple_drone
+								is_enslaved = yes
+								is_being_purged = yes
+							}
+						}
+						if = {
+							limit = {
+								is_being_purged = yes
+								root.owner = { has_valid_civic = civic_fanatic_purifiers }
+							}
+							root.owner = {
+								add_monthly_resource_mult = {
+									resource = unity
+									value = 1.5
+									min = 5
+									max = 100
+								}
+							}
+						}
+						kill_pop = yes
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = "onactiondiplo.36.b"
+		trigger = { owner = { has_valid_civic = civic_hive_devouring_swarm } }
+		owner = {
+			hidden_effect = {
+				set_timed_country_flag = {
+					flag = recent_starvation
+					days = 180
+				}
+			}
+			event_target:starvation_planet = {
+				random_owned_pop = {
+					limit = {
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+					}
+					if = {
+						limit = { is_lithoid = no }
+						root.owner = { add_resource = { food = 50 } }
+					}
+					else = {
+						root.owner = { add_resource = { minerals = 50 } }
+					}
+					root.owner = {
+						add_monthly_resource_mult = {
+							resource = society_research
+							value = 1
+							min = 1
+							max = 100
+						}
+					}
+					kill_pop = yes
+				}
+				if = {
+					limit = { num_pops > 6 }
+					random_owned_pop = {
+						limit = {
+							is_robot_pop = no
+							OR = {
+								AND = {
+									is_lithoid = no
+									root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+								}
+								AND = {
+									is_lithoid = yes
+									root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+								}
+							}
+						}
+						if = {
+							limit = { is_lithoid = no }
+							root.owner = { add_resource = { food = 50 } }
+						}
+						else = {
+							root.owner = { add_resource = { minerals = 50 } }
+						}
+						root.owner = {
+							add_monthly_resource_mult = {
+								resource = society_research
+								value = 1
+								min = 1
+								max = 100
+							}
+						}
+						kill_pop = yes
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = "onactiondiplo.36.c"
+		trigger = { owner = { has_valid_civic = civic_machine_terminator } }
+		owner = {
+			hidden_effect = {
+				set_timed_country_flag = {
+					flag = recent_starvation
+					days = 180
+				}
+			}
+			event_target:starvation_planet = {
+				root.owner = {
+					add_resource = { energy = 50 }
+					add_monthly_resource_mult = {
+						resource = unity
+						value = 2
+						min = 5
+						max = 100
+					}
+				}
+				random_owned_pop = {
+					limit = {
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+					}
+					kill_pop = yes
+				}
+				if = {
+					limit = { num_pops > 6 }
+					root.owner = {
+						add_resource = { energy = 50 }
+						add_monthly_resource_mult = {
+							resource = unity
+							value = 2
+							min = 5
+							max = 100
+						}
+					}
+					random_owned_pop = {
+						limit = {
+							is_robot_pop = no
+							OR = {
+								AND = {
+									is_lithoid = no
+									root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+								}
+								AND = {
+									is_lithoid = yes
+									root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+								}
+							}
+						}
+						kill_pop = yes
+					}
+				}
+			}
+		}
+	}
+}
+
+# Pop flees starvation
+situation_event = {
+	id = onactiondiplo.37
+	title = "onactiondiplo.37.name"
+	desc = "onactiondiplo.37.desc"
+	picture = GFX_evt_unknown_ships
+	show_sound = event_ghost_town
+	location = event_target:starvation_planet
+	situation = this
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			any_owned_planet = {
+				num_pops > 3
+				any_owned_pop = {
+					is_valid_refugee_pop = yes
+					is_robot_pop = no
+					OR = {
+						AND = {
+							is_lithoid = no
+							root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+						}
+						AND = {
+							is_lithoid = yes
+							root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+						}
+					}
+					NOT = { has_trait = trait_hive_mind }
+					OR = {
+						is_being_purged = no # use normal purge refugee instead
+						has_purge_type = { type = purge_displacement }
+					}
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		owner = {
+			random_owned_planet = {
+				limit = {
+					num_pops > 3
+					any_owned_pop = {
+						is_valid_refugee_pop = yes
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+						NOT = { has_trait = trait_hive_mind }
+						OR = {
+							is_being_purged = no # use normal purge refugee instead
+							has_purge_type = { type = purge_displacement }
+						}
+					}
+				}
+				save_event_target_as = starvation_planet
+				random_owned_pop = {
+					limit = {
+						is_valid_refugee_pop = yes
+						is_robot_pop = no
+						OR = {
+							AND = {
+								is_lithoid = no
+								root.owner = { country_has_situation = { SITUATION = situation_food_deficit } }
+							}
+							AND = {
+								is_lithoid = yes
+								root.owner = { country_has_situation = { SITUATION = situation_mineral_deficit } }
+							}
+						}
+						NOT = { has_trait = trait_hive_mind }
+						OR = {
+							is_being_purged = no # use normal purge refugee instead
+							has_purge_type = { type = purge_displacement }
+						}
+					}
+					weights = {
+						base = 1
+						modifier = {
+							factor = 10
+							is_enslaved = no
+							OR = {
+								is_pop_category = worker
+								is_pop_category = simple_drone
+								is_being_purged = yes
+							}
+						}
+						modifier = {
+							factor = 0.1
+							is_enslaved = yes
+							event_target:starvation_planet = { NOT = { has_modifier = underground_railroad } }
+						}
+						modifier = {
+							factor = 0.5
+							has_trait = trait_conformists
+						}
+						modifier = {
+							factor = 0.25
+							has_trait = trait_obedient
+						}
+					}
+					set_pop_flag = pop_escaped_starvation
+					save_event_target_as = refugee_pop #Must be saved for refugee_pop_effect to work
+					refugee_pop_effect = yes
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = UNFORTUNATE
+	}
+}

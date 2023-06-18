@@ -1,0 +1,254 @@
+########################
+#
+# On Action Events
+#
+########################
+
+namespace = actionexp
+
+# Planet is turned into tomb world by special bombing stance
+planet_event = {
+	id = actionexp.1
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			has_orbital_bombardment_stance = asteroid
+			has_orbital_bombardment_stance = library_organism
+			has_orbital_bombardment_stance = ferrophage
+		}
+		from = {
+			OR = {
+				is_country_type = default
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+			}
+		}
+		habitable_planet = yes
+	}
+
+	immediate = {
+		owner = {
+			add_static_war_exhaustion = {
+				attacker = from
+				location = root
+				value_for_planet_destruction = 0.5
+			}
+			country_event = { id = actionexp.2 }
+		}
+		from = { country_event = { id = actionexp.3 } }
+		remove_all_buildings = yes
+		destroy_colony = yes
+		if = {
+			limit = { has_orbital_bombardment_stance = ferrophage }
+			change_pc = pc_gray_goo
+		}
+		else_if = {
+			limit = { is_cold = yes }
+			change_pc = pc_barren_cold
+		}
+		else = {
+			change_pc = pc_barren
+		}
+		reroll_deposits = yes
+		remove_modifier = "natural_beauty"
+		remove_modifier = "atmospheric_aphrodisiac"
+		remove_modifier = "atmospheric_hallucinogen"
+		remove_modifier = "lush_planet"
+		remove_modifier = "dangerous_wildlife"
+		add_modifier = {
+			modifier = "terraforming_candidate"
+			days = -1
+		}
+	}
+}
+
+# Planet is turned into tomb world by Armageddon bombing stance (former owner)
+country_event = {
+	id = actionexp.2
+	title = "action.82.name"
+	picture = GFX_evt_nuclear_explosion
+	desc = actionexp.2.desc
+	show_sound = event_super_explosion
+	location = from
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = action.82.a
+		custom_tooltip = bombed_to_barren_world
+	}
+}
+
+# Planet is turned into tomb world by Armageddon bombing stance (bombarder)
+country_event = {
+	id = actionexp.3
+	title = "action.82.name"
+	picture = GFX_evt_nuclear_explosion
+	desc = actionexp.3.desc
+	show_sound = event_super_explosion
+	location = from
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = EXCELLENT
+		custom_tooltip = bombed_to_barren_world
+	}
+}
+
+planet_event = {
+	id = actionexp.4
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		planet_devastation >= 25
+		NOT = { has_planet_flag = recent_crater }
+		has_orbital_bombardment = yes
+		has_orbital_bombardment_stance = asteroid
+	}
+	
+	immediate = {
+		set_global_flag = tech_asteroid_strike_can_spread
+		set_timed_planet_flag = { flag = recent_crater days = 720 }
+		if = {
+			limit = { free_district_slots > 0 }
+			add_deposit = d_crater
+		}
+	}
+}
+
+planet_event = {
+	id = actionexp.5
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	immediate = {
+		set_planet_flag = has_been_terraformed
+	}
+}
+
+country_event = {
+	id = actionexp.6
+	hide_window = yes
+
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			has_country_flag = human_1
+			has_country_flag = human_2
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { has_country_flag = human_2 }
+			every_playable_country = {
+				limit = {
+					has_country_flag = human_1
+					is_galactic_community_member = yes
+					NOT = { has_country_flag = found_com }
+				}
+				country_event = { id = countryexpanded.44 days = 1 }
+			}
+		}
+		else_if = {
+			limit = {
+				has_country_flag = human_1
+				NOT = { has_country_flag = found_com }
+				any_playable_country = {
+					has_country_flag = human_2
+					is_galactic_community_member = yes
+				}
+			}
+			country_event = { id = countryexpanded.44 days = 1 }
+		}
+	}
+}
+
+ship_event = {
+	id = actionexp.7
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			if = {
+				limit = {
+					has_completed_event_chain_counter = {
+						event_chain = "survey_habitable_worlds_chain" 
+						counter = "habitable_worlds_surveyed" 
+					}
+					NOT = { has_country_flag = completed_habitable_worlds_survey }
+				}
+				country_event = { id = country.51 days = 1 }
+			}
+			remove_country_flag = recent_survey
+			remove_country_flag = recent_survey_timer
+			set_timed_country_flag = { flag = recent_survey days = 90 }
+			set_timed_country_flag = { flag = recent_survey_timer days = 720 }
+		}
+	}
+}
+
+country_event = {
+	id = actionexp.8
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		NOT = { mid_game_years_passed > 0}
+		OR = {
+			last_increased_tech = tech_habitat_1
+			last_increased_tech = tech_habitat_2
+			last_increased_tech = tech_habitat_3
+		}
+	}
+	
+	immediate = {
+		random = {
+			chance = 1
+			set_global_flag = central_crystal_flag
+		}
+	}
+}
+
+planet_event = {
+	id = actionexp.9
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_orbital_bombardment = yes
+		has_orbital_bombardment_stance = ferrophage
+	}
+	
+	immediate = {
+		random_planet_army = {
+			limit = {
+				is_owned_by = planet.owner
+				OR = {
+					AND = {
+						exists = species
+						species = { is_robotic = yes }
+					}
+					army_type = machine_assault_3
+					army_type = machine_assault_synth_3
+					army_type = gray_army
+					army_type = care_defensive_protocols
+					army_type = sentinel_army
+					army_type = cybrex_warform
+				}
+			}
+			remove_army = yes
+		}
+	}
+}

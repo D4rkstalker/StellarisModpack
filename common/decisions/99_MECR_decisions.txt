@@ -1,0 +1,608 @@
+##########################################################################
+# Decisions
+##########################################################################
+decision_project_cornucopia = {
+	owned_planets_only = yes
+
+	enactment_time = 180
+	resources = {
+		category = decisions
+		cost = {
+			unity = 250
+			energy = 500
+		}
+	}
+
+	potential = {
+		owner = {
+			is_galactic_community_member = yes
+			is_active_resolution = "resolution_industry_project_cornucopia"
+		}
+		is_artificial = no
+		NOT = { is_planet_class = pc_city }
+		OR = {
+			NAND = {
+				is_planet_class = pc_machine
+				is_planet_class = pc_hive
+			}
+			is_active_resolution = resolution_custodian_galactic_department_of_exploit
+		}
+		NOT = {
+			has_deposit = d_project_cornucopia
+		}
+	}
+
+	effect = {
+		#custom_tooltip = decision_project_cornucopia_effects_short
+		add_deposit = d_project_cornucopia
+		if = {
+			limit = { is_active_resolution = resolution_custodian_galactic_department_of_exploit }
+			custom_tooltip = decision_project_cornucopia_effect_may_discovers_sr
+			hidden_effect = {
+				random_list = {
+					61 = { set_planet_flag = cornucopia_rare_insti_not_founded }
+					11 = { add_deposit = d_dust_caverns }
+					11 = { add_deposit = d_crystalline_caverns }
+					11 = { add_deposit = d_bubbling_swamp }
+					2 = { add_deposit = d_dust_desert }
+					2 = { if = { limit = { is_planet_class = pc_ocean } add_deposit = d_crystal_reef } else = { add_deposit = d_crystal_forest } }
+					2 = { add_deposit = d_fuming_bog }
+				}
+				if = {
+					limit = { NOT = { has_planet_flag = cornucopia_rare_insti_not_founded } }
+					create_message = {
+						type = MESSAGE_TYPE_PLANET_PROSPECTED
+						localization = "MESSAGE_PLANET_PROSPECTED_CORNUCOPIA_RARE_FOUND_DESC"
+						days = 30
+						target = THIS
+						variable = {
+							type = name
+							localization = PLANET
+							scope = this
+						}
+						variable = {
+							type = name
+							localization = DEPOSIT
+							scope = last_added_deposit
+						}
+					}
+				}
+				else = {
+					create_message = {
+						type = MESSAGE_TYPE_PLANET_PROSPECTED
+						localization = "MESSAGE_PLANET_PROSPECTED_CORNUCOPIA_DESC"
+						days = 30
+						target = this
+						variable = {
+							type = name
+							localization = PLANET
+							scope = this
+						}
+					}
+					remove_planet_flag = cornucopia_rare_insti_not_founded
+				}
+			}
+		}
+	}
+
+	ai_weight = {
+		weight = 1
+		modifier = {
+			factor = 0
+			num_pops < 20
+		}
+		modifier = {
+			factor = 5
+			colony_type = col_mining
+		}
+		modifier = {
+			factor = 10
+			OR = {
+				num_districts = { type = district_mining value >= 5 }
+				num_districts = { type = district_mining_uncapped value >= 5 }
+			}
+		}
+		modifier = {
+			factor = 0.5
+			OR = {
+				is_planet_class = pc_machine
+				is_planet_class = pc_hive
+			}
+		}
+		modifier = {
+			factor = 0
+			colony_type = col_farming
+		}
+		modifier = {
+			factor = 0.2
+			OR = {
+				num_districts = { type = district_farming value >= 5 }
+				num_districts = { type = district_farming_uncapped value >= 5 }
+			}
+		}
+	}
+}
+
+decision_isd_against_planetary_revolt = {
+	icon = decision_martial_law
+	sound = army_construction_done_01
+
+	owned_planets_only = yes
+
+	resources = {
+		category = decisions
+		cost = {
+			unity = 20
+			multiplier = trigger:num_pops
+		}
+	}
+
+	potential = {
+		owner = {
+			any_situation = {
+				is_situation_type = situation_planetary_revolt
+				target = { is_same_value = root }
+			}
+		}
+		NOT = { has_modifier = planet_modifier_isd_against_planetary_revolt }
+	}
+
+	effect = {
+		owner = {
+			every_situation = {
+				limit = {
+					is_situation_type = situation_planetary_revolt
+					target = { is_same_value = root }
+				}
+				add_situation_progress = -25
+			}
+		}
+		add_modifier = {
+			modifier = planet_modifier_isd_against_planetary_revolt
+			days = 900
+			clear_on_owner_change = yes
+		}
+		hidden_effect = {
+			planet_event = {
+				id = MECR.1501
+				days = 30
+			}
+		}
+	}
+
+	ai_weight = {
+		weight = 100
+	}
+}
+
+decision_break_the_planet = {
+	icon = decision_exploding_planet
+	sound = planet_killer_hit_01
+	resources = {
+		category = decisions
+		cost = {
+			energy = 2000
+			volatile_motes = 100
+		}
+	}
+
+	potential = {
+		OR = {
+			is_planet_class = pc_molten
+			is_planet_class = pc_barren
+			is_planet_class = pc_barren_cold
+			is_planet_class = pc_toxic
+			is_planet_class = pc_frozen
+		}
+		exists = space_owner
+		exists = from
+		space_owner = { is_same_value = from }
+		from = { is_galactic_community_member = yes }
+		is_active_resolution = resolution_custodian_galactic_department_of_exploit
+		has_global_flag = resolution_custodian_galactic_department_of_exploit_upgrade_2
+		NOR = {
+			has_planet_flag = consecrated@from
+			has_modifier = consecrated_quality_1
+			has_modifier = consecrated_quality_2
+			has_modifier = consecrated_quality_3
+			has_modifier = consecrated_quality_4
+		}
+		is_terraforming = no
+	}
+
+	effect = {
+		custom_tooltip = decision_break_the_planet_effects
+		# determine quality tier, set variable
+		hidden_effect = {
+			change_pc = pc_shattered
+			clear_deposits = yes
+		}
+	}
+
+	ai_weight = {
+		weight = 0
+		modifier = {
+			add = 20
+			solar_system = {
+				any_system_planet = {
+					has_building = building_shattered_planet_mining_hub
+				}
+			}
+		}
+	}
+}
+
+decision_expo_planetary_industry_design = {
+	icon = decision_consecrated_worlds
+	sound = event_construction
+
+	owned_planets_only = yes
+
+	enactment_time = 720
+	resources = {
+		category = decisions
+		cost = {
+			minerals = 2000
+			unity = 500
+		}
+	}
+
+	potential = {
+		owner = { check_variable = { which = EXPO_award_industry_1st value > 0 } }
+		NOT = { has_modifier = EXPO_AWARD_planetary_industry_design }
+		NOR = {
+			has_modifier = resort_colony
+			has_modifier = penal_colony
+			has_modifier = slave_colony
+			has_modifier = pm_wenkwort_custodian
+		}
+		is_artificial = no
+	}
+
+	on_queued = {
+		owner = { change_variable = { which = EXPO_AWARD_industry_1st value = -1 } }
+	}
+	on_unqueued = {
+		owner = { change_variable = { which = EXPO_AWARD_industry_1st value = 1 } }
+	}
+	effect = {
+		custom_tooltip = "decision_expo_planetary_industry_design_effect"
+		add_modifier = {
+			modifier = EXPO_AWARD_planetary_industry_design
+		}
+		hidden_effect = {
+			if = {
+				limit = {
+					has_district = district_farming
+				}
+				while = {
+					limit = { has_district = district_farming }
+					remove_district = district_farming
+				}
+			}
+			if = {
+				limit = {
+					has_district = district_generator_uncapped
+				}
+				while = {
+					limit = { has_district = district_generator_uncapped }
+					remove_district = district_generator_uncapped
+				}
+			}
+			if = {
+				limit = {
+					has_district = district_rw_farming
+				}
+				while = {
+					limit = { has_district = district_rw_farming }
+					remove_district = district_rw_farming
+				}
+			}
+			remove_building = building_food_processing_facility
+			remove_building = building_food_processing_center
+		}
+	}
+
+	ai_weight = {
+		weight = 2
+		modifier = {
+			factor = 0
+			NOT = { is_planet_class = pc_city }
+			count_owned_pop = {
+				limit = {
+					OR = {
+						has_job = foundry
+						has_job = catalytic_technician
+						has_job = bluelotus_technician
+						has_job = odd_factory_worker
+						has_job = fabricator
+						has_job = alloy_drone
+						has_job = catalytic_drone
+						has_job = bluelotus_drone
+						has_job = odd_factory_drone
+						has_job = artisan
+						has_job = artificer
+						has_job = artisan_drone
+						has_job = artificer_drone
+						# 兼容华章的更多思潮
+						has_job = manufacturing_workers
+						has_job = smelting_workers
+					}
+				}
+				count < 15
+			}
+		}
+		modifier = {
+			factor = 2
+			count_owned_pop = {
+				limit = {
+					OR = {
+						has_job = foundry
+						has_job = catalytic_technician
+						has_job = bluelotus_technician
+						has_job = odd_factory_worker
+						has_job = fabricator
+						has_job = alloy_drone
+						has_job = catalytic_drone
+						has_job = bluelotus_drone
+						has_job = odd_factory_drone
+						has_job = artisan
+						has_job = artificer
+						has_job = artisan_drone
+						has_job = artificer_drone
+						# 兼容华章的更多思潮
+						has_job = manufacturing_workers
+						has_job = smelting_workers
+					}
+				}
+				count >= 24
+			}
+		}
+		modifier = {
+			factor = 1000
+			is_planet_class = pc_city
+		}
+		modifier = {
+			factor = 3
+			is_planet_class = pc_relic
+			owner = {
+				OR = {
+					NOT = { has_ethic = ethic_gestalt_consciousness }
+					has_civic = civic_machine_servitor
+				}
+			}
+		}
+	}
+}
+
+decision_strike_the_criminal_syndicate_branch_office = {
+	owned_planets_only = yes
+	sound = event_ground_battle
+	icon = decision_crime
+
+	resources = {
+		category = decisions
+		cost = {
+			unity = 1000
+			alloys = 100
+		}
+		cost = {
+			trigger = { has_modifier = crime_lord_deal }
+			unity = 2000
+		}
+	}
+
+	allow = {
+		planet_crime = 0
+		num_armies > 3
+	}
+
+	potential = {
+		owner = { is_regular_empire = yes }
+		has_branch_office = yes
+		branch_office_owner = {
+			is_criminal_syndicate = yes
+			is_galactic_community_member = no
+		}
+		has_global_flag = flag_crack_down_on_criminal_syndicate
+		OR = {
+			has_galactic_custodian = yes
+			has_galactic_emperor = yes
+		}
+		owner = {
+			is_galactic_community_member = yes
+		}
+	}
+
+	effect = {
+		close_branch_office = yes
+		every_owned_pop = {
+			limit = { has_job = criminal }
+			kill_pop = yes
+		}
+		if = {
+			limit = { has_modifier = crime_lord_deal }
+			remove_modifier = crime_lord_deal
+		}
+		if = {
+			limit = { has_modifier = criminal_underworld }
+			remove_modifier = criminal_underworld
+		}
+		owner = {
+			add_resource = {
+				energy = 2000
+			}
+		}
+		hidden_effect = { #移除全部犯罪相关修正
+			if = {
+				limit = { has_modifier = gang_wars }
+				remove_modifier = gang_wars
+			}
+			if = {
+				limit = { has_modifier = center_of_drug_trade }
+				remove_modifier = center_of_drug_trade
+			}
+			if = {
+				limit = { has_modifier = mob_rule }
+				remove_modifier = mob_rule
+			}
+			if = {
+				limit = { has_modifier = bribed_officials }
+				remove_modifier = bribed_officials
+			}
+			if = {
+				limit = { has_modifier = substance_abuse }
+				remove_modifier = substance_abuse
+			}
+			if = {
+				limit = { has_modifier = smuggler_activity }
+				remove_modifier = smuggler_activity
+			}
+			if = {
+				limit = { has_modifier = crime_wave }
+				remove_modifier = crime_wave
+			}
+			if = {
+				limit = { has_modifier = travel_advisory }
+				remove_modifier = travel_advisory
+			}
+			if = {
+				limit = { has_modifier = cartel_war }
+				remove_modifier = cartel_war
+			}
+			if = {
+				limit = { has_modifier = protection_racket }
+				remove_modifier = protection_racket
+			}
+			if = {
+				limit = { has_modifier = corrupt_administration }
+				remove_modifier = corrupt_administration
+			}
+			if = {
+				limit = { has_modifier = trade_pilfering }
+				remove_modifier = trade_pilfering
+			}
+			if = {
+				limit = { has_modifier = crime_lord_deal_broken }
+				remove_modifier = crime_lord_deal_broken
+			}
+		}
+	}
+
+	ai_weight = {
+		weight = 500
+	}
+}
+decision_strike_the_criminal_syndicate_branch_office_ai = {
+	owned_planets_only = yes
+	sound = event_ground_battle
+	icon = decision_crime
+
+	resources = {
+		category = decisions
+	}
+
+	potential = {
+		owner = {
+			is_ai = yes
+			NOT = { has_country_flag = flag_decision_strike_the_criminal_syndicate_branch_office_ai }
+		}
+		owner = { is_regular_empire = yes }
+		has_branch_office = yes
+		branch_office_owner = {
+			is_criminal_syndicate = yes
+			is_galactic_community_member = no
+		}
+		has_global_flag = flag_crack_down_on_criminal_syndicate
+		OR = {
+			has_galactic_custodian = yes
+			has_galactic_emperor = yes
+		}
+		owner = {
+			is_galactic_community_member = yes
+		}
+	}
+
+	effect = {
+		close_branch_office = yes
+		if = {
+			limit = { has_modifier = crime_lord_deal }
+			remove_modifier = crime_lord_deal
+		}
+		if = {
+			limit = { has_modifier = criminal_underworld }
+			remove_modifier = criminal_underworld
+		}
+		every_owned_pop = {
+			limit = { has_job = criminal }
+			kill_pop = yes
+		}
+		owner = {
+			add_resource = {
+				energy = 2000
+			}
+			set_timed_country_flag = {
+				flag = flag_decision_strike_the_criminal_syndicate_branch_office_ai
+				months = 6
+			}
+		}
+		hidden_effect = { #移除全部犯罪相关修正
+			if = {
+				limit = { has_modifier = gang_wars }
+				remove_modifier = gang_wars
+			}
+			if = {
+				limit = { has_modifier = center_of_drug_trade }
+				remove_modifier = center_of_drug_trade
+			}
+			if = {
+				limit = { has_modifier = mob_rule }
+				remove_modifier = mob_rule
+			}
+			if = {
+				limit = { has_modifier = bribed_officials }
+				remove_modifier = bribed_officials
+			}
+			if = {
+				limit = { has_modifier = substance_abuse }
+				remove_modifier = substance_abuse
+			}
+			if = {
+				limit = { has_modifier = smuggler_activity }
+				remove_modifier = smuggler_activity
+			}
+			if = {
+				limit = { has_modifier = crime_wave }
+				remove_modifier = crime_wave
+			}
+			if = {
+				limit = { has_modifier = travel_advisory }
+				remove_modifier = travel_advisory
+			}
+			if = {
+				limit = { has_modifier = cartel_war }
+				remove_modifier = cartel_war
+			}
+			if = {
+				limit = { has_modifier = protection_racket }
+				remove_modifier = protection_racket
+			}
+			if = {
+				limit = { has_modifier = corrupt_administration }
+				remove_modifier = corrupt_administration
+			}
+			if = {
+				limit = { has_modifier = trade_pilfering }
+				remove_modifier = trade_pilfering
+			}
+			if = {
+				limit = { has_modifier = crime_lord_deal_broken }
+				remove_modifier = crime_lord_deal_broken
+			}
+		}
+	}
+
+	ai_weight = {
+		weight = 1000
+	}
+}

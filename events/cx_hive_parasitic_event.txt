@@ -1,0 +1,375 @@
+namespace = parasitic
+
+#parasitic embryos new pops from purge
+planet_event = {
+	id = parasitic.1
+	hide_window = yes
+	is_triggered_only = yes
+	
+	title = OK
+	desc = OK
+
+	trigger = {
+		FROM = {
+			has_valid_civic = civic_hive_parasitic
+		}
+		FROMFROM = {
+			is_robot_pop = no
+			NOT = {
+				is_same_species = owner_species
+			}
+		}
+		is_controlled_by = FROM
+	}
+	
+	immediate = {
+		create_message = {
+			type = MESSAGE_TYPE_PARASITE_COMPLETE
+			localization = MESSAGE_PARASITE_COMPLETE
+			days = 30
+			target = this
+				variable = {
+					type = name
+					localization = PLANET
+					scope = this
+				}	
+		}	
+
+		#while = {
+			#count = 1
+			#create_pop = {
+			#	species = owner_main_species
+			#	}
+		#}
+	}
+}
+
+
+
+# blood tributary gives pops per year
+event = {
+	id = parasitic.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_country = {
+			is_parasite = yes
+			is_overlord = yes
+			any_subject = {
+				any_agreement = {
+					AND = {
+						agreement_preset = preset_pop_tributary
+						has_term_value = {
+							term = blood_tithe
+							value = periodic_blood_tithe
+						}
+					}
+				}
+				NOT = { is_at_war_with = overlord }
+			}
+		}
+	}
+	
+	immediate = {
+		every_country = {
+			limit = { 
+				is_parasite = yes
+				is_overlord = yes
+				any_subject = {
+					any_agreement = {
+						agreement_preset = preset_pop_tributary
+						has_term_value = {
+							term = blood_tithe
+							value = periodic_blood_tithe
+						}
+					}
+					NOT = { is_at_war_with = overlord }
+				}
+			}
+			every_subject = {
+				limit = {
+					any_agreement = {
+						agreement_preset = preset_pop_tributary
+						has_term_value = {
+							term = blood_tithe
+							value = periodic_blood_tithe
+						}
+					}
+					NOT = { is_at_war_with = overlord }					
+				}
+				every_owned_planet = {
+					limit = {
+						any_owned_pop = {
+							is_organic_species = yes
+						}
+					}
+					random_owned_pop = {
+						limit = { is_organic_species = yes }
+						save_event_target_as = abduct_pop
+
+						prevprevprev = {
+							if = {
+								limit = { any_owned_planet = { free_housing > 0 } }
+								random_owned_planet = {
+									limit = { 
+										free_housing >= 1 
+										is_under_colonization = no
+										is_controlled_by = owner
+									}								
+									owner = {
+										create_message = {
+											type = MESSAGE_TYPE_POP_ABDUCTED
+											localization = MESSAGE_POP_SACRIFICED
+											days = 30
+											target = this
+											variable = {
+												type = name
+												localization = SPECIES
+												scope = event_target:abduct_pop.species
+											}
+											variable = {
+												type = name
+												localization = TARGET_PLANET
+												scope = prev
+											}			
+											variable = {
+												type = name
+												localization = PLANET
+												scope = event_target:abduct_pop.planet
+											}
+										}
+									}
+									event_target:abduct_pop.owner = {
+										create_message = {
+											type = MESSAGE_TYPE_POP_ABDUCTED_FROM_US
+											localization = MESSAGE_POP_SACRIFICED_FROM_US
+											days = 30
+											target = event_target:abduct_pop.owner
+											variable = {
+												type = name
+												localization = SPECIES
+												scope = event_target:abduct_pop.species
+											}
+											variable = {
+												type = name
+												localization = ABDUCTER
+												scope = prev.owner
+											}					
+											variable = {
+												type = name
+												localization = PLANET
+												scope = event_target:abduct_pop.planet
+											}
+										}			
+									}
+									resettle_pop = {
+										pop = event_target:abduct_pop
+										planet = this
+									}								
+								}
+							}
+							else = {
+								random_owned_planet = {
+									limit = {  
+										is_under_colonization = no
+										is_controlled_by = owner
+									}
+									owner = {
+										create_message = {
+											type = MESSAGE_TYPE_POP_ABDUCTED
+											localization = MESSAGE_POP_SACRIFICED
+											days = 30
+											target = this
+											variable = {
+												type = name
+												localization = SPECIES
+												scope = event_target:abduct_pop.species
+											}
+											variable = {
+												type = name
+												localization = TARGET_PLANET
+												scope = prev
+											}			
+											variable = {
+												type = name
+												localization = PLANET
+												scope = event_target:abduct_pop.planet
+											}
+										}
+									}
+									event_target:abduct_pop.owner = {
+										create_message = {
+											type = MESSAGE_TYPE_POP_ABDUCTED_FROM_US
+											localization = MESSAGE_POP_SACRIFICED_FROM_US
+											days = 30
+											target = event_target:abduct_pop.owner
+											variable = {
+												type = name
+												localization = SPECIES
+												scope = event_target:abduct_pop.species
+											}
+											variable = {
+												type = name
+												localization = ABDUCTER
+												scope = prev.owner
+											}					
+											variable = {
+												type = name
+												localization = PLANET
+												scope = event_target:abduct_pop.planet
+											}
+										}			
+									}									
+									resettle_pop = {
+										pop = event_target:abduct_pop
+										planet = this
+									}
+								}
+							}
+						}				
+					}
+				}
+			}
+		}
+	}
+}
+
+# blood tributary: A pop has been added to the planet
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = parasitic.3
+	hide_window = yes
+	is_triggered_only = yes
+
+
+	trigger = {
+		From = {
+			any_agreement = {
+				AND = {
+					agreement_preset = preset_pop_tributary
+					NOT = {
+						has_term_value = {
+							term = blood_tithe
+							value = periodic_blood_tithe
+						}
+					}
+				}
+			}
+			is_overlord = no
+		}
+	}
+
+	immediate = {
+		## save scopes
+		FromFrom = { save_event_target_as = abduct_pop }
+		this = { save_event_target_as = fromPlanet }
+		From = { save_event_target_as = popOwner }
+		From = { overlord = { save_event_target_as = ownerOverlord } }		
+		if = { 
+			limit = {
+				event_target:popOwner = {
+					any_agreement = { agreement_preset = preset_pop_tributary }
+					NOT = {
+						is_at_war_with = overlord
+					}
+				}
+				event_target:abduct_pop = { is_organic_species = yes }	
+			}
+			
+			## pick a planet to resettle the pop
+			event_target:ownerOverlord = {
+				if = {
+					limit = { any_owned_planet = { free_housing > 0 } }
+					random_owned_planet = {
+						limit = { 
+						free_housing >= 1 
+						is_under_colonization = no
+						is_controlled_by = owner
+						}								
+					## save event
+					save_event_target_as = targetPlanet
+					}
+				}
+				else = {
+					random_owned_planet = {
+						limit = {  
+							is_under_colonization = no
+							is_controlled_by = owner
+						}
+						save_event_target_as = targetPlanet
+					}
+				}
+			}
+			## 1 pop 25% magnanimous	
+			if = {
+				limit = {
+					From = {
+						any_agreement = {
+							agreement_preset = preset_pop_tributary
+							has_term_value = {
+								term = blood_tithe
+								value = magnanimous_blood_tithe
+							}
+						}	
+					}
+				}
+				random_list = {
+					25 = { 
+						resettle_pop = {
+							pop = event_target:abduct_pop
+							planet = event_target:targetPlanet
+						}
+					pop_tribute_message = yes
+					}
+					75 = { } 
+				}
+			}
+			## 1 pop 50% pragmatic
+			else_if = {
+				limit = {
+					From = {
+						any_agreement = {
+							agreement_preset = preset_pop_tributary
+							has_term_value = {
+								term = blood_tithe
+								value = pragmatic_blood_tithe
+							}
+						}	
+					}
+				}
+				random_list = {
+					50 = { 
+						resettle_pop = {
+							pop = event_target:abduct_pop
+							planet = event_target:targetPlanet
+						}
+					pop_tribute_message = yes
+					}
+					50 = { } 
+				}
+			}
+			## 1 pop 100% for equilibrious
+			else_if = {
+				limit = {
+					From = {
+						any_agreement = {
+							agreement_preset = preset_pop_tributary
+							has_term_value = {
+								term = blood_tithe
+								value = equilibrious_blood_tithe
+							}
+						}	
+					}
+				}
+				resettle_pop = {
+					pop = event_target:abduct_pop
+					planet = event_target:targetPlanet
+				}
+				pop_tribute_message = yes
+			}
+		}
+	}			
+}

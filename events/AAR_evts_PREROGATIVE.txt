@@ -1,0 +1,139 @@
+namespace = AAR_evt_PREROGATIVE
+#	aar权巅飞升note
+#	aar权巅plnt易主触发
+#	aar权巅主权note/aar权巅宣传战note
+
+
+###	aar权巅飞升note
+#_AP	<AP权力之巅>
+country_event = {
+	id = AAR_evt_PREROGATIVE.1
+	title = eip
+	desc = eip_desc
+	picture = GFX_evt_landing_ship
+	show_sound = event_activating_unknown_technology
+	location = root
+	is_triggered_only = yes
+
+	option = {	
+		name = eip_event.a
+	#	custom_tooltip = eip_tooltip
+	}
+}
+
+
+###	aar权巅plnt易主触发			添加READY触发[框架执行]
+#_<on_planet_ownerless/on_planet_transfer>
+planet_event = {
+	id = AAR_evt_PREROGATIVE.2
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		OR = {
+			has_modifier = AAR_PM_prerogative_propaganda
+			has_modifier = AAR_PM_prerogative_propaganda_GESTALT
+		}
+	}
+
+	immediate = {
+		set_global_flag = AAR_flg_glbl_MONTHLY_planet_db_READY	# |AAR月扫星准备|添加
+		set_planet_flag = AAR_flg_plnt_PREROGATIVE_clean_READY	# |AAR权力之巅星球清理READY|
+	#	remove_modifier = AAR_PM_prerogative_propaganda
+	#	remove_modifier = AAR_PM_prerogative_propaganda_GESTALT
+	}
+}
+
+
+
+
+###	aar权巅主权note
+#_dec	<DEC权力之巅>
+planet_event = {
+	id = AAR_evt_PREROGATIVE.31
+	title = AAR_title_CLEAN_claim
+	desc = AAR_desc_CLEAN_claim
+	picture = GFX_evt_spy_network
+	show_sound = event_activating_unknown_technology
+	location = root
+	is_triggered_only = yes
+
+	## 清除宣称
+	option = {
+		name = AAR_option_CLEAN_claim
+		custom_tooltip = AAR_tips_CLEAN_claim
+		allow = {
+			hidden_trigger = {
+				owner = {
+					OR = {
+						resource_stockpile_compare = { resource = influence	 value >= 1 mult = prev.TEMP_var_influence }
+						resource_stockpile_compare = { resource = influence	 value >= 1000 }
+					}
+					resource_stockpile_compare = { resource = unity	 value >= 1 mult = prev.TEMP_var_unity }
+				}
+			}
+		}
+		hidden_effect = {
+			set_update_modifiers_batch = begin	#_|修正更新|暂停
+			
+			owner = {
+				every_system_within_border = {
+					limit = {
+						any_country = { has_claim = prev }
+						distance = {#几何距离=75
+							source = root
+							type = euclidean
+							max_distance < 75
+						}
+					}
+					every_country = { limit = { has_claim = prev }
+						prev = { remove_claims = { who = prev num_of_claims = 1 } }
+						# 添加态度
+						add_opinion_modifier = { modifier = AAR_opinion_malicious_claim who = prevprev }	# 恶意宣称
+					}
+				}
+				# 资源消耗
+				add_resource = { influence = 1	mult = prev.TEMP_var_influence_cost }
+				add_resource = { unity = 1		mult = prev.TEMP_var_unity_cost }
+			}
+			# clean
+			clear_variable = TEMP_var_SSTM_claimed
+			clear_variable = TEMP_var_influence
+			clear_variable = TEMP_var_influence_cost
+			clear_variable = TEMP_var_unity
+			clear_variable = TEMP_var_unity_cost
+			# CD
+			owner = { set_timed_country_flag = { flag = AAR_flg_cntr_CLEAN_claim days = 1080 } }
+			
+			set_update_modifiers_batch = end	#_|修正更新|重启
+		}
+	}
+	## 啥都不做
+	option = {
+		name = AAR_option_CLEAN_nothing
+		hidden_effect = {
+			clear_variable = TEMP_var_SSTM_claimed
+			clear_variable = TEMP_var_influence
+			clear_variable = TEMP_var_unity
+		}
+	}
+}
+###	aar权巅宣传战note
+#_<DEC权力之巅>
+country_event = {
+	id = AAR_evt_PREROGATIVE.32
+	title = AAR_title_propaganda
+	desc = AAR_desc_propaganda
+	picture = GFX_evt_spy_network
+	show_sound = event_activating_unknown_technology
+	location = root
+	is_triggered_only = yes
+
+	option = {
+		name = AAR_option_propaganda
+		hidden_effect = {
+			clear_variable = TEMP_var_enemy_colony
+		}
+	}
+}
+
+	

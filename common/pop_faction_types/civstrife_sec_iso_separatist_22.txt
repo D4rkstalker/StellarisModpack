@@ -1,0 +1,167 @@
+##############################
+# Separatist _22 Faction
+##############################
+
+sec_iso_separatist_22 = {
+	election_header = "GFX_faction_header_yellow"
+	guiding_ethic = ethic_militarist # Irrelevant for Separatists factions
+	use_guiding_ethic_as_pop_filter = no #this means that the faction will let pops that aren't militarist in too
+
+	unique = yes
+	support_multiplier = 1
+
+	resources = {
+		category = pop_factions
+		produces = {
+			unity = -0.5
+		}
+	}
+
+	is_potential = {
+		years_passed >= 5
+		exists = event_target:sec_iso_separatist_22
+		any_owned_sector = { is_same_value = event_target:sec_iso_separatist_22 }	
+	}
+
+	parameters = {
+		empire = {
+			type = country
+			valid_objects = {
+				is_same_value = root
+			}
+		}
+	}
+
+	can_join_pre_triggers = {
+		is_enslaved = no
+		is_being_purged = no
+	}
+
+	can_join_faction = {
+		exists = sector
+		sector = {
+			is_same_value = event_target:sec_iso_separatist_22
+			has_sector_flag = sector_sep_active
+		}
+		is_shackled_robot = no
+		can_think = yes
+	}
+
+	attraction = {
+		base = 150
+
+		modifier = {
+			factor = 1.05
+			happiness > 0.95
+		}
+
+		modifier = {
+			factor = 1.25
+			happiness <= 0.95
+			happiness > 0.5
+		}
+
+		modifier = {
+			factor = 1.5
+			happiness <= 0.5
+			happiness > 0.25
+		}
+
+		modifier = {
+			factor = 1.75
+			happiness <= 0.25
+			happiness > 0.1
+		}
+
+		modifier = {
+			factor = 2
+			happiness <= 0.1
+		}
+
+		modifier = { #Outcasts and radicals
+			factor = 1.5
+			OR = {
+				NOT = { has_citizenship_type = { type = citizenship_full } }
+				has_trait = trait_unruly
+			}
+		}
+	}
+
+	leader = {
+		base = 0.1
+
+		modifier = {
+			factor = 0
+			OR = {
+				NOT = { exists = sector }
+				sector = { NOT = { is_same_value = event_target:sec_iso_separatist_22 } }
+			}
+		}
+	}
+
+	# Independence
+	demand = {
+		title = "SEPARATISM_DEMAND_IND_s_x"
+		unfulfilled_title = "SEPARATISM_DEMAND_IND_s_x"
+		desc = "SEPARATISM_DEMAND_IND_s_iso_22_desc"
+
+		unfulfilled_effect = -30
+		fulfilled_effect = 0.001
+
+		potential = {
+			exists = event_target:sec_iso_separatist_22
+		}
+
+		trigger = {
+			owner = {
+				NOR = {
+					any_owned_sector = {
+						is_same_value = event_target:sec_iso_separatist_22
+					}
+				}
+			}
+		}
+	}
+
+	# Federal Government Policy - Ethics and Civics
+	demand = {
+		title = "SEPARATISM_DEMAND_FEDERAL_s_x"
+		unfulfilled_title = "SEPARATISM_DEMAND_FEDERAL_s_x"
+		desc = "SEPARATISM_DEMAND_FEDERAL_s_22_desc"
+
+		unfulfilled_effect = -10
+		fulfilled_effect = 5
+
+		potential = {
+			has_global_flag = cultural_overhaul_active
+			exists = event_target:sec_iso_separatist_22
+		}
+
+		trigger = {
+			owner = { has_policy_flag = federal_state }
+		}
+	}
+
+	on_create = {
+		event_target:sec_iso_separatist_22 = { save_event_target_as = sector_sep_loc }
+		sector_faction_first_effect = yes
+		set_name = {
+			key = iso_sector_separatist_real_name
+			variable_string = "[last_created_leader.GetName]"
+			variable_string = "[sector_sep_loc.GetName]"
+		}
+		sector_faction_second_effect = yes
+	}
+
+	on_destroy = {
+		# Allows planets to resume getting separatists, which in turn will allow this to re-form if necessary
+		# faction_kill_leader_effect = yes
+		if = {
+			limit = { exists = event_target:sec_iso_separatist_22 }
+			event_target:sec_iso_separatist_22 = { remove_sector_flag = sector_sep_active }
+			clear_global_event_target = sec_iso_separatist_22
+		}
+	}
+
+	actions = {}
+}

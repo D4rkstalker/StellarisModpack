@@ -1,0 +1,3260 @@
+############################
+#
+# Exomycosis Events
+#
+# Written by Annatar
+#
+############################
+
+namespace = theinfestation_exomycosis_event
+
+### Exomycosis infestation ###
+
+# Spreading mold from Mycelium World
+event = {
+	id = theinfestation_exomycosis_event.1
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_galaxy_planet = {
+			OR = {
+				is_planet_class = pc_mycelium
+				has_modifier = mold_contaminated
+			}
+		} 
+	}
+	
+	immediate = {
+		random_list = {
+			10 = {
+				random_galaxy_planet = {
+					limit = { 
+						OR = {
+							is_planet_class = pc_mycelium
+							has_modifier = mold_contaminated
+						}
+					}
+					save_event_target_as = infected_planet
+				}
+				random_galaxy_planet = {
+					limit = { 
+						distance = {
+							source = event_target:infected_planet
+							use_bypasses = yes
+							min_jumps = 1
+							max_jumps = 5
+						}
+						NOR = {
+							is_planet_class = pc_mycelium 
+							any_targeting_situation = { is_situation_type = situation_exomycosis_infestation }
+						}
+						has_owner = yes
+						owner = {
+							is_country_type = "default"
+							event_target:infected_planet = {
+								is_surveyed = { who = prev status = yes }
+							}
+							NOT = { has_origin = origin_exomycosis }
+						}
+					}
+					
+					planet_event = { id = theinfestation_exomycosis_event.3 days = 30 random = 10 }
+				}
+			}
+			90 = {
+				#Null
+			}
+		}
+	}
+}
+
+# Spreading mold from infested planets
+event = {
+	id = theinfestation_exomycosis_event.2
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_galaxy_planet = { 
+			any_targeting_situation = { is_situation_type = situation_exomycosis_infestation }
+		} 
+	}
+	
+	immediate = {
+		random_list = {
+			20 = {
+				random_galaxy_planet = {
+					limit = { any_targeting_situation = { is_situation_type = situation_exomycosis_infestation } }
+					weights = {
+						base = 10
+						modifier = { 
+							factor = 0.25
+							OR = {
+								has_modifier = "planetary_quarantine" 
+								has_modifier = "planetary_quarantine_gestalt"
+							}
+						}
+					}
+					save_event_target_as = infected_planet
+				}
+				random_galaxy_planet = {
+					limit = { 
+						distance = {
+							source = event_target:infected_planet
+							use_bypasses = yes
+							min_jumps = 1
+							max_jumps = 5
+						}
+						NOR = {
+							is_planet_class = pc_mycelium 
+							any_targeting_situation = { is_situation_type = situation_exomycosis_infestation }
+						}
+						has_owner = yes
+						owner = {
+							is_country_type = "default"
+							event_target:infected_planet = {
+								is_surveyed = { who = prev status = yes }
+							}
+							NOT = { has_origin = origin_exomycosis }
+						}
+					}
+					
+					planet_event = { id = theinfestation_exomycosis_event.4 days = 30 random = 10 }
+				}
+			}
+			80 = {
+				#Null
+			}
+		}
+	}
+}
+
+# A message about the infestation of the planet and the beginning of the situation (From Mycelium World).
+planet_event = {
+	id = theinfestation_exomycosis_event.3
+	title = "theinfestation_exomycosis_event.3.name"
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact_hive"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact_machine"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				has_country_flag = exomycosis_contact
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.machine"
+	}
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = ROOT
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { NOT = { has_country_flag = exomycosis_contact } }
+				exomycosis_contact = yes
+			}
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = exomycosis_contact } }
+					if  = {
+						limit = { is_regular_empire = yes }
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain"
+							target = this
+						}
+					}
+					else = {
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain_gestalt"
+							target = this
+						}
+					}
+				}
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+}
+
+# A message about the infestation of the planet and the beginning of the situation (From infested planets).
+planet_event = {
+	id = theinfestation_exomycosis_event.4
+	title = "theinfestation_exomycosis_event.3.name"
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact_hive"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.exomycosis_contact_machine"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				has_country_flag = exomycosis_contact
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.3.desc.machine"
+	}
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = ROOT
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { NOT = { has_country_flag = exomycosis_contact } }
+				exomycosis_contact = yes
+			}
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = exomycosis_contact } }
+					if  = {
+						limit = { is_regular_empire = yes }
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain"
+							target = this
+						}
+					}
+					else = {
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain_gestalt"
+							target = this
+						}
+					}
+				}
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+}
+
+# The absorption of the planet by mold. (New Mycelium World)
+situation_event = {
+	id = theinfestation_exomycosis_event.5
+	title = "theinfestation_exomycosis_event.5.name"
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = no
+				owner = { is_regular_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.mycelium_world"
+	}
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = no
+				owner = { is_hive_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.mycelium_world_hive"
+	}
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = no
+				owner = { is_machine_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.mycelium_world_machine"
+	}
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = yes
+				owner = { is_regular_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.artificial_world"
+	}
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = yes
+				owner = { is_hive_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.artificial_world_hive"
+	}
+	desc = {
+		trigger = {
+			target = { 
+				is_artificial = yes
+				owner = { is_machine_empire = yes }
+			}
+		}
+		text = "theinfestation_exomycosis_event.5.desc.artificial_world_machine"
+	}
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_air_raid_siren
+	location = root.target
+	situation = this
+	force_open = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		target = {
+			if = {
+				limit = { is_artificial = yes }
+				add_modifier = {
+					modifier = "mold_contaminated"
+					days = -1
+				}
+			}
+			else = {
+				change_pc = pc_mycelium
+				reset_planet = yes
+			}
+			create_country = {
+				name = "NAME_Mutated_Infected"
+				type = faction
+				effect = {
+					establish_communications_no_message = root.owner
+					set_country_flag = mutated_infected
+				}
+			}
+			#All infected turn into mutants
+			while = {
+				count = owner.value:exomycosis_infected_pop_count
+				create_army = {
+					name = "NAME_Mutated_Infected"
+					owner = last_created_country
+					type = "infected_army"
+				}
+			}
+			every_owned_pop = {
+				limit = { 
+					OR = {
+						pop_has_trait = trait_exomycosis_infected
+						pop_has_trait = trait_exomycosis_corrupted
+					}
+				}
+				kill_pop = yes
+			}
+		}
+	}
+
+	option = {
+		name = TERRIBLE
+		custom_tooltip = planet_mold_absorbed
+		custom_tooltip = mutated_infected_attack
+		custom_tooltip = decision_planet_burn_available
+	}
+}
+
+# Pops infection (Random Event)
+situation_event = {
+	id = theinfestation_exomycosis_event.6
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		target = {
+			exists = owner
+			OR = {
+				any_owned_pop = {
+					OR = { 
+						pop_has_trait = trait_exomycosis_infected
+						pop_has_trait = trait_exomycosis_corrupted
+					}
+				}
+				has_deposit = d_exofungus_contamination
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			40 = {
+				while = {
+					count = 1
+					target = {
+						random_owned_pop = {
+							limit = {
+								NOR = {
+									pop_has_trait = trait_molded
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							if = {
+								limit = { is_robot_pop = no }
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_infected
+								}
+							}
+							else = {
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_corrupted
+								}
+							}
+						}
+					}
+				}
+			}
+			25 = {
+				modifier = {
+					factor = 1.5
+					situation_progress > 50
+				}
+				modifier = {
+					factor = 0.75
+					target = {
+						OR = {
+							num_assigned_jobs = {
+								job = healthcare
+								value >= 2
+							}
+							num_assigned_jobs = {
+								job = maintenance_drone
+								value >= 4
+							}
+						}
+					}
+				}
+				while = {
+					count = 2
+					target = {
+						random_owned_pop = {
+							limit = {
+								NOR = {
+									pop_has_trait = trait_molded
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							if = {
+								limit = { is_robot_pop = no }
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_infected
+								}
+							}
+							else = {
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_corrupted
+								}
+							}
+						}
+					}
+				}
+			}
+			15 = {
+				modifier = {
+					factor = 1.5
+					situation_progress > 75
+				}
+				modifier = {
+					factor = 0.5
+					current_situation_approach = approach_exomycosis_lockdown
+				}
+				modifier = {
+					factor = 0.5
+					target = {
+						OR = {
+							num_assigned_jobs = {
+								job = healthcare
+								value >= 3
+							}
+							num_assigned_jobs = {
+								job = maintenance_drone
+								value >= 6
+							}
+						}
+					}
+				}
+				while = {
+					count = 3
+					target = {
+						random_owned_pop = {
+							limit = {
+								NOR = {
+									pop_has_trait = trait_molded
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							if = {
+								limit = { is_robot_pop = no }
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_infected
+								}
+							}
+							else = {
+								modify_species = {
+									species = this
+									add_trait = trait_exomycosis_corrupted
+								}
+							}
+						}
+					}
+				}
+			}
+			20 = {
+				modifier = { 
+					factor = 1.5
+					current_situation_approach = approach_exomycosis_lockdown
+				}
+				modifier = { 
+					factor = 0.75
+					target = { has_planet_flag = sample_17_planet }
+				}
+				#Null
+			}
+		}
+	}
+}
+
+# Exomycosis contamination (Random Event)
+situation_event = {
+	id = theinfestation_exomycosis_event.7
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		target = {
+			count_deposits = { type = d_exofungus_contamination count < 10 }
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			80 = {
+				target = { 
+					add_deposit = d_exofungus_contamination 
+				}
+			}
+			20 = {
+				modifier = {
+					factor = 0.5
+					situation_progress > 75
+				}
+				modifier = { 
+					factor = 0.75
+					target = { has_planet_flag = sample_17_planet }
+				}
+				modifier = {
+					factor = 1.5
+					owner = { has_country_flag = exomycosis_research_complete }
+				}
+				#Null
+			}
+		}
+	}
+}
+
+# Infected attack (Random Event)
+situation_event = {
+	id = theinfestation_exomycosis_event.8
+	title = "theinfestation_exomycosis_event.8.name"
+	desc = {
+		trigger = {
+			owner = { is_regular_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.8.desc"
+	}
+	desc = {
+		trigger = {
+			owner = { is_hive_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.8.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = { is_machine_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.8.desc.machine"
+	}
+	picture = GFX_evt_ground_combat
+	show_sound = event_ground_battle
+	location = root.target
+	situation = this
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		target = {
+			exists = owner
+			count_owned_pop = { 
+				limit = {
+					OR = { 
+						pop_has_trait = trait_exomycosis_infected
+						pop_has_trait = trait_exomycosis_corrupted
+					}
+				} 
+				count > 10 
+			}
+		}
+	}
+	
+	immediate = {
+		create_country = {
+			name = "NAME_Mutated_Infected"
+			type = faction
+			effect = {
+				establish_communications_no_message = root.owner
+				set_country_flag = mutated_infected
+			}
+		}
+		random_list = {
+			60 = {
+				while = {
+					count = 2
+					target = {
+						random_owned_pop = {
+							limit = { 
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							kill_pop = yes
+						}
+					}
+				}
+				while = {
+					count = 5
+					target = {
+						create_army = {
+							name = "NAME_Mutated_Infected"
+							owner = last_created_country
+							type = "infected_army"
+						}
+					}
+				}
+			}
+			30 = {
+				modifier = {
+					factor = 1.5
+					target = {
+						count_owned_pop = {
+							limit = { 
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							count > 20
+						}
+					}
+				}
+				while = {
+					count = 4
+					target = {
+						random_owned_pop = {
+							limit = { 
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							kill_pop = yes
+						}
+					}
+				}
+				while = {
+					count = 10
+					target = {
+						create_army = {
+							name = "NAME_Mutated_Infected"
+							owner = last_created_country
+							type = "infected_army"
+						}
+					}
+				}
+			}
+			10 = {
+				modifier = {
+					factor = 2
+					target = {
+						count_owned_pop = {
+							limit = { 
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							count > 40
+						}
+					}
+				}
+				while = {
+					count = 8
+					target = {
+						random_owned_pop = {
+							limit = { 
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							kill_pop = yes
+						}
+					}
+				}
+				while = {
+					count = 20
+					target = {
+						create_army = {
+							name = "NAME_Mutated_Infected"
+							owner = last_created_country
+							type = "infected_army"
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = TERRIBLE
+		custom_tooltip = mutated_infected_attack
+	}
+}
+
+# Killing Infected (Random Event)
+situation_event = {
+	id = theinfestation_exomycosis_event.9
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			current_situation_approach = approach_exomycosis_liquidation
+			current_situation_approach = approach_exomycosis_purge
+			current_situation_approach = approach_exomycosis_rejection
+		}
+		target = {
+			count_owned_pop = { 
+				limit = {
+					NOR = { 
+						pop_has_trait = trait_exomycosis_infected
+						pop_has_trait = trait_exomycosis_corrupted
+					}
+				} 
+				count > 2 
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			40 = {
+				target = {
+					random_owned_pop = {
+						limit = {
+							OR = {
+								pop_has_trait = trait_exomycosis_infected
+								pop_has_trait = trait_exomycosis_corrupted
+							}
+						}
+						kill_pop = yes
+					}
+				}
+			}
+			25 = {
+				target = {
+					while = {
+					count = 3
+						random_owned_pop = {
+							limit = {
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							kill_pop = yes
+						}
+					}
+					if = {
+						limit = { has_deposit = d_exofungus_contamination }
+						random_deposit = { 
+							limit = { is_deposit_type = d_exofungus_contamination }
+							remove_deposit = yes
+						}
+					}
+				}
+			}
+			15 = {
+				target = {
+					while = {
+					count = 5
+						random_owned_pop = {
+							limit = {
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							kill_pop = yes
+						}
+					}
+					while = {
+					count = 2
+						if = {
+							limit = { has_deposit = d_exofungus_contamination }
+							random_deposit = { 
+								limit = { is_deposit_type = d_exofungus_contamination }
+								remove_deposit = yes
+							}
+						}
+					}
+				}
+			}
+			20 = {
+				modifier = { 
+					factor = 0.5
+					current_situation_approach = approach_exomycosis_liquidation
+				}
+				#Null
+			}
+		}
+	}
+}
+
+# The Infected Mutants have won
+planet_event = {
+	id = theinfestation_exomycosis_event.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		fromfrom = { has_country_flag = mutated_infected }
+	}
+
+	immediate = {
+		mold_assimilation = yes
+	}
+}
+
+# Consequences of an molded army attack.
+planet_event = {
+	id = theinfestation_exomycosis_event.11
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		from = { has_origin = origin_exomycosis }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		from = { save_event_target_as = attacker_exomycosis }
+		planet_event = { id = theinfestation_exomycosis_event.12 days = 30 random = 10 }
+	}
+}
+
+#A message about the infestation of the planet and the beginning of the situation (From molded attack).
+planet_event = {
+	id = theinfestation_exomycosis_event.12
+	title = "theinfestation_exomycosis_event.12.name"
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc.exomycosis_contact"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc.exomycosis_contact_hive"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc.exomycosis_contact_machine"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				has_country_flag = exomycosis_contact
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.12.desc.machine"
+	}
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = ROOT
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { NOT = { has_country_flag = exomycosis_contact } }
+				if  = {
+					limit = { is_regular_empire = yes }
+					begin_event_chain = {
+						event_chain = "exomycosis_infestation_chain"
+						target = this
+					}
+				}
+				else = {
+					begin_event_chain = {
+						event_chain = "exomycosis_infestation_chain_gestalt"
+						target = this
+					}
+				}
+			}
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = exomycosis_contact } }
+					exomycosis_contact = yes
+				}
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+}
+
+# Treatment of infected (Random Event)
+situation_event = {
+	id = theinfestation_exomycosis_event.13
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			current_situation_approach = approach_exomycosis_vaccination
+			current_situation_approach = approach_exomycosis_sterilization_process
+		}
+		target = {
+			any_owned_pop = {
+				OR = { 
+					pop_has_trait = trait_exomycosis_infected
+					pop_has_trait = trait_exomycosis_corrupted
+				}
+			}
+		}
+	}
+	
+	immediate = {
+		random_list = {
+			50 = {
+				target = {
+					random_owned_pop = {
+						limit = {
+							OR = {
+								pop_has_trait = trait_exomycosis_infected
+								pop_has_trait = trait_exomycosis_corrupted
+							}
+						}
+						if = {
+							limit = { pop_has_trait = trait_exomycosis_infected }
+							modify_species = {
+								species = this
+								remove_trait = trait_exomycosis_infected
+							}
+						}
+						else_if = {
+							limit = { pop_has_trait = trait_exomycosis_corrupted }
+							modify_species = {
+								species = this
+								remove_trait = trait_exomycosis_corrupted
+							}
+						}
+					}
+				}
+			}
+			35 = {
+				modifier = {
+					factor = 1.5
+					target = {
+						OR = {
+							num_assigned_jobs = {
+								job = healthcare
+								value >= 1
+							}
+							num_assigned_jobs = {
+								job = maintenance_drone
+								value >= 2
+							}
+						}
+					}
+				}
+				target = {
+					while = {
+					count = 3
+						random_owned_pop = {
+							limit = {
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							if = {
+								limit = { pop_has_trait = trait_exomycosis_infected }
+								modify_species = {
+									species = this
+									remove_trait = trait_exomycosis_infected
+								}
+							}
+							else_if = {
+								limit = { pop_has_trait = trait_exomycosis_corrupted }
+								modify_species = {
+									species = this
+									remove_trait = trait_exomycosis_corrupted
+								}
+							}
+						}
+					}
+					if = {
+						limit = { has_deposit = d_exofungus_contamination }
+						random_deposit = { 
+							limit = { is_deposit_type = d_exofungus_contamination }
+							remove_deposit = yes
+						}
+					}
+				}
+			}
+			15 = {
+				modifier = {
+					factor = 2
+					target = {
+						OR = {
+							num_assigned_jobs = {
+								job = healthcare
+								value >= 3
+							}
+							num_assigned_jobs = {
+								job = maintenance_drone
+								value >= 6
+							}
+						}
+					}
+				}
+				target = {
+					while = {
+					count = 5
+						random_owned_pop = {
+							limit = {
+								OR = {
+									pop_has_trait = trait_exomycosis_infected
+									pop_has_trait = trait_exomycosis_corrupted
+								}
+							}
+							if = {
+								limit = { pop_has_trait = trait_exomycosis_infected }
+								modify_species = {
+									species = this
+									remove_trait = trait_exomycosis_infected
+								}
+							}
+							else_if = {
+								limit = { pop_has_trait = trait_exomycosis_corrupted }
+								modify_species = {
+									species = this
+									remove_trait = trait_exomycosis_corrupted
+								}
+							}
+						}
+					}
+					while = {
+					count = 2
+						if = {
+							limit = { has_deposit = d_exofungus_contamination }
+							random_deposit = { 
+								limit = { is_deposit_type = d_exofungus_contamination }
+								remove_deposit = yes
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Exomycosis Event Chain
+
+# Mycelium World Survey Project Complete
+ship_event = {
+	id = theinfestation_exomycosis_event.14
+	title = "theinfestation_exomycosis_event.14.name"
+	desc = "theinfestation_exomycosis_event.14.desc"
+	picture = GFX_evt_mycelium_world
+	show_sound = event_scanner
+	location = FROMFROM
+	
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			if = {
+				limit = { is_regular_empire = yes }
+				add_event_chain_counter = { 
+					event_chain = exomycosis_infestation_chain
+					counter = mycelium_world_survey 
+					amount = 1 
+				}
+			}
+			else = {
+				add_event_chain_counter = { 
+					event_chain = exomycosis_infestation_chain_gestalt
+					counter = mycelium_world_survey 
+					amount = 1 
+				}
+			}
+			country_event = { id = theinfestation_exomycosis_event.17 days = 1 }
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Infectious hospital is built
+planet_event = {
+	id = theinfestation_exomycosis_event.15
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			OR = {
+				has_event_chain = exomycosis_infestation_chain
+				has_event_chain = exomycosis_infestation_chain_gestalt
+			}
+			check_variable = { which = infectious_constructions value = root.value:infectious_building_count }
+		}
+		OR = {
+			last_building_changed = building_infectious_hospital
+			last_building_changed = building_isolation_ward
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { is_regular_empire = yes }
+				add_event_chain_counter = { 
+					event_chain = exomycosis_infestation_chain
+					counter = infectious_hospitals_built 
+					amount = 1
+				}
+			}
+			else = {
+				add_event_chain_counter = { 
+					event_chain = exomycosis_infestation_chain_gestalt
+					counter = isolation_ward_built 
+					amount = 1
+				}
+			}
+			
+			change_variable = { which = infectious_constructions value = 1 }
+			
+			country_event = { id = theinfestation_exomycosis_event.17 days = 1 }
+		}
+	}
+}
+
+# Exomycosis Research Complete
+country_event = {
+	id = theinfestation_exomycosis_event.16
+	title = "theinfestation_exomycosis_event.16.name"
+	desc = "theinfestation_exomycosis_event.16.desc"
+	picture = GFX_evt_microscopic_life
+	show_sound = event_laboratory_sound
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = { is_regular_empire = yes }
+			add_event_chain_counter = { 
+				event_chain = exomycosis_infestation_chain
+				counter = exomycosis_researched 
+				amount = 1 
+			}
+		}
+		else = {
+			add_event_chain_counter = { 
+				event_chain = exomycosis_infestation_chain_gestalt
+				counter = exomycosis_researched 
+				amount = 1 
+			}
+		}
+		country_event = { id = theinfestation_exomycosis_event.17 days = 1 }
+	}
+	
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Exomycosis Event Chain Complete
+country_event = {
+	id = theinfestation_exomycosis_event.17
+	title = "theinfestation_exomycosis_event.17.name"
+	desc = "theinfestation_exomycosis_event.17.desc"
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+
+	trigger = {
+		if = {
+			limit = { is_regular_empire = yes }
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain"
+				counter = "mycelium_world_survey"
+			}
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain"
+				counter = "infectious_hospitals_built"
+			}
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain"
+				counter = "exomycosis_researched"
+			}
+		}
+		else = {
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain_gestalt"
+				counter = "mycelium_world_survey"
+			}
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain_gestalt"
+				counter = "isolation_ward_built"
+			}
+			has_completed_event_chain_counter = {
+				event_chain = "exomycosis_infestation_chain_gestalt"
+				counter = "exomycosis_researched"
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { has_event_chain = "exomycosis_infestation_chain" }
+			end_event_chain = "exomycosis_infestation_chain"
+		}
+		if = {
+			limit = { has_event_chain = "exomycosis_infestation_chain_gestalt" }
+			end_event_chain = "exomycosis_infestation_chain_gestalt"
+		}
+		
+		set_country_flag = exomycosis_research_complete
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.17.a"
+		begin_event_chain = {
+			event_chain = "exomycosis_sample_chain"
+			target = this
+		}
+		hidden_effect = {
+			random_galaxy_planet = {
+				limit = { has_planet_flag = original_exomycosis_planet }
+				enable_special_project = {
+					name = "MEGAMYCETE_TAKING_PROJECT"
+					location = this
+					owner = root
+				}
+			}
+		}
+		custom_tooltip = decision_planet_disinfection_available
+		custom_tooltip = resolution_exomycosis_infestation_available
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.17.b"
+		add_monthly_resource_mult = {
+			resource = society_research
+			value = @tier4researchreward
+			min = @tier4researchmin
+			max = @tier4researchmax
+		}
+		custom_tooltip = decision_planet_disinfection_available
+		custom_tooltip = resolution_exomycosis_infestation_available
+		if = {
+			limit = { 
+				is_galactic_community_member = yes
+				NOT = { is_active_resolution = resolution_exomycosis_infestation }
+			}
+			custom_tooltip = resolution_exomycosis_infestation_available
+		}
+	}
+}
+
+# Megamycete Taking Project Complete
+ship_event = {
+	id = theinfestation_exomycosis_event.18
+	title = "theinfestation_exomycosis_event.18.name"
+	desc = "theinfestation_exomycosis_event.18.desc"
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_mystic_reveal
+	location = FROMFROM
+	
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			add_event_chain_counter = { 
+				event_chain = exomycosis_sample_chain
+				counter = megamycete_taken 
+				amount = 1 
+			}
+		
+			country_event = { id = theinfestation_exomycosis_event.20 days = 1 }
+		}
+	}
+	
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Confined Biolaboratory is built
+planet_event = {
+	id = theinfestation_exomycosis_event.19
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			OR = {
+				has_event_chain = exomycosis_sample_chain
+				has_event_chain = exomycosis_new_sample_chain
+			}
+		}
+		last_building_changed = building_confined_biolab
+	}
+	
+	immediate = {
+		save_event_target_as = megamycete_biolab_planet
+		owner = {
+			if = {
+				limit = { has_event_chain = exomycosis_sample_chain }
+				add_event_chain_counter = { 
+					event_chain = exomycosis_sample_chain
+					counter = confined_biolab_built 
+					amount = 1 
+				}
+				
+				country_event = { id = theinfestation_exomycosis_event.20 days = 1 }
+			}
+			else = {
+				add_event_chain_counter = { 
+					event_chain = exomycosis_new_sample_chain
+					counter = confined_biolab_built 
+					amount = 1 
+				}
+				
+				country_event = { id = theinfestation_exomycosis_event.29 days = 1 }
+			}
+		}
+	}
+}
+
+# Sample 17 received! (New relic)
+country_event = {
+	id = theinfestation_exomycosis_event.20
+	title = "theinfestation_exomycosis_event.20.name"
+	desc = "theinfestation_exomycosis_event.20.desc"
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	location = event_target:megamycete_biolab_planet
+	
+	is_triggered_only = yes
+
+	trigger = {
+		has_completed_event_chain_counter = {
+			event_chain = "exomycosis_sample_chain"
+			counter = "megamycete_taken"
+		}
+		has_completed_event_chain_counter = {
+			event_chain = "exomycosis_sample_chain"
+			counter = "confined_biolab_built"
+		}
+	}
+
+	immediate = {
+		end_event_chain = "exomycosis_sample_chain"
+		event_target:megamycete_biolab_planet = { set_planet_flag = sample_17_planet }
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.20.a"
+		add_relic = r_sample_17
+	}
+}
+
+# Sample 17 Relic Activation
+country_event = {
+	id = theinfestation_exomycosis_event.21
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_planet = {
+			limit = { has_building = building_confined_biolab }
+			create_fleet = {
+				name = "NAME_Plague_Fleet"
+				effect = {
+					set_owner = root
+					while = {
+						count = 2
+						create_army_transport = {
+							ship_name = "NAME_Infested_Transport"
+							army_name = "NAME_Mutated_Infected"
+							army_type = "infected_army"
+							species = root
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 10
+						angle = random
+					}
+				}
+			}
+		}
+	}
+}
+
+# Confined Biolaboratory has demolished
+planet_event = {
+	id = theinfestation_exomycosis_event.22
+	title = "theinfestation_exomycosis_event.22.name"
+	desc = "theinfestation_exomycosis_event.22.desc"
+	picture = GFX_evt_night_raid
+	show_sound = event_structural_collapse
+	location = FROM
+	
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { 
+			NOT = { has_origin = origin_exomycosis }
+			has_relic = r_sample_17
+		}
+		last_building_changed = building_confined_biolab
+	}
+
+	immediate = {
+	}
+	
+	option = {
+		name = CURSES
+		owner = { remove_relic = r_sample_17 }
+	}
+}
+
+# Losing a Confined Biolaboratory planet
+planet_event = {
+	id = theinfestation_exomycosis_event.23
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_building = building_confined_biolab
+	}
+	immediate = {
+		if = {
+			limit = { 
+				has_owner = yes 
+				from = { NOT = { has_origin = origin_exomycosis } }
+			}
+			from = { country_event = { id = theinfestation_exomycosis_event.24 } }
+		}
+		fromfrom = { country_event = { id = theinfestation_exomycosis_event.25 } }
+	}
+}
+
+# Sample 17 Relic captured!
+country_event = {
+	id = theinfestation_exomycosis_event.24
+	title = "theinfestation_exomycosis_event.24.name"
+	desc = "theinfestation_exomycosis_event.24.desc"
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	location = FROM
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = EXCELLENT
+		add_relic = r_sample_17
+	}
+}
+
+# Sample 17 Relic lose!
+country_event = {
+	id = theinfestation_exomycosis_event.25
+	title = "theinfestation_exomycosis_event.25.name"
+	desc = "theinfestation_exomycosis_event.25.desc"
+	picture = GFX_evt_busy_spaceport
+	show_sound = event_red_alert
+	location = FROM
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = CURSES
+		remove_relic = r_sample_17
+	}
+}
+
+# Risk check accident in a Confined Biolaboratory
+planet_event = {
+	id = theinfestation_exomycosis_event.26
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		has_building = building_confined_biolab
+	}
+	
+	immediate = {
+		random_list = {
+			30 = {
+				planet_event = { id = theinfestation_exomycosis_event.27 days = 90 random = 30 }
+			}
+			70 = {
+				#Null
+			}
+		}
+	}
+}
+
+# Accident in a Confined Biolaboratory! (Exomycosis Infestation)
+planet_event = {
+	id = theinfestation_exomycosis_event.27
+	title = "theinfestation_exomycosis_event.27.name"
+	desc = "theinfestation_exomycosis_event.27.desc"
+	picture = GFX_evt_night_raid
+	show_sound = event_red_alert
+	location = root
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_building = building_confined_biolab
+	}
+
+	immediate = {
+		owner = { remove_relic = r_sample_17 }
+		remove_building = building_confined_biolab
+		owner = {
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		create_country = {
+			name = "NAME_Mutated_Infected"
+			type = faction
+			effect = {
+				establish_communications_no_message = root.owner
+				set_country_flag = mutated_infected
+			}
+		}
+		while = {
+			count = 5
+			create_army = {
+				name = "NAME_Mutated_Infected"
+				owner = last_created_country
+				type = "infected_army"
+			}
+		}
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.27.a"
+		custom_tooltip = mutated_infected_attack
+		tooltip = {
+			owner = {
+				remove_relic = r_sample_17
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.27.b"
+		custom_tooltip = mutated_infected_attack
+		tooltip = {
+			owner = {
+				remove_relic = r_sample_17
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+		
+		add_deposit = d_exofungus_contamination
+		add_deposit = d_exofungus_contamination
+		
+		while = {
+			count = 2
+			random_owned_pop = {
+				limit = {
+					NOR = {
+						pop_has_trait = trait_molded
+						pop_has_trait = trait_exomycosis_infected
+							pop_has_trait = trait_exomycosis_corrupted
+					}
+				}
+				if = {
+					limit = { is_robot_pop = yes }
+					modify_species = {
+						species = this
+						add_trait = trait_exomycosis_corrupted
+					}
+				}
+				else = {
+					modify_species = {
+						species = this
+						add_trait = trait_exomycosis_infected
+					}
+				}
+			}
+		}
+		
+		begin_event_chain = {
+			event_chain = "exomycosis_new_sample_chain"
+			target = this.owner
+		}
+		hidden_effect = {
+			enable_special_project = {
+				name = "NEW_MEGAMYCETE_TAKING_PROJECT"
+				location = this
+				owner = this.owner
+			}
+		}
+	}
+	
+}
+
+# NEW Megamycete Taking Project Complete
+ship_event = {
+	id = theinfestation_exomycosis_event.28
+	title = "theinfestation_exomycosis_event.28.name"
+	desc = "theinfestation_exomycosis_event.28.desc"
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_mystic_reveal
+	location = FROMFROM
+	
+	is_triggered_only = yes
+
+	immediate = {
+		owner = {
+			add_event_chain_counter = { 
+				event_chain = exomycosis_new_sample_chain
+				counter = megamycete_taken 
+				amount = 1 
+			}
+		
+			country_event = { id = theinfestation_exomycosis_event.29 days = 1 }
+		}
+		fromfrom = { remove_planet_flag = sample_17_planet }
+	}
+	
+	option = {
+		name = EXCELLENT
+	}
+}
+
+# Sample 17 again received! (Relic returned)
+country_event = {
+	id = theinfestation_exomycosis_event.29
+	title = "theinfestation_exomycosis_event.29.name"
+	desc = "theinfestation_exomycosis_event.29.desc"
+	picture = GFX_evt_society_research
+	show_sound = event_laboratory_sound
+	location = event_target:megamycete_biolab_planet
+	
+	is_triggered_only = yes
+
+	trigger = {
+		has_completed_event_chain_counter = {
+			event_chain = "exomycosis_new_sample_chain"
+			counter = "megamycete_taken"
+		}
+		has_completed_event_chain_counter = {
+			event_chain = "exomycosis_new_sample_chain"
+			counter = "confined_biolab_built"
+		}
+	}
+
+	immediate = {
+		end_event_chain = "exomycosis_new_sample_chain"
+		event_target:megamycete_biolab_planet = { set_planet_flag = sample_17_planet }
+	}
+	
+	option = {
+		name = OK
+		add_relic = r_sample_17
+	}
+}
+
+
+
+# Mycelium World Surveyed
+ship_event = {
+	id = theinfestation_exomycosis_event.30
+	title = "theinfestation_exomycosis_event.30.name"
+	desc = "theinfestation_exomycosis_event.30.desc"
+	picture = GFX_evt_mycelium_world
+	show_sound = event_scanner
+	location = FROM
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = { is_planet_class = pc_mycelium }
+		owner = {
+			NOT = { has_origin = origin_exomycosis }
+			NOT = { has_country_flag = exomycosis_pre_contact }
+			NOT = { has_country_flag = exomycosis_contact }
+		}
+	}
+
+	immediate = {
+		owner = {
+			set_country_flag = exomycosis_pre_contact
+			
+			random_list = {
+				50 = {
+					random_owned_planet = {
+						planet_event = { id = theinfestation_exomycosis_event.3 days = 180 random = 90 }
+					}
+				}
+				50 = {
+					#Null
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = INTERESTING
+	}
+}
+
+# Mutant attack repulsed!
+country_event = {
+	id = theinfestation_exomycosis_event.31
+	title = "theinfestation_exomycosis_event.31.name"
+	desc = "theinfestation_exomycosis_event.31.desc"
+	picture = GFX_evt_burning_settlement
+	show_sound = event_ground_battle
+	location = FROMFROM
+
+	is_triggered_only = yes
+
+	trigger = {
+		ROOT = { NOT = { has_origin = origin_exomycosis } }
+		FROM = { has_country_flag = mutated_infected }
+		FROMFROM = {
+			OR = {
+				is_planet_class = pc_mycelium
+				has_modifier = mold_contaminated
+			}
+		}
+	}
+
+	immediate = {
+		FROMFROM = { 
+			every_owned_pop = {
+				limit = {
+					NOR = {
+						pop_has_trait = trait_molded
+						pop_has_trait = trait_exomycosis_infected
+						pop_has_trait = trait_exomycosis_corrupted
+					}
+				}
+				if = {
+					limit = { is_robot_pop = no }
+					modify_species = {
+						species = this
+						add_trait = trait_exomycosis_infected
+					}
+				}
+				else = {
+					modify_species = {
+						species = this
+						add_trait = trait_exomycosis_corrupted
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		name = "theinfestation_exomycosis_event.31.a"
+	}
+}
+
+# Regular Infected attack
+planet_event = {
+	id = theinfestation_exomycosis_event.32
+	title = "theinfestation_exomycosis_event.32.name"
+	desc = {
+		trigger = { owner = { is_regular_empire = yes } }
+		text = "theinfestation_exomycosis_event.32.desc"
+	}
+	desc = {
+		trigger = { owner = { is_hive_empire = yes } }
+		text = "theinfestation_exomycosis_event.32.desc.hive"
+	}
+	desc = {
+		trigger = { owner = { is_machine_empire = yes } }
+		text = "theinfestation_exomycosis_event.32.desc.machine"
+	}
+	picture = GFX_evt_ground_combat
+	show_sound = event_ground_battle
+	location = root
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = owner
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		OR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+		}
+	}
+	
+	immediate = {
+		create_country = {
+			name = "NAME_Mutated_Infected"
+			type = faction
+			effect = {
+				establish_communications_no_message = root.owner
+				set_country_flag = mutated_infected
+			}
+		}
+		random_list = {
+			60 = {
+				modifier = {
+					factor = 0
+					num_pops < 2
+				}
+				while = {
+					count = 2
+					random_owned_pop = {
+						limit = { 
+							OR = {
+								pop_has_trait = trait_exomycosis_infected
+								pop_has_trait = trait_exomycosis_corrupted
+							}
+						}
+						kill_pop = yes
+					}
+				}
+				while = {
+					count = 5
+					create_army = {
+						name = "NAME_Mutated_Infected"
+						owner = last_created_country
+						type = "infected_army"
+					}
+				}
+			}
+			30 = {
+				modifier = {
+					factor = 0
+					num_pops < 4
+				}
+				while = {
+					count = 4
+					random_owned_pop = {
+						limit = { 
+							OR = {
+								pop_has_trait = trait_exomycosis_infected
+								pop_has_trait = trait_exomycosis_corrupted
+							}
+						}
+						kill_pop = yes
+					}
+				}
+				while = {
+					count = 10
+					create_army = {
+						name = "NAME_Mutated_Infected"
+						owner = last_created_country
+						type = "infected_army"
+					}
+				}
+			}
+			10 = {
+				modifier = {
+					factor = 0
+					num_pops < 8
+				}
+				while = {
+					count = 8
+					random_owned_pop = {
+						limit = { 
+							OR = {
+								pop_has_trait = trait_exomycosis_infected
+								pop_has_trait = trait_exomycosis_corrupted
+							}
+						}
+						kill_pop = yes
+					}
+				}
+				while = {
+					count = 20
+					create_army = {
+						name = "NAME_Mutated_Infected"
+						owner = last_created_country
+						type = "infected_army"
+					}
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = TERRIBLE
+		custom_tooltip = mutated_infected_attack
+	}
+}
+
+# Infected pop has resettled
+pop_event = {
+	id = theinfestation_exomycosis_event.33
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		OR = {
+			pop_has_trait = trait_molded
+			pop_has_trait = trait_exomycosis_infected
+			pop_has_trait = trait_exomycosis_corrupted
+		}
+		from = {
+			OR = {
+				is_planet_class = pc_mycelium
+				has_modifier = mold_contaminated
+				has_modifier = exomycosis_infestation
+			}
+		}
+		planet = {
+			NOR = {
+				is_planet_class = pc_mycelium
+				has_modifier = mold_contaminated
+				has_modifier = exomycosis_infestation
+			}
+		}
+	}
+
+	immediate = {
+		from = { save_event_target_as = infected_planet }
+		planet = {
+			planet_event = { id = theinfestation_exomycosis_event.46 days = 5 }
+		}
+	}
+}
+
+# Pop resettled on an assimilated planet
+pop_event = {
+	id = theinfestation_exomycosis_event.34
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		NOR = {
+			pop_has_trait = trait_molded
+			pop_has_trait = trait_exomycosis_infected
+			pop_has_trait = trait_exomycosis_corrupted
+		}
+		planet = {
+			OR = {
+				is_planet_class = pc_mycelium
+				has_modifier = mold_contaminated
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { is_robot_pop = no }
+			modify_species = {
+				species = this
+				add_trait = trait_exomycosis_infected
+			}
+		}
+		else = {
+			modify_species = {
+				species = this
+				add_trait = trait_exomycosis_corrupted
+			}
+		}
+	}
+}
+
+
+
+# Planet Burning Project Complete
+ship_event = {
+	id = theinfestation_exomycosis_event.35
+	is_triggered_only = yes
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		FROMFROM = {
+			if = { 
+				limit = { has_planet_flag = sample_17_planet }
+				remove_planet_flag = sample_17_planet
+				owner = { country_event = { id = theinfestation_exomycosis_event.50 days = 1 } }
+			}
+			if = {
+				limit = { is_artificial = yes }
+				if = {
+					limit = { has_planet_flag = planetary_station }
+					
+					planet_event = { id = theinfestation_exomycosis_event.36 }
+				}
+				else = {
+					planet_event = { id = theinfestation_exomycosis_event.37 }
+				}
+			}
+			else = {
+				random_list = {
+					70 = {
+						planet_event = { id = theinfestation_exomycosis_event.38 }
+					}
+					30 = {
+						planet_event = { id = theinfestation_exomycosis_event.39 }
+					}
+				}
+				change_pc = pc_nuked
+				reset_planet = yes
+			}
+		}
+	}
+}
+
+# Planet Burning: Planetary Station Destroy
+planet_event = {
+	id = theinfestation_exomycosis_event.36
+	title = "theinfestation_exomycosis_event.36.name"
+	desc = "theinfestation_exomycosis_event.36.desc"
+	picture = GFX_evt_burning_city
+	show_sound = event_structural_collapse
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = OK
+		hidden_effect = {
+			remove_modifier = mold_contaminated
+			fire_on_action = { on_action = on_destroy_planetary_station }
+		}
+	}
+}
+
+# Planet Burning: Artificial Planet Destroy
+planet_event = {
+	id = theinfestation_exomycosis_event.37
+	title = "theinfestation_exomycosis_event.37.name"
+	desc = "theinfestation_exomycosis_event.37.desc"
+	picture = GFX_evt_large_explosion
+	show_sound = event_super_explosion
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = OK
+		remove_planet = yes
+	}
+}
+
+# Planet Burning: Nuked Planet
+planet_event = {
+	id = theinfestation_exomycosis_event.38
+	title = "theinfestation_exomycosis_event.38.name"
+	desc = "theinfestation_exomycosis_event.38.desc"
+	picture = GFX_evt_burning_city
+	show_sound = event_structural_collapse
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+		change_pc = pc_nuked
+		reset_planet = yes
+		
+		add_planet_devastation = 100
+		
+		every_owned_pop = {
+			random_list = {
+				90 = {
+					kill_pop = yes
+				}
+				10 = {
+					# Pop survived
+				}
+			}
+		}
+		
+		planet_event = { id = theinfestation_exomycosis_event.40 days = 1 }
+	}
+	
+	option = {
+		name = OK
+	}
+}
+
+# Planet Burning: Barren Planet
+planet_event = {
+	id = theinfestation_exomycosis_event.39
+	title = "theinfestation_exomycosis_event.39.name"
+	desc = "theinfestation_exomycosis_event.39.desc"
+	picture = GFX_evt_burning_city
+	show_sound = event_air_raid_siren
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		clear_planet_modifiers = yes
+		destroy_colony = yes
+		change_pc = pc_barren
+		reset_planet = yes
+		add_modifier = { modifier = "terraforming_candidate" days = -1 }
+	}
+}
+
+# Infestation after Planet Burning or Planet Disinfection
+planet_event = {
+	id = theinfestation_exomycosis_event.40
+	title = "theinfestation_exomycosis_event.40.name"
+	desc = "theinfestation_exomycosis_event.40.desc"
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = root
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		any_owned_pop = {
+			OR = {
+				pop_has_trait = trait_exomycosis_infected
+				pop_has_trait = trait_exomycosis_corrupted
+			}
+		}
+	}
+
+	immediate = {
+		owner = {
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+	}
+}
+
+# Planet Disinfection Project Complete
+planet_event = {
+	id = theinfestation_exomycosis_event.41
+	is_triggered_only = yes
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		if = { 
+			limit = { has_planet_flag = sample_17_planet }
+			remove_planet_flag = sample_17_planet
+			owner = { country_event = { id = theinfestation_exomycosis_event.50 days = 1 } }
+		}
+		random_list = {
+			80 = {
+				planet_event = { id = theinfestation_exomycosis_event.42 }
+			}
+			20 = {
+				planet_event = { id = theinfestation_exomycosis_event.43 }
+			}
+		}
+	}
+}
+
+# Planet Disinfection success
+planet_event = {
+	id = theinfestation_exomycosis_event.42
+	title = "theinfestation_exomycosis_event.42.name"
+	desc = "theinfestation_exomycosis_event.42.desc"
+	picture = GFX_evt_colony_settlement
+	show_sound = event_ship_thrusters
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+		change_pc = pc_desert
+		reset_planet = yes
+		
+		planet_event = { id = theinfestation_exomycosis_event.40 days = 1 }
+	}
+	
+	option = {
+		name = OK
+	}
+}
+
+# Planet Disinfection fail
+planet_event = {
+	id = theinfestation_exomycosis_event.43
+	title = "theinfestation_exomycosis_event.43.name"
+	desc = "theinfestation_exomycosis_event.43.desc"
+	picture = GFX_evt_toxic
+	show_sound = event_air_raid_siren
+	location = root
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = UNFORTUNATE
+		clear_planet_modifiers = yes
+		destroy_colony = yes
+		change_pc = pc_toxic
+		reset_planet = yes
+		add_modifier = { modifier = "terraforming_candidate" days = -1 }
+	}
+}
+
+
+# Resolution passed: Exomycosis Infestation
+country_event = {
+	id = theinfestation_exomycosis_event.44
+	title = "theinfestation_exomycosis_event.44.name"
+	desc = "theinfestation_exomycosis_event.44.desc"
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+
+	trigger = {
+		NOR = {
+			has_origin = origin_exomycosis
+			has_country_flag = exomycosis_research_complete
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { has_event_chain = "exomycosis_infestation_chain" }
+			end_event_chain = "exomycosis_infestation_chain"
+		}
+		if = {
+			limit = { has_event_chain = "exomycosis_infestation_chain_gestalt" }
+			end_event_chain = "exomycosis_infestation_chain_gestalt"
+		}
+		
+		set_country_flag = exomycosis_research_complete
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.44.a"
+		begin_event_chain = {
+			event_chain = "exomycosis_sample_chain"
+			target = this
+		}
+		hidden_effect = {
+			random_galaxy_planet = {
+				limit = { has_planet_flag = original_exomycosis_planet }
+				enable_special_project = {
+					name = "MEGAMYCETE_TAKING_PROJECT"
+					location = this
+					owner = root
+				}
+			}
+		}
+		custom_tooltip = decision_planet_disinfection_available
+	}
+	
+	option = {
+		name = "theinfestation_exomycosis_event.44.b"
+		custom_tooltip = decision_planet_disinfection_available
+	}
+}
+
+
+# Infected Army Attack! (Plague Fleet)
+planet_event = {
+	id = theinfestation_exomycosis_event.45
+	is_triggered_only = yes
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		from = { NOT = { has_origin = origin_exomycosis } }
+		any_ground_combat_attacker = { army_type = infected_army }
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		from = { save_event_target_as = plague_fleet_country } 
+		planet_event = { id = theinfestation_exomycosis_event.49 days = 30 random = 10 }
+	}
+}
+
+# A message about the infestation of the planet and the beginning of the situation (From infested pop).
+planet_event = {
+	id = theinfestation_exomycosis_event.46
+	title = "theinfestation_exomycosis_event.46.name"
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc.exomycosis_contact"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc.exomycosis_contact_hive"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc.exomycosis_contact_machine"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				has_country_flag = exomycosis_contact
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.46.desc.machine"
+	}
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = ROOT
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { NOT = { has_origin = origin_exomycosis } }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { NOT = { has_country_flag = exomycosis_contact } }
+				exomycosis_contact = yes
+			}
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = exomycosis_contact } }
+					if  = {
+						limit = { is_regular_empire = yes }
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain"
+							target = this
+						}
+					}
+					else = {
+						begin_event_chain = {
+							event_chain = "exomycosis_infestation_chain_gestalt"
+							target = this
+						}
+					}
+				}
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+}
+
+
+# Infestation Stage 3
+situation_event = {
+	id = theinfestation_exomycosis_event.48
+	title = "theinfestation_exomycosis_event.48.name"
+	desc = {
+		trigger = {
+			target.owner = { is_regular_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.48.desc"
+	}
+	desc = {
+		trigger = {
+			target.owner = { is_hive_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.48.desc.hive"
+	}
+	desc = {
+		trigger = {
+			target.owner = { is_machine_empire = yes }
+		}
+		text = "theinfestation_exomycosis_event.48.desc.machine"
+	}
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_air_raid_siren
+	location = root.target
+	situation = this
+	force_open = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+# A message about the infestation of the planet and the beginning of the situation (From Plague Fleet).
+planet_event = {
+	id = theinfestation_exomycosis_event.49
+	title = "theinfestation_exomycosis_event.49.name"
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc.exomycosis_contact"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc.exomycosis_contact_hive"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				NOT = { has_country_flag = exomycosis_contact }
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc.exomycosis_contact_machine"
+	}
+	desc = {
+		trigger = {
+			owner = { 
+				has_country_flag = exomycosis_contact
+				is_regular_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_hive_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc.hive"
+	}
+	desc = {
+		trigger = {
+			owner = {
+				has_country_flag = exomycosis_contact
+				is_machine_empire = yes
+			}
+		}
+		text = "theinfestation_exomycosis_event.49.desc.machine"
+	}
+	picture = GFX_evt_burning_settlement
+	show_sound = event_ground_battle
+	location = FROMFROM
+	situation = event_target:new_situation
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { 
+			NOR = { 
+				has_origin = origin_exomycosis
+				is_same_value = event_target:plague_fleet_country
+			}
+		}
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+			has_modifier = exomycosis_infestation
+		}
+	}
+	
+	immediate = {
+		owner = {
+			if = {
+				limit = { NOT = { has_country_flag = exomycosis_contact } }
+				if  = {
+					limit = { is_regular_empire = yes }
+					begin_event_chain = {
+						event_chain = "exomycosis_infestation_chain"
+						target = this
+					}
+				}
+				else = {
+					begin_event_chain = {
+						event_chain = "exomycosis_infestation_chain_gestalt"
+						target = this
+					}
+				}
+			}
+			start_situation = {
+				type = situation_exomycosis_infestation
+				target = root
+				effect = {
+					save_event_target_as = new_situation
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				NOT = { is_same_value = root.owner }
+				has_country_flag = exomycosis_contact
+			}
+			create_message = {
+				type = PLANET_INFESTATION
+				localization = PLANET_INFESTATION_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+		
+		every_playable_country = { 
+			limit = {
+				root = { is_surveyed = { who = prev status = yes } }
+				has_origin = origin_exomycosis
+			}
+			create_message = {
+				type = PLANET_ASSIMILATE
+				localization = PLANET_ASSIMILATE_DESC
+				days = 30
+				target = root
+				variable = {
+					type = name
+					localization = PLANET
+					scope = root
+				}
+				variable = {
+					type = name
+					localization = COUNTRY
+					scope = root.owner
+				}
+			}
+		}
+	}
+
+	option = {
+		name = DISCONCERTING
+		tooltip = {
+			owner = {
+				if = {
+					limit = { NOT = { has_country_flag = exomycosis_contact } }
+					exomycosis_contact = yes
+				}
+				start_situation = {
+					type = situation_exomycosis_infestation
+					target = root
+				}
+			}
+		}
+		custom_tooltip = decision_quarantine_available
+	}
+}
+
+# Sample 17 wiped out as a result of the planet's cleansing of exomycosis.
+country_event = {
+	id = theinfestation_exomycosis_event.50
+	title = "theinfestation_exomycosis_event.50.name"
+	desc = "theinfestation_exomycosis_event.50.desc"
+	picture = GFX_evt_exomycosis_infestation
+	show_sound = event_mystic_reveal
+	
+	is_triggered_only = yes
+
+	immediate = {
+	}
+	
+	option = {
+		name = DISCONCERTING
+	}
+}
+
+
+
+# The message for mold country is that the planet has been absorbed.
+country_event = {
+	id = theinfestation_exomycosis_event.100
+	title = "theinfestation_exomycosis_event.100.name"
+	desc ="theinfestation_exomycosis_event.100.desc"
+	picture = GFX_evt_disease_outbreak
+	show_sound = event_mystic_reveal
+	location = FROM
+	
+	is_triggered_only = yes
+
+	trigger = {
+		has_origin = origin_exomycosis
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+# New planet Assimilation
+planet_event = {
+	id = theinfestation_exomycosis_event.101
+	is_triggered_only = yes
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { has_origin = origin_exomycosis }
+		NOR = {
+			is_planet_class = pc_mycelium
+			has_modifier = mold_contaminated
+		}
+	}
+
+	immediate = {
+		owner = {
+			start_situation = {
+				type = situation_exomycosis_assimilation
+				target = root
+			}
+		}
+	}
+}
+
+# New Assimilated World
+situation_event = {
+	id = theinfestation_exomycosis_event.102
+	title = "theinfestation_exomycosis_event.102.name"
+	desc ="theinfestation_exomycosis_event.102.desc"
+	picture = GFX_evt_mycelium_world
+	show_sound = event_mystic_reveal
+	location = FROM
+	situation = this
+	
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}

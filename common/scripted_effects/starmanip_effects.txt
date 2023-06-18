@@ -1,0 +1,214 @@
+giga_o_system_craft = {
+	create_fleet = {
+		name = "The Stellar Systemcraft"
+		settings = {
+			spawn_debris = no
+			can_change_composition = no
+			is_boss = yes
+		}
+		effect = {
+			set_owner = prev
+			create_ship = {
+				name = "The Stellar Systemcraft"
+				graphical_culture = root.from
+				random_existing_design = giga_o_systemcraft
+			}
+		}
+	}
+}
+
+giga_create_o_star = {
+	set_star_class = sc_giga_o_star
+	set_star_flag = giga_o_star_system
+	star = {
+		clear_deposits = yes
+		add_deposit = d_energy_10
+		add_deposit = d_energy_10
+		change_pc = pc_giga_o_star
+		set_planet_size = 25
+		add_modifier = {
+			modifier = giga_o_star_modifier
+			days = -1
+		}
+		create_ambient_object = {
+			type = "giga_o_star_nebula_1"
+			entity_offset_height = 0
+			location = this
+		}
+		last_created_ambient_object = {
+			set_location = {
+				target = prev
+				distance = 0
+				angle = random
+			}
+			set_ambient_object_flag = o_star_solar_wind
+		}
+	}
+	every_system_planet = {
+		limit = {
+			OR = {
+				is_colonizable = yes
+				is_planet_class = pc_toxic
+				is_planet_class = pc_frozen
+				is_planet_class = pc_barren_cold
+			}
+		}
+		random_list = {
+			10 = {
+				change_pc = pc_molten
+			}
+			10 = {
+				change_pc = pc_barren
+			}
+			2 = {
+				change_pc = pc_broken
+			}
+			1 = {
+				change_pc = pc_shattered
+			}
+		}
+	}
+	every_system_planet = {
+		limit = {
+			planet_size > 5
+		}
+		change_planet_size = -3
+	}
+}
+
+stellarm_set_if_not_set = {
+	optimize_memory
+	if = {
+		limit = {
+			not = {
+				is_variable_set = $variable$
+			}
+		}
+		set_variable = {
+			which = $variable$
+			value = $value|0$
+		}
+	}
+	[[CHANGE]
+	else = {
+		change_variable = {
+			which = $variable$
+			value = $change_value|1$
+		}
+	}
+	]
+}
+
+stellarm_remove_applicable_harvester_mega = {
+	optimize_memory
+	solar_system = {
+		every_system_megastructure = {
+			limit = {
+				stellarm_is_extraction_type_megastructure = yes
+				planet = {
+					is_same_value = prevprevprev
+				}
+			}
+			remove_megastructure = this
+		}
+	}
+}
+
+stellarm_remove_applicable_injecter_mega = {
+	optimize_memory
+	solar_system = {
+		every_system_megastructure = {
+			limit = {
+				stellarm_is_infusion_type_megastructure = yes
+				planet = {
+					is_same_value = prevprevprev
+				}
+			}
+			remove_megastructure = this
+		}
+	}
+}
+
+stellarm_unset_if_set = {
+	optimize_memory
+	if = {
+		limit = {
+			is_variable_set = $variable$
+		}
+		clear_variable = $variable$
+	}
+}
+
+stellarm_set_extraction_abort_variables = {
+	optimize_memory
+	target = {
+		set_variable = {
+			which = stellarm_harvester_progress
+			value = prev.trigger:situation_progress
+		}
+	}
+}
+
+stellarm_set_injection_abort_variables = {
+	optimize_memory
+	target = {
+		set_variable = {
+			which = stellarm_injecter_progress
+			value = prev.trigger:situation_progress
+		}
+	}
+}
+
+stellarm_clean_up_extraction_megas = {
+	optimize_memory
+	if = {
+		limit = {
+			not = {
+				exists = target
+			}
+		}
+		every_megastructure = {
+			limit = {
+				stellarm_is_extraction_type_megastructure = yes
+				NOT = {
+					exists = planet
+				}
+			}
+			remove_megastructure = this
+		}
+	}
+	else = {
+		target = {
+			stellarm_remove_applicable_harvester_mega = yes
+			remove_planet_flag = megastructure
+			remove_planet_flag = has_megastructure
+		}
+	}
+}
+
+stellarm_clean_up_infusion_megas = {
+	optimize_memory
+	if = {
+		limit = {
+			not = {
+				exists = target
+			}
+		}
+		every_megastructure = {
+			limit = {
+				stellarm_is_infusion_type_megastructure = yes
+				NOT = {
+					exists = planet
+				}
+			}
+			remove_megastructure = this
+		}
+	}
+	else = {
+		target = {
+			stellarm_remove_applicable_injecter_mega = yes
+			remove_planet_flag = megastructure
+			remove_planet_flag = has_megastructure
+		}
+	}
+}

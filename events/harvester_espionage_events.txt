@@ -1,0 +1,116 @@
+namespace = harvester_ops
+
+# this = operation; from = target (country)
+
+
+#Operatives departed
+espionage_operation_event = {
+	id = harvester_ops.1
+	title = harvester_ops.1.name
+	espionage_operation = yes
+	desc = harvester_ops.1.desc
+	picture = GFX_evt_fleet_evil
+	show_sound = event_default
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+#Ready to launch
+espionage_operation_event = {
+	id = harvester_ops.2
+	title = harvester_ops.2.name
+	espionage_operation = yes
+	desc = harvester_ops.2.desc
+	picture = GFX_evt_unknown_ships
+	show_sound = event_default
+	is_triggered_only = yes
+
+	immediate = {
+		set_espionage_operation_progress_locked = yes
+		target = {
+			save_event_target_as = harvest_beacon_target_country
+			capital_scope = {
+				save_event_target_as = harvest_beacon_target_capital
+			}
+		}
+	}
+
+	option = {
+		name = LAUNCH_OPERATION
+		hidden_effect = {
+			owner = {
+				country_event = { id = harvester_ops.3 days = 3 }
+			}
+		}
+	}
+
+	after = {
+		set_espionage_operation_progress_locked = no
+	}
+}
+
+# Finalé
+country_event = {
+	id = harvester_ops.3
+	title = harvester_ops.3.name
+	desc = harvester_ops.3.desc
+	picture = GFX_evt_unidentified_monster
+	show_sound = event_espionage_concluded
+	location = event_target:harvest_beacon_target_capital
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:harvest_beacon_target_capital = {
+			add_modifier = { modifier = "harvester_priority_beacon" days = -1 }
+			owner = {
+				country_event = { id = harvester_ops.4 days = 3}
+			}
+		}
+	}
+
+	option = {
+		name = EXCELLENT
+		from.spynetwork = {
+			add_spy_network_level_on_success_effect = { VALUE = -80 }
+		}
+		from.owner = {
+			if = {
+				limit = { has_ascension_perk = ap_become_the_crisis }
+				complete_crisis_objective = crisobj_perform_upsetting_operations
+			}
+		}
+	}
+
+	after = {
+		#Remove Harvest Beacon lockout after 5 years
+		hidden_effect = {
+			set_timed_country_flag = {
+				flag = recent_harvest_beacon
+				years = 5
+			}
+		}
+		destroy_espionage_operation = from
+	}
+}
+
+#Incoming Harvester Attack
+country_event = {
+	id = harvester_ops.4
+	title = harvester_ops.4.name
+	desc = harvester_ops.4.desc
+	picture = GFX_evt_fleet_evil
+	is_triggered_only = yes
+
+	show_sound = event_red_alert
+	location = event_target:harvest_beacon_target_capital
+	
+	# Decision to remove it will automatically become available
+	immediate = { }
+
+	option = {
+		name = BATTLESTATIONS
+	}
+}

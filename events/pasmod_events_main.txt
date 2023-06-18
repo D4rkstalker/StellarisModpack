@@ -1,0 +1,197 @@
+namespace = pasmod
+
+planet_event = {
+	id = pasmod.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	pre_triggers = {
+		has_ground_combat = no
+	}
+
+	trigger = {
+		has_global_flag = pasmod_main_feature
+		NOR = { #Shouldn't spawn an army in the Scourge or Contingency's planet, as it causes a critical issue (the dropped army will stuck there and the invasion won't end forever)
+			is_planet_class = pc_infested
+			is_planet_class = pc_ai 
+		}
+		any_fleet_in_orbit = {
+			owner = {
+				is_at_war_with = prevprev.owner
+				switch = {
+					trigger = has_country_flag #then this one
+					pasmod_set_devastation_0 = { prevprev = { planet_devastation >= 0 } }
+					pasmod_set_devastation_25 = { prevprev = { planet_devastation >= 25 } }
+					pasmod_set_devastation_50 = { prevprev = { planet_devastation >= 50 } }
+					pasmod_set_devastation_75 = { prevprev = { planet_devastation >= 75 } }
+					pasmod_set_devastation_100 = { prevprev = { planet_devastation >= 100 } }
+				}
+			}
+			any_controlled_ship = {
+				NOT = { has_ship_flag = pasmod_army_drop_cooldown } #check this first
+				OR = {
+					pasmod_component_trigger = yes
+					AND = {
+						has_global_flag = pasmod_ai_use_main_feature
+						owner = {
+							is_ai = yes
+							is_country_type = default
+						}
+					}
+				}
+			}
+		}
+	}
+
+	immediate = {
+		every_fleet_in_orbit = {
+			limit = {
+				any_controlled_ship = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					pasmod_component_trigger = yes
+				}
+			}
+			every_controlled_ship = {
+				limit = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					has_component = pasmod_assault_army_1_unit
+				}
+				pasmod_auto_invasion_process_1 = yes
+				set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+			}
+			every_controlled_ship = {
+				limit = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					has_component = pasmod_assault_army_2_unit
+				}
+				pasmod_auto_invasion_process_2 = yes
+				set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+			}
+			every_controlled_ship = {
+				limit = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					has_component = pasmod_assault_army_3_unit
+				}
+				pasmod_auto_invasion_process_3 = yes
+				set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+			}
+			every_controlled_ship = {
+				limit = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					OR = {
+						has_component = pasmod_orbital_drop_pod_default
+						has_component = pasmod_orbital_drop_pod_clone
+						has_component = pasmod_orbital_drop_pod_gene
+			
+						has_component = pasmod_orbital_drop_pod_drop_pod
+						has_component = pasmod_orbital_drop_pod_artillery_drone
+			
+						has_component = pasmod_orbital_drop_pod_psionic_force
+						has_component = pasmod_orbital_drop_pod_slave_army
+						has_component = pasmod_orbital_drop_pod_droid_army
+					}
+				}
+				pasmod_auto_invasion_process_4 = yes
+				set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+			}
+		}
+		every_fleet_in_orbit = {
+			limit = {
+				has_global_flag = pasmod_ai_use_main_feature
+				owner = {
+					is_ai = yes
+					is_country_type = default
+				}
+				any_controlled_ship = {
+					NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+					pasmod_component_trigger = no
+				}
+			}
+			if = {
+				limit = { count_controlled_ship = { count > 15 } } #if the fleet has more than 15 ships
+				while = {
+					random_controlled_ship = {
+						limit = {
+							NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+							pasmod_component_trigger = no
+						}
+						root = {
+							create_army = {
+								owner = prev.owner
+								species = prev.owner.species
+								type = pasmod_assault_army_default
+							}
+						}
+						set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+					}
+					count = 15 #drop only 15 armies
+				}
+				else = { #and if the fleet has less than that
+					every_controlled_ship = {
+						limit = {
+							NOT = { has_ship_flag = pasmod_army_drop_cooldown }
+							pasmod_component_trigger = no
+						}
+						root = {
+							create_army = {
+								owner = prev.owner
+								species = prev.owner.species
+								type = pasmod_assault_army_default
+							}
+						}
+						set_timed_ship_flag = { flag = pasmod_army_drop_cooldown days = 90 }
+					}
+				}
+			}
+		}
+	}
+}
+planet_event = {
+	id = pasmod.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		#any_planet_army = { pasmod_army_types_trigger = yes } #Iterate through each army on the planet '(not in ground combat)'
+		#maybe this is the reason why it's not working here? #because the game still thinks the ground combat is happening when this on_action event fires?
+		any_ground_combat_attacker = { pasmod_army_types_trigger = yes } #okay this works #stellaris v3.7.4
+	}
+
+	immediate = {
+		every_ground_combat_attacker = {
+			limit = { pasmod_army_types_trigger = yes }
+			remove_army = yes
+		}
+	}
+}
+fleet_event = {
+	id = pasmod.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_global_flag = pasmod_main_feature
+		from = {
+			is_scope_type = planet
+			has_orbital_bombardment_stance = selective
+		}
+		owner = { has_country_flag = pasmod_set_devastation_0 }
+		any_controlled_ship = {
+			NOT = { has_ship_flag = pasmod_army_drop_cooldown } #check this first
+			OR = {
+				pasmod_component_trigger = yes
+				AND = {
+					has_global_flag = pasmod_ai_use_main_feature
+					owner = {
+						is_ai = yes
+						is_country_type = default
+					}
+				}
+			}
+		}
+	}
+
+	immediate = {
+		from = { planet_event = { id = pasmod.1 } }
+	}
+}

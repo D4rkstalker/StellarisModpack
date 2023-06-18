@@ -1,0 +1,360 @@
+# operation_type_name = {			# Key of the site, used for name lookup etc.
+#	target = <target type>			# Valid target types are country, megastructure, starbase, fleet, army, pop_faction, spynetwork, federation and none (spy network target is the target then)
+#	picture = <sprite key>			# GFX_* sprite key for the operation image
+#	desc = <triggered event desc>	# Description generator for the operation, with scope this=spy network
+#	stages = <int>					# Should match number of defined stages below.
+#	potential = <trigger>			# Trigger checking if a scope with this=spy network is potential to use (this will add/remove this operation without giving the player a reason).
+#	allow = <trigger>				# Trigger checking if a scope with this=spy network is allowed to use (this will toggle enable/disabled mode on buttons etc).
+#	stage = {						# Stage definition, order dependent.
+#		difficulty = <interval int>	# min max interval type. interval is defined either by '<int>' or '{ min = <int> max=<int> }' where the later will randomize a value between min and max.
+#		icon = <string>				# icon gfx type.
+#		event = <string>			# event to fire when finished the state.
+#	}
+#	stage = {...}					# Second stage, the total number of 'stage' entries should match value of 'stages'
+#	on_roll_failed = <effect>		# Effect to fire when a roll fails, with scope this=spy operation.
+#	on_create = <effect>			# Effect to fire upon operation creation, with scope this=spy operation.
+#}
+
+@diff_t0 = 4
+@diff_t1 = 5
+@diff_t2 = 6
+@diff_t3 = 7
+@diff_t4 = 8
+@diff_t5 = 9
+@diff_t6 = 10
+@diff_t7 = 11
+@diff_t8 = 12
+@diff_t9 = 13
+@diff_t10 = 14
+@diff_t11 = 15
+@diff_t12 = 16
+@diff_t13 = 18
+@diff_t14 = 18
+
+@operationTargetedByTimer = 10800 #30 years during which the effects of an operation may be felt by select Spy Network events
+
+# operation_gpm_gather_information_relic = {
+	# target = none
+	# categories = { op_cat_subterfuge }
+	# picture = GFX_evt_spymaster	
+	# desc = operation_gpm_gather_information_relic_desc
+	# stages = 1
+
+	# resources = {
+		# category = operations
+		# cost = {
+			# influence = 99999
+		# }
+		# upkeep = {
+			# energy = 4
+		# }
+	# }
+
+	# spy_power_cost = 100
+	# potential = {
+		# always = no					# we keep this in here for save game compatibility but never allow it
+	# }
+	# allow = {
+		# always = no					# we keep this in here for save game compatibility but never allow it
+	# }
+	# stage = {
+		# difficulty = @diff_t2
+		# icon = GFX_espionage_chapter_icon_document
+		# event = gpm_operation.10
+	# }
+
+	# on_roll_failed = {
+		# standard_espionage_operation_on_roll_failed = {
+			# RANDOM_EVENTS = operation_random_events_generic
+		# }
+	# }
+	# on_create = {
+		# target = {
+			# set_timed_country_flag = {
+				# flag = espionage_operation_targeted_by@root.owner #Used in random Spy Network events
+				# days = @operationTargetedByTimer
+			# }
+		# }
+		### DEBUG LOGGING ####
+		# log = ";OP - GATHER; operation_gpm_gather_information_relic launched by [this.owner.GetName] on [target.GetName]"
+		### ##################
+	# }
+# }
+
+# this = operation
+# target = operation target
+operation_gpm_steal_relic = {
+	target = none
+	categories = { op_cat_subterfuge op_cat_technology }
+	picture = GFX_evt_spymaster
+	desc = operation_gpm_steal_relic_desc
+	stages = 4
+
+	resources = {
+		category = operations
+		cost = {
+			influence = 500
+		}
+		upkeep = {
+			energy = 5
+		}
+	}
+
+	spy_power_cost = 70
+	potential = { 
+		target = { is_primitive = no }
+	}
+	allow = {
+		custom_tooltip = {
+			target = { num_owned_relics > 0 } # first check separate for performance(?) This was a tip I've received. 
+			target = {
+				OR = {
+					gpm_has_vanilla_precursor_relic = yes
+					gpm_has_modded_precursor_relic = yes
+					gpm_has_modded_non_precursor_relic = yes
+					gpm_has_other_mod_relic = yes						# only availible for supported relics for now
+				}
+			}
+			fail_text = gpm_target_has_no_relics_operation
+		}
+		custom_tooltip = {
+			is_running_espionage_operation = no
+			fail_text = operation_one_at_a_time
+		}
+		# Forbid if not neighbours
+		custom_tooltip = {
+			target = { is_neighbor_of = root.owner }
+			fail_text = gpm_operation_not_neighbours
+		}
+		
+		# forbid for overlords and their subjects if both arent AI
+		custom_tooltip = {
+			OR = {
+				target = {
+					OR = {
+						AND = {
+							is_subject = yes
+							overlord = {
+								NOT = { is_same_value = root.owner }
+							}
+						}
+						is_subject = no
+					}
+				}
+				AND = {
+					target = { is_ai = no }
+					root.owner = { is_ai = no }
+				}
+			}
+			fail_text = gpm_operation_is_subject
+		}
+		custom_tooltip = {
+			OR = {
+				target = { 
+					NOT = { is_overlord_to = root.owner	}
+				}
+				AND = {
+					target = { is_ai = no }
+					root.owner = { is_ai = no }
+				}
+			}
+			fail_text = gpm_operation_is_overlord
+		}
+	}
+	# The Crew
+	stage = {
+		difficulty = @diff_t10
+		icon = GFX_espionage_chapter_icon_document
+		event = gpm_operation.1
+	}
+	# The Setup
+	stage = {
+		difficulty = @diff_t10
+		icon = GFX_espionage_chapter_icon_document
+		event = gpm_operation.2
+	}
+	# The Heist
+	stage = {
+		difficulty = @diff_t11
+		icon = GFX_espionage_chapter_icon_document
+		event = gpm_operation.3
+	}
+	# The Getaway
+	stage = {
+		difficulty = @diff_t11
+		icon = GFX_espionage_chapter_icon_document
+		event = gpm_operation.4
+	}
+
+	on_roll_failed = {
+		standard_espionage_operation_on_roll_failed = {
+			RANDOM_EVENTS = operation_random_events_generic
+		}
+	}
+	on_create = {
+		target = {
+			set_timed_country_flag = {
+				flag = espionage_operation_targeted_by@root.owner #Used in random Spy Network events
+				days = @operationTargetedByTimer
+			}
+		}
+		#### DEBUG LOGGING ####
+		log = "<< RELICS >> | STEAL_RELIC operation_gpm_steal_relic launched by THIS.OWNER = [this.owner.GetName] on TARGET = [target.GetName]"
+		#### ##################
+	}
+}
+
+operation_gpm_steal_minor_artifacts = {
+	target = none
+	categories = { op_cat_subterfuge op_cat_technology }
+	picture = GFX_evt_physics_research
+	desc = operation_gpm_steal_minor_artifacts_desc
+	stages = 3
+
+	resources = {
+		category = operations
+		cost = {
+			energy = 800
+		}
+		upkeep = {
+			energy = 8
+		}
+	}
+
+	spy_power_cost = 30
+	potential = {
+		always = no # disabled for now
+		target = { is_primitive = no }
+		#TEMP TO DEV TEST
+		owner = { is_ai = no }
+		owner = { has_ancrel = yes }
+
+	}
+	allow = {
+		custom_tooltip = {
+			fail_text = operation_steal_technology_enigmatic_engineering
+			owner = {
+				NOT = { has_country_flag = cannot_steal_enigmatic_tech@root.target } #set after failing this operation before, due to Enigmatic Engineering
+			}
+		}
+		custom_tooltip = {
+			fail_text = operation_steal_technology_too_recent
+			NOT = { has_spynetwork_flag = recently_stole_technology }
+		}
+		custom_tooltip = {
+			is_running_espionage_operation = no
+			fail_text = operation_one_at_a_time
+		}
+	}
+	stage = {
+		difficulty = @diff_t4
+		icon = GFX_espionage_chapter_icon_surveillance
+		event = operation.1020
+	}
+	stage = {
+		difficulty = @diff_t4
+		icon = GFX_espionage_chapter_icon_target
+		event = operation.1021
+	}
+	stage = {
+		difficulty = @diff_t4
+		icon = GFX_espionage_chapter_icon_security
+		event = operation.1022
+	}
+	on_roll_failed = {
+		standard_espionage_operation_on_roll_failed = {
+			RANDOM_EVENTS = operation_random_events_generic
+		}
+	}
+	on_create = {
+		target = {
+			set_timed_country_flag = {
+				flag = espionage_operation_targeted_by@root.owner #Used in random Spy Network events
+				days = @operationTargetedByTimer
+			}
+		}
+	}
+}
+
+operation_gpm_sabotage_planet = {
+	categories = { op_cat_sabotage op_cat_military }
+	picture = GFX_evt_space_station
+	desc = operation_gpm_sabotage_planet_desc
+	stages = 3
+
+	resources = {
+		category = operations
+		cost = {
+			energy = 1000
+		}
+		upkeep = {
+			energy = 9
+		}
+	}
+
+	spy_power_cost = 50
+	target = starbase
+
+	potential = {
+		always = no # disabled for now
+		target = { is_primitive = no }
+		#TEMP TO DEV TEST
+		owner = { is_ai = no }
+
+	}
+	# target_potential = {
+		
+	# }
+	allow = {
+		custom_tooltip = {
+			fail_text = operation_sabotage_starbase_no_targets
+			target = {
+				any_owned_starbase = {
+					OR = {
+						count_starbase_modules = { type != shipyard count > 0 }
+						has_nonshipyard_starbase_buildings = yes
+					}
+				}
+			}
+		}
+		custom_tooltip = {
+			is_running_espionage_operation = no
+			fail_text = operation_one_at_a_time
+		}
+	}
+	target_allow = {
+		custom_tooltip = {
+			fail_text = operation_sabotage_starbase_no_targets
+			OR = {
+				count_starbase_modules = { type != shipyard count > 0 }
+				has_nonshipyard_starbase_buildings = yes
+			}
+		}
+	}
+	stage = {
+		difficulty = @diff_t5
+		icon = GFX_espionage_chapter_icon_motion
+		event = operation.2000
+	}
+	stage = {
+		difficulty = @diff_t5
+		icon = GFX_espionage_chapter_icon_target
+		event = operation.2001
+	}
+	stage = {
+		difficulty = @diff_t5
+		icon = GFX_espionage_chapter_icon_success
+		event = operation.2002
+	}
+	on_roll_failed = {
+		standard_espionage_operation_on_roll_failed = { RANDOM_EVENTS = operation_random_events_sabotage_targeted } #Requires a bespoke set of trigger scopes given 'target' is not a country
+	}
+	on_create = {
+		target.owner = {
+			set_timed_country_flag = {
+				flag = espionage_operation_targeted_by@root.owner #Used in random Spy Network events
+				days = @operationTargetedByTimer
+			}
+		}
+	}
+}

@@ -1,0 +1,1337 @@
+#######################################################
+
+# Shroud Rising Cult Uprising Events
+
+# Written by LastLeviathan
+
+#######################################################
+
+namespace = shroud_rising_cult_uprising
+
+#######################################################
+# shroud_rising_cult_uprising.1 | (Hidden) On action trigger for uprising start
+# shroud_rising_cult_uprising.2 | (Hidden) Safety so it doesn't spawn twice
+# shroud_rising_cult_uprising.3 | Initial Event announce
+# shroud_rising_cult_uprising.4 | Cult Influence Spreads
+# shroud_rising_cult_uprising.41 | Chance authorities crush cult
+# shroud_rising_cult_uprising.42| Pleasure Cults
+# shroud_rising_cult_uprising.43 | Sacrifice/violence widespread
+# shroud_rising_cult_uprising.44 | Disappearances
+# shroud_rising_cult_uprising.5 | Authorities crush cult
+# shroud_rising_cult_uprising.61 | (Hidden) trigger civil war
+# shroud_rising_cult_uprising.6 | Civil war starts in system
+# shroud_rising_cult_uprising.7 | revolt supressed
+# shroud_rising_cult_uprising.8 | revolt wins
+# shroud_rising_cult_uprising.9 | Ultimatum
+# shroud_rising_cult_uprising.99 | Change empire name if AI
+# shroud_rising_cult_uprising.10 | Cult secedes
+# shroud_rising_cult_uprising.11 | Announce cult uprising war owner
+# shroud_rising_cult_uprising.12 | Announce cult uprising war all
+#######################################################
+
+#######################################################
+######### CULTIST UPRISING ############################
+#######################################################
+
+planet_event = {
+	id = shroud_rising_cult_uprising.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	pre_triggers = {
+		has_owner = yes
+		has_ground_combat = no
+	}
+
+	trigger = {
+		NOT = { has_global_flag = recent_cult_uprising_global }
+		mid_game_years_passed >= 5
+		planet_stability < 35
+		num_pops >= 1
+		has_orbital_bombardment = no
+		exists = owner
+		owner = {
+			is_country_type = default
+			is_gestalt = no
+			NOT = { has_civic = civic_shroud_worship }
+			NOT = {				
+				any_situation = {
+					is_situation_type = situation_shroud_uprising
+				}
+			}
+			NOT = { has_country_flag = recent_cult_uprising }
+		}
+		NOT = { has_planet_flag = slave_stirring } 
+		NOT = { has_planet_flag = recent_revolt_attempt }
+		NOT = { has_planet_flag = recent_cult_uprising }
+	}
+
+	immediate = {
+		random_list = {
+			33 = {	
+				modifier = {
+					factor = 2	
+					owner = {
+						any_owned_leader = {
+							OR = {
+								has_trait = leader_trait_cultist_whisperers
+								has_trait = leader_trait_cultist_eater
+								has_trait = leader_trait_cultist_composer
+								has_trait = leader_trait_cultist_instrument
+							}
+						}
+					}
+				}
+				modifier = {
+					factor = 10	
+					owner = {
+						any_owned_leader = {
+							is_councilor_type = councilor_ruler_inquisitor
+							OR = {
+								has_trait = leader_trait_cultist_whisperers
+								has_trait = leader_trait_cultist_eater
+								has_trait = leader_trait_cultist_composer
+								has_trait = leader_trait_cultist_instrument
+							}
+						}
+					}
+				}
+				set_timed_global_flag = {
+					flag = recent_cult_uprising_global
+					days = 5400 #15 years
+				}				
+				set_timed_planet_flag = {
+					flag = unrest_timer
+					days = 360
+				}		
+				set_timed_planet_flag = {
+					flag = recent_cult_uprising
+					days = 1600
+				}
+				owner = {
+					set_timed_country_flag = {
+						flag = recent_cult_uprising
+						days = 10950 #30 years
+					}		
+				}
+				#set_planet_flag = cult_uprising_planet
+				planet_event = { id = shroud_rising_cult_uprising.2 days = 30 random = 60 } #definitely within the next year
+			}
+			33 = {
+				modifier = {
+					factor = 2	
+					owner = {
+						any_owned_leader = {
+							is_councilor_type = councilor_ruler_inquisitor
+							NOR = {
+								has_trait = leader_trait_cultist_whisperers
+								has_trait = leader_trait_cultist_eater
+								has_trait = leader_trait_cultist_composer
+								has_trait = leader_trait_cultist_instrument
+							}
+						}
+					}
+				}
+			}
+			33 = {
+				modifier = {
+					factor = 2	
+					owner = {
+						any_owned_leader = {
+							has_trait = leader_trait_shroud_inquisitor							
+						}
+					}
+				}
+			}				
+		}
+	}
+}
+
+planet_event = {
+	id = shroud_rising_cult_uprising.2
+	is_triggered_only = yes
+	hide_window = yes
+
+	pre_triggers = {
+		has_owner = yes
+		has_ground_combat = no
+		
+	}
+
+	trigger = {	
+	}
+
+	immediate = {
+		if = {
+			limit = { #Extra safety because it's possible for two planets to fire this delayed event on the same day and it will check the trigger before either of them can fire 
+				NOT = {
+					owner = {
+						any_situation = {
+							is_situation_type = situation_shroud_uprising
+						}
+					}
+				}
+			}			
+			planet_event = { id = shroud_rising_cult_uprising.3 }
+				
+			
+		}
+	}
+}
+
+# initial event announce
+planet_event = {
+	id = shroud_rising_cult_uprising.3	
+	title = "shroud_rising_cult_uprising.3.name"
+	desc = "shroud_rising_cult_uprising.3.desc"	
+	picture = GFX_evt_conclave
+	show_sound = event_announcement
+	is_triggered_only = yes
+	location = event_target:cult_uprising_planet
+	situation = event_target:cult_situation	
+		
+
+	trigger = {
+		exists = owner
+		owner = {
+			is_country_type = default
+			NOT = {				
+				any_situation = {
+					is_situation_type = situation_shroud_uprising
+				}
+			}
+		}	
+	}
+	
+	immediate = {
+		set_timed_planet_flag = {
+			flag = recent_revolt_attempt
+			days = 1600
+		}
+		save_event_target_as = cult_uprising_planet		
+		#set_planet_flag = cult_uprising_planet	
+		owner = {
+			start_situation = {
+				type = situation_shroud_uprising
+				target = root
+				effect = {
+					save_event_target_as = cult_situation
+				}
+			}
+			set_country_flag = cult_uprising_country	
+		}
+		
+		
+	}
+
+	option = {
+		name = shroud_rising_cult_uprising.3.a
+		tooltip = {
+			owner = {
+				start_situation = {
+					type = situation_shroud_uprising
+					target = root
+				}
+			}
+		}
+		
+	}
+}
+
+# Cults Influence  Spreading
+situation_event = {
+	id = shroud_rising_cult_uprising.4
+	title = "shroud_rising_cult_uprising.4.name"
+	desc = "shroud_rising_cult_uprising.4.desc"	
+	picture = GFX_evt_spy_network
+	show_sound = event_announcement
+	location = event_target:cult_uprising_planet
+	situation = this
+
+	# location = from
+
+	is_triggered_only = yes	
+	
+		immediate = {			
+			target = {				
+				save_event_target_as = cult_uprising_planet
+				set_planet_flag = cult_uprising_planet			
+			}
+		}
+				
+		option = {
+			name = shroud_rising_cult_uprising.4.a		
+			
+		}
+}
+
+
+# Chance for cult to be squashed
+situation_event = {
+	id = shroud_rising_cult_uprising.41
+	hide_window = yes
+	is_triggered_only = yes
+	
+	immediate = {		
+		random_list = {
+			20 = { 				
+				target = {
+					planet_event = { id = shroud_rising_cult_uprising.5 days = 30 random = 60 } 
+					
+				}
+				
+			}
+			80 = { }
+
+		}
+	}
+	
+	
+}
+
+# Pleasure Cults, drugs and crime
+situation_event = {
+	id = shroud_rising_cult_uprising.42
+	title = "shroud_rising_cult_uprising.42.name"
+	desc = "shroud_rising_cult_uprising.42.desc"
+	picture = GFX_evt_cult_pleasure
+	show_sound = event_announcement	
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	situation = this
+
+	trigger = {
+		NOT = { has_situation_flag = random_event_happened }
+		target = {
+			has_planet_flag = cult_uprising_planet	
+		}
+	}
+
+	
+	immediate = {
+		set_situation_flag = random_event_happened
+		target = {				
+				save_event_target_as = cult_uprising_planet
+				set_planet_flag = cult_uprising_planet			
+		}
+	}
+	
+	# nice
+	option = {
+		name = shroud_rising_cult_uprising.42.a			
+		target = {
+			add_modifier = { modifier = cult_pleasure }
+		
+		}
+	}	
+	
+}
+# Sacrifices/violence become widespread
+situation_event = {
+	id = shroud_rising_cult_uprising.43
+	title = "shroud_rising_cult_uprising.43.name"
+	desc = "shroud_rising_cult_uprising.43.desc"
+	picture = GFX_evt_cult_sacrifice
+	show_sound = event_announcement	
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	situation = this
+
+	trigger = {
+		NOT = { has_situation_flag = random_event_happened }
+		target = {
+			has_planet_flag = cult_uprising_planet	
+		}
+	}
+	
+	immediate = {
+		set_situation_flag = random_event_happened
+		target = {				
+				save_event_target_as = cult_uprising_planet
+				set_planet_flag = cult_uprising_planet			
+		}
+	}
+	# nice
+	option = {
+		name = shroud_rising_cult_uprising.43.a			
+		target = {
+			add_modifier = { modifier = cult_sacrifices	}
+		}
+	}	
+	
+}
+
+# Disappearances 
+situation_event = {
+	id = shroud_rising_cult_uprising.44
+	title = "shroud_rising_cult_uprising.44.name"
+	desc = "shroud_rising_cult_uprising.44.desc"
+	picture = GFX_evt_cult_disappearances
+	show_sound = event_announcement	
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	situation = this
+
+	
+	trigger = {
+		NOT = { has_situation_flag = random_event_happened }
+		target = {
+			has_planet_flag = cult_uprising_planet	
+		}
+	}	
+	
+	immediate = {
+		set_situation_flag = random_event_happened
+		target = {				
+				save_event_target_as = cult_uprising_planet
+				set_planet_flag = cult_uprising_planet			
+		}
+	}
+	
+	# nice
+	option = {
+		name = shroud_rising_cult_uprising.44.a			
+		target = {
+			add_modifier = { modifier = cult_disappearances	}
+		}
+	}	
+	
+}
+
+
+# Authorities Squash Cult
+
+planet_event = {
+	id = shroud_rising_cult_uprising.5
+	#title = "shroud_rising_cult_uprising.5.name"
+	#desc = "shroud_rising_cult_uprising.5.desc"
+	#picture = GFX_evt_surrender
+	#show_sound = event_ground_battle	
+	is_triggered_only = yes
+	#location = event_target:cult_uprising_planet
+	situation = this
+	hide_window = yes
+
+	
+	immediate = {		
+		owner = { 
+			remove_country_flag = cult_uprising_country
+			random_situation = {
+					limit = {
+						is_situation_type = situation_shroud_uprising
+					}
+				situation_event = { id = shroud_rising_cult_uprising.51 }		
+			}
+		}					
+		save_event_target_as = cult_uprising_planet							
+		
+		add_modifier = {
+			modifier = shroud_cult_uprising_crushed
+			days = 365
+		}		
+	}	
+}
+
+# Authorities Squash Cult
+
+situation_event = {
+	id = shroud_rising_cult_uprising.51
+	title = "shroud_rising_cult_uprising.51.name"
+	desc = "shroud_rising_cult_uprising.51.desc"
+	picture = GFX_evt_surrender
+	show_sound = event_ground_battle	
+	is_triggered_only = yes
+	location = event_target:cult_uprising_planet
+	situation = this
+
+	
+	immediate = {	
+		target = {				
+				save_event_target_as = cult_uprising_planet
+				set_planet_flag = cult_uprising_planet			
+		}
+	}
+	
+	# nice
+	option = {
+		name = shroud_rising_cult_uprising.51.a			
+		owner = {
+			add_resource = { influence = 100 }
+		}			
+		hidden_effect = {
+			cleanup_cult_uprising_situation = yes			
+			destroy_situation = this				
+		}
+	}	
+	
+}
+
+###################################
+##########CULT CIVIL WAR##############
+###################################
+
+#trigger for civil war
+
+situation_event = {
+	id = shroud_rising_cult_uprising.61	
+	is_triggered_only = yes
+	hide_window = yes
+
+	
+	immediate = {	
+		target = {
+			planet_event = { id = shroud_rising_cult_uprising.6 }
+		}
+	}
+	
+	
+	
+}
+
+
+# Civil war
+planet_event = {
+	id = shroud_rising_cult_uprising.6
+	title = "shroud_rising_cult_uprising.6.name"
+	desc = "shroud_rising_cult_uprising.6.desc"
+	picture = GFX_evt_ground_combat_1
+	show_sound = event_ground_battle
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	
+	immediate = {		
+		random_owned_pop = {			
+			save_event_target_as = leader_pop
+		}
+		owner = {
+			save_event_target_as = cult_uprising_owner
+		}
+		save_event_target_as = cult_uprising_planet
+		star = {
+			save_event_target_as = cultist_uprising_system
+		}
+		
+		create_country = {
+			name = "Shroud Cultists"
+			type = shroud_cult_uprising 
+			species = event_target:leader_pop.species
+			#name_list = "CULTISTS"
+				effect = {					
+					save_event_target_as = cultist_rebels
+				}
+							
+		}
+		every_country = { establish_communications_no_message = last_created_country }
+		solar_system = { 
+			every_system_planet = {
+						limit = {
+							is_colony = yes
+						}
+						# every_owned_pop = {						
+									# planet = {
+										# while = {
+											# count = 1
+											# create_army = {
+												# name = "NAME_cultist_army"
+												# owner = last_created_country
+												# species = event_target:leader_pop.species
+												# type = "shroud_cultist_army"
+											# }
+											# create_army = {
+												# name = "NAME_loyalist_army"
+												# owner = owner
+												# species = event_target:leader_pop.species
+												# type = "loyalist_army"
+											# }
+										# }
+									# }
+							
+							
+						# }				
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "shroud_cultist_army"
+				}
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "shroud_cultist_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "shroud_cultist_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "shroud_cultist_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "shroud_cultist_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "cultist_slave_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "cultist_slave_army"
+				}	
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "cultist_psionic_army"
+				}
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "cultist_psionic_army"
+				}
+				create_army = {
+					name = "NAME_cultist_army"
+					owner = last_created_country
+					species = event_target:leader_pop.species
+					type = "cultist_psionic_army"
+				}
+			}
+		}
+		last_created_country = {
+			create_leader = {
+							class = general
+							species = event_target:leader_pop.species
+							name = random
+							skill = 5
+							leader_age_min = 25
+							leader_age_max = 45
+							traits = {
+								trait = leader_trait_butcher_2
+								trait = leader_trait_psionic 
+							}
+						}
+			random_owned_army  = {
+				limit = {NOT = { exists = leader } }						
+				set_leader = last_created_leader
+			}
+			
+		}
+		create_fleet = {
+				name = "NAME_traitor_fleet"
+				effect = {
+					set_owner = event_target:cultist_rebels					
+						while = {
+							count = 3
+							create_ship = {							
+								name = "NAME_traitor_ship"
+								design = "NAME_Spearhead"
+								graphical_culture = owner							
+							}
+						}
+						while = {
+							count = 6
+							create_ship = {							
+								name = "NAME_traitor_ship"
+								design = "NAME_Deaths_Head"
+								graphical_culture = owner							
+							}
+						}
+						while = {
+							count = 8
+							create_ship = {							
+								name = "NAME_traitor_ship"
+								design = "NAME_Ravager"
+								graphical_culture = owner				
+							}
+						}
+						
+						while = {
+							count = 18
+							create_ship = {							
+								name = "NAME_traitor_ship"
+								design = "NAME_Dagger"
+								graphical_culture = owner					
+							}
+						}
+					
+					
+					set_location = {
+						target = Root
+						distance = 80
+					}
+					set_fleet_stance = aggressive
+					set_fleet_bombardment_stance = indiscriminate
+					set_aggro_range_measure_from = self
+					set_aggro_range = 300
+				}
+			
+	
+			}
+					
+			event_target:cultist_rebels = {				
+				create_leader = {
+					class = admiral
+					species = root.owner #last_created_species
+					name = random
+					skill = 2
+					leader_age_min = 25
+					leader_age_max = 45
+					traits = {										
+						trait = subclass_admiral_aggressor
+					}
+				}
+				random_owned_fleet = {
+					limit = {
+						
+						NOT = { exists = leader }
+					}
+					set_leader = last_created_leader
+				}
+			}
+	}
+	
+
+	option = {
+		name = shroud_rising_cult_uprising.6.a			
+		hidden_effect = { 
+				owner = {
+					#country_event = { id = shroud_rising_cult_uprising.7 } #Cult Revolts
+					
+				}  
+			}
+			
+	}
+	
+}
+
+
+
+
+
+# Revolt Suppressed #
+country_event = {
+	id = shroud_rising_cult_uprising.7
+	title = shroud_rising_cult_uprising.7.name
+	desc = shroud_rising_cult_uprising.7.desc
+	picture = GFX_evt_victorious_army
+	show_sound = event_announcement
+	location = event_target:cult_uprising_planet
+
+	trigger = {
+		From = { is_country_type = shroud_cult_uprising }
+		FromFrom = {
+			has_planet_flag = cult_uprising_planet
+		}
+	}
+
+	is_triggered_only = yes
+
+	immediate = {			
+		FromFrom = {
+			save_event_target_as = cult_uprising_planet				
+			remove_planet_flag = cult_uprising_planet		
+			
+		}
+		cleanup_cult_uprising_situation = yes
+		random_situation = {
+					limit = {
+						is_situation_type = situation_shroud_uprising
+					}
+			destroy_situation = this		
+		}
+	}
+
+	option = {
+		name = shroud_rising_cult_uprising.7.a
+		FromFrom = {
+			add_modifier = {
+				modifier = shroud_cult_uprising_crushed
+				days = 600
+			}			
+		}				
+
+	}
+}
+
+
+
+#REVOLT WINS
+# Triggers country_event for the defender upon defeat
+# This = country, planet owner
+# From = country, attack leader
+# FromFrom = planet
+# Revolt Lost #
+country_event = {
+	id = shroud_rising_cult_uprising.8
+	title = shroud_rising_cult_uprising.8.name
+	desc = shroud_rising_cult_uprising.8.desc
+	picture = GFX_evt_military_parade_2
+	show_sound = event_air_raid_siren
+	location = event_target:cult_uprising_planet
+
+	is_triggered_only = yes
+
+	trigger = {
+		From = { is_country_type = shroud_cult_uprising }
+		FromFrom = {
+			has_planet_flag = cult_uprising_planet
+		}
+	}
+
+	immediate = {
+		FromFrom = {
+			save_event_target_as = cult_uprising_planet
+			set_timed_planet_flag = {
+				flag = recent_cult_influence
+				days = 900
+			}			
+		}
+	}
+
+	option = {
+		name = shroud_rising_cult_uprising.8.a		
+		
+	}	
+}
+
+
+#########################################
+#############SITUATION END ULTIMATUM ##############
+#########################################
+
+
+# Join Cult or Refuse
+planet_event = {
+	id = shroud_rising_cult_uprising.9
+	title = "shroud_rising_cult_uprising.9.name"
+	desc = "shroud_rising_cult_uprising.9.desc"
+	picture = GFX_evt_inhabited_solar_system
+	show_sound = event_default
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	
+	immediate = {		
+		owner = {
+			save_event_target_as = cult_uprising_owner
+		}
+		save_event_target_as = cult_uprising_planet
+		star = {
+			save_event_target_as = cultist_uprising_system
+		}
+	}
+	
+	# Refuse
+	option = {
+		name = shroud_rising_cult_uprising.9.a
+		ai_chance = {
+			factor = 120
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_egalitarian
+				}
+			}
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_xenophile
+				}
+			}
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_fanatic_materialist
+				}	
+			}
+			modifier = {
+				factor = 80
+				owner = {
+					has_ethic = ethic_materialist
+				}	
+			}
+		}
+		custom_tooltip = shroud_rising_cult_uprising.9.a.tooltip		
+		hidden_effect = { 
+				owner = {
+					country_event = { id = shroud_rising_cult_uprising.10 } #Cult Revolts
+					country_event = { id = shroud_rising_cult_uprising.11 days = 1 } #Announce revolt					
+				}  				
+			}
+			
+	}
+	
+	# Join
+	option = {
+		name = shroud_rising_cult_uprising.9.b		
+		ai_chance = {
+			factor = 1
+			modifier = {
+				factor = 20
+				owner = {
+					has_ethic = ethic_authoritarian
+				}
+			}
+			modifier = {
+				factor = 20
+				owner = {
+					has_ethic = ethic_fanatic_authoritarian
+				}
+			}			
+			modifier = {
+				factor = 20
+				owner = {
+					has_ethic = ethic_fanatic_spiritualist
+				}
+			}
+		}
+		custom_tooltip = shroud_rising_cult_uprising.9.b.tooltip
+		owner = {			
+			shift_ethic = "ethic_fanatic_spiritualist"
+			shift_ethic = "ethic_authoritarian"
+			change_government = {
+				authority = auth_dictatorial
+				civics = {
+					civic = civic_shroud_worship
+					civic = civic_cutthroat_politics
+					civic = civic_death_cult
+				}
+			}
+		}
+		hidden_effect = {
+			owner = {
+				country_event = { id = shroud_rising_cult_uprising.99 days = 5 }
+			}
+		}
+	}
+}
+
+# Change empire name
+country_event = {
+	id = shroud_rising_cult_uprising.99
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = yes
+	}
+
+	immediate = {
+		set_name = random
+	}
+}
+
+#Cult secedes from empire
+country_event = {
+	id = shroud_rising_cult_uprising.10
+	hide_window = yes
+	# location = event_target:cult_revolt_planet
+
+	trigger = {
+		is_country_type = default 		
+	}
+
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_pop = {			
+			save_event_target_as = leader_pop
+		}	
+		#create the cult country
+		create_country = {
+			name = random
+			ignore_initial_colony_error = yes
+			day_zero_contact = no
+			ethos = {
+				ethic = "ethic_spiritualist"
+				ethic = "ethic_militarist"
+				ethic = "ethic_authoritarian"
+			}
+			authority = auth_dictatorial
+			civics = {					
+					civic = civic_shroud_worship
+					civic = civic_barbaric_despoilers  
+					civic = civic_cutthroat_politics  
+				}
+			origin = "origin_separatists"			
+			species = event_target:leader_pop.species
+			flag = random
+			
+
+			effect = {				
+				set_country_flag = cultist_rebels
+				save_event_target_as = cultist_rebel_country
+				establish_communications_no_message = root.owner							
+				root = {
+					owner = {
+						every_relation = {
+							limit = { has_communications = prev }
+							establish_communications_no_message = prevprevprev
+						}
+					}					
+				}
+				create_leader = {
+					class = admiral
+					species = owner_main_species
+					name = random
+					skill = 4
+					traits = { 
+						trait = leader_trait_psionic						
+					}
+				}
+				assign_leader = last_created_leader
+					
+			}
+		}
+		#give planets and stuff to cult
+		event_target:cult_uprising_planet = {
+			every_owned_pop = {						
+					planet = {
+						while = {
+							count = 1
+							create_army = {
+								name = "NAME_cultist_army"
+								owner = event_target:cultist_rebel_country
+								species = event_target:leader_pop.species
+								type = "slave_army"
+							}
+							create_army = {
+								name = "NAME_cultist_army"
+								owner = event_target:cultist_rebel_country
+								species = event_target:leader_pop.species
+								type = "psionic_army"
+							}
+						}
+					}
+			
+			
+				}			
+			solar_system = {
+				every_system_planet = {
+					limit = {
+						is_colony = yes
+					}
+					set_owner = event_target:cultist_rebel_country
+					set_controller = event_target:cultist_rebel_country
+				}
+			}
+			solar_system = {
+				if = {
+					limit = { exists = starbase }
+					starbase = {
+						set_owner = event_target:cultist_rebel_country
+						if = {
+							limit = { has_starbase_size = starbase_outpost }
+							set_starbase_size = starbase_starport
+							set_starbase_module = {
+								slot = 1
+								module = shipyard
+							}
+							set_starbase_module = {
+								slot = 2
+								module = shipyard
+							}
+						}
+						else_if = {
+							limit = {
+								NOT = { has_starbase_module = shipyard }
+							}
+							set_starbase_module = {
+								slot = 1
+								module = shipyard
+							}
+							set_starbase_module = {
+								slot = 2
+								module = shipyard
+							}
+						}
+					}
+				}
+				else = {
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						module = shipyard
+						owner = event_target:cultist_rebel_country
+					}
+				}
+				add_claims = {
+					who = root.owner
+					show_notification = no
+				}				
+				every_fleet_in_system = {
+					limit = {
+						exists = owner						
+						any_controlled_ship = { is_ship_class = shipclass_military_station }
+					}
+					set_owner = event_target:cultist_rebel_country
+				}
+				every_fleet_in_system = {
+					limit = {
+						exists = owner						
+						owner = {
+							is_country_type = shroud_cult_uprising
+						}
+					}
+					set_owner = event_target:cultist_rebel_country
+				}	
+			}
+		
+		
+		
+		}
+		every_country = {
+					limit = {
+						is_country_type = default
+						NOT = { is_same_value = event_target:cult_uprising_owner }
+					}
+					country_event = { id = shroud_rising_cult_uprising.12 days = 3 } #Announce revolt to all	
+		}
+		event_target:cultist_rebel_country = {
+					
+					add_resource = {
+						energy = 10000
+						minerals = 2500
+						influence = 500
+						alloys = 2500
+						food = 10000 
+						consumer_goods = 5000
+						rare_crystals = 1000
+						volatile_motes = 1000
+						exotic_gases = 1000						
+						unity = 10000
+					}
+					
+						
+					copy_techs_from = {
+						target = event_target:cult_uprising_owner
+						except = {
+							# Robots
+							tech_robotic_workers
+							tech_droid_workers
+							tech_synthetic_workers
+							# Food
+							tech_eco_simulation
+							tech_gene_crops
+							tech_nano_vitality_crops
+							tech_nutrient_replication
+							# Misc					
+							tech_subdermal_stimulation
+							tech_global_research_initiative
+							tech_neural_implants
+							tech_psionic_theory
+							# Non-Machine Robomodding
+							tech_robomodding
+							tech_robomodding_points_1
+							tech_robomodding_points_2
+							# Genetics
+							tech_genome_mapping
+							tech_vitality_boosters
+							tech_epigenetic_triggers					
+							tech_gene_banks
+							tech_gene_seed_purification
+							tech_morphogenetic_field_mastery						
+							tech_glandular_acclimation
+							tech_gene_expressions					
+							tech_capacity_boosters
+							# Horizon Signal
+							tech_akx_worm_1
+							tech_akx_worm_2
+							tech_akx_worm_3
+						}
+					}
+			
+					reroll_random = yes
+					create_fleet_from_naval_cap = 0.3
+					random_owned_planet = {
+						last_created_fleet = {
+							set_location = event_target:cult_uprising_planet
+						}
+					}
+					reroll_random = yes
+					create_fleet_from_naval_cap = 0.3
+					random_owned_planet = {
+						last_created_fleet = {
+							set_location = event_target:cult_uprising_planet
+						}
+					}
+					create_fleet_from_naval_cap = 0.2
+					random_owned_planet = {
+						last_created_fleet = {
+							set_location = event_target:cult_uprising_planet
+						}
+					}					
+					#science
+					create_fleet = {
+						effect = {
+							set_owner = event_target:cult_uprising_owner
+
+							create_ship = {
+								name = random
+								random_existing_design = science
+							}
+
+							set_fleet_stance = evasive
+							set_location = event_target:cult_uprising_planet
+
+							owner = {
+								create_leader = {
+									class = scientist
+									sub_type = survey
+									name = random
+									species = owner_main_species
+								}
+							}
+							set_leader = last_created_leader
+						}
+					}
+
+					#constructor
+					create_fleet = {
+						effect = {
+							set_owner = event_target:cult_uprising_owner
+
+							create_ship = {
+								name = random
+								random_existing_design = constructor
+							}
+
+							set_fleet_stance = evasive
+							set_location = event_target:cult_uprising_planet
+						}
+					}
+
+					every_controlled_fleet = {
+						#limit = { event_locked = yes }
+						set_event_locked = no
+					}
+
+
+					# survey host's surveyed planets
+					every_galaxy_planet = {
+						limit = {
+							is_surveyed = {
+								who = event_target:cult_uprising_owner
+								status = yes
+							}
+						}
+						set_surveyed = {
+							surveyed = yes
+							surveyor = root
+						}
+					}
+					# establish comms
+					every_country = {
+						limit = {						
+							has_communications = event_target:cult_uprising_owner							
+						}
+						establish_communications_no_message = root
+						establish_contact = { who = root location = from }
+					}
+					# declare war on host
+					declare_war = {
+						target = event_target:cult_uprising_owner						
+						attacker_war_goal = "wg_shroud_heresy"
+					}
+					
+					create_leader = {
+								class = general
+								species = event_target:leader_pop.species
+								name = random
+								skill = 4
+								leader_age_min = 25
+								leader_age_max = 45
+								traits = {
+									trait = leader_trait_butcher									
+								}
+							}
+					random_owned_army  = {
+						limit = { NOT = { exists = leader } }						
+						set_leader = last_created_leader
+					}
+					create_leader = {
+						class = admiral
+						species = root.owner #last_created_species
+						name = random
+						skill = 4
+						leader_age_min = 25
+						leader_age_max = 45
+						traits = {			
+							trait = subclass_admiral_aggressor
+							trait = leader_trait_par_zealot_2
+						}
+					}
+					random_owned_fleet = {
+						limit = {										
+							NOT = { exists = leader }
+						}
+						set_leader = last_created_leader
+					}
+			}
+	}
+}
+
+
+# Owner Announce
+country_event = {
+	id = shroud_rising_cult_uprising.11
+	title = "shroud_rising_cult_uprising.11.name"
+	desc = "shroud_rising_cult_uprising.11.desc"
+	picture = GFX_evt_small_space_battle
+	show_sound = event_air_raid_siren
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	
+	immediate = {			
+	}
+	
+	# uh oh
+	option = {
+		name = shroud_rising_cult_uprising.11.a		
+	}
+}
+
+# Announce to all
+country_event = {
+	id = shroud_rising_cult_uprising.12
+	title = "shroud_rising_cult_uprising.12.name"
+	desc = "shroud_rising_cult_uprising.12.desc"
+	picture = GFX_evt_small_space_battle
+	show_sound = event_default
+	location = event_target:cult_uprising_planet
+	is_triggered_only = yes
+	
+	immediate = {			
+	}
+	
+	# uh oh
+	option = {
+		name = shroud_rising_cult_uprising.12.a		
+	}
+}
+

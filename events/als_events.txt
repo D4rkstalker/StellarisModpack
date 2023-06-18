@@ -1,0 +1,5796 @@
+namespace = als
+
+
+####GIVE ALS STATUS TRAITS###
+fleet_event = {
+	id = als.20
+	hide_window = yes
+	
+	trigger = {
+		exists = fleet
+		exists = leader
+		owner = {
+			is_country_type = default
+		}
+		leader = {
+			leader_class = admiral
+			NOT = {
+				has_leader_flag = als_admiral
+			}	
+		}
+	}
+	
+	mean_time_to_happen = {
+		days = 5
+	}
+	
+	immediate = {
+		if = {
+			limit = {
+				leader = {
+					is_scope_valid = yes
+					leader_class = admiral
+					NOT = {
+						has_leader_flag = als_admiral
+					}
+					check_als_admiral_has_base_4_traits = yes
+				}
+			}
+			leader = {
+				set_leader_flag = als_admiral
+				als_effect_set_admiral_base_4_traits = yes
+				als_refresh_admirals_base_4_traits = yes
+				if = {
+					limit = {
+						NOT = {
+							has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+						}
+					}
+					effect_als_add_strategic_traits_and_locked_tactic = yes
+				}
+			}
+		}
+	}
+}
+
+###LEVEL UP ACCURACY FOR EVERY SHIP YOU DESTROY/FORCE THEM GOES disengaged###
+country_event = {
+	id = als.21
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		fromfrom = {
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+		}
+	}
+
+	immediate = {
+		fromfrom = {
+			leader = {
+				add_experience = 1.5
+				change_variable = {
+					which = als_accuracy_exp
+					value = 1
+				}
+			}
+		}
+	}
+}
+
+###LEVEL UP SHOCK THROUGH UPON DESTROY HOSTILE FLEET######
+country_event = {
+	id = als.22
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		fromfrom = {
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}		
+		}
+	}
+
+	immediate = {
+		fromfrom = {
+			leader = {
+				add_experience = 10
+				multiply_variable = {
+					which = als_accuracy_exp
+					value = 1.01
+				}
+				change_variable = {
+					which = als_accuracy_exp
+					value = 5
+				}
+			}			
+		}
+	}
+}
+###LEVEL UP SHOCK IN COMBAT######
+fleet_event = {
+	id = als.23
+	hide_window = yes
+	is_triggered_only = yes
+
+	
+	trigger = {
+		exists = fleet
+		exists = leader
+		is_in_combat = yes
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+		}
+	}
+	
+	immediate = {
+		set_variable = {
+			which = als_fleet_shock_value
+			value = trigger:num_ships
+		}
+		divide_variable = {
+			which = als_fleet_shock_value
+			value = 30
+		}
+		leader = {
+			add_experience = 2
+			change_variable = {
+				which = als_shock_exp
+				value = 0.5
+			}
+			change_variable = {
+				which = als_shock_exp
+				value = fleet.als_fleet_shock_value
+			}
+		}
+		fleet_event = {
+			id = als.23
+			days = 10
+		}
+	}
+}
+
+
+###LEVEL UP MOVEMENT EVERYTIME ENTER SYSTEM###
+ship_event = {
+	id = als.24
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		exists = leader
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+			check_variable = {
+				which = als_movement_pre_clac_exp
+				value < 10
+			}
+		}
+	}
+
+	
+	immediate = {
+		leader = {
+			add_experience = 0.075
+			if = {
+				limit = {
+					check_variable = {
+						which = als_movement_pre_clac_exp
+						value < 10
+					}
+				}
+				change_variable = {
+					which = als_movement_pre_clac_exp
+					value = 0.2
+				}
+			}		
+		}	
+	}
+}
+###LEVEL UP SIEGE THROUGH TIME OF WAR######
+fleet_event = {
+	id = als.25
+	hide_window = yes
+	
+	trigger = {
+		exists = fleet
+		owner = {
+			is_scope_valid = yes
+			OR = {
+				is_at_war = yes
+				has_crisis = yes
+				has_global_flag = war_in_heaven_ongoing
+				has_global_flag = gray_goo_crisis_active
+				AND = {
+					has_global_flag = great_khan_announcement
+					NOT = { has_global_flag = great_khan_dead }
+				}
+			}
+		}
+		NOT = {
+			has_fleet_flag = als_siege_exp_cooldown
+		}
+		exists = leader
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+		}		
+	}
+
+	mean_time_to_happen = {
+		days = 10
+	}
+	
+	immediate = {
+		set_timed_fleet_flag = {
+			flag = als_siege_exp_cooldown
+			days = 20
+		}
+		set_variable = {
+			which = als_fleet_siege_value
+			value = trigger:num_ships
+		}
+		divide_variable = {
+			which = als_fleet_siege_value
+			value = 100
+		}
+		leader = {
+			add_experience = 1
+			change_variable = {
+				which = als_siege_exp
+				value = 1.5
+			}
+			change_variable = {
+				which = als_siege_exp
+				value = fleet.als_fleet_siege_value
+			}
+		}	
+	}
+}
+
+
+###Calc movement exp every month###
+country_event = {
+	id = als.26
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+
+	}
+	
+
+	
+	immediate = {
+		every_owned_fleet = {
+			limit = {
+				exists = leader
+				leader = {
+					OR = {
+						has_trait = als_trait_tactic_cybershield
+						has_trait = als_trait_tactic_cybershield_expert
+					}
+				}
+				NOT = {
+					has_fleet_flag = als_fleet_particle_cybershield_flag
+				}
+			}
+			set_timed_fleet_flag = {
+				flag = als_fleet_particle_cybershield_flag
+				days = 60
+			}
+			create_ambient_object = {
+				type = als_particle_cybershield_effect
+				scale = 15
+				location = this
+				use_3d_location = no
+				entity_offset = { min = 0 max = 0 }
+				entity_offset_angle = { min = 0 max = 0 }
+				entity_offset_height = { min = 0 max = 0 }
+				entity_scale_to_size = yes
+				play_animation_once = yes
+				duration = 60
+			}
+		}
+		every_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+				check_variable = {
+					which = als_movement_exp
+					value > 0
+				}
+				check_variable = {
+					which = als_movement_pre_clac_exp
+					value > 0
+				}
+			}
+			change_variable = {
+				which = als_movement_exp
+				value = als_movement_pre_clac_exp
+			}
+			set_variable = {
+				which = als_movement_pre_clac_exp
+				value = 0
+			}
+		}
+	}
+}
+##level up movement by ships goes disengage from battle
+country_event = {
+	id = als.27
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}		
+		}
+	}
+	immediate = {
+		fromfrom = {
+			leader = {
+				change_variable = {
+					which = als_movement_exp
+					value = 0.5
+				}
+			}			
+		}
+	}
+}
+
+
+# Planet has taken damage from orbital bombardment - Damage is applied daily
+# This = Planet
+# From = Bombarder
+planet_event = {
+	id = als.28
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		any_fleet_in_orbit = {
+			owner = {
+				is_at_war_with = root.owner
+				is_same_value = from
+			}
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+		}
+	}
+	immediate = {
+		every_fleet_in_orbit = {
+			limit = {
+				owner = {
+					is_at_war_with = root.owner
+					is_same_value = from
+				}
+				exists = leader
+				leader = {
+					leader_class = admiral
+					has_leader_flag = als_admiral
+				}
+			}
+			set_variable = {
+				which = als_fleet_siege_bombardant_value
+				value = trigger:num_ships
+			}
+			divide_variable = {
+				which = als_fleet_siege_bombardant_value
+				value = 150
+			}
+			leader = {
+				add_experience = 0.5
+				change_variable = {
+					which = als_siege_exp
+					value = fleet.als_fleet_siege_bombardant_value
+				}
+			}
+			if = {
+				limit = {
+					leader = {
+						OR = {
+							has_trait = als_trait_tactic_bomber
+							has_trait = als_trait_tactic_bomber_expert
+						}	
+					}
+				}
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_particle_bomber_flag
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_particle_bomber_flag
+						days = 10
+					}
+					create_ambient_object = {
+						type = als_particle_bomber_effect
+						scale = 15
+						location = this
+						use_3d_location = no
+						entity_offset = { min = 0 max = 0 }
+						entity_offset_angle = { min = 0 max = 0 }
+						entity_offset_height = { min = 0 max = 0 }
+						entity_scale_to_size = yes
+						play_animation_once = yes
+						duration = 60
+					}
+				}
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_bomber
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_bomber_modifier
+						days = 100
+					}
+					random_list = {
+						100 = { #no
+							modifier = {
+								subtract = 1
+								leader = {
+									has_trait = als_trait_siege_1
+								}
+							}
+							modifier = {
+								subtract = 2
+								leader = {
+									has_trait = als_trait_siege_2
+								}
+							}
+							modifier = {
+								subtract = 3
+								leader = {
+									has_trait = als_trait_siege_3
+								}
+							}
+							modifier = {
+								subtract = 4
+								leader = {
+									has_trait = als_trait_siege_4
+								}
+							}
+							modifier = {
+								subtract = 5
+								leader = {
+									has_trait = als_trait_siege_5
+								}
+							}
+							modifier = {
+								subtract = 6
+								leader = {
+									has_trait = als_trait_siege_6
+								}
+							}
+							modifier = {
+								subtract = 7
+								leader = {
+									has_trait = als_trait_siege_7
+								}
+							}
+							modifier = {
+								subtract = 8
+								leader = {
+									has_trait = als_trait_siege_8
+								}
+							}
+							modifier = {
+								subtract = 9
+								leader = {
+									has_trait = als_trait_siege_9
+								}
+							}
+							modifier = {
+								subtract = 10
+								leader = {
+									has_trait = als_trait_siege_10
+								}
+							}
+							modifier = {
+								subtract = 11
+								leader = {
+									has_trait = als_trait_siege_11
+								}
+							}
+							modifier = {
+								subtract = 12
+								leader = {
+									has_trait = als_trait_siege_12
+								}
+							}
+							modifier = {
+								subtract = 13
+								leader = {
+									has_trait = als_trait_siege_13
+								}
+							}
+							modifier = {
+								subtract = 14
+								leader = {
+									has_trait = als_trait_siege_14
+								}
+							}
+							modifier = {
+								subtract = 15
+								leader = {
+									has_trait = als_trait_siege_15
+								}
+							}
+						}
+						0 = { #gives
+							modifier = {
+								add = 1
+								leader = {
+									has_trait = als_trait_siege_1
+								}
+							}
+							modifier = {
+								add = 2
+								leader = {
+									has_trait = als_trait_siege_2
+								}
+							}
+							modifier = {
+								add = 3
+								leader = {
+									has_trait = als_trait_siege_3
+								}
+							}
+							modifier = {
+								add = 4
+								leader = {
+									has_trait = als_trait_siege_4
+								}
+							}
+							modifier = {
+								add = 5
+								leader = {
+									has_trait = als_trait_siege_5
+								}
+							}
+							modifier = {
+								add = 6
+								leader = {
+									has_trait = als_trait_siege_6
+								}
+							}
+							modifier = {
+								add = 7
+								leader = {
+									has_trait = als_trait_siege_7
+								}
+							}
+							modifier = {
+								add = 8
+								leader = {
+									has_trait = als_trait_siege_8
+								}
+							}
+							modifier = {
+								add = 9
+								leader = {
+									has_trait = als_trait_siege_9
+								}
+							}
+							modifier = {
+								add = 10
+								leader = {
+									has_trait = als_trait_siege_10
+								}
+							}
+							modifier = {
+								add = 11
+								leader = {
+									has_trait = als_trait_siege_11
+								}
+							}
+							modifier = {
+								add = 12
+								leader = {
+									has_trait = als_trait_siege_12
+								}
+							}
+							modifier = {
+								add = 13
+								leader = {
+									has_trait = als_trait_siege_13
+								}
+							}
+							modifier = {
+								add = 14
+								leader = {
+									has_trait = als_trait_siege_14
+								}
+							}
+							modifier = {
+								add = 15
+								leader = {
+									has_trait = als_trait_siege_15
+								}
+							}
+							prev = {
+								add_planet_devastation = 1
+							}
+						}
+					}
+
+				}
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_bomber_expert
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_bomber_modifier_expert
+						days = 100
+					}
+					random_list = {
+						100 = { #no
+							modifier = {
+								subtract = 1
+								leader = {
+									has_trait = als_trait_siege_1
+								}
+							}
+							modifier = {
+								subtract = 2
+								leader = {
+									has_trait = als_trait_siege_2
+								}
+							}
+							modifier = {
+								subtract = 3
+								leader = {
+									has_trait = als_trait_siege_3
+								}
+							}
+							modifier = {
+								subtract = 4
+								leader = {
+									has_trait = als_trait_siege_4
+								}
+							}
+							modifier = {
+								subtract = 5
+								leader = {
+									has_trait = als_trait_siege_5
+								}
+							}
+							modifier = {
+								subtract = 6
+								leader = {
+									has_trait = als_trait_siege_6
+								}
+							}
+							modifier = {
+								subtract = 7
+								leader = {
+									has_trait = als_trait_siege_7
+								}
+							}
+							modifier = {
+								subtract = 8
+								leader = {
+									has_trait = als_trait_siege_8
+								}
+							}
+							modifier = {
+								subtract = 9
+								leader = {
+									has_trait = als_trait_siege_9
+								}
+							}
+							modifier = {
+								subtract = 10
+								leader = {
+									has_trait = als_trait_siege_10
+								}
+							}
+							modifier = {
+								subtract = 11
+								leader = {
+									has_trait = als_trait_siege_11
+								}
+							}
+							modifier = {
+								subtract = 12
+								leader = {
+									has_trait = als_trait_siege_12
+								}
+							}
+							modifier = {
+								subtract = 13
+								leader = {
+									has_trait = als_trait_siege_13
+								}
+							}
+							modifier = {
+								subtract = 14
+								leader = {
+									has_trait = als_trait_siege_14
+								}
+							}
+							modifier = {
+								subtract = 15
+								leader = {
+									has_trait = als_trait_siege_15
+								}
+							}
+						}
+						0 = { #gives
+							modifier = {
+								add = 1
+								leader = {
+									has_trait = als_trait_siege_1
+								}
+							}
+							modifier = {
+								add = 2
+								leader = {
+									has_trait = als_trait_siege_2
+								}
+							}
+							modifier = {
+								add = 3
+								leader = {
+									has_trait = als_trait_siege_3
+								}
+							}
+							modifier = {
+								add = 4
+								leader = {
+									has_trait = als_trait_siege_4
+								}
+							}
+							modifier = {
+								add = 5
+								leader = {
+									has_trait = als_trait_siege_5
+								}
+							}
+							modifier = {
+								add = 6
+								leader = {
+									has_trait = als_trait_siege_6
+								}
+							}
+							modifier = {
+								add = 7
+								leader = {
+									has_trait = als_trait_siege_7
+								}
+							}
+							modifier = {
+								add = 8
+								leader = {
+									has_trait = als_trait_siege_8
+								}
+							}
+							modifier = {
+								add = 9
+								leader = {
+									has_trait = als_trait_siege_9
+								}
+							}
+							modifier = {
+								add = 10
+								leader = {
+									has_trait = als_trait_siege_10
+								}
+							}
+							modifier = {
+								add = 11
+								leader = {
+									has_trait = als_trait_siege_11
+								}
+							}
+							modifier = {
+								add = 12
+								leader = {
+									has_trait = als_trait_siege_12
+								}
+							}
+							modifier = {
+								add = 13
+								leader = {
+									has_trait = als_trait_siege_13
+								}
+							}
+							modifier = {
+								add = 14
+								leader = {
+									has_trait = als_trait_siege_14
+								}
+							}
+							modifier = {
+								add = 15
+								leader = {
+									has_trait = als_trait_siege_15
+								}
+							}
+							prev = {
+								add_planet_devastation = 1
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+#wins a war levels up everyone's siege
+country_event = {
+	id = als.29
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		any_owned_leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+		}
+	}
+	immediate = {
+		every_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+			multiply_variable = {
+				which = als_siege_exp
+				value = 1.05
+			}
+			change_variable = {
+				which = als_siege_exp
+				value = 75
+			}
+		}
+	}
+}
+#lose a fight in battle levels up shock
+country_event = {
+	id = als.30
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+		}
+	}
+	immediate = {
+		fromfrom = {
+			leader = {
+				multiply_variable = {
+					which = als_shock_exp
+					value = 1.05
+				}
+				change_variable = {
+					which = als_shock_exp
+					value = 50
+				}
+			}
+		}
+	}
+}
+
+#apply just ftl flag for fleet (use for shock calc)
+fleet_event = {
+	id = als.31
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		exists = leader
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+		}
+		NOT = {
+			has_fleet_flag = als_fleet_just_ftled
+		}
+	}
+	immediate = {
+		set_timed_fleet_flag = {
+			flag = als_fleet_just_ftled
+			days = 3
+		}
+	}
+}
+
+#enter battle with just ftl flag on it
+country_event = {
+	id = als.32
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = fleet
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+			has_fleet_flag = als_fleet_just_ftled
+		}
+	}
+	immediate = {
+		fromfrom = {
+			leader = {
+				change_variable = {
+					which = als_shock_exp
+					value = 15
+				}
+			}
+		}
+	}
+}
+
+###Game started####
+event = {
+	id = als.36
+	hide_window = yes
+    is_triggered_only = yes
+	
+	trigger = {
+        NOT = {
+            has_global_flag = als_started
+        }
+	}
+
+	immediate = {
+		set_global_flag = als_started
+	}
+}
+
+###CHECK WHETHER YOUR ADMIRAL HAVE missing base 4 trait####
+country_event = {
+	id = als.38
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_country_type = default
+		any_owned_leader = {
+			leader_class = admiral	
+			has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+			NOT = {
+				has_leader_flag = als_admiral
+			}
+		}
+	}
+
+	
+	immediate = { 
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				NOT = {
+					has_leader_flag = als_admiral
+				}
+			}
+			set_leader_flag = als_admiral
+			als_effect_set_admiral_base_4_traits = yes
+			als_refresh_admirals_base_4_traits = yes
+		}
+	} 
+}
+####ADD ADMIRAL PREFER WEAPON####
+country_event = {
+	id = als.39
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		is_country_type = default
+	}
+	
+	immediate = {
+		save_event_target_as = als_country
+		from = {
+			if = {
+				limit = {
+					leader_class = admiral
+					NOT = {
+						has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+					}
+				}
+				effect_als_add_strategic_traits_and_locked_tactic = yes	
+			}
+		}
+		country_event = { id = als.40 }
+	} 
+}
+
+###REFRESH ADMIRAL SKILLS POSITION###
+country_event = {
+	id = als.40
+	hide_window = yes
+	is_triggered_only = yes
+	
+	trigger = {
+		any_owned_leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+			NOT = {
+				has_leader_flag = als_admiral_traits_posed
+			}
+		}
+	}
+
+	
+	
+	immediate = {
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+				NOT = {
+					has_leader_flag = als_admiral_traits_posed
+				}
+			}
+			set_timed_leader_flag = { flag = als_admiral_traits_posed days = 360 }
+			hidden_effect = {
+				effect_als_refresh_admiral_traits = yes	
+				als_remove_admirals_base_4_traits = yes
+				als_refresh_admirals_base_4_traits = yes
+			}
+		}
+	}
+}
+###ADMIRAL MAY START TO UNLOCK THEIR TACTIC IN SKILL LEVEL 5###
+country_event = {
+	id = als.41
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		OR = {
+			any_pool_leader = {
+				leader_class = admiral
+				has_skill >= 5
+				has_trait = als_trait_tactic_locked
+			}
+			any_owned_leader = {
+				leader_class = admiral
+				has_skill >= 5
+				has_trait = als_trait_tactic_locked
+			}
+		}
+	}
+	
+	immediate = { 
+		random_pool_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				has_skill >= 5
+				has_trait = als_trait_tactic_locked
+				NOT = {
+					has_trait = als_trait_tactic_locked_unlockable
+				}
+				NOT = {
+					has_leader_flag = als_admiral_has_unlocked_a_tactic
+				}
+			}
+			remove_trait = als_trait_tactic_locked
+			add_trait_no_notify = als_trait_tactic_locked_unlockable
+			hidden_effect = {
+				effect_als_refresh_admiral_traits = yes	
+#				als_remove_admirals_base_4_traits = yes
+#				als_refresh_admirals_base_4_traits = yes
+			}
+		}
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				has_skill >= 5
+				has_trait = als_trait_tactic_locked
+				NOT = {
+					has_trait = als_trait_tactic_locked_unlockable
+				}
+				NOT = {
+					has_leader_flag = als_admiral_has_unlocked_a_tactic
+				}
+			}
+			remove_trait = als_trait_tactic_locked
+			add_trait_no_notify = als_trait_tactic_locked_unlockable
+			hidden_effect = {
+				effect_als_refresh_admiral_traits = yes	
+				als_remove_admirals_base_4_traits = yes
+				als_refresh_admirals_base_4_traits = yes
+			}
+		}
+		country_event = { 
+			id = als.41
+			days = 15
+		}
+		country_event = { id = als.40 }
+	} 	
+}
+
+#Admiral may expertise their trait if condition of them are met
+country_event = {
+	id = als.42
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		any_owned_leader = {
+			has_leader_flag = als_admiral
+		}
+	}
+	immediate = {
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral
+			}
+			#energy
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = energy
+				skill_level >= 1 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 700
+			}
+			#explosive
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = explosive
+				skill_level >= 1 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 700
+			}
+			#kinetic
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = kinetic
+				skill_level >= 1 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 700
+			}
+			#point defense
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = point_defense
+				skill_level >= 1 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 600
+				second_base_4_status = shock
+				second_base_4_status_value = 400
+			}
+			#strike craft
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = strike_craft
+				skill_level >= 1 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 600
+				second_base_4_status = movement
+				second_base_4_status_value = 400
+			}
+			#anti_hull
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = anti_hull
+				skill_level >= 3 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1200
+			}
+			#anti_armor
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = anti_armor
+				skill_level >= 3 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 800
+			}
+			#anti_shield
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = anti_shield
+				skill_level >= 3 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 800
+			}
+			#border
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = border
+				skill_level >= 1 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 800
+			}
+			#engineer
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = engineer
+				skill_level >= 5 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 700
+				second_base_4_status = accuracy
+				second_base_4_status_value = 600
+			}
+			#hyperliner
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = hyperliner
+				skill_level >= 1 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1000
+			}
+			#invader
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = invader
+				skill_level >= 1 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1000
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = jumpdriver
+				skill_level >= 1 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 700
+				second_base_4_status = accuracy
+				second_base_4_status_value = 700
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = logistician
+				skill_level >= 1 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = preaim
+				skill_level >= 4 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1650
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = Resonator
+				skill_level >= 5 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1200
+				second_base_4_status = siege
+				second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = sharpshooter
+				skill_level >= 5 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1900
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = strategic
+				trait = skyrocket
+				skill_level >= 3 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1900
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = triggerfinger
+				skill_level >= 1 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 700
+				second_base_4_status = accuracy
+				second_base_4_status_value = 300
+			}
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = strategic
+				trait = fortify
+				skill_level >= 3 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 700
+				second_base_4_status = shock
+				second_base_4_status_value = 500
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = tactic
+				trait = ambush
+				skill_level >= 5 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1900
+				#second_base_4_status = shock
+				#second_base_4_status_value = 500
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement_for_bottled_up_and_fox_tiger = {
+				category = tactic
+				trait = bottled_up
+				skill_level >= 5 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1000
+				second_base_4_status = movement
+				second_base_4_status_value = 600
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement_for_bottled_up_and_fox_tiger = {
+				category = tactic
+				trait = fox_tiger
+				skill_level >= 5 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 600
+				second_base_4_status = movement
+				second_base_4_status_value = 1000
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = camper
+				skill_level >= 5 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 500
+				second_base_4_status = accuracy
+				second_base_4_status_value = 700
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = first_strike
+				skill_level >= 5 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1000
+				second_base_4_status = movement
+				second_base_4_status_value = 1000
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = foresight
+				skill_level >= 8 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1400
+				second_base_4_status = accuracy
+				second_base_4_status_value = 500
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = immune
+				skill_level >= 5 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 800
+				second_base_4_status = siege
+				second_base_4_status_value = 700
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = jammer
+				skill_level >= 6 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1650
+				second_base_4_status = shock
+				second_base_4_status_value = 700
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = long_range
+				skill_level >= 5 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1900
+				second_base_4_status = shock
+				second_base_4_status_value = 500
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = lurker
+				skill_level >= 5 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1200
+				second_base_4_status = shock
+				second_base_4_status_value = 700
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = self_sacrifice
+				skill_level >= 5 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 800
+				second_base_4_status = shock
+				second_base_4_status_value = 1000
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = self_sacrifice
+				skill_level >= 5 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 1000
+				second_base_4_status = shock
+				second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = surprise_attack
+				skill_level >= 6 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 800
+				second_base_4_status = shock
+				second_base_4_status_value = 1400
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = unpredictable
+				skill_level >= 5 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1200
+				second_base_4_status = shock
+				second_base_4_status_value = 1200
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = untoachable
+				skill_level >= 6 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1650
+				second_base_4_status = accuracy
+				second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = tactic
+				trait = bomber
+				skill_level >= 5 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 1900
+				#second_base_4_status = accuracy
+				#second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_1_requirement = {
+				category = tactic
+				trait = bloodthirst
+				skill_level >= 7 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 2500
+				#second_base_4_status = accuracy
+				#second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = cybershield
+				skill_level >= 6 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1200
+				second_base_4_status = accuracy
+				second_base_4_status_value = 1200
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = morale
+				skill_level >= 5 #Default as 1
+				base_4_status = shock
+				base_4_status_value = 1650
+				#second_base_4_status = accuracy
+				#second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = scavenger
+				skill_level >= 6 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 500
+				second_base_4_status = siege
+				second_base_4_status_value = 1200
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = spreadshot
+				skill_level >= 8 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 1000
+				second_base_4_status = shock
+				second_base_4_status_value = 1650
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = abruptstop
+				skill_level >= 7 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 1400
+				second_base_4_status = accuracy
+				second_base_4_status_value = 1400
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = surrounded
+				skill_level >= 5 #Default as 1
+				base_4_status = accuracy
+				base_4_status_value = 600
+				second_base_4_status = shock
+				second_base_4_status_value = 1900
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = breakthrough
+				skill_level >= 5 #Default as 1
+				base_4_status = movement
+				base_4_status_value = 2200
+				second_base_4_status = shock
+				second_base_4_status_value = 800
+			}
+
+			effect_als_expertise_admiral_traits_2_requirement = {
+				category = tactic
+				trait = reactarmor
+				skill_level >= 6 #Default as 1
+				base_4_status = siege
+				base_4_status_value = 1400
+				second_base_4_status = accuracy
+				second_base_4_status_value = 800
+			}
+
+		}
+		country_event = {
+			id = als.42
+			days = 15
+		}
+	}
+}
+
+
+#Check 4 status for variable to use
+fleet_event = {
+	id = als.45
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		exists = leader
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+			NOT = {
+				has_leader_flag = als_admiral_traits_variable_checked
+			}
+		}
+	}
+	immediate = {
+		leader = {
+			set_timed_leader_flag = { flag = als_admiral_traits_variable_checked days = 360 }
+			hidden_effect = { #accuracy
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 0
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 1
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 2
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 3
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 4
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 5
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 6
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 7
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 8
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 9
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 10
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 11
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 12
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 13
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 14
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = accuracy
+					VALUE = 15
+				}
+			}
+			hidden_effect = { #movement
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 0
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 1
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 2
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 3
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 4
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 5
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 6
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 7
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 8
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 9
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 10
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 11
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 12
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 13
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 14
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = movement
+					VALUE = 15
+				}
+			}
+			hidden_effect = { #siege
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 0
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 1
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 2
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 3
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 4
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 5
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 6
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 7
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 8
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 9
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 10
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 11
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 12
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 13
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 14
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = siege
+					VALUE = 15
+				}
+			}
+			hidden_effect = { #shock
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 0
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 1
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 2
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 3
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 4
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 5
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 6
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 7
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 8
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 9
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 10
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 11
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 12
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 13
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 14
+				}
+				effect_als_check_admiral_currect_4_status_for_varible = {
+					STATUS = shock
+					VALUE = 15
+				}
+			}
+		}
+	}
+}
+
+
+
+#TAKEN FROM LEADER_EVENTS_1###
+country_event = {
+	id = als.61
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		from = {
+			if = {
+				limit = {
+					leader_class = admiral
+					num_traits < 12
+					NOT = { has_leader_flag = has_gained_level_trait }
+				}
+				random_list = {
+					90 = { }
+					10 = {
+						modifier = {
+							factor = 1.5
+							has_level = 3
+						}
+						modifier = {
+							factor = 2.5
+							has_level = 4
+						}						
+						modifier = {
+							factor = 5
+							has_level > 4
+						}
+						add_random_leader_trait = yes
+						set_leader_flag = has_gained_level_trait
+					}
+				}
+			}
+		}
+	}
+}
+#
+#for camper trait, country scope
+country_event = {
+	id = als.64
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		any_owned_fleet = {
+			exists = leader
+			is_in_combat = no
+			leader = {
+				leader_class = admiral
+				OR = {
+					has_trait = als_trait_tactic_camper
+					has_trait = als_trait_tactic_camper_expert
+				}
+				NOT = {
+					has_leader_flag = als_admiral_actived_the_tactic
+				}
+			}
+		}
+	}
+	immediate = {
+		every_owned_fleet = {
+			limit = {
+				exists = leader
+				is_in_combat = no
+				leader = {
+					leader_class = admiral
+					OR = {
+						has_trait = als_trait_tactic_camper
+						has_trait = als_trait_tactic_camper_expert
+					}
+					NOT = {
+						has_leader_flag = als_admiral_actived_the_tactic
+					}
+				}
+			}
+			fleet_event = {
+				id = als.65
+			}
+			fleet_event = {
+				id = als.65
+				days = 10
+			}
+			fleet_event = {
+				id = als.65
+				days = 20
+			}
+		}
+	}
+}
+
+
+###tactic camper settings
+fleet_event = {
+	id = als.65
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		exists = leader
+		is_in_combat = no
+		leader = {
+			leader_class = admiral
+			OR = {
+				has_trait = als_trait_tactic_camper
+				has_trait = als_trait_tactic_camper_expert
+			}
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = als_fleet_particle_camper_flag
+				}
+			}
+			set_timed_fleet_flag = {
+				flag = als_fleet_particle_camper_flag
+				days = 19
+			}
+			create_ambient_object = {
+				type = als_particle_camper_effect
+				scale = 15
+				location = this
+				use_3d_location = no
+				entity_offset = { min = 0 max = 0 }
+				entity_offset_angle = { min = 0 max = 0 }
+				entity_offset_height = { min = 0 max = 0 }
+				entity_scale_to_size = yes
+				play_animation_once = yes
+				duration = 60
+			}
+		}
+		leader = {
+			if = {
+				limit = {
+					has_trait = als_trait_tactic_camper
+				}
+				set_timed_leader_flag = {
+					flag = als_admiral_actived_the_tactic
+					days = 9
+				}
+				root = {
+					add_modifier = {
+						modifier = als_tactic_camper_modifier
+						days = 10
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_trait = als_trait_tactic_camper_expert
+				}
+				set_timed_leader_flag = {
+					flag = als_admiral_actived_the_tactic
+					days = 9
+				}
+				root = {
+					add_modifier = {
+						modifier = als_tactic_camper_modifier_expert
+						days = 10
+					}
+				}
+			}
+
+		}
+	}
+}
+
+##move to other system&go ftl nullifed camper effect
+fleet_event = {
+	id = als.66
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		exists = leader
+		leader = {
+			leader_class = admiral
+			OR = {
+				has_trait = als_trait_tactic_camper
+				has_trait = als_trait_tactic_camper_expert
+			}
+		}
+	}
+	immediate = {
+		leader = {
+			remove_leader_flag = als_admiral_actived_the_tactic
+			set_timed_leader_flag = {
+				flag = als_admiral_actived_the_tactic
+				days = 359
+			}
+		}
+		remove_modifier = als_tactic_camper_modifier
+		remove_modifier = als_tactic_camper_modifier_expert
+	}
+}
+
+#showball stack event
+#self firing until unavilable
+fleet_event = {
+	id = als.70
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = leader
+		exists = fleet
+		exists = event_target:als_fleet_scope
+		event_target:als_fleet_scope = {
+			is_same_value = root
+		}
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_snowball
+				has_trait = als_trait_tactic_snowball_expert
+			}
+		}
+	}
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					is_variable_set = als_fleet_in_battle_days
+				}
+			}
+			set_variable = {
+				which = als_fleet_in_battle_days
+				value = 1
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = als_fleet_particle_snowball_flag
+				}
+			}
+			set_timed_fleet_flag = {
+				flag = als_fleet_particle_snowball_flag
+				days = 5
+			}
+			create_ambient_object = {
+				type = als_particle_snowball_effect
+				scale = 15
+				location = this
+				use_3d_location = no
+				entity_offset = { min = 0 max = 0 }
+				entity_offset_angle = { min = 0 max = 0 }
+				entity_offset_height = { min = 0 max = 0 }
+				entity_scale_to_size = yes
+				play_animation_once = yes
+				duration = 60
+			}
+		}
+		if = {
+			limit = {
+				is_in_combat = yes
+			}
+			change_variable = {
+				which = als_fleet_in_battle_days
+				value = 1
+			}
+			if = {
+				limit = {
+					check_variable = {
+						which = als_fleet_in_battle_days
+						value >= 50
+					}
+				}
+				set_variable = {
+					which = als_fleet_in_battle_days
+					value = 50
+				}
+			}
+			effect_als_snowball_start = yes
+		}
+		if = {
+			limit = {
+				is_in_combat = no
+				check_variable = {
+					which = als_fleet_in_battle_days
+					value >= 1
+				}
+			}
+			change_variable = {
+				which = als_fleet_in_battle_days
+				value = -1
+			}
+			if = {
+				limit = {
+					check_variable = {
+						which = als_fleet_in_battle_days
+						value <= 1
+					}
+				}
+				clear_variable = als_fleet_in_battle_days
+			}
+			effect_als_snowball_start = yes
+		}
+	}
+}
+
+#unpredictable event
+#self firing until unavilable
+fleet_event = {
+	id = als.71
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_unpredictable
+				has_trait = als_trait_tactic_unpredictable_expert
+			}
+		}
+	}
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = als_fleet_particle_unpredictable_flag
+				}
+			}
+			set_timed_fleet_flag = {
+				flag = als_fleet_particle_unpredictable_flag
+				days = 10
+			}
+			create_ambient_object = {
+				type = als_particle_unpredictable_effect
+				scale = 15
+				location = this
+				use_3d_location = no
+				entity_offset = { min = 0 max = 0 }
+				entity_offset_angle = { min = 0 max = 0 }
+				entity_offset_height = { min = 0 max = 0 }
+				entity_scale_to_size = yes
+				play_animation_once = yes
+				duration = 60
+			}
+		}
+		effect_als_unpredictable_start = yes
+	}
+}
+
+#untoachable event
+#self firing until unavilable
+fleet_event = {
+	id = als.72
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		exists = event_target:als_target_fleet_scope
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_untoachable
+				has_trait = als_trait_tactic_untoachable_expert
+			}
+		}
+	}
+	immediate = {
+		effect_als_untoachable_start = yes
+	}
+}
+
+#bloodthirst stacks event
+#self firing until unavilable
+country_event = {
+	id = als.73
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			is_scope_type = ship
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_bloodthirst
+					has_trait = als_trait_tactic_bloodthirst_expert
+				}
+			}
+			fleet = {
+				check_variable = {
+					which = als_bloodthirst_stack_num
+					value <= 199
+				}
+			}
+		}
+	}
+	immediate = {
+		fromfrom = {
+			if = {
+				limit = {
+					NOT = {
+						has_ship_flag = als_ship_particle_bloodthirst_flag
+					}
+				}
+				set_timed_ship_flag = {
+					flag = als_ship_particle_bloodthirst_flag
+					days = 10
+				}
+				create_ambient_object = {
+					type = als_particle_bloodthirst_effect
+					scale = 15
+					location = this
+					use_3d_location = no
+					entity_offset = { min = 0 max = 0 }
+					entity_offset_angle = { min = 0 max = 0 }
+					entity_offset_height = { min = 0 max = 0 }
+					entity_scale_to_size = yes
+					play_animation_once = yes
+					duration = 60
+				}
+			}
+			fleet = {
+				
+				if = {
+					limit = {
+						NOT = {
+							is_variable_set = als_bloodthirst_stack_num
+						}
+					}
+					set_variable = {
+						which = als_bloodthirst_stack_num
+						value = 0
+					}
+				}
+				change_variable = {
+					which = als_bloodthirst_stack_num
+					value = 1
+				}
+				remove_modifier = als_tactic_bloodthirst_modifier
+				remove_modifier = als_tactic_bloodthirst_modifier_expert
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_bloodthirst
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_bloodthirst_modifier
+						days = -1
+						multiplier = als_bloodthirst_stack_num
+					}
+				}
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_bloodthirst_expert
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_bloodthirst_modifier_expert
+						days = -1
+						multiplier = als_bloodthirst_stack_num
+					}
+				}
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_has_bloodthirst_cooldown_event
+						}
+					}
+					fleet_event = {
+						id = als.74
+						days = 10
+					}
+				}
+			}
+		}
+	}
+}
+
+#decline bloodthirst stack
+fleet_event = {
+	id = als.74
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		check_variable = {
+			which = als_bloodthirst_stack_num
+			value > 0
+		}
+		NOT = {
+			has_fleet_flag = als_fleet_has_bloodthirst_cooldown_event
+		}
+		owner = {
+			NOT = {
+				has_active_event = {
+					als.74
+				}
+			}
+		}
+	}
+	immediate = {
+		set_timed_fleet_flag = {
+			flag = als_fleet_has_bloodthirst_cooldown_event
+			days = 10
+		}
+		subtract_variable = {
+			which = als_bloodthirst_stack_num
+			value = 1
+		}
+		remove_modifier = als_tactic_bloodthirst_modifier
+		remove_modifier = als_tactic_bloodthirst_modifier_expert
+		if = {
+			limit = {
+				leader = {
+					has_trait = als_trait_tactic_bloodthirst
+				}
+			}
+			leader = {
+				set_cooldown = 11
+			}
+			add_modifier = {
+				modifier = als_tactic_bloodthirst_modifier
+				days = -1
+				multiplier = als_bloodthirst_stack_num
+			}
+		}
+		if = {
+			limit = {
+				leader = {
+					has_trait = als_trait_tactic_bloodthirst_expert
+				}
+			}
+			leader = {
+				set_cooldown = 11
+			}
+			add_modifier = {
+				modifier = als_tactic_bloodthirst_modifier_expert
+				days = -1
+				multiplier = als_bloodthirst_stack_num
+			}
+		}
+
+		fleet_event = {
+			id = als.74
+			days = 10
+		}
+	}
+}
+
+#morale event
+#self firing every month
+country_event = {
+	id = als.75
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		any_owned_fleet = {
+			exists = leader
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_morale
+					has_trait = als_trait_tactic_morale_expert
+				}
+			}
+		}
+	}
+	immediate = {
+		every_owned_fleet = {
+			limit = {
+				exists = leader
+				leader = {
+					OR = {
+						has_trait = als_trait_tactic_morale
+						has_trait = als_trait_tactic_morale_expert
+					}
+				}	
+				exists = solar_system
+			}
+			save_event_target_as = als_fleet_with_morale_leader
+			if = {
+				limit = {
+					NOT = {
+						has_fleet_flag = als_fleet_particle_morale_flag
+					}
+				}
+				set_timed_fleet_flag = {
+					flag = als_fleet_particle_morale_flag
+					days = 359
+				}
+				create_ambient_object = {
+					type = als_particle_morale_effect
+					scale = 15
+					location = this
+					use_3d_location = no
+					entity_offset = { min = 0 max = 0 }
+					entity_offset_angle = { min = 0 max = 0 }
+					entity_offset_height = { min = 0 max = 0 }
+					entity_scale_to_size = yes
+					play_animation_once = yes
+					duration = 60
+				}
+			}
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						OR = {
+							is_owned_by = root
+							is_alliance_fleet = yes
+						}
+						NOR = {
+							has_fleet_flag = als_fleet_has_morale_modifier
+							has_fleet_flag = als_fleet_has_morale_modifier_expert
+						}
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = als_fleet_particle_morale_flag
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_particle_morale_flag
+							days = 359
+						}
+						create_ambient_object = {
+							type = als_particle_morale_effect
+							scale = 15
+							location = this
+							use_3d_location = no
+							entity_offset = { min = 0 max = 0 }
+							entity_offset_angle = { min = 0 max = 0 }
+							entity_offset_height = { min = 0 max = 0 }
+							entity_scale_to_size = yes
+							play_animation_once = yes
+							duration = 60
+						}
+					}
+					if = {
+						limit = {
+							event_target:als_fleet_with_morale_leader = {
+								leader = {
+									has_trait = als_trait_tactic_morale_expert
+								}
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_has_morale_modifier_expert
+							days = 360
+						}
+						add_modifier = {
+							modifier = als_tactic_morale_modifier_expert
+							days = 360
+						}
+					}
+					if = {
+						limit = {
+							event_target:als_fleet_with_morale_leader = {
+								leader = {
+									has_trait = als_trait_tactic_morale
+								}
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_has_morale_modifier
+							days = 360
+						}
+						add_modifier = {
+							modifier = als_tactic_morale_modifier
+							days = 360
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+#morale effect
+#
+country_event = {
+	id = als.76
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			is_scope_type = ship
+			exists = fleet
+			fleet = {
+				has_fleet_flag = als_fleet_has_morale_modifier
+			}
+		}
+	}
+	immediate = {
+		fromfrom = {
+			if = {
+				limit = {
+					NOT = {
+						has_ship_flag = als_ship_particle_morale_flag
+					}
+				}
+				set_timed_ship_flag = {
+					flag = als_ship_particle_morale_flag
+					days = 10
+				}
+				create_ambient_object = {
+					type = als_particle_morale_effect
+					scale = 15
+					location = this
+					use_3d_location = no
+					entity_offset = { min = 0 max = 0 }
+					entity_offset_angle = { min = 0 max = 0 }
+					entity_offset_height = { min = 0 max = 0 }
+					entity_scale_to_size = yes
+					play_animation_once = yes
+					duration = 60
+				}
+			}
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = 0.1
+			min = 10
+		}
+	}
+}
+
+#scavenger event
+#destroy disengage enemy ship
+country_event = {
+	id = als.77
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			is_scope_type = ship
+			exists = leader
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_scavenger
+					has_trait = als_trait_tactic_scavenger_expert
+				}
+			}
+		}
+	}
+	immediate = {
+		fromfrom = {
+			if = {
+				limit = {
+					NOT = {
+						has_ship_flag = als_ship_particle_scavenger_flag
+					}
+				}
+				set_timed_ship_flag = {
+					flag = als_ship_particle_scavenger_flag
+					days = 3
+				}
+				create_ambient_object = {
+					type = als_particle_scavenger_effect
+					scale = 15
+					location = this
+					use_3d_location = no
+					entity_offset = { min = 0 max = 0 }
+					entity_offset_angle = { min = 0 max = 0 }
+					entity_offset_height = { min = 0 max = 0 }
+					entity_scale_to_size = yes
+					play_animation_once = yes
+					duration = 60
+				}
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_scavenger
+					}
+				}
+				fleet = {
+					random_owned_ship = {
+						limit = {
+							has_hp_percentage <= 0.99
+							NOT = {
+								has_ship_flag = als_scavenger_ship_effect
+							}
+						}
+						set_timed_ship_flag = {
+							flag = als_scavenger_ship_effect
+							days = 15
+						}
+						add_modifier = {
+							modifier = als_tactic_scavenger_modifier
+							days = 15
+						}
+					}
+				}
+				
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_scavenger_expert
+					}
+				}
+				fleet = {
+					random_owned_ship = {
+						limit = {
+							has_hp_percentage <= 0.99
+							NOT = {
+								has_ship_flag = als_scavenger_ship_effect
+							}
+						}
+						set_timed_ship_flag = {
+							flag = als_scavenger_ship_effect
+							days = 15
+						}
+						add_modifier = {
+							modifier = als_tactic_scavenger_modifier_expert
+							days = 15
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+#scavenger resource event
+#destroy enemy ship
+country_event = {
+	id = als.78
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			is_scope_type = ship
+			exists = leader
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_scavenger
+					has_trait = als_trait_tactic_scavenger_expert
+				}
+			}
+		}
+		
+	}
+	immediate = {
+		fromfromfrom = {
+			set_variable = {
+				which = als_destroy_ship_size_victim
+				value = fleet.trigger:fleet_power
+			}
+			divide_variable = {
+				which = als_destroy_ship_size_victim
+				value = 100
+			}
+		}
+		set_variable = {
+			which = als_destroy_ship_size_for_minerals
+			value = fromfromfrom.als_destroy_ship_size_victim
+		}
+		set_variable = {
+			which = als_destroy_ship_size_for_alloys
+			value = fromfromfrom.als_destroy_ship_size_victim
+		}
+		divide_variable = {
+			which = als_destroy_ship_size_for_alloys
+			value = 5
+		}
+		fromfrom = {
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_scavenger
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = 1
+						mult = als_destroy_ship_size_for_minerals
+					}
+					add_resource = {
+						alloys = 1
+						mult = als_destroy_ship_size_for_alloys
+					}
+
+				}
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_scavenger_expert
+					}
+				}
+				owner = {
+					add_resource = {
+						minerals = 2
+						mult = als_destroy_ship_size_for_minerals
+					}
+					add_resource = {
+						alloys = 2
+						mult = als_destroy_ship_size_for_alloys
+					}
+				}
+			}
+		}
+		fromfromfrom = {
+			clear_variable = als_destroy_ship_size_victim
+		}
+		clear_variable = als_destroy_ship_size_for_minerals
+		clear_variable = als_destroy_ship_size_for_alloys
+	}
+}
+
+
+#spreadshot
+country_event = {
+	id = als.79
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = fleet
+			fleet = {
+				exists = leader
+				leader = {
+					OR = {
+						has_trait = als_trait_tactic_spreadshot
+						has_trait = als_trait_tactic_spreadshot_expert
+					}
+				}
+			}
+		}
+		
+	}
+	immediate = {
+		fromfrom = {
+			if = {
+				limit = {
+					NOT = {
+						has_ship_flag = als_ship_particle_spreadshot_flag
+					}
+				}
+				set_timed_ship_flag = {
+					flag = als_ship_particle_spreadshot_flag
+					days = 3
+				}
+				create_ambient_object = {
+					type = als_particle_spreadshot_effect
+					scale = 15
+					location = this
+					use_3d_location = no
+					entity_offset = { min = 0 max = 0 }
+					entity_offset_angle = { min = 0 max = 0 }
+					entity_offset_height = { min = 0 max = 0 }
+					entity_scale_to_size = yes
+					play_animation_once = yes
+					duration = 60
+				}
+			}
+		}
+		fromfrom.fleet = {
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_spreadshot
+					}
+				}
+				fromfromfrom.fleet = {
+					while = {
+						count = trigger:num_ships
+						random_owned_ship = {
+							if = {
+								limit = {
+									has_hp_percentage > 0.02
+								}
+								reduce_hp_percent = 2
+							}
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_spreadshot_expert
+					}
+				}
+				fromfromfrom.fleet = {
+					while = {
+						count = trigger:num_ships
+						random_owned_ship = {
+							if = {
+								limit = {
+									has_hp_percentage > 0.04
+								}
+								reduce_hp_percent = 4
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+#abruptstop event
+#self firing until unavilable
+fleet_event = {
+	id = als.80
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		exists = event_target:als_target_fleet_scope
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_abruptstop
+				has_trait = als_trait_tactic_abruptstop_expert
+			}
+		}
+	}
+	immediate = {
+		effect_als_abruptstop_start = yes
+	}
+}
+
+#surrounded stack
+
+country_event = {
+	id = als.81
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			exists = fleet
+			is_scope_type = ship
+			is_scope_valid = yes
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_surrounded
+					has_trait = als_trait_tactic_surrounded_expert
+				}
+			}
+			fleet = {
+				check_variable = {
+					which = als_surrounded_stack_num
+					value <= 49
+				}
+			}
+		}
+	}
+	immediate = {
+		fromfrom = {
+			fleet = {
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_particle_surrounded_flag
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_particle_surrounded_flag
+						days = 1
+					}
+					create_ambient_object = {
+						type = als_particle_surrounded_effect
+						scale = 15
+						location = this
+						use_3d_location = no
+						entity_offset = { min = 0 max = 0 }
+						entity_offset_angle = { min = 0 max = 0 }
+						entity_offset_height = { min = 0 max = 0 }
+						entity_scale_to_size = yes
+						play_animation_once = yes
+						duration = 60
+					}
+				}
+				if = {
+					limit = {
+						NOT = {
+							is_variable_set = als_surrounded_stack_num
+						}
+					}
+					set_variable = {
+						which = als_surrounded_stack_num
+						value = 0
+					}
+				}
+				change_variable = {
+					which = als_surrounded_stack_num
+					value = 1
+				}
+				remove_modifier = als_tactic_surrounded_modifier
+				remove_modifier = als_tactic_surrounded_modifier_expert
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_surrounded
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_surrounded_modifier
+						days = -1
+						multiplier = als_surrounded_stack_num
+					}
+				}
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_surrounded_expert
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_surrounded_modifier_expert
+						days = -1
+						multiplier = als_surrounded_stack_num
+					}
+				}
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_has_surrounded_cooldown_event
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_has_surrounded_cooldown_event
+						days = 9
+					}
+					fleet_event = {
+						id = als.82
+						days = 10
+					}
+				}
+			}
+		}
+	}
+}
+
+#decline surrounded stack
+fleet_event = {
+	id = als.82
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		check_variable = {
+			which = als_surrounded_stack_num
+			value > 0
+		}
+		NOT = {
+			has_fleet_flag = als_fleet_has_surrounded_cooldown_event
+		}
+	}
+	immediate = {
+		set_timed_fleet_flag = {
+			flag = als_fleet_has_surrounded_cooldown_event
+			days = 10
+		}
+		subtract_variable = {
+			which = als_surrounded_stack_num
+			value = 1
+		}
+		remove_modifier = als_tactic_surrounded_modifier
+		remove_modifier = als_tactic_surrounded_modifier_expert
+		if = {
+			limit = {
+				exists = leader
+				leader = {
+					has_trait = als_trait_tactic_surrounded
+				}
+			}
+			add_modifier = {
+				modifier = als_tactic_surrounded_modifier
+				days = -1
+				multiplier = als_surrounded_stack_num
+			}
+		}
+		if = {
+			limit = {
+				exists = leader
+				leader = {
+					has_trait = als_trait_tactic_surrounded_expert
+				}
+			}
+			add_modifier = {
+				modifier = als_tactic_surrounded_modifier_expert
+				days = -1
+				multiplier = als_surrounded_stack_num
+			}
+		}
+		fleet_event = {
+			id = als.82
+			days = 10
+		}
+	}
+}
+
+#breakthrough event
+#self firing until unavilable
+fleet_event = {
+	id = als.83
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_breakthrough
+				has_trait = als_trait_tactic_breakthrough_expert
+			}
+		}
+	}
+	immediate = {
+		effect_als_breakthrough_start = yes
+	}
+}
+
+# This = owner of ship 1 (destroyed)
+# From = owner of ship 2 (combatant)
+# FromFrom = ship 1
+# FromFromFrom = ship 2
+#immune effect
+country_event = {
+	id = als.84
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			is_scope_type = ship
+			is_scope_valid = yes
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_immune
+					has_trait = als_trait_tactic_immune_expert
+				}
+			}
+		}
+	}
+	immediate = {
+		if = {
+			limit = {
+				fromfrom = {
+					leader = {
+						has_trait = als_trait_tactic_immune
+					}
+				}
+			}
+			fromfromfrom = {
+				fleet = {
+					random_owned_ship = {
+						random_list = {
+							3 = {}
+							1 = {
+								if = {
+									limit = {
+										NOT = {
+											has_ship_flag = als_fleet_particle_immune_flag
+										}
+									}
+									set_timed_ship_flag = {
+										flag = als_fleet_particle_immune_flag
+										days = 1
+									}
+									create_ambient_object = {
+										type = als_particle_immune_effect
+										scale = 15
+										location = this
+										use_3d_location = no
+										entity_offset = { min = 0 max = 0 }
+										entity_offset_angle = { min = 0 max = 0 }
+										entity_offset_height = { min = 0 max = 0 }
+										entity_scale_to_size = yes
+										play_animation_once = yes
+										duration = 60
+									}
+								}
+								random_list = {
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_1
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_1
+											days = 120
+										}
+									}
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_2
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_2
+											days = 120
+										}
+									}
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_3
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_3
+											days = 120
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				fromfrom = {
+					leader = {
+						has_trait = als_trait_tactic_immune_expert
+					}
+				}
+			}
+			fromfromfrom = {
+				fleet = {
+					random_owned_ship = {
+						random_list = {
+							1 = {}
+							1 = {
+								if = {
+									limit = {
+										NOT = {
+											has_ship_flag = als_fleet_particle_immune_flag
+										}
+									}
+									set_timed_ship_flag = {
+										flag = als_fleet_particle_immune_flag
+										days = 5
+									}
+									create_ambient_object = {
+										type = als_particle_immune_effect
+										scale = 15
+										location = this
+										use_3d_location = no
+										entity_offset = { min = 0 max = 0 }
+										entity_offset_angle = { min = 0 max = 0 }
+										entity_offset_height = { min = 0 max = 0 }
+										entity_scale_to_size = yes
+										play_animation_once = yes
+										duration = 60
+									}
+								}
+								random_list = {
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_4
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_4
+											days = 120
+										}
+									}
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_5
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_5
+											days = 120
+										}
+									}
+									1 = {
+										modifier = {
+											factor = 0
+											has_modifier = als_tactic_immune_modifier_6
+										}
+										add_modifier = {
+											modifier = als_tactic_immune_modifier_6
+											days = 120
+										}
+									}
+								}
+							}
+						}
+					}		
+				}
+			}
+		}
+	}
+}
+
+#reactarmor 
+#keep firing until out of combat
+fleet_event = {
+	id = als.85
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		leader = {
+			leader_class = admiral
+			OR = {
+				has_trait = als_trait_tactic_reactarmor
+				has_trait = als_trait_tactic_reactarmor_expert
+			}
+		}
+		NOT = {
+			has_fleet_flag = als_fleet_has_reactarmor_cooldown
+		}
+	}
+	immediate = {
+		set_timed_fleet_flag = {
+			flag = als_fleet_has_reactarmor_cooldown
+			days = 1
+		}
+		set_variable = {
+			which = als_ship_reactarmor_num
+			value = trigger:fleet_power
+		}
+		divide_variable = {
+			which = als_ship_reactarmor_num
+			value = 10
+		}
+		divide_variable = {
+			which = als_ship_reactarmor_num
+			value = trigger:num_ships
+		}
+		every_owned_ship = {
+			limit = {
+				has_hp_percentage <= 0.5
+				NOT = {
+					has_ship_flag = als_reactarmor_ship_effect
+				}
+			}
+			set_timed_ship_flag = {
+				flag = als_reactarmor_ship_effect
+				days = 180
+			}
+			create_ambient_object = {
+				type = als_particle_reactarmor_effect
+				scale = 15
+				location = this
+				use_3d_location = no
+				entity_offset = { min = 0 max = 0 }
+				entity_offset_angle = { min = 0 max = 0 }
+				entity_offset_height = { min = 0 max = 0 }
+				entity_scale_to_size = yes
+				play_animation_once = yes
+				duration = 60
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_reactarmor
+					}
+				}			
+				add_modifier = {
+					modifier = als_tactic_reactarmor_modifier
+					days = 30
+					multiplier = fleet.als_ship_reactarmor_num
+				}
+
+			}
+			if = {
+				limit = {
+					leader = {
+						has_trait = als_trait_tactic_reactarmor_expert
+					}
+				}
+				add_modifier = {
+					modifier = als_tactic_reactarmor_modifier_expert
+					days = 30
+					multiplier = fleet.als_ship_reactarmor_num
+				}
+			}
+			repair_ship = yes
+		}
+		fleet_event = {
+			id = als.85
+			days = 1
+		}
+	}
+}
+
+#cybershield
+#self firing until unavilable
+fleet_event = {
+	id = als.86
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_cybershield
+				has_trait = als_trait_tactic_cybershield_expert
+			}
+		}
+	}
+	immediate = {
+		effect_als_cybershield_start = yes
+	}
+}
+
+#jammer event
+#self firing until unavilable
+fleet_event = {
+	id = als.90
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_in_combat = yes
+		exists = leader
+		exists = fleet
+		exists = event_target:als_target_fleet_scope
+		leader = {
+			NOT = {
+				has_leader_flag = als_admiral_actived_the_tactic
+			}
+			OR = {
+				has_trait = als_trait_tactic_jammer
+				has_trait = als_trait_tactic_jammer_expert
+			}
+		}
+	}
+	immediate = {
+		effect_als_jammer_start = yes
+	}
+}
+
+###Tactic gateway
+#For on_entering_battle
+country_event = {
+	id = als.100
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fromfrom
+		fromfrom = {
+			exists = fleet
+			exists = leader
+			is_scope_type = fleet
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				exists = fromfromfrom
+				fromfromfrom = {
+					is_scope_type = fleet
+				}
+			}
+			fromfromfrom = {
+				save_event_target_as = als_target_fleet_scope
+				set_variable = {
+					which = als_opponent_fleet_power_num
+					value = trigger:fleet_power
+				}
+			}
+		}
+		fromfrom = {
+			save_event_target_as = als_fleet_scope
+			#surrounded
+			if = {
+				limit = {
+					exists = leader
+					leader = {
+						leader_class = admiral
+						OR = {
+							has_trait = als_trait_tactic_surrounded
+							has_trait = als_trait_tactic_surrounded_expert
+						}
+					}
+				}
+				set_variable = {
+					which = als_self_fleet_power
+					value = trigger:fleet_power
+				}
+				set_variable = {
+					which = als_fleet_power_compare
+					value = event_target:als_target_fleet_scope.als_opponent_fleet_power_num
+				}
+				if = {
+					limit = {
+						check_variable = {
+							which = als_fleet_power_compare
+							value >= als_self_fleet_power
+						}
+					}
+					subtract_variable = {
+						which = als_fleet_power_compare
+						value = als_self_fleet_power
+					}
+					divide_variable = {
+						which = als_fleet_power_compare
+						value = 10
+					}
+					divide_variable = {
+						which = als_fleet_power_compare
+						value = trigger:num_ships
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = als_fleet_particle_surrounded_flag
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_particle_surrounded_flag
+							days = 1
+						}
+						create_ambient_object = {
+							type = als_particle_surrounded_effect
+							scale = 15
+							location = this
+							use_3d_location = no
+							entity_offset = { min = 0 max = 0 }
+							entity_offset_angle = { min = 0 max = 0 }
+							entity_offset_height = { min = 0 max = 0 }
+							entity_scale_to_size = yes
+							play_animation_once = yes
+							duration = 60
+						}
+					}
+					while = {
+						count = als_fleet_power_compare
+						limit = {
+							check_variable = {
+								which = als_surrounded_stack_num
+								value < 50
+							}
+						}
+						change_variable = {
+							which = als_surrounded_stack_num
+							value = 1
+						}	
+					}
+					remove_modifier = als_tactic_surrounded_modifier
+					remove_modifier = als_tactic_surrounded_modifier_expert
+					if = {
+						limit = {
+							leader = {
+								has_trait = als_trait_tactic_surrounded
+							}
+							check_variable = {
+								which = als_surrounded_stack_num
+								value >= 1
+							}
+						}
+						add_modifier = {
+							modifier = als_tactic_surrounded_modifier
+							days = -1
+							multiplier = als_surrounded_stack_num
+						}
+					}
+					if = {
+						limit = {
+							leader = {
+								has_trait = als_trait_tactic_surrounded_expert
+							}
+							check_variable = {
+								which = als_surrounded_stack_num
+								value >= 1
+							}
+						}
+						add_modifier = {
+							modifier = als_tactic_surrounded_modifier_expert
+							days = -1
+							multiplier = als_surrounded_stack_num
+						}
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = als_fleet_has_surrounded_cooldown_event
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_has_surrounded_cooldown_event
+							days = 9
+						}
+						fleet_event = {
+							id = als.82
+							days = 10
+						}
+					}
+				}
+			}
+			#reactarmor
+			fleet_event = {
+				id = als.85
+			}
+			#
+			if = {
+				limit = {
+					exists = leader
+					leader = {
+						leader_class = admiral
+						NOT = {
+							has_leader_flag = als_admiral_has_active_tactic_traits
+						}
+					}
+				}
+				effect_als_close_combat_start = yes
+				effect_als_bottled_up_start = yes
+				effect_als_first_strike_start = yes
+				effect_als_fox_tiger_start = yes
+				effect_als_foresight_start = yes
+				effect_als_long_range_start = yes
+				effect_als_lurker_start = yes
+				effect_als_snowball_start = yes
+				effect_als_unpredictable_start = yes
+				effect_als_untoachable_start = yes
+				effect_als_abruptstop_start = yes
+				effect_als_cybershield_start = yes
+				effect_als_breakthrough_start = yes
+				effect_als_jammer_start = yes
+				leader = {
+					effect_als_refresh_admiral_traits = yes	
+					als_remove_admirals_base_4_traits = yes
+					als_refresh_admirals_base_4_traits = yes
+				}
+				
+			}
+		}
+		#fromfromfrom
+	}
+}
+
+
+###Tactic gateway
+#For on_fleet_combat_joined_attacker
+fleet_event = {
+	id = als.150
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fleet
+		exists = leader
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral_has_active_tactic_traits
+			NOR = {
+				has_leader_flag = als_admiral_changing_strategic_traits
+				has_leader_flag = als_admiral_changing_tactic_traits
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = {
+				exists = from
+				from = {
+					is_scope_type = fleet
+				}
+			}
+			from = {
+				save_event_target_as = als_target_fleet_scope
+			}
+		}
+		if = {
+			limit = {
+				exists = fromfrom
+				fromfrom = {
+					is_scope_type = fleet
+				}
+			}
+			fromfrom = {
+				save_event_target_as = als_target_fleet_scope_additional
+			}
+		}
+		if = {
+			limit = {
+				exists = fromfromfrom
+				fromfromfrom = {
+					is_scope_type = fleet
+				}
+			}
+			fromfromfrom = {
+				save_event_target_as = als_target_fleet_scope_additional_additional
+			}
+		}
+		save_event_target_as = als_fleet_scope
+		#surrounded
+		if = {
+			limit = {
+				exists = leader
+				leader = {
+					leader_class = admiral
+					OR = {
+						has_trait = als_trait_tactic_surrounded
+						has_trait = als_trait_tactic_surrounded_expert
+					}
+				}
+			}
+			set_variable = {
+				which = als_self_fleet_power
+				value = trigger:fleet_power
+			}
+			set_variable = {
+				which = als_fleet_power_compare
+				value = event_target:als_target_fleet_scope.als_opponent_fleet_power_num
+			}
+			if = {
+				limit = {
+					check_variable = {
+						which = als_fleet_power_compare
+						value >= als_self_fleet_power
+					}
+				}
+				subtract_variable = {
+					which = als_fleet_power_compare
+					value = als_self_fleet_power
+				}
+				divide_variable = {
+					which = als_fleet_power_compare
+					value = 25
+				}
+				divide_variable = {
+					which = als_fleet_power_compare
+					value = trigger:num_ships
+				}
+				round_variable = als_fleet_power_compare
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_particle_surrounded_flag
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_particle_surrounded_flag
+						days = 1
+					}
+					create_ambient_object = {
+						type = als_particle_surrounded_effect
+						scale = 15
+						location = this
+						use_3d_location = no
+						entity_offset = { min = 0 max = 0 }
+						entity_offset_angle = { min = 0 max = 0 }
+						entity_offset_height = { min = 0 max = 0 }
+						entity_scale_to_size = yes
+						play_animation_once = yes
+						duration = 60
+					}
+				}
+				while = {
+					count = als_fleet_power_compare
+					limit = {
+						check_variable = {
+							which = als_surrounded_stack_num
+							value < 50
+						}
+					}
+					change_variable = {
+						which = als_surrounded_stack_num
+						value = 1
+					}	
+				}
+				remove_modifier = als_tactic_surrounded_modifier
+				remove_modifier = als_tactic_surrounded_modifier_expert
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_surrounded
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_surrounded_modifier
+						days = -1
+						multiplier = als_surrounded_stack_num
+					}
+				}
+				if = {
+					limit = {
+						leader = {
+							has_trait = als_trait_tactic_surrounded_expert
+						}
+					}
+					add_modifier = {
+						modifier = als_tactic_surrounded_modifier_expert
+						days = -1
+						multiplier = als_surrounded_stack_num
+					}
+				}
+				if = {
+					limit = {
+						NOT = {
+							has_fleet_flag = als_fleet_has_surrounded_cooldown_event
+						}
+					}
+					fleet_event = {
+						id = als.82
+						days = 10
+					}
+				}
+			}
+		}
+		#
+		#reactarmor
+		fleet_event = {
+			id = als.85
+		}
+		if = {
+			limit = {
+				exists = leader
+				leader = {
+					leader_class = admiral
+					NOT = {
+						has_leader_flag = als_admiral_has_active_tactic_traits
+					}
+				}
+			}
+			effect_als_close_combat_start = yes
+			effect_als_bottled_up_start = yes
+			effect_als_first_strike_start = yes
+			effect_als_foresight_start = yes
+			effect_als_fox_tiger_start = yes
+			effect_als_long_range_start = yes
+			effect_als_lurker_start = yes
+			effect_als_snowball_start = yes
+			effect_als_unpredictable_start = yes
+			effect_als_untoachable_start = yes
+			effect_als_abruptstop_start = yes
+			effect_als_cybershield_start = yes
+			effect_als_breakthrough_start = yes
+			effect_als_jammer_start = yes
+			leader = {
+				effect_als_refresh_admiral_traits = yes	
+				als_remove_admirals_base_4_traits = yes
+				als_refresh_admirals_base_4_traits = yes
+			}
+			
+		}
+	}
+}
+
+
+###self sacrifice effect, fire when own ship get destroyed
+country_event = {
+	id = als.115
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			exists = leader
+			is_scope_type = ship
+			is_scope_valid = yes
+			is_in_combat = yes
+			leader = {
+				OR = {
+					has_trait = als_trait_tactic_self_sacrifice
+					has_trait = als_trait_tactic_self_sacrifice_expert
+				}
+			}
+		}
+		exists = fromfromfrom
+		fromfromfrom = {
+			is_scope_type = ship
+			has_hp_percentage >= 0.01
+		}
+	}
+
+	immediate = {
+		fromfromfrom = {
+			save_event_target_as = als_target_ship_scope
+		}
+		fromfrom = {
+
+			leader = {
+				switch = {
+					trigger = has_trait
+					als_trait_tactic_self_sacrifice = {
+						event_target:als_target_ship_scope = {
+							if = {
+								limit = {
+									NOT = {
+										has_ship_flag = als_ship_particle_self_sacrifice_flag
+									}
+								}
+								set_timed_ship_flag = {
+									flag = als_ship_particle_self_sacrifice_flag
+									days = 1
+								}
+								create_ambient_object = {
+									type = als_particle_self_sacrifice_effect
+									scale = 15
+									location = this
+									use_3d_location = no
+									entity_offset = { min = 0 max = 0 }
+									entity_offset_angle = { min = 0 max = 0 }
+									entity_offset_height = { min = 0 max = 0 }
+									entity_scale_to_size = yes
+									play_animation_once = yes
+									duration = 60
+								}
+							}
+							reduce_hp_percent = 10
+						}
+					}
+					als_trait_tactic_self_sacrifice_expert = {
+						event_target:als_target_ship_scope = {
+							if = {
+								limit = {
+									NOT = {
+										has_ship_flag = als_ship_particle_self_sacrifice_flag
+									}
+								}
+								set_timed_ship_flag = {
+									flag = als_ship_particle_self_sacrifice_flag
+									days = 1
+								}
+								create_ambient_object = {
+									type = als_particle_self_sacrifice_effect
+									scale = 15
+									location = this
+									use_3d_location = no
+									entity_offset = { min = 0 max = 0 }
+									entity_offset_angle = { min = 0 max = 0 }
+									entity_offset_height = { min = 0 max = 0 }
+									entity_scale_to_size = yes
+									play_animation_once = yes
+									duration = 60
+								}
+							}
+							reduce_hp_percent = 20
+						}
+					}
+				}
+			}
+		}
+	}
+}
+###surprise attack modifier apply
+fleet_event = {
+	id = als.120
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = leader
+		exists = fleet
+		is_scope_type = fleet
+		leader = {
+			OR = {
+				has_trait = als_trait_tactic_surprise_attack
+				has_trait = als_trait_tactic_surprise_attack_expert
+			}
+		}
+	}
+	immediate = {
+		save_event_target_as = als_surprise_attacker_fleet
+		owner = {
+			save_event_target_as = als_surprise_attacker
+		}
+		leader = {
+			if = {
+				limit = {
+					has_trait = als_trait_tactic_surprise_attack
+				}
+				set_timed_leader_flag = {
+					flag = als_admiral_has_tactic_surprise_attack_just_ftled
+					days = 10
+				}
+			}
+			if = {
+				limit = {
+					has_trait = als_trait_tactic_surprise_attack_expert
+				}
+				set_timed_leader_flag = {
+					flag = als_admiral_has_tactic_surprise_attack_just_ftled_expert
+					days = 10
+				}
+			}
+		}
+		solar_system = {
+			every_fleet_in_system = {
+				limit = {
+					NOT = {
+						is_same_value = event_target:als_surprise_attacker_fleet
+					}
+					NOT = {
+						has_fleet_flag = als_fleet_has_surprise_attack_modifiers
+					}
+					NOT = {
+						owner = {
+							is_same_empire = event_target:als_surprise_attacker
+						}
+					}	
+					owner = {
+						is_at_war_with = event_target:als_surprise_attacker
+					}
+				}
+				if = {
+					limit = {
+						event_target:als_surprise_attacker_fleet = {
+							exists = leader
+							leader = {
+								has_leader_flag = als_admiral_has_tactic_surprise_attack_just_ftled
+							}
+						}
+						
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = als_fleet_particle_surprise_attack_flag
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_particle_surprise_attack_flag
+							days = 1
+						}
+						create_ambient_object = {
+							type = als_particle_surprise_attack_effect
+							scale = 15
+							location = this
+							use_3d_location = no
+							entity_offset = { min = 0 max = 0 }
+							entity_offset_angle = { min = 0 max = 0 }
+							entity_offset_height = { min = 0 max = 0 }
+							entity_scale_to_size = yes
+							play_animation_once = yes
+							duration = 60
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_has_surprise_attack_modifiers
+						days = 45
+					}
+					add_modifier = {
+						modifier = als_tactic_surprise_attack_modifier
+						days = 45
+					}
+				}
+				if = {
+					limit = {
+						event_target:als_surprise_attacker_fleet = {
+							exists = leader
+							leader = {
+								has_leader_flag = als_admiral_has_tactic_surprise_attack_just_ftled_expert
+							}
+						}
+					}
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = als_fleet_particle_surprise_attack_flag
+							}
+						}
+						set_timed_fleet_flag = {
+							flag = als_fleet_particle_surprise_attack_flag
+							days = 1
+						}
+						create_ambient_object = {
+							type = als_particle_surprise_attack_effect
+							scale = 15
+							location = this
+							use_3d_location = no
+							entity_offset = { min = 0 max = 0 }
+							entity_offset_angle = { min = 0 max = 0 }
+							entity_offset_height = { min = 0 max = 0 }
+							entity_scale_to_size = yes
+							play_animation_once = yes
+							duration = 60
+						}
+					}
+					set_timed_fleet_flag = {
+						flag = als_fleet_has_surprise_attack_modifiers
+						days = 45
+					}
+					add_modifier = {
+						modifier = als_tactic_surprise_attack_modifier_expert
+						days = 45
+					}
+				}
+			}
+		}
+	}
+}
+
+
+###general Tactic effects end&remain gateway 
+fleet_event = {
+	id = als.200
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = leader
+		exists = event_target:als_fleet_scope
+		is_scope_type = fleet
+		is_scope_valid = yes
+	}
+
+	immediate = {
+		leader = {
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_bottled_up
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_bottled_up_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+				}
+				else = {
+					remove_trait = als_trait_tactic_bottled_up_inactive1
+					remove_trait = als_trait_tactic_bottled_up_inactive2
+					remove_trait = als_trait_tactic_bottled_up_inactive3
+					remove_trait = als_trait_tactic_bottled_up_inactive4
+					remove_trait = als_trait_tactic_bottled_up_inactive5
+					remove_trait = als_trait_tactic_bottled_up_inactive6
+					remove_trait = als_trait_tactic_bottled_up_inactive7
+					effect_als_bottled_up_add_trait_no_notify = yes	
+					remove_trait = als_trait_tactic_bottled_up_actived
+					remove_leader_flag = als_admiral_has_tactic_bottled_up
+				}
+			}
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_bottled_up_expert
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_bottled_up_expert_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+				}
+				else = {
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive1
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive2
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive3
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive4
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive5
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive6
+					remove_trait = als_trait_tactic_bottled_up_expert_inactive7
+					effect_als_bottled_up_expert_add_trait_no_notify = yes
+					remove_trait = als_trait_tactic_bottled_up_expert_actived
+					remove_leader_flag = als_admiral_has_tactic_bottled_up_expert
+				}
+			}
+			
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_fox_tiger
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_fox_tiger_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+					
+				}
+				else = {
+					remove_trait = als_trait_tactic_fox_tiger_inactive1
+					remove_trait = als_trait_tactic_fox_tiger_inactive2
+					remove_trait = als_trait_tactic_fox_tiger_inactive3
+					remove_trait = als_trait_tactic_fox_tiger_inactive4
+					remove_trait = als_trait_tactic_fox_tiger_inactive5
+					remove_trait = als_trait_tactic_fox_tiger_inactive6
+					remove_trait = als_trait_tactic_fox_tiger_inactive7
+					effect_als_fox_tiger_add_trait_no_notify = yes
+					remove_trait = als_trait_tactic_fox_tiger_actived
+					remove_leader_flag = als_admiral_has_tactic_fox_tiger
+				}
+			}
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_fox_tiger_expert
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_fox_tiger_expert_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+				}
+				else = {
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive1
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive2
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive3
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive4
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive5
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive6
+					remove_trait = als_trait_tactic_fox_tiger_expert_inactive7
+					effect_als_fox_tiger_expert_add_trait_no_notify = yes
+					remove_trait = als_trait_tactic_fox_tiger_expert_actived
+					remove_leader_flag = als_admiral_has_tactic_fox_tiger_expert
+				}
+			}
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_lurker
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_lurker_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+				}
+				else = {
+					add_trait_no_notify = als_trait_tactic_lurker
+					remove_leader_flag = als_admiral_has_tactic_lurker
+				}
+			}
+			if = {
+				limit = {
+					has_leader_flag = als_admiral_has_tactic_lurker_expert
+				}
+				if = {
+					limit = {
+						root = {
+							is_in_combat = yes
+						}
+					}
+					add_timed_trait = { 
+						trait = als_trait_tactic_lurker_expert_actived
+						days = 30
+					}
+					set_cooldown = 30
+					root = {
+						fleet_event = { id = als.200 days = 30 }
+					}
+				}
+				else = {
+					remove_leader_flag = als_admiral_has_tactic_lurker_expert
+					add_trait_no_notify = als_trait_tactic_lurker_expert
+				}
+			}
+			effect_als_refresh_admiral_traits = yes	
+			als_remove_admirals_base_4_traits = yes
+			als_refresh_admirals_base_4_traits = yes
+		}
+	}
+}
+country_event = {
+	id = als.201
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		any_owned_fleet = {
+			is_in_combat = no
+			exists = leader
+			leader = {
+				leader_class = admiral
+				OR = {
+					has_trait = als_trait_tactic_bottled_up_actived
+					has_trait = als_trait_tactic_bottled_up_expert_actived
+					has_trait = als_trait_tactic_fox_tiger_actived
+					has_trait = als_trait_tactic_fox_tiger_expert_actived
+				}
+			}
+		}
+	}
+	immediate = {
+		random_owned_fleet = {
+			limit = {
+				is_in_combat = no
+				exists = leader
+				leader = {
+					leader_class = admiral
+					OR = {
+						has_trait = als_trait_tactic_bottled_up_actived
+						has_trait = als_trait_tactic_bottled_up_expert_actived
+						has_trait = als_trait_tactic_fox_tiger_actived
+						has_trait = als_trait_tactic_fox_tiger_expert_actived
+					}
+				}
+			}
+			leader = {
+				switch = {
+					trigger = has_trait
+					als_trait_tactic_bottled_up_actived = {
+						effect_als_bottled_up_add_trait_no_notify = yes
+					}
+					als_trait_tactic_bottled_up_expert_actived = {
+						effect_als_bottled_up_expert_add_trait_no_notify = yes
+					}
+					als_trait_tactic_fox_tiger_actived = {
+						effect_als_fox_tiger_add_trait_no_notify = yes
+					}
+					als_trait_tactic_fox_tiger_expert_actived = {
+						effect_als_fox_tiger_expert_add_trait_no_notify = yes
+					}
+				}
+			}
+		}
+	}
+}
+#strategic month ally effect
+country_event = {
+	id = als.250
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		any_owned_fleet = {
+			exists = leader
+			leader = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+			}
+		}
+	}
+	immediate = {
+		every_owned_fleet = {
+			limit = {
+				exists = leader
+				leader = {
+					has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				}
+				exists = solar_system
+			}
+			save_event_target_as = als_fleet_with_leader
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						exists = owner
+						NOT = {
+							is_same_value = event_target:als_fleet_with_leader
+						}	
+						OR = {
+							is_owned_by = root
+							is_alliance_fleet = yes
+							owner = {
+								NOR = {
+									is_at_war_with = root
+									is_same_empire = root
+								}
+								OR = {
+									is_forced_friendly = root
+									is_in_federation_with = root
+									has_defensive_pact = root
+								}
+							}
+						}
+						
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = energy
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = explosive
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = kinetic
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = point_defense
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = strike_craft
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = artillery
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = anti_hull
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = anti_armor
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = anti_shield
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = border
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = engineer
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = hyperliner
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = invader
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = jumpdriver
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = logistician
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = preaim
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = Resonator
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = sharpshooter
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = skyrocket
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = triggerfinger
+					}
+					als_set_strategic_ally_modifier = {
+						strategic_name = fortify
+					}
+				}
+			}
+		}
+	}
+}
+
+#For ai country only
+country_event = {
+	id = als.300
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		is_ai = yes
+		any_owned_leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+			has_skill >= 3
+			NOT = {
+				has_leader_flag = als_ai_admiral_has_unlocked_a_tactic
+			}
+		}
+	}
+	immediate = {
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				has_skill >= 3
+				NOT = {
+					has_leader_flag = als_ai_admiral_has_update_a_strategy
+				}
+			}
+			set_timed_leader_flag = {
+				flag = als_ai_admiral_has_update_a_strategy
+				days = 3600
+			}
+			random_list = {
+				1 = {}
+				1 = {
+					als_admiral_remove_all_strategic_traits = yes
+					random_list = {
+						10 = {
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_energy
+											has_trait = als_trait_strategic_energy_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_energy
+						}
+						10 = {
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_explosive
+											has_trait = als_trait_strategic_explosive_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_explosive
+						}
+						10 = {
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_kinetic
+											has_trait = als_trait_strategic_kinetic_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_kinetic
+						}
+						10 = {
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_point_defense
+											has_trait = als_trait_strategic_point_defense_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_point_defense
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								root = {
+									NOR = {
+										has_technology = tech_strike_craft_1
+										has_technology = tech_strike_craft_2
+										has_technology = tech_strike_craft_3
+									}
+								}
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_strike_craft
+											has_trait = als_trait_strategic_strike_craft_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_strike_craft
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_artillery
+											has_trait = als_trait_strategic_artillery_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_artillery
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_anti_hull
+											has_trait = als_trait_strategic_anti_hull_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_anti_hull
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_anti_armor
+											has_trait = als_trait_strategic_anti_armor_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_anti_armor
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_anti_shield
+											has_trait = als_trait_strategic_anti_shield_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_anti_shield
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 5
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_engineer
+											has_trait = als_trait_strategic_engineer_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_engineer
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								root = {
+									NOR = {
+										has_technology = tech_jump_drive_1
+										has_technology = tech_psi_jump_drive_1
+									}
+								}
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_jumpdriver
+											has_trait = als_trait_strategic_jumpdriver_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_jumpdriver
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 4
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_preaim
+											has_trait = als_trait_strategic_preaim_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_preaim
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 5
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_Resonator
+											has_trait = als_trait_strategic_Resonator_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_Resonator
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 5
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_sharpshooter
+											has_trait = als_trait_strategic_sharpshooter_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_sharpshooter
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_skyrocket
+											has_trait = als_trait_strategic_skyrocket_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_skyrocket
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_fortify
+											has_trait = als_trait_strategic_fortify_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_fortify
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_border
+											has_trait = als_trait_strategic_border_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_border
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_hyperliner
+											has_trait = als_trait_strategic_hyperliner_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_hyperliner
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_invader
+											has_trait = als_trait_strategic_invader_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_invader
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_logistician
+											has_trait = als_trait_strategic_logistician_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_logistician
+						}
+						10 = {
+							modifier = {
+								factor = 0
+								has_skill < 3
+							}
+							modifier = {
+								factor = 0.1
+								root = {
+									any_owned_leader = {
+										OR = {
+											has_trait = als_trait_strategic_triggerfinger
+											has_trait = als_trait_strategic_triggerfinger_expert
+										}
+									}
+								}
+							}
+							add_trait_no_notify = als_trait_strategic_triggerfinger
+						}
+					}
+				}
+			}
+			effect_als_refresh_admiral_traits = yes	
+			als_remove_admirals_base_4_traits = yes
+			als_refresh_admirals_base_4_traits = yes
+		}
+		random_owned_leader = {
+			limit = {
+				leader_class = admiral
+				has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+				has_skill >= 5
+				NOT = {
+					has_trait = als_trait_tactic_locked
+				}
+				NOT = {
+					has_leader_flag = als_ai_admiral_has_unlocked_a_tactic
+				}
+			}
+			set_timed_leader_flag = {
+				flag = als_ai_admiral_has_unlocked_a_tactic
+				days = 7200
+			}
+			als_admiral_remove_all_tactic_traits = yes
+			remove_trait = als_trait_tactic_locked_unlockable
+			random_list = {
+				10 = { #ambush
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_ambush
+									has_trait = als_trait_tactic_ambush_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_ambush
+				}
+				5 = { #bottled_up
+					add_trait_no_notify = als_trait_tactic_bottled_up_inactive1
+				}
+				10 = { #camper
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_camper
+									has_trait = als_trait_tactic_camper_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_camper
+				}
+				10 = { #first strike
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_first_strike
+									has_trait = als_trait_tactic_first_strike_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_first_strike
+				}
+				1 = { #foresight
+					modifier = {
+						factor = 0
+						has_skill < 8
+					}
+					modifier = {
+						factor = 0
+						check_als_admiral_is_psionic = no
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_foresight
+									has_trait = als_trait_tactic_foresight_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_foresight
+				}
+				5 = { #fox tiger
+					add_trait_no_notify = als_trait_tactic_fox_tiger_inactive1
+				}
+				10 = { #immune
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_immune
+									has_trait = als_trait_tactic_immune_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_immune
+				}
+				10 = { #jammer
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0
+						check_als_admiral_is_machine = no
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_jammer
+									has_trait = als_trait_tactic_jammer_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_jammer
+				}
+				10 = { #long range
+					modifier = {
+						factor = 0.1
+						root = {
+							NOR = {
+								has_technology = tech_cruisers
+								has_technology = tech_battleships
+							}
+						}
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_long_range
+									has_trait = als_trait_tactic_long_range_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_long_range
+				}
+				5 = { #lurker
+					add_trait_no_notify = als_trait_tactic_lurker
+				}
+				10 = { #self sacrifice
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_self_sacrifice
+									has_trait = als_trait_tactic_self_sacrifice_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_self_sacrifice
+				}
+				10 = { #snowball
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_snowball
+									has_trait = als_trait_tactic_snowball_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_snowball
+				}
+				10 = { #surprise attack
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_surprise_attack
+									has_trait = als_trait_tactic_surprise_attack_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_surprise_attack
+				}
+				10 = { #unpredictable
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_unpredictable
+									has_trait = als_trait_tactic_unpredictable_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_unpredictable
+				}
+				10 = { #untoachable
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0
+						check_als_admiral_is_psionic = no
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_untoachable
+									has_trait = als_trait_tactic_untoachable_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_untoachable
+				}
+				10 = { #bomber
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_bomber
+									has_trait = als_trait_tactic_bomber_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_bomber
+				}
+				10 = { #bloodthirst
+					modifier = {
+						factor = 0
+						has_skill < 7
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_bloodthirst
+									has_trait = als_trait_tactic_bloodthirst_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_bloodthirst
+				}
+				10 = { #cybershield
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0
+						check_als_admiral_is_machine = no
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_cybershield
+									has_trait = als_trait_tactic_cybershield_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_cybershield
+				}
+				10 = { #morale
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_morale
+									has_trait = als_trait_tactic_morale_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_morale
+				}
+				10 = { #scavenger
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_scavenger
+									has_trait = als_trait_tactic_scavenger_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_scavenger
+				}
+				10 = { #spreadshot
+					modifier = {
+						factor = 0
+						has_skill < 8
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_spreadshot
+									has_trait = als_trait_tactic_spreadshot_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_spreadshot
+				}
+				10 = { #abruptstop
+					modifier = {
+						factor = 0
+						has_skill < 7
+					}
+					modifier = {
+						factor = 0
+						check_als_admiral_is_machine = no
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_abruptstop
+									has_trait = als_trait_tactic_abruptstop_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_abruptstop
+				}
+				10 = { #surrounded
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_surrounded
+									has_trait = als_trait_tactic_surrounded_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_surrounded
+				}
+				10 = { #breakthrough
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_breakthrough
+									has_trait = als_trait_tactic_breakthrough_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_breakthrough
+				}
+				10 = { #reactarmor
+					modifier = {
+						factor = 0
+						has_skill < 6
+					}
+					modifier = {
+						factor = 0.1
+						root = {
+							any_owned_leader = {
+								OR = {
+									has_trait = als_trait_tactic_reactarmor
+									has_trait = als_trait_tactic_reactarmor_expert
+								}
+							}
+						}
+					}
+					add_trait_no_notify = als_trait_tactic_reactarmor
+				}
+			}
+			effect_als_refresh_admiral_traits = yes	
+			als_remove_admirals_base_4_traits = yes
+			als_refresh_admirals_base_4_traits = yes
+		}
+		
+	}
+}
+
+event = {
+	id = als.1000
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_playable_country = {
+			every_owned_leader = {
+				limit = {
+					leader_class = admiral
+				}
+				set_skill = 10
+			}
+		}
+	}
+}
+
+
+
+country_event = {
+ 	id = als.2333
+ 	hide_window = yes
+	is_triggered_only = yes
+
+ 	trigger = { always = no }
+
+ 	immediate = {
+		if = {
+			limit = { NOT = { exists = event_target:shroud_country_pse } }
+			create_country = {
+				name = "NAME_Creatures_of_the_Shroud"
+				type = pse_shroud_spirits
+				flag = {
+					icon = {
+						category = "special"
+						file = "the_shroud.dds"
+					}
+					background= {
+						category = "backgrounds"
+						file = "00_solid.dds"
+					}
+					colors={
+						"dark_purple"
+						"black"
+						"null"
+						"null"
+					}
+				}
+			}
+			last_created_country = {
+				establish_communications_no_message = root
+				save_global_event_target_as = shroud_country_pse
+			}
+		}
+		event_target:shroud_country_pse = {
+			set_faction_hostility = {
+				set_friendly = no
+				set_hostile = yes
+				target = root
+			}
+		}
+ 		capital_scope = {
+ 			create_fleet = {
+ 				name = "NAME_Raiding_Fleet"
+ 				effect = {
+ 					set_owner = event_target:shroud_country_pse
+ 					while = {
+ 						count = 16
+ 						create_ship = {
+ 							name = random
+ 							design = "NAME_Outrider"
+ 							prefix = no
+ 							graphical_culture = "pirate_01"
+ 						}
+ 					}
+ 					while = {
+ 						count = 1
+ 						create_ship = {
+ 							name = random
+ 							design = "NAME_Lancer"
+ 							prefix = no
+ 							graphical_culture = "pirate_01"
+ 						}
+ 					}
+ 					while = {
+ 						count = 1
+ 						create_ship = {
+ 							name = random
+ 							design = "NAME_Void_Champion"
+ 							prefix = no
+ 							graphical_culture = "pirate_01"
+ 						}
+ 					}
+ 					set_location = prev
+ 				}
+ 			}
+ 		}
+ 	}
+ }
+
+country_event = {
+	id = als.2345
+	title = als.2345.title
+	desc = als.2345.desc
+	picture = GFX_evt_als_star_wars_weapons
+	show_sound = event_ship_thrusters
+	is_triggered_only = yes
+	fire_only_once = yes
+	option = {
+		name = als.2345.a
+		custom_tooltip = als.2345.tooltip
+	}
+}
+
+#From = Planet/Starbase/Megastructure scope
+#This = Fleet scope
+fleet_event = {
+	id = als.9999
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			is_ai = no
+		}
+		exists = leader
+		is_in_combat = no
+		leader = {
+			leader_class = admiral
+			has_leader_flag = als_admiral
+			NOT = {
+				has_leader_flag = als_admiral_has_active_tactic_traits
+			}
+			has_leader_flag = als_admiral_has_strategy_and_tactic_traits
+		}
+		from = {
+			NOR = {
+				is_scope_type = starbase
+				is_scope_type = megastructure
+			}
+			is_owned_by = root.owner
+			has_orbital_bombardment = no
+			is_occupied_flag = no
+			has_ground_combat = no
+			is_under_colonization = no
+			is_under_crisis_bombardment = no
+			OR = {
+				is_colony = yes
+				is_capital = yes
+			}
+			owner = {
+				NOR = {
+					has_active_event = {
+						als.9999
+					}
+					has_active_event = {
+						als.10000
+					}
+				}
+			}
+		}
+
+	}
+	immediate = {
+		from = {
+			save_event_target_as = als_planet
+		}
+		leader = {
+			save_event_target_as = als_admiral
+			owner = {
+			#	set_country_flag = als_admiral_has_machine_traits #DEBUG
+			#	set_country_flag = als_admiral_has_psionic_traits #DEBUG
+			}
+			if = {
+				limit = {
+					check_als_admiral_is_machine = yes
+				}
+				owner = {
+					set_country_flag = als_admiral_has_machine_traits
+				}
+			}
+			if = {
+				limit = {
+					check_als_admiral_is_psionic = yes
+				}
+				owner = {
+					set_country_flag = als_admiral_has_psionic_traits
+				}
+			}
+		}
+		
+		owner = {
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = energy
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = explosive
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = kinetic
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = point_defense
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = strike_craft
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = artillery
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = anti_hull
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = anti_armor
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = anti_shield
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = border
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = engineer
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = hyperliner
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = invader
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = jumpdriver
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = logistician
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = preaim
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = Resonator
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = sharpshooter
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = skyrocket
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = triggerfinger
+			}
+			als_set_country_strategic_flag_from_admiral_for_swaping_menu = {
+				strategic_name = fortify
+			}
+			##
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = ambush
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = camper
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = first_strike
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = foresight
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = immune
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = jammer
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = long_range
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = lurker
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = self_sacrifice
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = snowball
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = surprise_attack
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = unpredictable
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = untoachable
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = bomber
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = bloodthirst
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = cybershield
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = morale
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = scavenger
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = spreadshot
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = abruptstop
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = surrounded
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = breakthrough
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu = {
+				tactic_name = reactarmor
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu_for_bottled_up_and_fox_tiger = {
+				tactic_name = bottled_up
+			}
+			als_set_country_tactic_flag_from_admiral_for_swaping_menu_for_bottled_up_and_fox_tiger = {
+				tactic_name = fox_tiger
+			}
+			set_variable = {
+				which = als_admiral_currect_skill_level
+				value = event_target:als_admiral.trigger:has_skill
+			}
+			set_variable = {
+				which = als_admiral_currect_accuracy_exp
+				value = event_target:als_admiral.als_accuracy_exp
+			}
+			set_variable = {
+				which = als_admiral_currect_movement_exp
+				value = event_target:als_admiral.als_movement_exp
+			}
+			set_variable = {
+				which = als_admiral_currect_siege_exp
+				value = event_target:als_admiral.als_siege_exp
+			}
+			set_variable = {
+				which = als_admiral_currect_shock_exp
+				value = event_target:als_admiral.als_shock_exp
+			}
+		}
+		leader = {
+			leader_event = {
+				id = als.10001
+			}
+		}
+	}
+	
+}
+
+leader_event = {
+	id = als.10001
+	title = als.9999.name
+	desc = als.9999.desc
+	is_triggered_only = yes
+	picture = GFX_evt_federation_fleet
+	show_sound = event_laboratory_sound
+
+	trigger = {
+		exists = owner
+		is_same_value = event_target:als_admiral
+	}
+
+	event_window_type = leader_story
+	event_picture_background = "GFX_leader_recruitment_bg_renowned"
+
+	picture_event_data = {
+		portrait = root
+	}
+
+	option = {
+		name = als.9999.a
+		hidden_effect = {
+			owner = {
+				country_event = {
+					id = als.10000
+				}
+			}
+		}
+	}
+	option = {
+		name = als.10000.b
+		hidden_effect = {
+			owner = {
+				als_menu_clean_other_strategic_selected_flag_effect = yes
+				als_menu_clean_other_tactic_selected_flag_effect = yes
+				als_clean_country_currect_trait_flags = yes
+				remove_country_flag = als_admiral_can_expertise_strategic_trait
+				remove_country_flag = als_admiral_can_expertise_tactic_trait
+				remove_country_flag = als_admiral_will_swap_strategic_trait
+				remove_country_flag = als_admiral_will_swap_tactic_trait
+				remove_country_flag = als_admiral_has_machine_traits
+				remove_country_flag = als_admiral_has_psionic_traits
+				clear_variable = als_admiral_currect_accuracy_exp
+				clear_variable = als_admiral_currect_movement_exp
+				clear_variable = als_admiral_currect_siege_exp
+				clear_variable = als_admiral_currect_shock_exp
+				clear_variable = als_admiral_currect_skill_level
+			}	
+		}	
+	}
+}
+
+country_event = {
+	id = als.10000
+	title = als.10000.title
+	desc = als.10000.desc
+	is_triggered_only = yes
+	diplomatic = yes
+	custom_gui = "als_window"
+	picture_event_data = {
+		portrait = event_target:als_admiral
+	}
+
+	trigger = {
+		is_ai = no
+		NOT = {
+			has_active_event = {
+				als.10000
+			}
+		}
+	}
+
+	immediate = {
+		
+	}
+	after = {
+		hidden_effect = {
+			als_menu_clean_other_strategic_selected_flag_effect = yes
+			als_menu_clean_other_tactic_selected_flag_effect = yes
+			als_clean_country_currect_trait_flags = yes
+			remove_country_flag = als_admiral_can_expertise_strategic_trait
+			remove_country_flag = als_admiral_can_expertise_tactic_trait
+			remove_country_flag = als_admiral_will_swap_strategic_trait
+			remove_country_flag = als_admiral_will_swap_tactic_trait
+			remove_country_flag = als_admiral_has_machine_traits
+			remove_country_flag = als_admiral_has_psionic_traits
+			clear_variable = als_admiral_currect_accuracy_exp
+			clear_variable = als_admiral_currect_movement_exp
+			clear_variable = als_admiral_currect_siege_exp
+			clear_variable = als_admiral_currect_shock_exp
+			clear_variable = als_admiral_currect_skill_level
+	
+			event_target:als_admiral = {
+				effect_als_refresh_admiral_traits = yes	
+				als_remove_admirals_base_4_traits = yes
+				als_refresh_admirals_base_4_traits = yes
+			}	
+		}
+		
+	}
+	option = {
+		name = als.10000.a
+		allow = {
+			has_country_resource = {
+				type = influence
+				amount >= 75
+			}
+			hidden_trigger = {
+				exists = event_target:als_admiral
+				is_scope_type = country
+				OR = {
+					has_country_flag = als_admiral_will_swap_strategic_trait
+					has_country_flag = als_admiral_will_swap_tactic_trait
+				}	
+			}
+			
+		}
+		add_resource = {
+			influence = -75
+		}
+		hidden_effect = {
+			if = {
+				limit = {
+					has_country_flag = als_admiral_will_swap_strategic_trait
+				}
+				als_admiral_swap_strategic_traits_effect = yes
+			}
+			if = {
+				limit = {
+					has_country_flag = als_admiral_will_swap_tactic_trait
+				}
+				als_admiral_swap_tactic_traits_effect = yes
+			}
+			event_target:als_admiral = {
+				remove_trait = als_trait_tactic_locked_unlockable
+				remove_leader_flag = als_admiral_has_tactic_fox_tiger
+				remove_leader_flag = als_admiral_has_tactic_fox_tiger_expert
+				remove_leader_flag = als_admiral_has_tactic_bottled_up
+				remove_leader_flag = als_admiral_has_tactic_bottled_up_expert
+				remove_leader_flag = als_admiral_has_tactic_lurker
+				remove_leader_flag = als_admiral_has_tactic_lurker_expert
+			}	
+		}
+		
+	}
+
+	option = {
+		name = als.10000.b
+#		event_target:als_admiral = {
+#			set_skill = 10
+#		}	
+	}
+}

@@ -1,0 +1,88 @@
+##adds check to allow construction on O class stars and even to replace base with o class one
+
+starm_war_system_0 = {
+	entity = "construction_platform_entity"
+	construction_entity = "construction_platform_entity"
+	portrait = "GFX_megastructure_construction_background"
+	place_entity_on_planet_plane = no
+	prerequisites = { giga_tech_war_system_1 }
+
+	ai_weight = { factor = 0 }
+	build_time = 1800
+	resources = {
+		category = megastructures
+		cost = {
+			alloys = 10000
+			influence = 300
+			unity = @giga_tera_start_unity_cost
+		}
+		upkeep = { energy = 5 }
+	}
+
+	potential = {
+		is_ai = no
+		has_technology = giga_tech_war_system_1
+		has_ascension_perk = ap_systemcraft
+		NOT = { has_global_flag = systemcraft_disabled }
+		OR = {
+			check_variable = { which = giga_systemcraft_cap value = 0 }						# No Cap
+			check_variable = { which = giga_current_systemcraft value < giga_systemcraft_cap }
+		}
+	}
+
+	possible = {
+		custom_tooltip = { fail_text = "requires_no_habitable_planets"		NOT = { any_system_planet = { is_colony = yes } } }
+		custom_tooltip = { fail_text = "requires_inside_border"				is_inside_border = from }
+		custom_tooltip = { fail_text = "requires_no_crisis_system"			NOT = { any_system_planet = { has_planet_flag = crisis_vital_planet } } }
+		custom_tooltip = {
+			fail_text = "requires_not_capped"
+			from = {
+				OR = {
+					check_variable = { which = giga_systemcraft_cap value = 0 }						# No Cap
+					check_variable = { which = giga_current_systemcraft value < giga_systemcraft_cap }
+				}
+			}
+		}
+	}
+
+	placement_rules = {
+		planet_possible = {
+			custom_tooltip = { fail_text = "requires_no_existing_megastructure"				planet_has_no_megastructure = yes }
+			custom_tooltip = { fail_text = "must_build_around_star"							is_star = yes }
+			custom_tooltip = { fail_text = "requires_no_anomaly"							has_anomaly = no }
+			custom_tooltip = { 
+				fail_text = "requires_standard_o_star_planet_class"			
+					giga_is_o_star_for_megas= yes ##can build on O stars
+				NOT = {
+					giga_is_bitrinary = yes
+				}
+			}
+		}
+	}
+
+	on_build_complete = {
+		save_event_target_as = giga_system
+		if = { limit = { exists = fromfrom.planet } fromfrom.planet = { save_event_target_as = giga_planet } }
+		from = {
+			country_event = { id = giga_dialog.2802 }	# Notification
+			change_variable = { which = giga_current_systemcraft value = 1 }
+		}
+		fromfrom.planet = {
+			if = { limit = { exists = orbital_station } orbital_station = { dismantle = yes } }
+			set_planet_flag = megastructure			# Vanilla uses to check if a megastrucure can be built here
+			set_planet_flag = has_megastructure		# Vanilla uses to check if an orbital station can be built here
+		}
+		# if = { ##remove this construction site and spawn O class one
+		# 	limit = {
+		# 		fromfrom.planet = { is_planet_class = pc_giga_o_star }
+		# 	}
+			spawn_megastructure = { 
+				type = war_system_o_0
+				owner = from
+				coords_from = fromfrom.planet
+			}
+			remove_megastructure = fromfrom
+		# }
+		
+	}
+}

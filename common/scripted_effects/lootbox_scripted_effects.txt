@@ -1,0 +1,455 @@
+begin_crisis_lootbox = {
+	set_global_flag = mid_game_crisis_happened 			# this must be set and not removed
+	set_timed_global_flag = {							# this must be set and not removed
+		flag = mid_game_crisis_happened_recently
+		years = 12
+	}
+	set_global_flag = lootbox_in_progress 				# must be removed when crisis is resolved
+	set_global_flag = lootbox_fired 					# (optional) only set this flag if you want your crisis to fire only once
+	set_global_flag = midgame_crisis_ongoing			# must be removed when crisis is resolved
+	# BOOM BOOM PEW PEW effects go here
+	# this is in country scope, on global event country
+	every_playable_country = {
+		set_country_flag = lootbox_occur_in_country
+		save_event_target_as = lootbox_selected_country
+		random_owned_planet = {
+			limit = {
+				is_capital = yes
+			}
+			save_event_target_as = lootbox_location
+		}
+		if = { #If host has nemesis DLC, a box ship spawns in your capital (Just for deco as its not possible to destroy it)
+			limit = {
+				host_has_dlc = Nemesis
+			}
+			if = {
+				limit = {
+					NOT = {
+						exists = event_target:lootbox_country
+					}
+				}
+				create_country = {
+					name = "NAME_lootbox_country"
+					type = lootbox_from_other_space
+					flag = {
+						icon = {
+							category="corporate"
+							file="corporate_08.dds"
+						}
+						background= {
+							category="backgrounds"
+							file="flag_BG_19.dds"
+						}
+						colors={
+							"light_orange"
+							"black"
+							"null"
+							"null"
+						}
+					}
+				}
+				last_created_country = {
+					save_global_event_target_as = lootbox_country
+					set_faction_hostility = {
+						set_hostile = no
+						set_neutral = yes
+						set_friendly = no
+					}
+				}
+			}
+			event_target:lootbox_country = {
+				establish_communications_no_message = event_target:lootbox_selected_country
+			}
+			create_fleet = {
+				effect = {
+					set_owner = event_target:lootbox_country
+					create_ship = {
+						name = "NAME_lootbox_from_other_world"
+						design = "NAME_lootbox_from_other_world"							
+					}
+					last_created_ship = {
+						set_ship_flag = lootbox_crisis_ship
+						set_ship_flag = lootbox_country_box_from_owner_id_@event_target:lootbox_selected_country
+						set_disable_at_health = 0.9
+						ship_event = { #in case of edge case of country destroyed before situation starts
+							id = lootbox_crisis.5
+							days = 7200
+						}
+					}
+					set_fleet_stance = passive
+					set_location = event_target:lootbox_location
+				}		
+				settings = {
+					is_boss = yes
+					can_disband = no
+					can_upgrade = no
+					can_change_composition = no	
+					spawn_debris = no
+					can_change_leader = no
+					uses_naval_capacity = no
+				}
+			}
+		}
+		country_event = {
+			id = lootbox_crisis.1
+			days = 5
+		}
+	}
+	every_playable_country = {
+		limit = {
+			NOT = {
+				has_country_flag = lootbox_occur_in_country
+			}
+		}
+		country_event = {
+			id = lootbox_crisis.51
+			days = 30
+		}
+	}
+}
+
+effect_set_lootbox_reward_flag = {
+	set_country_flag = lootbox_crisis_reward_$NAME$
+}
+
+effect_give_lootbox_reward_modifiers = {
+	if = {
+		limit = {
+			has_country_flag = lootbox_crisis_reward_$NAME$
+		}
+		add_modifier = {
+			modifier = lootbox_reward_$NAME$
+			days = -1
+		}
+		remove_country_flag = lootbox_crisis_reward_$NAME$
+	}
+}
+
+effect_run_lootbox_drain_tier_one_resource = {
+	if = { #base
+		limit = {
+			NOT = {
+				is_variable_set = lootbox_country_total_drained_resource_num
+			}
+		}
+		set_variable = {
+			which = lootbox_country_total_drained_resource_num
+			value = 0
+		}
+	}
+	if = { #base
+		limit = {
+			NOT = {
+				is_variable_set = lootbox_country_total_drained_resource_randomizer_num
+			}
+		}
+		set_variable = {
+			which = lootbox_country_total_drained_resource_randomizer_num
+			value = 0
+		}
+	}
+	export_resource_income_to_variable = {
+		resource = $RESOURCE$
+		variable = lootbox_country_monthly_$RESOURCE$
+	}
+	if = { #If one resource income is negative
+		limit = {
+			check_variable = {
+				which = lootbox_country_monthly_$RESOURCE$
+				value <= 0
+			}
+		}
+		set_variable_to_random_value = {
+			which = lootbox_country_monthly_$RESOURCE$
+			min = 1
+			max = 50
+			rounded = yes
+		}
+	}
+	set_variable_to_random_value = { #random number 1 to 33
+		which = lootbox_country_total_drained_resource_randomizer_num
+		min = 0.5
+		max = 1.5
+		rounded = no
+	}
+	multiply_variable = {
+		which = lootbox_country_monthly_$RESOURCE$
+		value = lootbox_country_total_drained_resource_randomizer_num
+	}
+	export_resource_stockpile_to_variable = { #
+		resource = $RESOURCE$
+		variable = lootbox_country_total_$RESOURCE$
+	}
+	divide_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = 50
+	}
+	change_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = lootbox_country_monthly_$RESOURCE$
+	}
+	multiply_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = $SCALE$
+	}
+	round_variable = lootbox_country_total_$RESOURCE$	
+	change_variable = { #Calc total loss
+		which = lootbox_country_total_drained_resource_num
+		value = lootbox_country_total_$RESOURCE$
+	}
+	add_modifier = {
+		modifier = lootbox_drain_$RESOURCE$
+		days = -1
+		multiplier = lootbox_country_total_$RESOURCE$
+	}
+}
+
+effect_run_lootbox_predrain_tier_one_resource = { #same as above but without add_modifier
+	if = { #base
+		limit = {
+			NOT = {
+				is_variable_set = lootbox_country_total_drained_resource_num
+			}
+		}
+		set_variable = {
+			which = lootbox_country_total_drained_resource_num
+			value = 0
+		}
+	}
+	if = { #base
+		limit = {
+			NOT = {
+				is_variable_set = lootbox_country_total_drained_resource_randomizer_num
+			}
+		}
+		set_variable = {
+			which = lootbox_country_total_drained_resource_randomizer_num
+			value = 0
+		}
+	}
+	export_resource_income_to_variable = {
+		resource = $RESOURCE$
+		variable = lootbox_country_monthly_$RESOURCE$
+	}
+	if = { #If one resource income is negative
+		limit = {
+			check_variable = {
+				which = lootbox_country_monthly_$RESOURCE$
+				value <= 0
+			}
+		}
+		set_variable_to_random_value = {
+			which = lootbox_country_monthly_$RESOURCE$
+			min = 1
+			max = 50
+			rounded = yes
+		}
+	}
+	set_variable_to_random_value = { #random number 1 to 33
+		which = lootbox_country_total_drained_resource_randomizer_num
+		min = 0.5
+		max = 1.5
+		rounded = no
+	}
+	multiply_variable = {
+		which = lootbox_country_monthly_$RESOURCE$
+		value = lootbox_country_total_drained_resource_randomizer_num
+	}
+	export_resource_stockpile_to_variable = {
+		resource = $RESOURCE$
+		variable = lootbox_country_total_$RESOURCE$
+	}
+	divide_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = 50
+	}
+	change_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = lootbox_country_monthly_$RESOURCE$
+	}
+	multiply_variable = {
+		which = lootbox_country_total_$RESOURCE$
+		value = $SCALE$
+	}
+	round_variable = lootbox_country_total_$RESOURCE$	
+	change_variable = { #Calc total loss
+		which = lootbox_country_total_drained_resource_num
+		value = lootbox_country_total_$RESOURCE$
+	}
+}
+
+effect_run_lootbox_shiftdrain_tier_one_resource = { #used for 1020 Shifted event
+	export_resource_stockpile_to_variable = {
+		resource = $RESOURCE$
+		variable = lootbox_country_shift_$RESOURCE$
+	}
+	divide_variable = {
+		which = lootbox_country_shift_$RESOURCE$
+		value = 10
+	}
+	round_variable = lootbox_country_shift_$RESOURCE$	
+	change_variable = { #Calc total loss
+		which = lootbox_country_total_drained_resource_num
+		value = lootbox_country_shift_$RESOURCE$
+	}
+	set_country_flag = lootbox_crisis.1020_is_$RESOURCE$
+}
+
+effect_run_lootbox_shiftdrain_losses_modifiers = {
+	if = {
+		limit = {
+			has_country_flag = lootbox_crisis.1020_is_$RESOURCE$
+		}
+		add_resource = {
+			$RESOURCE$ = -1
+			mult = lootbox_country_shift_$RESOURCE$
+		}
+		remove_country_flag = lootbox_crisis.1020_is_$RESOURCE$
+	}
+}
+
+effect_run_lootbox_shiftdrain_gain_modifiers = {
+	if = {
+		limit = {
+			has_country_flag = lootbox_crisis.1020_is_$RESOURCE$
+		}
+		add_resource = {
+			$RESOURCE$ = 2.5
+			mult = lootbox_country_shift_$RESOURCE$
+		}
+		remove_country_flag = lootbox_crisis.1020_is_$RESOURCE$
+	}
+}
+
+effect_run_lootbox_swap_country_resource = {
+	#Get number
+	event_target:swapped_country_situation_owner = {
+		export_resource_stockpile_to_variable = {
+			resource = $RESOURCE$
+			variable = lootbox_country_total_swapped_$RESOURCE$
+		}
+		set_country_flag = lootbox_crisis_swapped_$RESOURCE$
+	}
+	event_target:swapped_country_situation_victim = {
+		export_resource_stockpile_to_variable = {
+			resource = $RESOURCE$
+			variable = lootbox_country_total_swapped_$RESOURCE$
+		}
+		set_country_flag = lootbox_crisis_swapped_$RESOURCE$
+	}
+	#Let's swap
+	event_target:swapped_country_situation_owner = {
+		add_resource = {
+			$RESOURCE$ = -1
+			mult = event_target:swapped_country_situation_owner.lootbox_country_total_swapped_$RESOURCE$
+		}
+		add_resource = {
+			$RESOURCE$ = 1
+			mult = event_target:swapped_country_situation_victim.lootbox_country_total_swapped_$RESOURCE$
+		}
+		change_variable = {
+			which = lootbox_country_netgainloss_num
+			value = lootbox_country_total_swapped_$RESOURCE$
+		}
+		subtract_variable = {
+			which = lootbox_country_netgainloss_num
+			value = event_target:swapped_country_situation_victim.lootbox_country_total_swapped_$RESOURCE$
+		}
+	}
+	event_target:swapped_country_situation_victim = {
+		add_resource = {
+			$RESOURCE$ = -1
+			mult = event_target:swapped_country_situation_victim.lootbox_country_total_swapped_$RESOURCE$
+		}
+		add_resource = {
+			$RESOURCE$ = 1
+			mult = event_target:swapped_country_situation_owner.lootbox_country_total_swapped_$RESOURCE$
+		}
+		change_variable = {
+			which = lootbox_country_netgainloss_num
+			value = lootbox_country_total_swapped_$RESOURCE$
+		}
+		subtract_variable = {
+			which = lootbox_country_netgainloss_num
+			value = event_target:swapped_country_situation_owner.lootbox_country_total_swapped_$RESOURCE$
+		}
+	}
+}
+
+effect_run_lootbox_show_swapped_resource_num = {
+	if = {
+		limit = {
+			event_target:swapped_country_situation_owner = {
+				is_same_empire = root
+				has_country_flag = lootbox_crisis_swapped_$RESOURCE$
+			}
+		}
+		event_target:swapped_country_situation_owner = {
+			add_resource = {
+				$RESOURCE$ = -1
+				mult = event_target:swapped_country_situation_owner.lootbox_country_total_swapped_$RESOURCE$
+			}
+			add_resource = {
+				$RESOURCE$ = 1
+				mult = event_target:swapped_country_situation_victim.lootbox_country_total_swapped_$RESOURCE$
+			}
+		}
+	}
+	if = {
+		limit = {
+			event_target:swapped_country_situation_victim = {
+				is_same_empire = root
+				has_country_flag = lootbox_crisis_swapped_$RESOURCE$
+			}
+		}
+		event_target:swapped_country_situation_victim = {
+			add_resource = {
+				$RESOURCE$ = -1
+				mult = event_target:swapped_country_situation_victim.lootbox_country_total_swapped_$RESOURCE$
+			}
+			add_resource = {
+				$RESOURCE$ = 1
+				mult = event_target:swapped_country_situation_owner.lootbox_country_total_swapped_$RESOURCE$
+			}
+		}
+	}
+}
+
+effect_run_lootbox_refund_resource = {
+	if = {
+		limit = {
+			has_country_flag = lootbox_crisis_refund_$RESOURCE$
+		}
+		if = {
+			limit = {
+				OR = {
+					has_country_flag = lootbox_crisis_country_full_donated
+					AND = {
+						has_country_flag = lootbox_crisis_phase_2
+						NOT = {
+							has_country_flag = lootbox_crisis_phase_3
+						}
+						has_country_flag = lootbox_crisis_no_further_events
+					}
+				}
+			}
+			add_modifier = {
+				modifier = lootbox_refund_$RESOURCE$
+				months = 12
+				multiplier = lootbox_country_total_drained_resource_num
+			}
+		}
+		if = {
+			limit = {
+				has_country_flag = lootbox_crisis_phase_2
+				has_country_flag = lootbox_crisis_phase_3
+				has_country_flag = lootbox_crisis_no_further_events
+			}
+			add_modifier = {
+				modifier = lootbox_refund_$RESOURCE$
+				months = 36
+				multiplier = lootbox_country_total_drained_resource_num
+			}
+		}
+	}
+}

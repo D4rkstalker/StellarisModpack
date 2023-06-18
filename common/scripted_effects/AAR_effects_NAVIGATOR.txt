@@ -1,0 +1,142 @@
+###	大航海王effect	###############################################################
+#	AAR航海抵消FW
+
+
+
+
+###_[AAR航海抵消FW]			采用"常驻BUFF"+"临时抵消DEBUFF"的方式实现巡航速度的功能,可以最大限度减少bug
+#_evt	<aar航海接战/aar航海入场/aar航海雇主切换	/fw战斗循环框架/fw脱战框架>
+AAR_eft_flt_NAVIGATOR_offset_FW = {
+	if = { limit = { is_mobile = yes }	# |非防御设施|
+		switch = { trigger = has_fleet_flag
+		
+			###	aar航海入场		##############################################################################
+			#_list		切换到危险空域/切换到安全空域/重新进入DB
+			##_detail	通过|途经记录|切换,减少无意义触发
+			##_scopes	<root/this>=舰队/<from>=星系
+			TEMP_flg_flt_SYSTEM_enter = {
+				##	切换到危险空域
+				if = { limit = { has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE }
+					#	|途经记录|DB
+					remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE
+					set_timed_fleet_flag = { flag = AAR_flg_flt_NAVIGATOR_cross_DANGER	days = 90 }
+					#	modDB
+					add_modifier = { modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT		days = 360 multiplier = @AAR_svar_NAVIGATOR_combat }	# |1年足以摸清星系数据以加速离开|
+				}
+				##	切换到安全空域
+				else_if = { limit = { has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER }
+					#	|途经状态|DB
+					remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER
+					set_timed_fleet_flag = { flag = AAR_flg_flt_NAVIGATOR_cross_SAFE	days = 90 }
+					#	modDB
+					remove_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT
+				}
+				##	重新进入DB
+				else = {
+					#	|进入危险空域|
+					if = {
+						limit = {
+							from = {
+								OR = {
+									AND = { exists = space_owner	space_owner = { is_hostile = root.controller } }
+									any_fleet_in_system = { exists = controller		controller = { is_hostile = root.controller } }
+								}
+							}
+						}
+						#	|途经记录|DB
+						set_timed_fleet_flag = { flag = AAR_flg_flt_NAVIGATOR_cross_DANGER	days = 90 }
+						#	modDB
+						add_modifier = { modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT		days = 360 multiplier = @AAR_svar_NAVIGATOR_combat }	# |1年足以摸清星系数据以加速离开|
+					}
+					#	|进入安全空域|
+					else = {
+						#	|途经记录|DB
+						set_timed_fleet_flag = { flag = AAR_flg_flt_NAVIGATOR_cross_SAFE	days = 90 }
+						#	modDB
+						if = { limit = { any_owned_ship = { has_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT } }	# |存在削减修正|
+							#	清除残留mod
+							remove_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT
+						}
+					}
+				}
+			}
+
+
+			###	fw接战框架pc|单次触发|	##############################################################################
+			#_list		|航海AP国家|接战必然添加全额"AAR航海修正抵消"
+			TEMP_flg_flt_BATTLE_begin = {
+				#	|途经状态|清理
+				remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER
+				remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE
+				#	modDB
+				add_modifier = { modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT		days = 360 }	# |正常战斗不超过1年|
+			}
+
+
+			###	fw战斗循环框架	##############################################################################
+			#_list		|航海AP国家|=必然打断|速子水漂状态|,添加"AAR航海修正抵消"	/非|航海AP国家|=清除残留
+			TEMP_flg_flt_BATTLE_end = {
+				##	|执行FLG|切换	#####################################
+				switch = { trigger = has_fleet_flag
+					##	|条件检测|
+					TEMP_flg_flt_FW_condition = {
+						##	标签INIT
+						remove_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_clean
+						remove_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_add
+						
+						#	|航海AP国家|	=添加"AAR航海修正抵消",改变|途经状态|
+						if = { limit = { controller = { has_ascension_perk = AAR_AP_navigator } }
+							if = {
+								limit = {#[fw接战框架pc]已经清除所有|途经状态|, 若[fw战斗循环框架-截断循环]未检测到|途经状态|, 证明舰队|脱战|时未离开当前星系
+									NOR = {
+										has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER
+										has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE
+									}
+								}
+								#	|途经状态|DB
+								set_timed_fleet_flag = { flag = AAR_flg_flt_NAVIGATOR_cross_DANGER	days = 90 }
+								#	|执行FLG|DB
+								set_fleet_flag = EXECUTE_flg_flt_BATTLE_end		# |框架执行|
+								set_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_add	# |EFT执行|=添加
+							}
+						}
+						#	非|航海AP国家|	=残留清除
+						else = {
+							if = { limit = { any_controlled_ship = { has_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT } }
+								#	|执行FLG|DB
+								set_fleet_flag = EXECUTE_flg_flt_BATTLE_end		# |框架执行|
+								set_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_clean	# |EFT执行|=添加
+							}
+						}
+					}
+					##	|EFT执行|=清理
+					EXECUTE_flg_flt_NAVIGATOR_offset_FW_clean = {
+						remove_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_clean
+						#	modDB
+						remove_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT
+					}
+					##	|EFT执行|=添加
+					EXECUTE_flg_flt_NAVIGATOR_offset_FW_add = {
+						remove_fleet_flag = EXECUTE_flg_flt_NAVIGATOR_offset_FW_add
+						#	modDB
+						add_modifier = { modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT		days = 360 multiplier = @AAR_svar_NAVIGATOR_combat }	# |1年足以摸清星系数据以加速离开|
+					}
+				}
+			}
+
+
+			###	aar航海雇主切换	##############################################################################
+			#_list		|途经状态|清理	/|归还时|清理offset修正
+			#_scopes	<this/root>=舰队/<from>=租借者/<fromfrom>=所有者
+			TEMP_flg_flt_CONTROLLER_switch = {
+				#	|途经状态|清理
+				remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER
+				remove_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE
+				#	清理mod
+				remove_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT
+			}
+			
+		}
+	}
+}
+

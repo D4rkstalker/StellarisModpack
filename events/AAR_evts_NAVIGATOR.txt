@@ -1,0 +1,129 @@
+namespace = AAR_evt_NAVIGATOR
+#	aar航海接战
+#	aar航海入场
+#	aar航海雇主切换
+
+
+
+
+###_[aar航海接战]	仅pc
+#_<on_entering_battle>
+#_[AAR框架]		AAR航海抵消FW/AAR敌对海域FW/AAR防线触发FW
+##_scopes	<root>=攻击国家/<from>=防御国家		/<fromfrom>=攻击舰队/<fromfromfrom>=防御舰队
+country_event = {
+	id = AAR_evt_NAVIGATOR.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = fromfrom.controller	# 存在控制者
+		fromfrom = {
+			NOT = { has_fleet_flag = FW_flg_flt_NAVIGATOR_battle_enter_COUNT }	# 已触发事件
+			controller = { has_ascension_perk = AAR_AP_navigator }	# |航海国家|
+		}
+		#OR = {
+		#	fromfrom.controller = { is_ai = no }
+		#	fromfromfrom.controller = { is_ai = no }
+		#}
+	}
+
+	immediate = {
+		#	<舰队1>
+		fromfrom = {
+			set_timed_fleet_flag = { flag = FW_flg_flt_NAVIGATOR_battle_enter_COUNT days = 1 }
+
+
+			##############################################################################
+			set_fleet_flag = TEMP_flg_flt_BATTLE_begin		# |执行类型标签|添加
+			set_update_modifiers_batch = begin		# 修正批处理
+			
+			AAR_eft_flt_NAVIGATOR_offset_FW = yes	# AAR航海抵消FW
+			
+			set_update_modifiers_batch = end		# 修正批处理
+			remove_fleet_flag = TEMP_flg_flt_BATTLE_begin	# |执行类型标签|清除
+			##############################################################################
+		}
+	}
+}
+
+
+###_[aar航海入场]
+#_<on_entering_system_fleet>
+##_scopes	<root/this>=舰队/<from>=星系
+fleet_event = {
+	id = AAR_evt_NAVIGATOR.4
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		is_mobile = yes
+		exists = controller
+		##	|飞升|
+		controller = { has_ascension_perk = AAR_AP_navigator }
+		##	|途经|
+		#	|途经安全空域|
+		if = { limit = { has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_SAFE }	# |90天|
+			#	|当前空域危险|
+			from = {
+				OR = {
+					AND = { exists = space_owner	space_owner = { is_hostile = root.controller } }
+					any_fleet_in_system = { exists = controller		controller = { is_hostile = root.controller } }
+				}
+			}
+		}
+		#	|途经危险空域|
+		else_if = { limit = { has_fleet_flag = AAR_flg_flt_NAVIGATOR_cross_DANGER }	# |90天|
+			#	|当前空域安全|
+			from = {
+				NOR = {
+					AND = { exists = space_owner	space_owner = { is_hostile = root.controller } }
+					any_fleet_in_system = { exists = controller		controller = { is_hostile = root.controller } }
+				}
+			}
+		}
+		#	|其他|
+		else = {
+			always = yes
+		}
+	}
+
+	immediate = {
+		set_fleet_flag = TEMP_flg_flt_SYSTEM_enter		# |触发类型|
+		set_update_modifiers_batch = begin	#_|修正更新|暂停
+		
+		AAR_eft_flt_NAVIGATOR_offset_FW = yes	# AAR航海抵消FW
+		
+		set_update_modifiers_batch = end	#_|修正更新|重启
+		remove_fleet_flag = TEMP_flg_flt_SYSTEM_enter	# |触发类型|
+	}
+}
+
+
+###_[aar航海雇主切换]
+#_<on_fleet_contract_expired>
+##_scopes	<this/root>=舰队/<from>=租借者/<fromfrom>=所有者
+fleet_event = {
+	id = AAR_evt_NAVIGATOR.41
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		is_mobile = yes
+		exists = controller
+		##	|细节条件|
+		OR = {
+			from = { has_ascension_perk = AAR_AP_navigator }	# <租借者>前控制者
+			any_owned_ship = { has_modifier = AAR_mod_ship_NAVIGATOR_offset_COMBAT }
+		}
+	}
+
+	immediate = {
+		set_fleet_flag = TEMP_flg_flt_CONTROLLER_switch		# |触发类型|
+		set_update_modifiers_batch = begin	#_|修正更新|暂停
+		
+		AAR_eft_flt_NAVIGATOR_offset_FW = yes	# AAR航海抵消FW
+		
+		set_update_modifiers_batch = end	#_|修正更新|重启
+		remove_fleet_flag = TEMP_flg_flt_CONTROLLER_switch	# |触发类型|
+	}
+}
+

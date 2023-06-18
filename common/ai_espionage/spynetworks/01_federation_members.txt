@@ -1,0 +1,952 @@
+federation_empire = {
+	strategy_weight = {
+		modifier = {
+			is_playable = yes
+			has_federation = yes
+			weight = 10
+		}
+	}
+
+	network_weight = {
+		modifier = {
+			target = {
+				has_crisis_level = crisis_level_2 # Using second level here just to get some delay for getting targeted.
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Rivals are we consider more of a threat than crisis, it is likely that crisis empires will become rivals in the end anyways if they matter.
+			owner = {
+				has_rival = root.target
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Being at war makes them a threat worth spying on
+			owner = {
+				is_at_war_with = root.target
+			}
+			factor = 10
+		}
+
+		modifier = {
+			# Hostile Empires are worth keeping an eye on
+			owner = {
+				opinion_level = {
+					who = root
+					level = terrible
+				}
+			}
+			weight = 5
+		}
+
+		modifier = {
+			# Proximity is they key, double the score if its a neighbour.
+			owner = {
+				is_neighbor_of = root.target
+			}
+			factor = 2
+		}
+
+		# we are stronger this this empire and have nothing to spy for;
+		# let's preserve envoys for galcom and relations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				relative_power = {
+					who = root.target
+					value >= superior
+				}
+				or = {
+					is_galactic_community_member = yes
+					is_homicidal = no
+					has_federation = yes
+				}
+			}
+			factor = 0
+		}
+
+		# nothing good will come out of it as there are no useful operations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			is_spynetwork_max_level < 20
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if some other spy network envoy is not on cooldown
+		# and is not busy doing the operation elsewhere
+		# but ignore the envoy that is already "here" in the check
+		modifier = {
+			owner = {
+				any_spynetwork = {
+					is_running_espionage_operation = no
+					owner = {
+						any_envoy = {
+							exists = prevprev.target
+							has_envoy_task = {
+								task = spy_network
+								target = prevprev.target
+							}
+							has_envoy_cooldown = no
+							not = {
+								has_envoy_task = {
+									task = spy_network
+									target = root.target
+								}
+							}
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if any non-spy-network envoy is not on cooldown
+		modifier = {
+			owner = {
+				any_envoy = {
+					has_envoy_cooldown = no
+					not = {
+						has_envoy_task = {
+							task = spy_network
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# don't spy on federation members, but let the already running operation finish
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				is_in_federation_with = root.target
+			}
+			factor = 0
+		}
+
+		# don't spy until at least one envoy is working in federation
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				not = {
+					any_envoy = {
+						has_envoy_task = {
+							task = federation
+						}
+					}
+				}
+			}
+			factor = 0
+		}
+	}
+
+	operation_selector = weighted_random_available
+
+	operations = {
+		operation_acquire_asset = {
+			operation_policy = until_max_network_cap_policy
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_steal_technology = {
+			operation_policy = spy_policy_steal_technology
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_gather_information = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 1
+			}
+		}
+		### Mod Added ###
+		operation_counter_spy = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_expel_corp = {
+			operation_policy = spy_policy_expel_corp
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_change_ethics = {
+			operation_policy = spy_policy_change_ethics
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_steal_pops = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_rescue_pops = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 10
+			} 
+		}
+	}
+}
+
+agro_federation_empire = {
+	strategy_weight = {
+		modifier = {
+			is_playable = yes
+			has_federation = yes
+			is_xenophobic_isolationists = no
+			is_pacifist = no
+			OR = {
+				is_civic_militarist = yes
+				is_militarist = yes
+				is_xenophobe = yes
+			}
+			weight = 700
+		}
+	}
+
+	network_weight = {
+		modifier = {
+			target = {
+				has_crisis_level = crisis_level_2 # Using second level here just to get some delay for getting targeted.
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Rivals are we consider more of a threat than crisis, it is likely that crisis empires will become rivals in the end anyways if they matter.
+			owner = {
+				has_rival = root.target
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Being at war makes them a threat worth spying on
+			owner = {
+				is_at_war_with = root.target
+			}
+			factor = 10
+		}
+
+		modifier = {
+			# Hostile Empires are worth keeping an eye on
+			owner = {
+				opinion_level = {
+					who = root
+					level = terrible
+				}
+			}
+			weight = 5
+		}
+
+		modifier = {
+			# Proximity is they key, double the score if its a neighbour.
+			owner = {
+				is_neighbor_of = root.target
+			}
+			factor = 2
+		}
+
+		# we are stronger this this empire and have nothing to spy for;
+		# let's preserve envoys for galcom and relations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				relative_power = {
+					who = root.target
+					value >= superior
+				}
+				or = {
+					is_galactic_community_member = yes
+					is_homicidal = no
+					has_federation = yes
+				}
+			}
+			factor = 0
+		}
+
+		# nothing good will come out of it as there are no useful operations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			is_spynetwork_max_level < 20
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if some other spy network envoy is not on cooldown
+		# and is not busy doing the operation elsewhere
+		# but ignore the envoy that is already "here" in the check
+		modifier = {
+			owner = {
+				any_spynetwork = {
+					is_running_espionage_operation = no
+					owner = {
+						any_envoy = {
+							exists = prevprev.target
+							has_envoy_task = {
+								task = spy_network
+								target = prevprev.target
+							}
+							has_envoy_cooldown = no
+							not = {
+								has_envoy_task = {
+									task = spy_network
+									target = root.target
+								}
+							}
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if any non-spy-network envoy is not on cooldown
+		modifier = {
+			owner = {
+				any_envoy = {
+					has_envoy_cooldown = no
+					not = {
+						has_envoy_task = {
+							task = spy_network
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# don't spy on federation members, but let the already running operation finish
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				is_in_federation_with = root.target
+			}
+			factor = 0
+		}
+
+		# don't spy until at least one envoy is working in federation
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				not = {
+					any_envoy = {
+						has_envoy_task = {
+							task = federation
+						}
+					}
+				}
+			}
+			factor = 0
+		}
+	}
+
+	operation_selector = weighted_random_available
+
+	operations = {
+		operation_acquire_asset = {
+			operation_policy = until_max_network_cap_policy
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_steal_technology = {
+			operation_policy = spy_policy_steal_technology
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_gather_information = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 1
+			}
+		}	
+		operation_arm_privateers = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_sabotage_starbase = {
+			operation_policy = spy_policy_sabotage_starbase
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_crisis_beacon = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		### Mod Added ###
+		operation_counter_spy = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_industrial_sabotage = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_industrial_sabotage = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_steal_pops = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_hostile_takeover = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_awaken_worm = {
+			operation_policy = spy_policy_awaken_worm
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_consume_star = {
+			operation_policy = spy_policy_awaken_worm
+			target_value = {
+				min = 10
+			} 
+		}
+	}
+}
+
+corp_federation_empire = {
+	strategy_weight = {
+		modifier = {
+			is_playable = yes
+			has_federation = yes
+			is_capitalist = yes
+			weight = 600
+		}
+	}
+
+	network_weight = {
+		modifier = {
+			target = {
+				has_crisis_level = crisis_level_2 # Using second level here just to get some delay for getting targeted.
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Rivals are we consider more of a threat than crisis, it is likely that crisis empires will become rivals in the end anyways if they matter.
+			owner = {
+				has_rival = root.target
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Being at war makes them a threat worth spying on
+			owner = {
+				is_at_war_with = root.target
+			}
+			factor = 10
+		}
+
+		modifier = {
+			# Hostile Empires are worth keeping an eye on
+			owner = {
+				opinion_level = {
+					who = root
+					level = terrible
+				}
+			}
+			weight = 5
+		}
+
+		modifier = {
+			# Proximity is they key, double the score if its a neighbour.
+			owner = {
+				is_neighbor_of = root.target
+			}
+			factor = 2
+		}
+
+		# we are stronger this this empire and have nothing to spy for;
+		# let's preserve envoys for galcom and relations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				relative_power = {
+					who = root.target
+					value >= superior
+				}
+				or = {
+					is_galactic_community_member = yes
+					is_homicidal = no
+					has_federation = yes
+				}
+			}
+			factor = 0
+		}
+
+		# nothing good will come out of it as there are no useful operations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			is_spynetwork_max_level < 20
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if some other spy network envoy is not on cooldown
+		# and is not busy doing the operation elsewhere
+		# but ignore the envoy that is already "here" in the check
+		modifier = {
+			owner = {
+				any_spynetwork = {
+					is_running_espionage_operation = no
+					owner = {
+						any_envoy = {
+							exists = prevprev.target
+							has_envoy_task = {
+								task = spy_network
+								target = prevprev.target
+							}
+							has_envoy_cooldown = no
+							not = {
+								has_envoy_task = {
+									task = spy_network
+									target = root.target
+								}
+							}
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if any non-spy-network envoy is not on cooldown
+		modifier = {
+			owner = {
+				any_envoy = {
+					has_envoy_cooldown = no
+					not = {
+						has_envoy_task = {
+							task = spy_network
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# don't spy on federation members, but let the already running operation finish
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				is_in_federation_with = root.target
+			}
+			factor = 0
+		}
+
+		# don't spy until at least one envoy is working in federation
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				not = {
+					any_envoy = {
+						has_envoy_task = {
+							task = federation
+						}
+					}
+				}
+			}
+			factor = 0
+		}
+	}
+
+	operation_selector = weighted_random_available
+
+	operations = {
+		operation_acquire_asset = {
+			operation_policy = until_max_network_cap_policy
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_steal_technology = {
+			operation_policy = spy_policy_steal_technology
+			target_value = {
+				min = 1
+			}
+		}
+		operation_gather_information = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 1
+			}
+		}
+		operation_extort_favors = {
+			operation_policy = fix_chance_10
+
+			target_value = {
+				min = 10
+			}
+		}
+		operation_smear_campaign = {
+			operation_policy = war_or_rival
+
+			target_value = {
+				min = 10
+			}
+		}
+		### Mod Added ###
+		operation_counter_spy = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_hostile_takeover = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_industrial_sabotage = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_change_ethics = {
+			operation_policy = spy_policy_change_ethics
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_market_manipulation = {
+			operation_policy = spy_policy_market_manipulation
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_steal_galatron = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+	}
+}
+
+diplo_federation_empire = {
+	strategy_weight = {
+		modifier = {
+			is_playable = yes
+			has_federation = yes
+			OR = {
+				is_civic_diplomatic_corps = yes
+				is_civic_machine_servitor = yes
+				is_pacifist = yes
+				is_xenophile = yes
+			}
+			weight = 500
+		}
+	}
+
+	network_weight = {
+		modifier = {
+			target = {
+				has_crisis_level = crisis_level_2 # Using second level here just to get some delay for getting targeted.
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Rivals are we consider more of a threat than crisis, it is likely that crisis empires will become rivals in the end anyways if they matter.
+			owner = {
+				has_rival = root.target
+			}
+			weight = 10
+		}
+
+		modifier = {
+			# Being at war makes them a threat worth spying on
+			owner = {
+				is_at_war_with = root.target
+			}
+			factor = 10
+		}
+
+		modifier = {
+			# Hostile Empires are worth keeping an eye on
+			owner = {
+				opinion_level = {
+					who = root
+					level = terrible
+				}
+			}
+			weight = 5
+		}
+
+		modifier = {
+			# Proximity is they key, double the score if its a neighbour.
+			owner = {
+				is_neighbor_of = root.target
+			}
+			factor = 2
+		}
+
+		# we are stronger this this empire and have nothing to spy for;
+		# let's preserve envoys for galcom and relations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				relative_power = {
+					who = root.target
+					value >= superior
+				}
+				or = {
+					is_galactic_community_member = yes
+					is_homicidal = no
+					has_federation = yes
+				}
+			}
+			factor = 0
+		}
+
+		# nothing good will come out of it as there are no useful operations
+		# but don't zero until operation is finished to prevent stuck operations
+		modifier = {
+			is_running_espionage_operation = no
+			is_spynetwork_max_level < 20
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if some other spy network envoy is not on cooldown
+		# and is not busy doing the operation elsewhere
+		# but ignore the envoy that is already "here" in the check
+		modifier = {
+			owner = {
+				any_spynetwork = {
+					is_running_espionage_operation = no
+					owner = {
+						any_envoy = {
+							exists = prevprev.target
+							has_envoy_task = {
+								task = spy_network
+								target = prevprev.target
+							}
+							has_envoy_cooldown = no
+							not = {
+								has_envoy_task = {
+									task = spy_network
+									target = root.target
+								}
+							}
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# if we have envoy already assigned here
+		# nulify weight if any non-spy-network envoy is not on cooldown
+		modifier = {
+			owner = {
+				any_envoy = {
+					has_envoy_cooldown = no
+					not = {
+						has_envoy_task = {
+							task = spy_network
+						}
+					}
+				}
+				any_envoy = {
+					has_envoy_task = {
+						task = spy_network
+						target = root.target
+					}
+				}
+			}
+			factor = 0
+		}
+
+		# don't spy on federation members, but let the already running operation finish
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				is_in_federation_with = root.target
+			}
+			factor = 0
+		}
+
+		# don't spy until at least one envoy is working in federation
+		modifier = {
+			is_running_espionage_operation = no
+			owner = {
+				not = {
+					any_envoy = {
+						has_envoy_task = {
+							task = federation
+						}
+					}
+				}
+			}
+			factor = 0
+		}
+	}
+
+	operation_selector = weighted_random_available
+
+	operations = {
+		operation_acquire_asset = {
+			operation_policy = until_max_network_cap_policy
+
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_steal_technology = {
+			operation_policy = spy_policy_steal_technology
+
+			target_value = {
+				min = 1
+			}
+		}
+
+		operation_gather_information = {
+			operation_policy = fix_chance_10
+
+			target_value = {
+				min = 1
+			}
+		}
+		operation_diplomatic_incident = {
+			operation_policy = war_or_rival
+
+			target_value = {
+				min = 10
+			}
+		}
+		operation_extort_favors = {
+			operation_policy = war_or_rival
+
+			target_value = {
+				min = 10
+			}
+		}
+		operation_smear_campaign = {
+			operation_policy = war_or_rival
+
+			target_value = {
+				min = 10
+			}
+		}
+		### Mod Added ###
+		operation_counter_spy = {
+			operation_policy = war_or_rival
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_expel_corp = {
+			operation_policy = spy_policy_expel_corp
+			target_value = {
+				min = 10
+			}
+		}
+		operation_change_ethics = {
+			operation_policy = spy_policy_change_ethics
+			target_value = {
+				min = 10
+			} 
+		}
+		operation_rescue_pops = {
+			operation_policy = fix_chance_10
+			target_value = {
+				min = 10
+			} 
+		}
+	}
+}

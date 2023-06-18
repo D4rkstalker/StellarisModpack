@@ -1,0 +1,196 @@
+#	流放与灵舟INIT*/领袖回归DB*
+#	AAR火炬年检
+#	AAR火炬恶果
+
+
+
+
+###_[流放与灵舟INIT]	---禁用
+#_scope		root=国家/from=被流放的ldr
+#_prmt		NUM
+AAR_prmt_eft_cntr_TORCHLIGHT_init = {
+	
+	# 克隆+放逐
+	clone_leader = {
+		target = from
+		effect = {
+		#	set_age = 17
+			exile_leader_as = EXL_torchlight_$NUM$
+			set_variable = { which = AAR_var_ldr_died_time value = 1 }	# 设置死亡时间
+		}
+	}
+	
+	# 创建中转舰队
+	create_fleet = {
+		name = "AAR_DESIGN_leader_revive"
+		effect = {
+			save_global_event_target_as = AAR_GTGT_flt_torchlight_$NUM$	# tgt设定
+
+			set_owner = prev
+			set_event_locked = yes
+			create_ship = {#_工程船
+				name = "AAR_DESIGN_leader_revive"
+				design = "AAR_DESIGN_leader_revive"
+				upgradable = no
+			}
+		}
+	}
+	# 执行中转
+	last_created_fleet = {
+		fleet_event = { id = AAR_evt_torchlight.2 days = 1 }	# 灵舟延时debug
+	}
+}
+
+
+
+
+###_[领袖回归DB]	---禁用
+#_evt	<灵舟延时debug>
+#_scope		root=flt
+#_prmt		NUM
+AAR_prmt_eft_flt_TORCHLIGHT_db = {
+	# 领袖回归
+	set_leader = EXL_torchlight_$NUM$	#_<动态>
+	
+	# tgt清理
+	clear_global_event_target = AAR_GTGT_flt_torchlight_$NUM$
+	delete_fleet = {#_清除中转舰队	<静态>
+		target = this
+		kill_leader = no
+		destroy_template = yes
+	}
+}
+
+
+
+
+###_[AAR火炬年检]		|框架EFT|=人口献祭/领袖DB
+#_evt	<fw年检>
+AAR_eft_cntr_TORCHLIGHT_yearly_DB = {
+	if = { limit = { has_ascension_perk = AAR_AP_torchlight }
+		##	人口献祭
+		#	获得献祭人数
+		set_variable = { which = TEMP_var_cntr_pop value = trigger:num_pops }
+		multiply_variable = { which = TEMP_var_cntr_pop value = 0.01 }
+		round_variable_to_closest = { which = TEMP_var_cntr_pop value = 1 }
+		if = { limit = { check_variable = { which = TEMP_var_cntr_pop value > 15 } }			set_variable = { which = TEMP_var_cntr_pop value = 15 } }	# 最值限定=15
+		#	献祭
+		if = { limit = { check_variable = { which = TEMP_var_cntr_pop value > 0 } }
+			# AI
+			if = { limit = { is_ai = yes }
+				while = { count = TEMP_var_cntr_pop
+					# 献祭人力
+					if = { limit = { check_variable = { which = PR_var_cntr_MAN value > 0 } }	# |国家人力>0|
+						random_owned_planet = {
+							limit = { check_variable = { which = PR_var_plnt_MAN value > 0 } }	# |人力>0|
+							PR_prmt_eft_plnt_VAR_MAN_DB = { MAN = -1 ALL = -1 }
+						}
+					}
+					# 不献祭人口
+				}
+			}
+			# PC
+			else = {#_|修正更新批处理|上级evt已有
+				while = { count = TEMP_var_cntr_pop
+					# 献祭人力
+					if = { limit = { check_variable = { which = PR_var_cntr_MAN value > 0 } }	# |国家人力>0|
+						random_owned_planet = {
+							limit = { check_variable = { which = PR_var_plnt_MAN value > 0 } }	# |人力>0|
+							PR_prmt_eft_plnt_VAR_MAN_DB = { MAN = -1 ALL = -1 }
+						}
+					}
+					# 献祭人口
+					else = {
+						random_owned_pop = {
+							weights = { base = 1
+								modifier = { factor = 8		is_unemployed = yes }	# 无业
+								modifier = { factor = 6		OR = { is_pop_category = slave		is_pop_category = purge } }	# 贱民
+								modifier = { factor = 4		OR = { is_pop_category = worker		is_pop_category = simple_drone } }	# 低阶层
+								modifier = { factor = 2		OR = { is_pop_category = specialist } }	# 中阶层
+							}
+							kill_pop = yes
+						}
+					}
+				}
+			}
+		}
+		# clear
+		clear_variable = TEMP_var_cntr_pop
+		
+		##	领袖DB
+		set_variable = { which = TEMP_var_MAX value = 9 }	# |最大守护星添加人数|
+		every_owned_leader = {
+			# 守护星DB
+			if = {
+				limit = {
+					prev = { check_variable = { which = TEMP_var_MAX value > 0 } }	# |最大守护星添加人数|
+					FW_trgr_ldr_PROTECT_star_lite_IGNORE = no	# |无法获得伪护星|
+				}
+				
+				# [守护星添加]概率提升
+				change_variable = { which = AAR_var_ldr_died_time	 value = 1 }	# +1
+				# 添加"伪护星"
+				random_list = {
+					2 = {}
+					1 = {
+						modifier = { factor = AAR_var_ldr_died_time						is_variable_set = AAR_var_ldr_died_time }	# 距离上次死亡时间越长,添加几率越高
+						if = { limit = { is_variable_set = AAR_var_ldr_died_time }		clear_variable = AAR_var_ldr_died_time }
+						add_trait = FW_trait_ldr_PROTECT_star_lite
+						prev = { subtract_variable = { which = TEMP_var_MAX value = 1 } }	# |最大守护星添加人数|
+					}
+				}
+			}
+		}
+		clear_variable = TEMP_var_MAX
+	}
+}
+
+
+
+
+###_[AAR火炬恶果]		|框架EFT|=随机添加"适得其反"
+#_evt	<AAR:fw月检/fw殖民地月度debug>
+AAR_eft_plnt_TORCHLIGHT_backfire = {
+	if = { limit = { has_planet_flag = AAR_flg_plnt_TORCHLIGHT_backfire_READY }	# |AAR火炬之光恶果READY|
+		remove_planet_flag = AAR_flg_plnt_TORCHLIGHT_backfire_READY
+	
+		#	适得其反
+		remove_modifier = AAR_PM_torchlight_BACKFIRE_1
+		remove_modifier = AAR_PM_torchlight_BACKFIRE_2
+		remove_modifier = AAR_PM_torchlight_BACKFIRE_3
+		#	随机骰子
+		random_list = {
+			1 = {#犯罪率
+				random_list = {
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_1			 days = 365 multiplier = 1 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_1			 days = 365 multiplier = 1.5 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_1			 days = 365 multiplier = 2 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_1			 days = 365 multiplier = 2.5 } }
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_1			 days = 365 multiplier = 3 } }
+					7 = {}
+				}
+			}
+			1 = {#出生率
+				random_list = {
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_2			 days = 365 multiplier = 1 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_2			 days = 365 multiplier = 1.5 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_2			 days = 365 multiplier = 2 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_2			 days = 365 multiplier = 2.5 } }
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_2			 days = 365 multiplier = 3 } }
+					7 = {}
+				}
+			}
+			1 = {#凝聚力
+				random_list = {
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_3			 days = 365 multiplier = 1 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_3			 days = 365 multiplier = 1.5 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_3			 days = 365 multiplier = 2 } }
+					2 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_3			 days = 365 multiplier = 2.5 } }
+					1 = { add_modifier = { modifier = AAR_PM_torchlight_BACKFIRE_3			 days = 365 multiplier = 3 } }
+					7 = {}
+				}
+			}
+		}
+	}
+}
+

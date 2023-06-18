@@ -1,0 +1,454 @@
+# Government Variety Pack
+# Events - Shroud-Touched Origin
+# Author: littleraskol
+
+namespace = lrsk_gov_var_shroud_touched
+
+# Sets initial tech progress, planet deposit, and pop traits
+country_event = {
+	id = lrsk_gov_var_shroud_touched.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_origin = lrsk_gov_var_origin_shroud_touched
+	}
+
+	immediate = {
+		set_country_flag = lrsk_gov_var_shroud_touched_nation
+
+		add_research_option = tech_psionic_theory
+		add_tech_progress = {
+			tech = tech_psionic_theory
+			progress = 0.05
+		}
+
+		# Tag species as being a shroud-touched origin. Not sure if useful...
+		species = { set_species_flag = lrsk_gov_var_shroud_touched_species }
+		
+		# Randomly sets some to Latent Psionic or to lose Natural Esper
+		every_owned_pop = { pop_event = { id = lrsk_gov_var_shroud_touched.3 } }
+
+		capital_scope ={
+			if = {
+				limit = { owner = { has_origin = lrsk_gov_var_origin_shroud_touched } } # probably redundant but eh
+
+				set_planet_flag = lrsk_gov_var_shroud_touched_capital
+
+				add_deposit = d_lrsk_gov_var_shroud_pockets
+			}
+		}
+
+		# Semi-immediate check that some other mod did not remove the shroud pockets
+		country_event = {
+			id = lrsk_government_variety_pack_backend.2
+			days = 2
+		}
+	}
+}
+
+#Catches pop growth on planet
+planet_event = {
+	id = lrsk_gov_var_shroud_touched.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {	fromfrom = { pop_has_trait = lrsk_gov_var_trait_natural_esper } }
+
+	immediate = {
+		if = {
+			limit = { fromfrom = { pop_has_trait = lrsk_gov_var_trait_natural_esper } } # probably redundant but eh
+			fromfrom = { pop_event = { id = lrsk_gov_var_shroud_touched.3 } }
+		}
+	}
+
+}
+
+# Handles traits on pops that start with esper (i.e., pops from the Shroud Touched starting species)
+pop_event = {
+	id = lrsk_gov_var_shroud_touched.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		#species = { has_species_flag = lrsk_gov_var_shroud_touched_species }
+		pop_has_trait = lrsk_gov_var_trait_natural_esper
+	}
+
+	immediate = {
+		# Remove esper if pop has either "real" psi trait
+		if = {
+			limit = {
+				or = {
+					pop_has_trait = trait_latent_psionic
+					pop_has_trait = trait_psionic
+				}
+			}
+			modify_species = {
+				species = this
+				remove_trait = lrsk_gov_var_trait_natural_esper
+			}
+			# Catching this case means we may have to sweep all pops for both traits and modify the root species.
+			owner = { if = {
+				limit = {
+					has_tradition = tr_psionics_adopt
+					has_origin = lrsk_gov_var_origin_shroud_touched
+					NOT = { has_country_flag = lrsk_gov_var_shroud_touched_esper_undone } 
+				} 
+				country_event = { id = lrsk_gov_var_shroud_touched.4 }
+			} } 
+		}
+		# Usually do nothing, rarely promote pop to Latent Psionic, sometimes remove Natural Esper
+		else = {
+			random_list = {
+				60 = { } 
+				5 = { 
+					modify_species = { 
+						species = this
+						remove_trait = lrsk_gov_var_trait_natural_esper
+						add_trait = trait_latent_psionic
+						#set_species_flag = lrsk_gov_var_shroud_touched_promoted
+					} 
+				}
+				35 = {
+					modify_species = { 
+						species = this
+						remove_trait = lrsk_gov_var_trait_natural_esper
+						#set_species_flag = lrsk_gov_var_shroud_touched_demoted
+					} 
+				}
+			}
+		}
+	}
+}
+
+# Attempt to change species after adopting Psionics tradition tree.
+country_event = {
+	id = lrsk_gov_var_shroud_touched.4
+	hide_window = yes
+	is_triggered_only = yes
+	#fire_only_once = yes
+
+	trigger = {
+		has_tradition = tr_psionics_adopt
+		has_origin = lrsk_gov_var_origin_shroud_touched
+		NOT = { has_country_flag = lrsk_gov_var_shroud_touched_esper_undone }
+	}
+
+	immediate = {
+		every_owned_pop = {
+			if = { 
+				limit = {
+					pop_has_trait = lrsk_gov_var_trait_natural_esper
+					or = {
+						pop_has_trait = trait_latent_psionic
+						pop_has_trait = trait_psionic
+					}
+				}
+				modify_species = {
+					species = this
+					remove_trait = lrsk_gov_var_trait_natural_esper
+				}
+			}
+		}
+
+		modify_species = {
+			species = this
+			remove_trait = lrsk_gov_var_trait_natural_esper
+		}
+
+		set_country_flag = lrsk_gov_var_shroud_touched_esper_undone
+	}
+}
+
+# New Leaders Get Psionic/Esper Traits
+country_event = {
+	id = lrsk_gov_var_shroud_touched.5
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		NOT = { has_tradition = tr_psionics_adopt }
+		from = {
+			species = { has_trait = lrsk_gov_var_trait_natural_esper }
+		}
+	}
+
+	immediate = {
+		from = {
+			random_list = {
+				#usually no trait
+				60 = {}
+				#very rarely get full on psionic
+				5 = {
+					add_trait_no_notify = leader_trait_psionic
+				}
+				#sometimes get esper trait
+				35 = {
+					add_trait_no_notify = lrsk_gvp_leader_trait_esper
+				}
+			}
+		}
+	}
+}
+
+# Ruler gets normal class trait if one hasn't been assigned - DEPRECATED
+#country_event = {
+#	id = lrsk_gov_var_shroud_touched.6
+#	is_triggered_only = yes
+#	hide_window = yes
+#
+#	trigger = {
+#		from = {
+#			has_ruler_trait = lrsk_gov_var_leader_trait_ruler_esper
+#			NOR = {
+#				has_trait = lrsk_gov_var_leader_trait_admiral_esper
+#				has_trait = lrsk_gov_var_leader_trait_general_esper
+#				has_trait = lrsk_gov_var_leader_trait_governor_esper
+#				has_trait = lrsk_gov_var_leader_trait_scientist_esper
+#				has_trait = leader_trait_admiral_psionic
+#				has_trait = leader_trait_general_psionic
+#				has_trait = leader_trait_governor_psionic
+#				has_trait = leader_trait_scientist_psionic
+#				has_trait = leader_trait_admiral_chosen
+#				has_trait = leader_trait_general_chosen
+#				has_trait = leader_trait_governor_chosen
+#				has_trait = leader_trait_scientist_chosen			
+#			}
+#		}
+#	}
+#
+#	immediate = {
+#		from = {
+#			if = {
+#				limit = { leader_class = admiral }
+#				add_trait_no_notify = lrsk_gov_var_leader_trait_admiral_esper
+#				break = yes
+#			}
+#			if = {
+#				limit = { leader_class = general }
+#				add_trait_no_notify = lrsk_gov_var_leader_trait_general_esper
+#				break = yes
+#			}
+#			if = {
+#				limit = { leader_class = governor }
+#				add_trait_no_notify = lrsk_gov_var_leader_trait_governor_esper
+#				break = yes
+#			}
+#			if = {
+#				limit = { leader_class = scientist }
+#				add_trait_no_notify = lrsk_gov_var_leader_trait_scientist_esper
+#				break = yes
+#			}
+#		}
+#	}
+#}
+
+# Esper leaders can get Psychic trait under some circumstances
+country_event = {
+	id = lrsk_gov_var_shroud_touched.7
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = lrsk_gov_var_origin_shroud_touched
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			every_owned_leader = {
+				limit = {
+					is_same_species = root
+					NOR = {
+						has_leader_flag = lrsk_gvp_esper_trait_checked
+						has_trait =	leader_trait_psionic
+					}
+					has_trait = lrsk_gvp_leader_trait_esper
+				}
+				set_leader_flag = lrsk_gvp_esper_trait_checked
+				random_list = {
+					20 = {
+						remove_trait = lrsk_gvp_leader_trait_esper
+						add_trait_no_notify = leader_trait_psionic
+						modifier = {
+							add = 10
+							owner = { has_ascension_perk = ap_mind_over_matter }
+						}
+						modifier = {
+							add = 20
+							owner = { has_tradition = tr_psionics_adopt }
+						}
+					}
+					80 = {
+						#Do nothing
+						modifier = {
+							subtract = 10
+							owner = { has_ascension_perk = ap_mind_over_matter }
+						}
+						modifier = {
+							subtract = 20
+							owner = { has_tradition = tr_psionics_adopt }
+						}
+					}
+				}
+			}
+			every_pool_leader = {
+				limit = {
+					is_same_species = root
+					NOR = {
+						has_leader_flag = lrsk_gvp_esper_trait_checked
+						has_trait =	leader_trait_psionic
+					}
+					has_trait = lrsk_gvp_leader_trait_esper
+				}
+				set_leader_flag = lrsk_gvp_esper_trait_checked
+				random_list = {
+					20 = {
+						remove_trait = lrsk_gvp_leader_trait_esper
+						add_trait_no_notify = leader_trait_psionic
+						modifier = {
+							add = 10
+							owner = { has_ascension_perk = ap_mind_over_matter }
+						}
+						modifier = {
+							add = 20
+							owner = { has_tradition = tr_psionics_adopt }
+						}
+					}
+					80 = {
+						#Do nothing
+						modifier = {
+							subtract = 10
+							owner = { has_ascension_perk = ap_mind_over_matter }
+						}
+						modifier = {
+							subtract = 20
+							owner = { has_tradition = tr_psionics_adopt }
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Convert leader trait to psionic when psionic ascension unlocked
+country_event = {
+	id = lrsk_gov_var_shroud_touched.8
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = lrsk_gov_var_origin_shroud_touched
+		has_tradition = tr_psionics_psionic_assimilation
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			every_owned_leader = {
+				limit = {
+					is_same_species = root
+					NOT = { has_leader_flag = lrsk_gvp_psi_assim_checked }
+					has_trait = lrsk_gvp_leader_trait_esper
+				}
+				set_leader_flag = lrsk_gvp_psi_assim_checked
+				remove_trait = lrsk_gvp_leader_trait_esper
+			}
+			every_pool_leader = {
+				limit = {
+					is_same_species = root
+					NOT = { has_leader_flag = lrsk_gvp_psi_assim_checked }
+					has_trait = lrsk_gvp_leader_trait_esper
+				}
+				set_leader_flag = lrsk_gvp_psi_assim_checked
+				remove_trait = lrsk_gvp_leader_trait_esper
+			}
+		}
+	}
+}
+
+# A kind of general fallback sanity check...
+event = {
+	id = lrsk_gov_var_shroud_touched.9
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			every_owned_leader = {
+				limit = {
+					has_trait = lrsk_gvp_leader_trait_esper
+					OR = {
+						has_trait =	leader_trait_psionic
+						has_trait = leader_trait_chosen
+					}
+				}
+				remove_trait = lrsk_gvp_leader_trait_esper
+			}
+		}
+	}
+}
+event = {
+	id = lrsk_gov_var_shroud_touched.10
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		#any_pop = {
+		#	pop_has_trait = lrsk_gov_var_trait_natural_esper
+		#	OR = {
+		#		pop_has_trait = trait_latent_psionic
+		#		pop_has_trait = trait_psionic
+		#	}
+		#}
+	}
+
+	immediate = {
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			every_owned_pop = {
+				limit = {
+					pop_has_trait = lrsk_gov_var_trait_natural_esper
+					OR = {
+						pop_has_trait = trait_latent_psionic
+						pop_has_trait = trait_psionic
+					}
+				}
+				modify_species = {
+					species = this
+					remove_trait = lrsk_gov_var_trait_natural_esper
+				}
+			}
+		}
+	}
+}

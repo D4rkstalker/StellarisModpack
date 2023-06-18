@@ -1,0 +1,314 @@
+namespace = mmghyper
+
+# main processing event for path finding
+# note: tested on 90% filled in huge galaxy, caused NO noticeable lag
+country_event = {
+	id = mmghyper.1
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# clear variables and flags
+		every_system = {
+			limit = {
+				is_variable_set = mmghyper_distance_to_capital
+			}
+			clear_variable = mmghyper_distance_to_capital
+		}
+		every_system = {
+			limit = {
+				has_star_flag = mmghyper_path_to_capital@ROOT
+			}
+			remove_star_flag = mmghyper_path_to_capital@ROOT
+		}
+		every_system = {
+			limit = {
+				is_variable_set = mmghyper_distance_to_sector_capital
+			}
+			clear_variable = mmghyper_distance_to_sector_capital
+		}
+		every_system = {
+			limit = {
+				has_star_flag = mmghyper_path_to_sector_capital@ROOT
+			}
+			remove_star_flag = mmghyper_path_to_sector_capital@ROOT
+		}
+		every_system = {
+			limit = {
+				is_variable_set = mmghyper_distance_to_overlord_capital
+			}
+			clear_variable = mmghyper_distance_to_overlord_capital
+		}
+		every_system = {
+			limit = {
+				has_star_flag = mmghyper_path_to_overlord_capital@ROOT
+			}
+			remove_star_flag = mmghyper_path_to_overlord_capital@ROOT
+		}
+
+		############################
+		# EMPIRE CAPITAL DISTANCES #
+		############################
+		random_system_within_border = {
+			limit = {
+				is_capital_system = yes
+			}
+			mmghyper_initialize_distance_origin = {
+				DISTANCE = mmghyper_distance_to_capital
+			}
+		}
+		mmghyper_calculate_distances = {
+			DISTANCE = mmghyper_distance_to_capital
+			SAME_OWNER = yes
+		}
+
+		########################
+		# EMPIRE CAPITAL PATHS #
+		########################
+		# path from capital to sector capital, or sectorless wormhole/gateway/catapult
+		every_system = {
+			limit = {
+				exists = owner
+				is_variable_set = mmghyper_distance_to_capital
+				OR = {
+					any_system_planet = { is_sector_capital = yes }
+					AND = {
+						NOT = { exists = sector }
+						OR = {
+							mmghyper_has_wormhole_gate_or_catapult = yes
+							mmghyper_has_border_fortress = yes
+						}
+					}
+				}
+			}
+			mmghyper_initialize_path_origin = {
+				PATH = mmghyper_path_to_capital
+			}
+		}
+		mmghyper_find_paths = {
+			PATH = mmghyper_path_to_capital
+			DISTANCE = mmghyper_distance_to_capital
+		}
+
+		############################
+		# SECTOR CAPITAL DISTANCES #
+		############################
+		every_system_within_border = {
+			limit = {
+				any_system_planet = {
+					is_sector_capital = yes
+				}
+			}
+			mmghyper_initialize_distance_origin = {
+				DISTANCE = mmghyper_distance_to_sector_capital
+			}
+		}
+		mmghyper_calculate_distances = {
+			DISTANCE = mmghyper_distance_to_sector_capital
+			SAME_SECTOR = yes
+		}
+
+		########################
+		# SECTOR CAPITAL PATHS #
+		########################
+		every_system_within_border = {
+			limit = {
+				exists = owner
+				exists = sector
+				is_variable_set = mmghyper_distance_to_sector_capital
+				NOT = { any_system_planet = { is_sector_capital = yes } }
+				OR = {
+					any_system_planet = { is_colony = yes }
+					mmghyper_has_wormhole_gate_or_catapult = yes
+					mmghyper_has_border_fortress = yes
+				}
+			}
+			mmghyper_initialize_path_origin = {
+				PATH = mmghyper_path_to_sector_capital
+			}
+		}
+		mmghyper_find_paths = {
+			PATH = mmghyper_path_to_sector_capital
+			DISTANCE = mmghyper_distance_to_sector_capital
+		}
+
+		if = {
+			limit = {
+				any_country = {
+					is_subject = yes
+					has_overlord = root
+				}
+			}
+
+			##############################
+			# OVERLORD CAPITAL DISTANCES #
+			##############################
+			every_system_within_border = {
+				limit = {
+					is_capital_system = yes
+				}
+				mmghyper_initialize_distance_origin = {
+					DISTANCE = mmghyper_distance_to_overlord_capital
+				}
+			}
+			mmghyper_calculate_distances = {
+				DISTANCE = mmghyper_distance_to_overlord_capital
+				SAME_OVERLORD = yes
+			}
+
+			##########################
+			# OVERLORD CAPITAL PATHS #
+			##########################
+			# path from subject capital to overlord (root) capital
+			every_country = {
+				limit = {
+					is_subject = yes
+					has_overlord = root
+				}
+				random_system_within_border = {
+					limit = {
+						is_capital_system = yes
+						is_variable_set = mmghyper_distance_to_overlord_capital
+					}
+					mmghyper_initialize_path_origin = {
+						PATH = mmghyper_path_to_overlord_capital
+					}
+				}
+			}
+			mmghyper_find_paths = {
+				PATH = mmghyper_path_to_overlord_capital
+				DISTANCE = mmghyper_distance_to_overlord_capital
+			}
+		}
+
+		#############################################
+		# Build Hyper Relay w/out Construction Ship #
+		#############################################
+		# sometimes AI becomes inactive despite having plenty of resources (vanilla issue)
+		if = {
+			limit = {
+				is_ai = yes
+				has_technology = tech_hyper_relays
+				NOT = { is_country_type = fallen_empire }
+				# only do it if AI has 10x the required resources
+				has_country_resource = {
+					type = alloys
+					amount >= 5000
+				}
+				has_country_resource = {
+					type = rare_crystals
+					amount >= 1000
+				}
+				has_country_resource = {
+					type = influence
+					amount >= 250
+				}
+			}
+			# first try connecting planets to sector capitals
+			if = {
+				limit = {
+					any_system = {
+						has_star_flag = mmghyper_path_to_sector_capital@ROOT
+						is_variable_set = mmghyper_distance_to_sector_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+				}
+				ordered_system = {
+					order_by = mmghyper_distance_to_sector_capital
+					inverse = yes
+					position = 0
+					limit = {
+						has_star_flag = mmghyper_path_to_sector_capital@ROOT
+						is_variable_set = mmghyper_distance_to_sector_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+					mmghyper_spawn_hyper_relay = yes
+				}
+			}
+			# then try connecting sector capitals (and sectorless points-of-interest) to capital
+			else_if = {
+				limit = {
+					any_system = {
+						has_star_flag = mmghyper_path_to_capital@ROOT
+						is_variable_set = mmghyper_distance_to_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+				}
+				ordered_system = {
+					order_by = mmghyper_distance_to_capital
+					inverse = yes
+					position = 0
+					limit = {
+						has_star_flag = mmghyper_path_to_capital@ROOT
+						is_variable_set = mmghyper_distance_to_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+					mmghyper_spawn_hyper_relay = yes
+				}
+			}
+			# finally work on connecting subject capitals
+			else_if = {
+				limit = {
+					any_system = {
+						has_star_flag = mmghyper_path_to_overlord_capital@ROOT
+						is_variable_set = mmghyper_distance_to_overlord_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+				}
+				ordered_system = {
+					order_by = mmghyper_distance_to_overlord_capital
+					inverse = yes
+					position = 0
+					limit = {
+						has_star_flag = mmghyper_path_to_overlord_capital@ROOT
+						is_variable_set = mmghyper_distance_to_overlord_capital
+						mmghyper_can_auto_build_hyper_relay = yes
+					}
+					mmghyper_spawn_hyper_relay = yes
+				}
+			}
+		}
+	}
+}
+
+# wrapper to delay main processing event to avoid adding to existing 1st of month lag
+event = {
+	id = mmghyper.2
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		every_country = {
+			limit = { has_technology = tech_hyper_relays }
+			country_event = {
+				id = mmghyper.1
+				days = 10
+				random = 15
+			}
+		}
+	}
+}
+
+# convert starless hyper relays to unowned
+system_event = {
+	id = mmghyper.11
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		if = {
+			limit = { mmghyper_is_starless = yes }
+			every_system_megastructure = {
+				limit = {
+					is_megastructure_type = hyper_relay
+					exists = owner
+				}
+				root = {
+					spawn_megastructure = {
+						type = hyper_relay
+						coords_from = prev
+						graphical_culture = prev.owner
+					}
+				}
+				remove_megastructure = this
+			}
+		}
+	}
+}

@@ -1,0 +1,1447 @@
+############################
+#
+# Observation Post Events
+#
+# Written by Henrik Thyrwall
+# and Chad Inglis
+#
+# Refactored by Byron Aytoun
+#
+############################
+
+namespace = observation
+
+### PASSIVE OBSERVATION ###
+
+### Incoming Asteroid
+
+# Incoming Asteroid (Gatekeeper)
+situation_event = {
+	id = observation.0
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			NOT = { has_country_flag = observation_0_fired }
+			has_blocked_random_devastating_pre_ftl_events = no
+			capital_scope = {
+				OR = {
+					NOT = { has_global_flag = asteroid_sighted_pre_ftl_global }
+					has_observation_outpost = yes
+				}
+				NOT = {
+					has_deposit = d_impact_crater
+				}
+				is_artificial = no
+				has_anomaly = no
+				if = {
+					limit = {
+						has_observation_outpost = yes
+					}
+					observation_outpost = { has_mission = passive_observation }
+					observation_outpost_owner = { NOT = { has_country_flag = asteroid_sighted_pre_ftl_country } }
+					observation_outpost_owner = { NOT = { has_country_flag = asteroid_sighted_pre_ftl_country_timer } }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		set_situation_flag = has_ongoing_observation_event_chain
+		# Setting this flag for the duration of the entire event chain
+		# to prevent other observation events from interfering.
+		owner = {
+			set_country_flag = observation_0_fired
+			save_event_target_as = pre_ftl_country
+
+			capital_scope = {
+				save_event_target_as = pre_ftl_planet
+				set_planet_flag = asteroid_sighted_planet
+				if = {
+					limit = {
+						exists = observation_outpost_owner
+					}
+					observation_outpost_owner = {
+						set_country_flag = asteroid_sighted_pre_ftl_country
+						set_timed_country_flag = {
+							flag = asteroid_sighted_pre_ftl_country_timer
+							years = 20
+						}
+						country_event = { id = observation.2 }
+					}
+				}
+				else = {
+					owner = {
+						country_event = { id = observation.1 }
+					}
+					set_timed_global_flag = {
+						flag = asteroid_sighted_pre_ftl_global
+						years = 50
+					}
+				}
+			}
+		}
+	}
+}
+
+# Asteroid Impacts! (Without space-faring observer)
+country_event = {
+	id = observation.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_list =  {
+			75 = { }
+			25 = {
+				event_target:pre_ftl_planet = {
+					asteroid_impact_pre_ftl_effect = yes
+					owner = {
+						if = {
+							limit = { has_lithoids = yes }
+							random_list = {
+								1 = { } # nothing happens
+								1 = {
+									country_event = { id = primitivesexpanded.1 days = 360 random = 720 }
+								}
+							}
+						}
+					}
+				}
+			}
+			5 = {
+				modifier = {
+					factor = 0
+					NOR = {
+						has_pre_ftl_age = atomic_age
+						has_pre_ftl_age = early_space_age
+					}
+				}
+				modifier = {
+					factor = 5
+					has_pre_ftl_age = early_space_age
+				}
+				random_situation = {
+					limit = {
+						is_situation_type = pre_ftl_tech_progress_situation
+					}
+					set_timed_situation_flag = {
+						flag = successful_asteroid_interception
+						days = 720
+					}
+				}
+			}
+		}
+
+		random_situation = {
+			limit = {
+				is_situation_type = pre_ftl_tech_progress_situation
+			}
+			remove_situation_flag = has_ongoing_observation_event_chain
+		}
+		event_target:pre_ftl_planet = {
+			remove_planet_flag = asteroid_sighted_planet
+		}
+	}
+}
+
+# Incoming Asteroid
+country_event = {
+	id = observation.2
+	title = "observation.2.name"
+	desc = "observation.2.desc"
+	picture = GFX_evt_asteroid_approaching_planet
+	show_sound = event_red_alert
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:pre_ftl_planet.observation_outpost = {
+			set_event_locked = yes
+		}
+		create_country = {
+			name = "NAME_Incoming_Asteroid"
+			type = faction
+		}
+		last_created_country = {
+			set_country_flag = incoming_asteroid_pre_ftl
+			create_fleet = {
+				name = "NAME_Asteroid"
+				effect = {
+					set_owner = PREV
+					create_ship = {
+						name = "NAME_Asteroid"
+						design = "NAME_Asteroid"
+					}
+					set_location = {
+						target = event_target:pre_ftl_planet
+						distance = 75
+						angle = random
+					}
+					queue_actions = {
+						move_to = event_target:pre_ftl_planet
+						effect = {
+							id = "observation.2.effect.1"
+							ROOT = {
+								random_list = {
+									# Collides with planet!
+									75 = { country_event = { id = observation.3 } }
+									# Collides with observation post! 
+									25 = {
+										modifier = {
+											factor = 0
+											event_target:pre_ftl_planet = {
+												OR = {
+													has_observation_outpost = no
+													AND = {
+														has_observation_outpost = yes
+														observation_outpost_owner = {
+															NOT = { is_same_value = ROOT }
+														}
+													}
+												}
+											}
+										}
+										modifier = {
+											factor = 0.1
+											is_xenophobe = yes
+										}
+										modifier = {
+											factor = 1.5
+											is_xenophile = yes
+										}
+										country_event = { id = observation.5 }
+									}
+									# Pre-FTLs divert asteroid!
+									5 = {
+										modifier = {
+											factor = 0
+											event_target:pre_ftl_country = {
+												NOR = {
+													has_pre_ftl_age = atomic_age
+													has_pre_ftl_age = early_space_age
+												}
+											}
+										}
+										modifier = {
+											factor = 5
+											event_target:pre_ftl_country = {
+												has_pre_ftl_age = early_space_age
+											}
+										}
+										modifier = {
+											factor = 2
+											event_target:pre_ftl_country = {
+												has_country_flag = acquired_tech
+											}
+										}
+										country_event = { id = observation.10 }
+									}
+								}
+							}
+							event_target:pre_ftl_planet = {
+								set_timed_planet_flag = {
+									flag = impacted_asteroid
+									days = 30
+								}
+							}
+							destroy_fleet = this
+						}
+					}
+				}
+			}
+		}
+	}
+
+	option = {
+		name = "observation.2.a"
+	}
+	
+	after = {
+		custom_tooltip = cannot_reveal_tt
+		custom_tooltip = cannot_dismantle_outpost_tt
+	}
+}
+
+# Asteroid Impacts!
+country_event = {
+	id = observation.4
+	title = "observation.4.name"
+	desc = "observation.4.desc"
+	picture = GFX_evt_nuclear_explosion
+	show_sound = event_super_explosion
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:pre_ftl_planet = {
+			asteroid_impact_pre_ftl_effect = yes
+			remove_planet_flag = asteroid_sighted_planet
+			owner = {
+				random_situation = {
+					limit = {
+						is_situation_type = pre_ftl_tech_progress_situation
+					}
+					remove_situation_flag = has_ongoing_observation_event_chain
+				}
+			}
+			observation_outpost = {
+				set_event_locked = no
+			}
+		}
+		remove_country_flag = asteroid_sighted_pre_ftl_country
+	}
+
+	option = {
+		name = "observation.4.a"
+		custom_tooltip = observation.4.a.tt
+		hidden_effect = {
+			if = {
+				limit = { has_lithoids = yes }
+				random_list = {
+					1 = { } # nothing happens
+					1 = {
+						country_event = { id = primitivesexpanded.1 days = 360 random = 720 }
+					}
+				}
+			}
+		}
+	}
+}
+
+# Asteroid Destroyed (HIDDEN)
+country_event = {
+	id = observation.6
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		any_galaxy_planet = {
+			has_planet_flag = asteroid_sighted_planet
+			NOT = {
+				has_planet_flag = impacted_asteroid
+			}
+		}
+		exists = from
+		FROM = { has_country_flag = incoming_asteroid_pre_ftl }
+	}
+
+	immediate = {
+		random_galaxy_planet = {
+			limit = { has_planet_flag = asteroid_sighted_planet }
+			remove_planet_flag = asteroid_sighted_planet
+			save_event_target_as = pre_ftl_planet
+			observation_outpost = {
+				set_event_locked = no
+			}
+		}
+		event_target:pre_ftl_planet = {
+			owner = {
+				save_event_target_as = pre_ftl_country
+				random_situation = {
+					limit = {
+						is_situation_type = pre_ftl_tech_progress_situation
+					}
+					remove_situation_flag = has_ongoing_observation_event_chain
+				}
+				if = {
+					limit = {
+						current_awareness_level < full
+						OR = {
+							has_pre_ftl_age = steam_age
+							has_pre_ftl_age = industrial_age
+							has_pre_ftl_age = machine_age
+							has_pre_ftl_age = atomic_age
+							has_pre_ftl_age = early_space_age
+						}
+					}
+					random_list = {
+						2 = {
+							set_country_flag = noticed_ships_destroy_asteroid
+							modifier = {
+								factor = 2
+								has_pre_ftl_age = industrial_age
+							}
+							modifier = {
+								factor = 4
+								has_pre_ftl_age = machine_age
+							}
+							modifier = {
+								factor = 8
+								has_pre_ftl_age = atomic_age
+							}
+							modifier = {
+								factor = 16
+								has_pre_ftl_age = early_space_age
+							}
+						}
+						10 = {
+						}
+					}
+				}
+			}
+		}
+		if = {
+			limit = {
+				has_country_flag = asteroid_sighted_pre_ftl_country
+			}
+			country_event = { id = observation.7 }
+			remove_country_flag = asteroid_sighted_pre_ftl_country
+		}
+		else = {
+			country_event = { id = observation.8 }
+			random_country = {
+				limit = { has_country_flag = asteroid_sighted_pre_ftl_country }
+				country_event = { id = observation.9 }
+				remove_country_flag = asteroid_sighted_pre_ftl_country
+			}
+		}
+	}
+}
+
+# Asteroid Destroyed
+country_event = {
+	id = observation.7
+	title = "observation.7.name"
+	desc = {
+		text = "observation.7.desc"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+	}
+	desc = {
+		text = "observation.7.b.desc"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+	}
+	picture = GFX_evt_atmospheric_entry
+	show_sound = event_ship_explosion
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		save_event_target_as = observation_post_owner
+	}
+
+	option = {
+		name = "observation.7.a"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = @tier2materialreward
+			min = @tier2materialmin
+			max = @tier2materialmax
+		}
+		event_target:pre_ftl_country = {
+			add_awareness = 5
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+	}
+	option = {
+		name = "observation.7.b"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = @tier2materialreward
+			min = @tier2materialmin
+			max = @tier2materialmax
+		}
+		event_target:pre_ftl_country = {
+			add_awareness = 50
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+	}
+
+	after = {
+		event_target:pre_ftl_country = { remove_country_flag = noticed_ships_destroy_asteroid }
+	}
+}
+
+# Asteroid Destroyed
+country_event = {
+	id = observation.8
+	title = "observation.8.name"
+	desc = {
+		text = "observation.8.desc"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+	}
+	desc = {
+		text = "observation.7.b.desc"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+	}
+	picture = GFX_evt_atmospheric_entry
+	show_sound = event_ship_explosion
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		save_event_target_as = observation_post_owner
+	}
+
+	option = {
+		name = "observation.8.a"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = @tier2materialreward
+			min = @tier2materialmin
+			max = @tier2materialmax
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+	}
+	option = {
+		name = "observation.7.b"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+		add_monthly_resource_mult = {
+			resource = minerals
+			value = @tier2materialreward
+			min = @tier2materialmin
+			max = @tier2materialmax
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+	}
+}
+
+# Asteroid Destroyed
+country_event = {
+	id = observation.9
+	title = "observation.9.name"
+	desc = {
+		text = "observation.9.desc"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+	}
+	desc = {
+		text = "observation.7.b.desc"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+	}
+	picture = GFX_evt_atmospheric_entry
+	show_sound = event_ship_explosion
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = "observation.9.a"
+		trigger = { event_target:pre_ftl_country = { NOT = { has_country_flag = noticed_ships_destroy_asteroid } } }
+		event_target:pre_ftl_country = {
+			add_awareness = 5
+		}
+	}
+	option = {
+		name = "observation.7.b"
+		trigger = { event_target:pre_ftl_country = { has_country_flag = noticed_ships_destroy_asteroid } }
+		event_target:pre_ftl_country = {
+			add_awareness = 50
+		}
+	}
+
+	after = {
+		event_target:pre_ftl_country = { remove_country_flag = noticed_ships_destroy_asteroid }
+	}
+}
+
+### Missing Scientist
+
+# Reports of a Cult
+country_event = {
+	id = observation.103
+	title = "observation.103.name"
+	desc = "observation.103.desc"
+	picture = GFX_evt_medieval_alien_civilization
+	show_sound = event_pre_ftl_civilization
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	trigger = {
+		event_target:pre_ftl_planet = {
+			has_planet_flag = missing_scientist_planet
+			owner = {
+				is_regular_pre_ftl = yes
+			}
+			has_observation_outpost = yes
+			observation_outpost_owner = {
+				has_country_flag = missing_scientist_chain
+			}
+		}
+	}
+
+	immediate = {
+		save_event_target_as = observation_post_owner
+		event_target:pre_ftl_planet = {
+			remove_planet_flag = missing_scientist_planet
+		}
+		event_target:pre_ftl_country = {
+			set_timed_country_flag = {
+				flag = new_industrial_age
+				days = 360
+			}
+		}
+	}
+
+	option = {
+		name = CURIOUS
+		custom_tooltip = advance_to_age_tt
+		tooltip = {
+			add_awareness = 30
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_equal_standing
+		}
+		hidden_effect = {
+			event_target:pre_ftl_planet = {
+				set_planet_flag = cult_reported
+				owner = {
+					remove_pre_ftl_flags = yes
+					change_government = {
+						civics = {
+							civic = civic_increasing_urbanization
+							civic = civic_atmospheric_pollution
+						}
+					}
+					set_pre_ftl_age_effect = { PRE_FTL_AGE = industrial_age }
+					add_awareness = 30
+					random_list = {
+						12 = {
+							shift_ethic = ethic_egalitarian 
+							random_owned_pop = { pop_change_ethic = ethic_egalitarian }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_authoritarian
+									has_ethic = ethic_fanatic_authoritarian
+									has_ethic = ethic_fanatic_egalitarian
+								}
+							}
+						}
+						16 = {
+							shift_ethic = ethic_authoritarian 
+							random_owned_pop = { pop_change_ethic = ethic_authoritarian }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_egalitarian
+									has_ethic = ethic_fanatic_authoritarian
+									has_ethic = ethic_fanatic_egalitarian
+								}
+							}
+							modifier = {
+								factor = 0
+								ROOT = {
+									OR = {
+										has_ethic = ethic_egalitarian
+										has_ethic = ethic_fanatic_egalitarian
+									}
+								}
+							}
+						}
+						14 = {
+							shift_ethic = ethic_pacifist 
+							random_owned_pop = { pop_change_ethic = ethic_pacifist }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_militarist
+									has_ethic = ethic_fanatic_militarist
+									has_ethic = ethic_fanatic_pacifist
+								}
+							}
+						}
+						14 = {
+							shift_ethic = ethic_militarist 
+							random_owned_pop = { pop_change_ethic = ethic_militarist }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_pacifist
+									has_ethic = ethic_fanatic_militarist
+									has_ethic = ethic_fanatic_pacifist
+								}
+							}
+						}
+						20 = {
+							shift_ethic = ethic_spiritualist 
+							random_owned_pop = { pop_change_ethic = ethic_spiritualist }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_materialist
+									has_ethic = ethic_fanatic_materialist
+									has_ethic = ethic_fanatic_spiritualist
+								}
+							}
+						}
+						9 = {
+							shift_ethic = ethic_materialist 
+							random_owned_pop = { pop_change_ethic = ethic_materialist }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_spiritualist
+									has_ethic = ethic_fanatic_materialist
+									has_ethic = ethic_fanatic_spiritualist
+								}
+							}
+							modifier = {
+								factor = 0
+								ROOT = {
+									OR = {
+										has_ethic = ethic_spiritualist
+										has_ethic = ethic_fanatic_spiritualist
+									}
+								}
+							}
+							modifier = {
+								factor = 0.5
+								ROOT = {
+									NOR = {
+										has_ethic = ethic_materialist
+										has_ethic = ethic_fanatic_materialist
+									}
+								}
+							}
+						}
+						15 = {
+							shift_ethic = ethic_xenophile 
+							random_owned_pop = { pop_change_ethic = ethic_xenophile }
+							modifier = {
+								factor = 0
+								OR = {
+									has_ethic = ethic_xenophobe
+									has_ethic = ethic_fanatic_xenophobe
+									has_ethic = ethic_fanatic_xenophile
+								}
+							}
+							modifier = {
+								factor = 0
+								ROOT = {
+									OR = {
+										has_ethic = ethic_xenophobe
+										has_ethic = ethic_fanatic_xenophobe
+									}
+								}
+							}
+						}
+					}
+				}
+				observation_outpost_owner = {
+					country_event = {
+						id = observation.104
+						# 5 ± 2.5 years
+						days = 900
+						random = 1800
+					}
+				}
+			}
+			event_target:pre_ftl_country = {
+				remove_country_flag = new_industrial_age
+			}
+		}
+	}
+}
+
+### Shuttle Intercepted Chain
+
+# Shuttle Crash Triggers Nuclear War (HIDDEN)
+planet_event = {
+	id = observation.204
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		has_observation_outpost = yes
+		observation_outpost_owner = {
+			is_ai = no
+			has_country_flag = scientists_captured_chain
+		}
+	}
+
+	immediate = {
+		observation_outpost_owner = {
+			remove_country_flag = scientists_captured_chain
+			random_list = {
+				30 = {
+					country_event = {
+						id = observation.205
+						days = 360
+						random = 360
+					}
+				}
+				30 = {
+					country_event = {
+						id = observation.206
+						days = 360
+						random = 360
+					}
+				}
+				20 = {
+					country_event = {
+						id = observation.207
+						days = 360
+						random = 360
+					}
+				}
+				20 = {
+					country_event = {
+						id = primitivesexpanded.2
+						days = 360
+						random = 360
+					}
+				}
+			}
+		}
+	}
+}
+
+### AGGRESSIVE OBSERVATION ###
+
+### Defense Force (HIDDEN)
+situation_event = {
+	id = observation.1100
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			NOT = {
+				has_country_flag = observation_1100_fired
+			}
+			pre_ftl_modern_era = yes
+			current_awareness_level >= medium
+			OR = {
+				has_country_flag = nuclear_sabotage_aliens_discovered
+				capital_scope = {
+					has_observation_outpost = yes
+					observation_outpost = { has_mission = specimen_collection }
+				}
+			}
+		}
+	}
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 10
+			owner = { has_country_flag = nuclear_sabotage_aliens_discovered }
+		}
+	}
+
+	immediate = {
+		owner = {
+			set_country_flag = observation_1100_fired
+			set_country_flag = defense_task_force
+			save_event_target_as = pre_ftl_country
+			capital_scope = {
+				save_event_target_as = pre_ftl_planet
+				observation_outpost_owner = {
+					country_event = { id = observation.1101 }
+					set_relation_flag = {
+						who = event_target:pre_ftl_country
+						flag = defense_force
+					}
+				}
+			}
+		}
+		set_situation_flag = has_ongoing_observation_event_chain
+		# Setting this flag for the duration of the entire event chain
+		# to prevent other observation events from interfering.
+	}
+}
+
+# Defense Force
+country_event = {
+	id = observation.1101
+	title = "observation.1101.name"
+	desc = "observation.1101.desc"
+	picture = GFX_evt_galactic_senate
+	show_sound = event_radio_chatter_02
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:pre_ftl_planet.observation_outpost = {
+			set_event_locked = yes
+		}
+		save_event_target_as = observation_post_owner
+	}
+
+	option = {
+		name = "DISCONCERTING"
+		event_target:pre_ftl_country = {
+			switch = {
+				trigger = current_awareness_level
+				medium = {
+					add_awareness = 20
+				}
+				high = {
+					add_awareness = 10
+				}
+			}
+		}
+		hidden_effect = {
+			country_event = {
+				# Interceptions
+				id = observation.1102
+				# 5 ± 2.5 years
+				days = 900
+				random = 1800
+			}
+		}
+		observation_breach_effect = {
+			RESOLUTION = resolution_pre_ftl_stances_non_interference
+		}
+	}
+	
+	after = {
+		custom_tooltip = cannot_reveal_tt
+		custom_tooltip = cannot_dismantle_outpost_tt
+	}
+}
+
+# Observation Post Lost
+country_event = {
+	id = observation.1103
+	title = "observation.1103.name"
+	desc = "observation.1103.desc"
+	picture = GFX_evt_exploding_ship
+	show_sound = event_ship_explosion
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		event_target:pre_ftl_country = {
+			set_variable = {
+				which = TechProgressPercentage
+				value = 10
+			}
+		}
+	}
+
+	option = {
+		name = "observation.1103.a"
+		custom_tooltip = tech_progress_gain_tt
+		event_target:pre_ftl_planet = {
+			observation_outpost = {
+				dismantle = yes
+			}
+		}
+		hidden_effect = {
+			event_target:pre_ftl_country = {
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				capital_scope.observation_outpost = {
+					set_event_locked = no
+				}
+				random_situation = {
+					limit = {
+						is_situation_type = pre_ftl_tech_progress_situation
+					}
+					add_situation_progress = 192
+				}
+			}
+		}
+	}
+
+	after = {
+		hidden_effect = {
+			event_target:pre_ftl_country = {
+				clear_variable = TechProgressPercentage
+			}
+		}
+	}
+}
+
+# Task Force Disbanded
+country_event = {
+	id = observation.1104
+	title = "observation.1104.name"
+	desc = "observation.1104.desc"
+	picture = GFX_evt_galactic_senate
+	show_sound = event_conversation
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = "observation.1104.a"
+		event_target:pre_ftl_country = {
+			add_awareness = -10
+		}
+		hidden_effect = {
+			event_target:pre_ftl_country = {
+				remove_country_flag = defense_task_force
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				capital_scope.observation_outpost = {
+					set_event_locked = no
+				}
+			}
+		}
+	}
+}
+
+# Surgical Strike
+country_event = {
+	id = observation.1105
+	title = "observation.1105.name"
+	desc = {
+		text = "observation.1105.desc"
+		trigger = {
+			event_target:pre_ftl_planet = {
+				has_observation_outpost = yes
+				observation_outpost = { has_mission = specimen_collection }
+			}
+		}
+	}
+	desc = {
+		text = "observation.1105.desc.nuke"
+		trigger = {
+			NOT = {
+				event_target:pre_ftl_planet = {
+					has_observation_outpost = yes
+					observation_outpost = { has_mission = specimen_collection }
+				}
+			}
+		}
+	}
+	picture = GFX_evt_hangar_bay
+	show_sound = event_radio_chatter
+	location = event_target:pre_ftl_planet
+	trackable = yes
+
+	is_triggered_only = yes
+
+	option = {
+		name = "observation.1105.a"
+		event_target:pre_ftl_planet = {
+			enable_special_project = {
+				name = "DEFENSE_FORCE_STRIKE_PROJECT"
+				location = this
+				owner = root
+			}
+		}
+	}
+	option = {
+		name = "observation.1105.b"
+		hidden_effect = {
+			random_list = {
+				50 = {
+					modifier = {
+						factor = 1.5
+						event_target:pre_ftl_country = {
+							OR = {
+								is_xenophobe = yes
+								is_militarist = yes
+							}
+						}
+					}
+					modifier = {
+						factor = 0
+						event_target:pre_ftl_planet.observation_outpost = {
+							is_cloaked = yes
+						}
+					}
+					country_event = {
+						# Observation Post Destroyed
+						id = observation.1103 
+						# 5 ± 2.5 years
+						days = 900
+						random = 1800
+					}
+				}
+				50 = {
+					modifier = {
+						factor = 1.5
+						event_target:pre_ftl_country = {
+							OR = {
+								is_xenophile = yes
+								is_pacifist = yes
+							}
+						}
+					}
+					country_event = {
+						# Task Force Disbanded
+						id = observation.1104
+						# 5 ± 2.5 years
+						days = 900
+						random = 1800
+					}
+				}
+			}
+		}
+	}
+}
+
+# Strike Successful
+ship_event = {
+	id = observation.1106
+	title = "observation.1106.name"
+	desc = "observation.1106.desc"
+	picture = GFX_evt_burning_settlement
+	show_sound = event_ground_battle
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		FROMFROM = {
+			save_event_target_as = pre_ftl_planet
+			owner = { save_event_target_as = pre_ftl_country }
+		}
+	}
+
+	option = {
+		name = "observation.1106.a"
+		event_target:pre_ftl_planet = {
+			random_owned_pop = {
+				kill_pop = yes
+			}
+		}
+		hidden_effect = {
+			event_target:pre_ftl_country = {
+				remove_country_flag = defense_task_force
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				capital_scope.observation_outpost = {
+					set_event_locked = no
+				}
+			}
+		}
+	}
+}
+
+# Strike Failed
+ship_event = {
+	id = observation.1107
+	title = "observation.1107.name"
+	desc = "observation.1107.desc"
+	picture = GFX_evt_ground_combat
+	show_sound = event_ground_battle
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	immediate = {
+		FROMFROM = {
+			save_event_target_as = pre_ftl_planet
+			owner = { save_event_target_as = pre_ftl_country }
+		}
+	}
+
+	option = {
+		name = "observation.1107.a"
+		event_target:pre_ftl_country = {
+			add_awareness = 10
+		}
+		hidden_effect = {
+			event_target:pre_ftl_country = {
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				capital_scope.observation_outpost = {
+					set_event_locked = no
+				}
+			}
+		}
+	}
+}
+
+# Nuclear War (Gatekeeper)
+situation_event = {
+	id = observation.1400
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			NOR = {
+				has_country_flag = observation_1400_fired
+				is_fear_of_the_dark_empire = yes
+				has_country_flag = solarpunk_country
+			}
+			has_blocked_random_devastating_pre_ftl_events = no
+			OR = {
+				has_pre_ftl_age = atomic_age
+				has_pre_ftl_age = early_space_age
+			}
+			OR = {
+				owner.capital_scope = {
+					has_observation_outpost = yes
+				}
+				NOT = {
+					has_global_flag = nuclear_war_pre_ftl_global
+				}
+			}
+
+			capital_scope = {
+				is_artificial = no
+			}
+		}
+	}
+
+	weight_multiplier = {
+		factor = 1
+		modifier = {
+			factor = 2
+			owner = { is_militarist = yes }
+		}
+		modifier = {
+			factor = 0.5
+			owner = { is_pacifist = yes }
+		}
+		modifier = {
+			factor = 0.25
+			owner = { has_pre_ftl_age = early_space_age }
+		}
+	}
+
+	immediate = {
+		owner = {
+			set_country_flag = observation_1400_fired
+			save_event_target_as = pre_ftl_country
+			
+			capital_scope = {
+				save_event_target_as = pre_ftl_planet
+			}
+			
+			start_situation = {
+				type = situation_cold_war
+				target = event_target:pre_ftl_planet
+				effect = {
+					save_event_target_as = cold_war_situation
+				}
+			}
+			
+			set_timed_country_flag = {
+				flag = cold_war_still_new
+				days = 5400
+			}
+		}
+		if = {
+			limit = {
+				owner = {
+					capital_scope = {
+						has_observation_outpost = yes
+						exists = observation_outpost_owner
+					}
+				}
+			}
+			owner.capital_scope.observation_outpost_owner = {
+				country_event = { id = primitivesexpanded.6 }
+			}
+		}
+		else = {
+			set_timed_global_flag = {
+				flag = nuclear_war_pre_ftl_global
+				years = 50
+			}
+		}
+		set_situation_flag = has_ongoing_observation_event_chain
+		# Setting this flag for the duration of the entire event chain
+		# to prevent other observation events from interfering.
+	}
+}
+
+### Research Proposal
+# Alien Abductions
+country_event = {
+	id = observation.1501
+	title = "observation.1501.name"
+	desc = "observation.1501.desc"
+	picture = GFX_evt_landing_ship
+	location = event_target:pre_ftl_planet
+	trackable = yes
+
+	is_triggered_only = yes
+
+	option = {
+		name = "observation.1501.a"
+		enable_special_project = {
+			name = "PROBE_ALIENS_PROJECT"
+			location = event_target:pre_ftl_planet
+			owner = root
+		}
+		hidden_effect = {
+			event_target:pre_ftl_planet.observation_outpost = {
+				set_event_locked = yes
+			}
+		}
+		custom_tooltip = cannot_reveal_tt
+		custom_tooltip = cannot_dismantle_outpost_tt
+	}
+	option = {
+		name = "observation.1501.b"
+		event_target:pre_ftl_planet.observation_outpost = {
+			custom_tooltip = observation.1501.b.tt
+			set_mission = passive_observation
+		}
+		hidden_effect = {
+			event_target:pre_ftl_planet.observation_outpost = {
+				set_fleet_flag = denied_probing
+			}
+			event_target:pre_ftl_country = {
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+			}
+		}
+	}
+}
+
+# Abductions Finished
+ship_event = {
+	id = observation.1502
+	title = "PROJECT_COMPLETE"
+	desc = "observation.1502.desc"
+	picture = GFX_evt_landing_ship
+	location = event_target:pre_ftl_planet
+
+	is_triggered_only = yes
+
+	option = {
+		name = "observation.1502.a"
+		owner = {
+			add_monthly_resource_mult = {
+				resource = society_research
+				value = @tier3researchreward
+				min = @tier3researchmin
+				max = @tier3researchmax
+			}
+		}
+		FROMFROMFROM.owner = {
+			add_awareness = 5
+		}
+		hidden_effect = {
+			FROMFROMFROM.owner = {
+				if = {
+					limit = {
+						has_country_flag = observation_1400_fired
+						NOT = { has_country_flag = observation_1400_ended_peacefully }
+					}
+					random_situation = {
+						limit = {
+							is_situation_type = situation_cold_war
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				else = {
+					random_situation = {
+						limit = {
+							is_situation_type = pre_ftl_tech_progress_situation
+						}
+						remove_situation_flag = has_ongoing_observation_event_chain
+					}
+				}
+				capital_scope.observation_outpost = {
+					set_event_locked = no
+				}
+			}
+		}
+	}
+}

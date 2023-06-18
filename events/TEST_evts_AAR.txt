@@ -1,0 +1,538 @@
+namespace = TEST_evt_AAR
+#	测试弹窗
+#	test舰队入场/脚本移动舰队
+#	检测sb舰队
+#	舰队毁灭CTD实验
+#	超级防线特效展示
+#	火炬之光
+#	网道行者
+
+
+
+
+###	测试弹窗
+country_event = {
+	id = TEST_evt_AAR.10
+	title = AAR_tips_test_CONTROLLER
+	desc = AAR_tips_test_CONTROLLER
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	location = root
+	
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.11
+	title = AAR_tips_test_OWNER
+	desc = AAR_tips_test_OWNER
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	location = root
+	
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+
+
+
+###	test舰队入场
+#_<on_entering_system_fleet>
+fleet_event = {
+	id = TEST_evt_AAR.20
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { owner = { is_ai = no } }
+
+	immediate = {
+		set_fleet_flag = TEST_flg_flt_ENTER
+		owner = { country_event = { id = TEST_evt_AAR.10 } }	# 测试弹窗
+	}
+}
+
+### 脚本移动舰队	^
+fleet_event = {
+	id = TEST_evt_AAR.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_timed_fleet_flag = { flag = TEST_AAR_flg_flt days = 1 }
+		set_location = { target = owner.capital_scope		 distance = 50 angle = 45 }	# 3.4以后可以触发舰队入场
+	}
+}
+
+
+
+
+### 检测sb舰队		^		SB舰队包含防御塔,默认情况下fleet_size=4,防御塔容量为|fleet_size上限|-4
+country_event = {
+	id = TEST_evt_AAR.30
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope.solar_system = {
+			random_fleet_in_system = { limit = { is_ship_class = shipclass_starbase }
+				root = { set_variable = { which = TEST_AAR_var_SB value = prev.trigger:fleet_size } }
+			}
+		}
+		country_event = { id = TEST_evt_AAR.31 }
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.31
+	title = aar_test
+	desc = TEST_AAR_tips_var_sstm
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	location = capital_scope
+	
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+		clear_variable = TEST_AAR_var_SB
+	}
+}
+
+### 检查SB的owner与controller		^		先占领星系然后测试
+#	敌方境内<战舰>
+country_event = {
+	id = TEST_evt_AAR.32
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_military
+				NOT = { root = { is_same_value = prev.solar_system.space_owner } }	# 所在星系owner不是我
+				solar_system.space_owner = { is_hostile = root }	# 在敌方境内
+			}
+			root = { country_event = { id = TEST_evt_AAR.321 } }
+		}
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.321
+	title = aar_test
+	desc = TEST_AAR_我方战舰在敌方境内
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+#	敌方境内<星基>
+country_event = {
+	id = TEST_evt_AAR.33
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_ship = {
+			limit = {
+				is_ship_class = shipclass_starbase
+				NOT = { root = { is_same_value = prev.solar_system.space_owner } }	# 所在星系owner不是我
+				solar_system.space_owner = { is_hostile = root }	# 在敌方境内
+			}
+			root = { country_event = { id = TEST_evt_AAR.331 } }
+		}
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.331
+	title = aar_test
+	desc = TEST_AAR_我方星基在敌方境内
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+
+
+
+### 舰队毁灭CTD实验		^		检测fleet毁灭后,添加于其上的[自循环事件]会导致什么结果
+country_event = {
+	id = TEST_evt_AAR.40
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_fleet = { limit = { has_fleet_flag = TEST_AAR_flg_flt_DOOM }
+			every_owned_ship = { destroy_ship = this }
+		#	destroy_fleet = this	# 自毁,摧毁舰队可以直接终止所有舰队scope的自循环事件
+			prev = { set_country_flag = TEMP_AAR_flg_test }
+		}
+		if = { limit = { has_country_flag = TEMP_AAR_flg_test }
+			remove_country_flag = TEMP_AAR_flg_test
+		}
+		else = {
+			random_owned_fleet = { limit = { is_ship_class = shipclass_military }
+				set_fleet_flag = TEST_AAR_flg_flt_DOOM
+				fleet_event = { id = TEST_evt_AAR.41 }
+			}
+		}
+	}
+}
+fleet_event = {
+	id = TEST_evt_AAR.41
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = this
+		is_scope_type = fleet
+	}
+
+	immediate = {
+		owner = { country_event = { id = TEST_evt_AAR.411 } }	# 通知弹窗
+		set_variable = { which = TEST_AAR_var value = 1 }
+		clear_variable = TEST_AAR_var
+		remove_fleet_flag = TEST_AAR_X
+		remove_modifier = AAR_mod_ship_LINE_shield
+		remove_modifier = AAR_mod_ship_LINE_regen
+		fleet_event = { id = TEST_evt_AAR.41 days = 3 }	# 自循环
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.411
+	title = aar_test
+	desc = TEST_AAR_舰队毁灭自循环进行中
+	picture = GFX_AAR_EP_tech_summit
+	show_sound = event_celebration
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+
+
+
+###	超级防线特效展示
+country_event = {#无盾
+	id = TEST_evt_AAR.500
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		country_event = { id = TEST_evt_AAR.50 days = 3 }
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.50
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope.solar_system = {
+			if = {
+				limit = { NOT = {
+					any_system_ambient_object = {
+						OR = {
+							is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE
+							is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE
+							is_ambient_object_type = AAR_ambt_SB_line_AURA
+						}
+					}
+				}}
+				starbase = {
+					create_ambient_object = {
+						type = AAR_ambt_SB_line_shield_BLUE
+						entity_scale_to_size = no
+						scale = 10
+						location = this
+					#	duration = 75
+					}
+					create_ambient_object = {
+						type = AAR_ambt_SB_line_AURA
+						entity_scale_to_size = no
+						scale = 10
+						location = this
+					}
+				}
+			}
+			else_if = {
+				limit = { any_system_ambient_object = { is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE } }
+				random_system_ambient_object = { limit = { is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE }		destroy_ambient_object = this }
+				random_system_ambient_object = { limit = { is_ambient_object_type = AAR_ambt_SB_line_AURA }				destroy_ambient_object = this }
+				starbase = {
+					create_ambient_object = {
+						type = AAR_ambt_LINE_skw_BLUE
+						entity_scale_to_size = no
+						scale = 50
+						location = this
+						duration = 7
+					}
+					create_ambient_object = {
+						type = AAR_ambt_LINE_break_BLUE
+						entity_scale_to_size = no
+						scale = 10
+						location = this
+						duration = 5
+					}
+				}
+			}
+		}
+	}
+}
+country_event = {#橙盾
+	id = TEST_evt_AAR.510
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		country_event = { id = TEST_evt_AAR.51 days = 3 }
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.51
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope.solar_system = {
+			if = {
+				limit = { NOT = {
+					any_system_ambient_object = {
+						OR = {
+							is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE
+							is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE
+							is_ambient_object_type = AAR_ambt_SB_line_AURA
+						}
+					}
+				}}
+				starbase = {
+					create_ambient_object = {
+						type = AAR_ambt_SB_line_shield_ORANGE
+						entity_scale_to_size = no
+						scale = 10
+						location = this
+					#	duration = 75
+					}
+				}
+			}
+			else_if = {
+				limit = { any_system_ambient_object = { is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE } }
+				random_system_ambient_object = { limit = { is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE }		destroy_ambient_object = this }
+				starbase = {
+					create_ambient_object = {
+						type = AAR_ambt_LINE_skw_ORANGE
+						entity_scale_to_size = no
+						scale = 50
+						location = this
+						duration = 7
+					}
+					create_ambient_object = {
+						type = AAR_ambt_LINE_break_ORANGE
+						entity_scale_to_size = no
+						scale = 10
+						location = this
+						duration = 5
+					}
+				}
+			}
+		}
+	}
+}
+country_event = {#无盾
+	id = TEST_evt_AAR.520
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		country_event = { id = TEST_evt_AAR.52 days = 3 }
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.52
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope.solar_system.starbase = {
+			create_ambient_object = {
+				type = AAR_ambt_LINE_skw_ORANGE
+				entity_scale_to_size = no
+				scale = 50
+				location = this
+				duration = 7
+			}
+		}
+	}
+}
+
+
+
+
+### 火炬之光
+country_event = {
+	id = TEST_evt_AAR.60
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_owned_leader = {
+			limit = { NOR = {
+				has_trait = FW_trait_ldr_PROTECT_star_lite
+				FW_trgr_ldr_PROTECT_star_DISABLE = no		# 守护星无效
+			}}
+			add_trait = FW_trait_ldr_PROTECT_star_lite
+		}
+	}
+}
+country_event = {#杀科学家
+	id = TEST_evt_AAR.61
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_owned_fleet = { limit = { is_ship_class = shipclass_science_ship }
+			destroy_fleet = { target = this		kill_leader = yes }
+		}
+	}
+}
+country_event = {#FW观察员
+	id = TEST_evt_AAR.62
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		create_leader = {
+			name = random
+			species = owner_species
+			class = governor
+			event_leader = yes
+			traits = { trait = FW_trait_ldr_PROTECT_star_observer }	# FW观察员
+		}
+	}
+}
+
+
+
+
+###	网道行者
+country_event = {
+	id = TEST_evt_AAR.70
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		capital_scope.solar_system = {
+			spawn_megastructure = {
+				name = "NAME_AAR_mega_WEBWAY_NEXUS"
+				type = "AAR_MEGA_webway_NEXUS"
+				orbit_angle = 0
+				orbit_distance = 25
+				owner = root
+			#	graphical_culture = fromfrom
+				planet = star
+			}
+			set_star_flag = AAR_flg_sstm_WEBWAY_node
+			set_star_flag = AAR_flg_sstm_WEBWAY_nexus
+			
+			closest_system = {
+				max_steps = 5
+				limit = { NOT = { is_neighbor_of = prev } }
+
+				spawn_megastructure = {
+					name = "NAME_AAR_mega_WEBWAY_NEXUS"
+					type = "AAR_MEGA_webway_NEXUS"
+					orbit_angle = 0
+					orbit_distance = 25
+					owner = root
+				#	graphical_culture = fromfrom
+					planet = star
+				}
+				set_star_flag = AAR_flg_sstm_WEBWAY_node
+				set_star_flag = AAR_flg_sstm_WEBWAY_nexus
+			}
+		}
+	}
+}
+country_event = {
+	id = TEST_evt_AAR.71
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		create_fleet = { name = AAR_DESIGN_tgt_WEBWAY
+			effect = {
+			#	set_event_locked = yes	# 事件锁定
+			
+				# 绝对通行
+				set_fleet_flag = FW_flg_flt_JUMP	# FW特殊跃迁flt
+				root = { set_timed_country_flag = { flag = AAR_flg_cntr_JUMP_webway_TGT days = 90 } }	# AAR特殊跃迁
+				
+				set_owner = root
+				create_ship = { name = AAR_DESIGN_tgt		 design = AAR_DESIGN_tgt }
+				set_location = root.capital_scope
+				fleet_event = { id = AAR_evt_WEBWAY.41 days = 90 }	# 网道定位器自我清理
+				
+				set_fleet_flag = AAR_flg_flt_TGT_webway
+			}
+		}
+	}
+}
+# orbit检测
+country_event = {
+	id = TEST_evt_AAR.72
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_fleet = { limit = { is_ship_size = juggernaut }
+			if = {
+				limit = { exists = orbit
+					orbit = {# 轨道可以检测mega与mega类型,但是会报错
+						is_scope_type = megastructure
+						is_megastructure_type = AAR_MEGA_webway_NODE
+					}
+				}
+				root = {
+					create_message = {
+						type = FW_msg_PROTECT_star
+						localization = FW_msg_PROTECT_star_DESC
+						days = 30
+						target = this
+					}
+				}
+			}
+		}
+	}
+}
+# flg刷新		同名flg会以新的添加方式覆盖旧的
+country_event = {
+	id = TEST_evt_AAR.73
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		random_owned_fleet = { limit = { is_ship_size = juggernaut }
+			random_owned_ship = {
+				if = { limit = { NOT = { has_ship_flag = AAR_flg_ship_TEST } }
+					set_timed_ship_flag = { flag = AAR_flg_ship_TEST days = 90 }
+				}
+				else = {
+					set_ship_flag = AAR_flg_ship_TEST
+				}
+			}
+		}
+	}
+}
+

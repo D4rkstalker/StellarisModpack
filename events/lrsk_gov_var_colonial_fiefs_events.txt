@@ -1,0 +1,660 @@
+# Government Variety Pack
+# Events - Colonial Fiefs
+# Author: littleraskol
+
+namespace = lrsk_gov_var_colfief
+
+# Called yearly to determine whether to spawn a vassal colony sometime later in the year.
+country_event = {
+	id = lrsk_gov_var_colfief.1
+
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		# Note: These are the only requirements because this is a very light event that just rolls a d8 and calls another event,
+		# and the conditions allowing the spawning to occur may change between when this check is made and when the spawn occurs.
+		# This does mean there is a "lag time" between setting the appropriate policy and when the effect can happen, since this
+		# only goes off yearly.
+
+		# Need the right civic
+		has_valid_civic = lrsk_gov_var_civic_colonial_fiefs
+		not = { has_policy_flag = lrsk_gvp_colfief_prohibited }
+	}
+
+	immediate = {
+		#log = "In colonial fiefs gate"
+		random_list = {
+			# nothing
+			7 = {
+				modifier = {
+					add = -1
+					has_policy_flag = lrsk_gvp_colfief_promoted
+				}
+			}
+			1 = {
+				modifier = {
+					add = 1
+					has_policy_flag = lrsk_gvp_colfief_promoted
+				}
+				country_event = {
+					id = lrsk_gov_var_colfief.2
+					days = 180
+					random = 179
+				}
+			}
+		}
+	}
+}
+
+# Actually do the vassal spawning
+country_event = {
+	id = lrsk_gov_var_colfief.2
+
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		lrsk_can_spawn_viceroyal_colony_vassal = yes
+	}
+
+	# This is a complex series of many-to-many relations. It is mediated by temporary flags to mark everything with potential and then combine them.
+	immediate = {
+		#log = "In colonial fiefs vassal spawner"
+		# Mark all empire planets from which a colony founder can emigrate.
+		every_owned_planet = {
+			limit = {
+				num_pops > 9
+				any_owned_pop = {
+					is_enslaved = no
+					is_being_purged = no
+					not = { pop_has_trait = trait_syncretic_proles }
+				}
+			}
+			set_timed_planet_flag = {
+				flag = lrsk_colfief_possible_source_world
+				days = 2
+			}
+			# Mark all pops that can be founders on each applicible planet.
+			every_owned_pop = {
+				limit = {
+					is_enslaved = no
+					is_being_purged = no
+					not = { pop_has_trait = trait_syncretic_proles }
+				}
+				set_timed_pop_flag = {
+					flag = lrsk_colfief_possible_founder
+					days = 2
+				}
+				# This series of conditions will be checked later to give priority to the discontented and unemployed.
+				if = { limit = { is_unemployed = yes }
+					set_timed_pop_flag = {
+						flag = lrsk_colfief_unemployed
+						days = 2
+					}
+				}
+				if = { limit = { happiness < 50 }
+					set_timed_pop_flag = {
+						flag = lrsk_colfief_unhappy
+						days = 2
+					}
+				}
+				else_if = { limit = { happiness < 60 }
+					random = {
+						chance = 75
+						set_timed_pop_flag = {
+							flag = lrsk_colfief_unhappy
+							days = 2
+						}
+					}
+				}
+				else_if = { limit = { happiness < 70 }
+					random = {
+						chance = 50
+						set_timed_pop_flag = {
+							flag = lrsk_colfief_unhappy
+							days = 2
+						}
+					}
+				}
+				else_if = { limit = { happiness < 80 }
+					random = {
+						chance = 25
+						set_timed_pop_flag = {
+							flag = lrsk_colfief_unhappy
+							days = 2
+						}
+					}
+				}
+				
+				# This is an "aristocratic" system. So long as there is some possible founder somewhere,
+				# we want it to be more likely for a "higher class" pop to start a whole new empire.
+				# TBD!
+			}
+		}
+
+		# Mark every unowned, empty system that root has not surveyed at least 3 jumps away with a planet that some species in root can settle.
+		every_system = {
+			limit = {
+				distance_to_empire = {
+					who = root
+					distance > 2
+				}
+				lrsk_safe_to_colonize_system = yes
+				root = {
+					any_owned_pop_species = {
+						not = { has_trait = trait_syncretic_proles }
+						prevprev = {
+							any_system_planet = {
+								is_surveyed = {
+									who = root
+									status = no
+								}
+								habitability = {
+									who = prevprev
+									value >= 0.5
+								}
+								lrsk_safe_to_colonize_planet = yes
+							}
+						}
+					}
+				}
+			}
+			star = { set_timed_planet_flag = {
+				flag = lrsk_colfief_possible_dest_system
+				days = 2
+			} }
+			every_system_planet = {
+				limit = {
+					lrsk_safe_to_colonize_planet = yes
+					root = {
+						any_owned_pop_species = {
+							not = { has_trait = trait_syncretic_proles }
+							prevprev = {
+								habitability = {
+									who = prev
+									value >= 0.5
+								}
+							}
+						}
+					}
+				}
+				set_timed_planet_flag = {
+					flag = lrsk_colfief_possible_dest_world
+					days = 2
+				}
+			}
+		}
+
+		# Remove the founder flag from any pop that can't settle any possible destination world due to hab
+		every_owned_pop = { limit = { has_pop_flag = lrsk_colfief_possible_founder }
+			if = {
+				limit = { NOT = {
+					any_system = {
+						star = { has_planet_flag = lrsk_colfief_possible_dest_system }
+						any_system_planet = {
+							has_planet_flag = lrsk_colfief_possible_dest_world
+							habitability = {
+								who = prevprev
+								value >= 0.5
+							}
+						}
+					}
+				} }
+				remove_pop_flag = lrsk_colfief_possible_founder
+			}
+		}
+
+		# Final sanity check: if we somehow eliminated all possible founders, we should not continue.
+		if = { limit = { any_owned_pop = { has_pop_flag = lrsk_colfief_possible_founder } }
+
+			# This starts the selection with the source planet.
+			random_owned_planet = {
+				limit = {
+					has_planet_flag = lrsk_colfief_possible_source_world
+					any_owned_pop = { has_pop_flag = lrsk_colfief_possible_founder }
+				}
+				
+				save_event_target_as = lrsk_colfief_new_vassal_founder_homeworld
+
+				# Want to prioritize the unemployed and unhappy as "motivated" to leave and found a new colony
+				if = {
+					limit = {
+						any_owned_pop = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unemployed
+							has_pop_flag = lrsk_colfief_unhappy
+						}
+					}
+					random_owned_pop = {
+						limit = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unemployed
+							has_pop_flag = lrsk_colfief_unhappy
+						}
+						save_event_target_as = lrsk_colfief_new_vassal_founder
+					}
+				}
+				else_if = {
+					limit = {
+						any_owned_pop = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unemployed
+						}
+					}
+					random_owned_pop = {
+						limit = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unemployed
+						}
+						save_event_target_as = lrsk_colfief_new_vassal_founder
+					}
+				}
+				else_if = {
+					limit = {
+						any_owned_pop = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unhappy
+						}
+					}
+					random_owned_pop = {
+						limit = {
+							has_pop_flag = lrsk_colfief_possible_founder
+							has_pop_flag = lrsk_colfief_unhappy
+						}
+						save_event_target_as = lrsk_colfief_new_vassal_founder
+					}
+				}
+				else = {
+					random_owned_pop = {
+						limit = {
+							has_pop_flag = lrsk_colfief_possible_founder
+						}
+						save_event_target_as = lrsk_colfief_new_vassal_founder
+					}
+				}
+			}
+
+			# Find the destination planet
+			closest_system = {
+				limit = {
+					star = { has_planet_flag = lrsk_colfief_possible_dest_system }
+					any_system_planet = {
+						has_planet_flag = lrsk_colfief_possible_dest_world
+						habitability = {
+							who = event_target:lrsk_colfief_new_vassal_founder
+							value >= 0.5
+						}
+					}
+				}
+				save_event_target_as = lrsk_colfief_new_vassal_star
+				
+				random_system_planet = {
+					limit = {
+						has_planet_flag = lrsk_colfief_possible_dest_world
+						habitability = {
+							who = event_target:lrsk_colfief_new_vassal_founder
+							value >= 0.5
+						}
+					}
+					save_event_target_as = lrsk_colfief_new_vassal_world
+				}
+			}
+
+			# Determine the new empire according to founder ehtos
+			event_target:lrsk_colfief_new_vassal_founder = {
+				switch = {
+					trigger = pop_has_ethic
+					ethic_authoritarian = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_authoritarian
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_egalitarian = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_egalitarian
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_materialist = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_materialist
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_militarist = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_militarist
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_pacifist = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_pacifist
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_spiritualist = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_spiritualist
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_xenophile = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_xenophile
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					ethic_xenophobe = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = {
+								ethic = ethic_xenophobe
+								ethic = random
+							}
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+					default = {
+						create_country = {
+							name_list = root
+							species = event_target:lrsk_colfief_new_vassal_founder
+							type = default
+							origin = lrsk_gov_var_origin_colonial_venture
+							ignore_initial_colony_error = yes
+							day_zero_contact = no
+							ethos = random
+							authority = random
+							civics = random
+							effect = {
+								copy_techs_from = { target = root }
+								save_event_target_as = lrsk_colfief_new_vassal_empire
+								establish_communications_no_message = root
+							}
+						}
+					}
+				}
+			}
+
+			event_target:lrsk_colfief_new_vassal_world = {
+				create_colony = {
+					owner = event_target:lrsk_colfief_new_vassal_empire
+				}
+
+				add_building = building_colony_shelter
+
+				solar_system = {
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						building = crew_quarters
+						owner = event_target:lrsk_colfief_new_vassal_empire
+						effect = {
+							set_starbase_module = {
+								slot = 1
+								module = trading_hub
+							}
+						}
+					}
+				}
+
+				resettle_pop = {
+					pop = event_target:lrsk_colfief_new_vassal_founder
+					planet = this
+				}
+				
+				# 25% chance with promotion policy that colony starts with additional pop
+				if = { limit = { root = { has_policy_flag = lrsk_gvp_colfief_promoted } }
+					random = {
+						chance = 25
+						create_pop = {
+							species = event_target:lrsk_colfief_new_vassal_founder
+							ethos = event_target:lrsk_colfief_new_vassal_founder
+						}
+					}
+				}
+			}
+			
+			event_target:lrsk_colfief_new_vassal_empire = {
+				create_starting_leaders = yes
+				country_event = { id = game_start.9 }
+				set_name = random # Fixes some naming issues
+				set_subject_of = {
+					who = root
+					preset = preset_vassal
+				}
+				set_relation_flag = {
+					who = root
+					flag = lrsk_colony_hails_from
+				}
+				set_country_flag = lrsk_colony_hails_from@root
+
+				add_opinion_modifier = {
+					who = root
+					modifier = opinion_lrsk_gvp_loyal_explorer_vassal
+				}
+				add_trust = {
+					amount = 50
+					who = root
+				}
+				add_intel = {
+					amount = 60
+					who = root
+				}
+
+				#Resource boosts to keep them viable
+				add_resource = {
+					unity = 100
+					mult = trigger:years_passed
+				}
+				add_resource = {
+					food = 30
+					mult = trigger:years_passed
+				}
+				add_resource = {
+					minerals = 30
+					mult = trigger:years_passed
+				}
+				add_resource = {
+					energy = 30
+					mult = trigger:years_passed
+				}
+			}
+
+			add_trust = {
+				amount = 50
+				who = event_target:lrsk_colfief_new_vassal_empire
+			}
+			add_intel = {
+				amount = 50
+				who = event_target:lrsk_colfief_new_vassal_empire
+			}
+
+			# delay this for X years
+			set_timed_country_flag = {
+				flag = lrsk_colfief_venture_cooldown
+				days = 720
+			}
+
+			if = { limit = { not = { has_country_flag = lrsk_no_colfief_random_vassal_notice } } country_event = { id = lrsk_gov_var_colfief.3 } }
+		}
+	}
+}
+
+# Inform player of explorer colony
+country_event = {
+	id = lrsk_gov_var_colfief.3
+	title = lrsk_gov_var_colfief.3.name
+	desc = lrsk_gov_var_colfief.3.desc
+	location = event_target:lrsk_colfief_new_vassal_world
+	picture = GFX_evt_colony_settlement
+	is_triggered_only = yes
+
+	trigger = {
+		has_valid_civic = lrsk_gov_var_civic_colonial_fiefs	#JIC
+		NOT = { has_country_flag = lrsk_no_colfief_random_vassal_notice }
+	}
+
+	option = {
+		name = lrsk_gov_var_colfief.3.a
+		custom_tooltip = lrsk_gov_var_colfief.3.a.tooltip
+	}
+
+	option = {
+		name = lrsk_gov_var_colfief.3.b
+		custom_tooltip = lrsk_gov_var_colfief.3.b.tooltip
+		hidden_effect = { set_country_flag = lrsk_no_colfief_random_vassal_notice }
+	}
+}
+
+# Explainer
+country_event = {
+	id = lrsk_gov_var_colfief.101
+	title = lrsk_gov_var_colfief.101.name
+	desc = lrsk_gov_var_colfief.101.desc
+	picture = GFX_evt_colony_settlement
+
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+		has_valid_civic = lrsk_gov_var_civic_colonial_fiefs
+	}
+
+	option = {
+		name = lrsk_gov_var_colfief.101.a
+	}
+}
+
+# Basic housekeeping to ????
+#country_event = {
+#	id = lrsk_gov_var_colfief.1000
+#
+#	hide_window = yes
+#	is_triggered_only = yes
+#
+#	trigger = {
+#		has_valid_civic = lrsk_gov_var_civic_colonial_fiefs
+#	}
+#
+#	immediate = {
+#	}
+#}

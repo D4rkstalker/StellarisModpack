@@ -1,0 +1,401 @@
+namespace = crisis
+
+# Purge Complete
+planet_event = {
+	id = crisis.202
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		num_pops = 1 # Last Pop is still alive when this event is fired
+		exists = controller
+		controller = { is_country_type = "swarm" }
+	}
+
+	immediate = {
+		controller = { save_event_target_as = swarm }
+		if = {
+			limit = { is_artificial = no }
+			change_pc = pc_infested
+			set_owner = event_target:swarm
+			planet_event = { id = crisis.215 }
+			planet_event = { id = gpm_crisis.2 }
+		}
+		else_if = {
+			# Habitable Ring Worlds can't be infested...
+			# they are destroyed instead
+			limit = { merg_is_true_ringworld = yes }
+			every_owned_pop = {
+				kill_pop = yes
+			}
+			destroy_colony = yes
+			change_pc = pc_ringworld_habitable_damaged
+			reset_planet = yes
+		}
+		# Ariphaos Patch, expanded
+		else_if = {
+			limit = { merg_is_habitat_non_PD = yes }
+			save_event_target_as = habitat_to_remove
+			solar_system= { 
+				random_system_planet = { 
+				limit = { any_moon = { is_planet = event_target:habitat_to_remove } } 
+					remove_planet_flag = has_megastructure 
+				} 
+			}
+			destroy_colony = yes
+			remove_planet = yes
+		}
+		# Special artificial colonies can't be infested
+		else_if = {
+			limit = { merg_is_special_colony = yes }
+			destroy_colony = yes
+			reset_planet = yes
+		}
+		solar_system = {
+			if = { # Build starbase if no other colonies are left
+				limit = {
+					NOT = {
+						exists = starbase
+						any_system_planet = {
+							has_owner = yes
+							owner = {
+								NOT = { is_same_value = event_target:swarm }
+							}
+						}
+					}
+				}
+				create_starbase = {
+					size = starbase_swarm
+					owner = event_target:swarm
+				}
+				if = {
+					limit = { NOT = { any_system_ambient_object = { has_ambient_object_flag = swarm_system_effect } } }
+					star = {
+						create_ambient_object = {
+							type = "swarm_1"
+							location = this
+						}
+						last_created_ambient_object = {
+							set_ambient_object_flag = swarm_system_effect
+							set_location = {
+								target = prev
+								distance = 0
+								angle = random
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+# Planet Colonized
+planet_event = {
+	id = crisis.203
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_country_type = "swarm" }
+	}
+
+	immediate = {
+		every_owned_pop = { kill_pop = yes }
+		if = {
+			limit = { is_artificial = no }
+			change_pc = pc_infested
+			reset_planet = yes
+			planet_event = { id = crisis.215 }
+			planet_event = { id = gpm_crisis.3 }
+		}
+		else_if = {
+			# Habitable Ring Worlds can't be infested...
+			# they are destroyed instead
+			limit = { merg_is_true_ringworld = yes }
+			change_pc = pc_ringworld_habitable_damaged
+			reset_planet = yes
+		}
+		else_if = {
+			limit = { merg_is_habitat_non_PD = yes }
+			save_event_target_as = habitat_to_remove
+			solar_system= { 
+				random_system_planet = { 
+				limit = { any_moon = { is_planet = event_target:habitat_to_remove } } 
+					remove_planet_flag = has_megastructure 
+				} 
+			}
+			destroy_colony = yes
+			remove_planet = yes
+		}
+		# Special artificial colonies can't be infested
+		else_if = {
+			limit = { merg_is_special_colony = yes }
+			destroy_colony = yes
+			reset_planet = yes
+		}
+	}
+}
+
+# Prethoryn Defeated
+country_event = {
+	id = crisis.211
+	title = "crisis.211.name"
+	desc = "crisis.211.desc"
+	picture = GFX_evt_crisis_defeated
+	show_sound = event_celebration
+
+	is_triggered_only = yes
+
+	option = { # Spiritualist Response
+		name = crisis.211.a
+		trigger = {
+			merg_has_spiritualist_government = yes
+			NOR = {
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Militarist Response
+		name = crisis.211.b
+		trigger = {
+			merg_has_militarist_government = yes
+			NOR = {
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Materialist Response
+		name = crisis.211.c
+		trigger = {
+			merg_has_materialist_government = yes
+			NOR = {
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Pacifist Response
+		name = crisis.211.d
+		trigger = {
+			merg_has_pacifist_government = yes
+			NOR = {
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Corporate Response
+		name = crisis.211.e
+		trigger = {
+			OR = {
+				has_government = gov_megacorporation
+				has_government = gov_trade_league
+				is_megacorp = yes
+			}
+			NOR = {
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Default Response
+		name = crisis.211.f
+		trigger = {
+			NOR = {
+				has_spiritualist_government = yes
+				has_militarist_government = yes
+				has_materialist_government = yes
+				has_pacifist_government = yes
+				has_government = gov_megacorporation
+				has_government = gov_trade_league
+				is_megacorp = yes
+				has_ethic = "ethic_fanatic_xenophile"
+				has_ethic = "ethic_fanatic_xenophobe"
+			}
+		}
+	}
+	option = { # Xenophobe Response
+		name = crisis.211.g
+		trigger = { has_ethic = "ethic_fanatic_xenophobe" }
+	}
+	option = { # Xenophile Response
+		name = crisis.211.h
+		trigger = { has_ethic = "ethic_fanatic_xenophile" }
+	}
+	# Risa fix: Support other government types.
+	after = {
+		add_modifier = {
+			modifier = "prethoryn_defeated"
+			days = 3600
+		}
+		add_monthly_resource_mult = {
+			resource = unity
+			value = @tier5unityreward
+		}
+		end_event_chain = "prethoryn_scourge_chain"
+		if = {
+			limit = {
+				has_origin = origin_fear_of_the_dark
+			}
+			country_event = { id = origin.6136 }
+		}
+	}
+}
+
+# First Machine World (HIDDEN)
+planet_event = {
+	id = crisis.2025
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		set_crisis_sound = ai_empire_ambient_stage_1
+		set_crisis_stage_1 = yes
+		create_species = {
+			name = "NAME_Custodian_Bot"
+			class = "ROBOT"
+			namelist = "AI"
+			portrait = "hum_robot_red"
+			traits = {
+				trait = "trait_mechanical"
+			}
+			effect = { save_global_event_target_as = custodian_bot }
+		}
+		create_species = {
+			name = "NAME_Contingency"
+			class = "ROBOT"
+			namelist = "AI"
+			portrait = "ai_crisis_1"
+			immortal = yes
+			traits = {
+				trait = "trait_mechanical"
+			}
+			effect = { save_global_event_target_as = contingency_bot }
+		}
+		create_country = {
+			name = NAME_Contingency
+			species = event_target:custodian_bot # for pops
+			#species = ROBOT_POP_SPECIES_3
+			authority = auth_ancient_machine_intelligence
+			ethos = { ethic = ethic_gestalt_consciousness }
+			civics = {
+				civic = civic_machine_terminator
+				civic = civic_machine_warbots
+			}
+			type = "ai_empire"
+			name_list = "AI"
+			flag = {
+				icon= {
+					category = "special"
+					file = "ai_01.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "circle.dds"
+				}
+				colors={
+					"black"
+					"red"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				create_leader = {
+					class = admiral
+					species = event_target:contingency_bot
+					name = random
+					effect = {
+						save_event_target_as = contingency_ruler
+					}
+				}
+				set_leader = event_target:contingency_ruler
+				create_ship_design = { design = "NAME_AI_Transport" }
+				add_ship_design = last_created_design
+				create_ship_design = { design = "NAME_AI_Constructor" }
+				add_ship_design = last_created_design
+				create_ship_design = { design = "NAME_AI_1" }
+				add_ship_design = last_created_design
+				create_ship_design = { design = "NAME_AI_2" }
+				add_ship_design = last_created_design
+				create_ship_design = { design = "NAME_AI_STARBASE" }
+				add_ship_design = last_created_design
+				save_event_target_as = AI_crisis
+			}
+		}
+		every_owned_pop = { kill_pop = yes }
+		change_pc = pc_ai
+		reset_planet = yes
+		# GPM
+		if = {
+			limit = { merg_has_gpm = yes }
+			gpm_purge_all_planetary_modifiers = yes
+			gpm_purge_all_core_modifiers = yes
+			gpm_roll_machine_world_modifiers = yes
+			gpm_remove_planetary_features = yes
+			gpm_roll_planetary_features = yes
+		}
+		# Vanilla
+		set_name = "NAME_Sterilization_Hub_1"
+		set_owner = event_target:AI_crisis
+		set_controller = event_target:AI_crisis
+		create_ai_planet_defense = yes
+		create_ai_fleet = yes
+		create_ai_fleet = yes
+		random_country = { observer_event = { id = observer.45 } }
+		every_country = {
+			limit = { is_ai = no }
+			country_event = { id = crisis.2030 }
+		}
+		every_country = {
+			limit = { merg_is_default_empire = yes }
+			establish_communications_no_message = event_target:AI_crisis
+		}
+		planet_event = { id = crisis.2050 } # Start Fleet reinforcement cycle
+		planet_event = { id = crisis.2052 } # Start Army reinforcement cycle
+		every_country = {
+			limit = { has_event_chain = "ai_crisis_chain" }
+			add_event_chain_counter = {
+				event_chain = "ai_crisis_chain"
+				counter = "active_machine_worlds"
+				amount = 1
+			}
+		}
+		awaken_guardians_of_the_galaxy = yes
+		awaken_fallen_machine_empire = yes
+		set_global_flag = ai_invasion_ongoing
+		set_global_flag = synth_terror
+
+		solar_system = {
+			if = {
+				limit = { exists = starbase }
+				starbase = {
+					fleet = {
+						destroy_fleet = this
+					}
+				}
+			}
+			create_contingency_starbase = yes
+			star = {
+				create_ambient_object = {
+					type = "contingency_1"
+					location = this
+				}
+				last_created_ambient_object = {
+					set_ambient_object_flag = contingency_system_effect
+					set_location = {
+						target = prev
+						distance = 0
+						angle = random
+					}
+				}
+			}
+		}
+	}
+}

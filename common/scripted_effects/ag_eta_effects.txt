@@ -1,0 +1,915 @@
+
+ag_eta_titan_system_portal_effect = {
+	optimize_memory
+	create_ambient_object = {
+		type = ag_eta_titan_system_portal
+		location = this
+		duration = 30
+		
+		use_3d_location = yes
+		
+		entity_offset = { min = 0 max = 0 }
+		entity_offset_angle = { min = 0 max = 0 }
+		entity_offset_height = { min = 0 max = 0 }
+		
+		entity_scale_to_size = yes
+		scale = 0.32
+	}
+}
+
+ag_eta_titan_stage_1_init = {
+	optimize_memory
+	if = { limit = { NOT = { has_global_flag = ag_eta_titan_$ag_eta_titan_seq$_spawned } } set_global_flag = ag_eta_titan_$ag_eta_titan_seq$_spawned }
+	if = {
+		limit = { NOT = { exists = event_target:ag_ancient_eta_guardian_$ag_eta_titan_seq$ } }
+		ag_create_ancient_guardian = {
+			ag_country_name = "NAME_ag_eta_gateway_guardian"
+			ag_country_type = ag_ancient_eta_guardian_passive
+		}
+		last_created_country = {
+			set_country_flag = ag_ancient_eta_guardian
+			set_country_flag = ag_ancient_eta_guardian_$ag_eta_titan_seq$
+			save_global_event_target_as = ag_ancient_eta_guardian_$ag_eta_titan_seq$
+			ag_ancient_country_friendly_to_each_other = yes
+		}
+	}
+	random_system_planet = {
+		limit = { is_primary_star = yes }
+		ag_eta_titan_system_portal_effect = yes
+		if = { limit = { NOT = { is_planet_class = pc_black_hole } } ag_change_pc = { ag_planet_class = pc_black_hole } }
+		if = { limit = { planet_size > 5 } change_planet_size = -5 }
+		ag_eta_titan_hostile_spawn = { ag_eta_titan_seq = $ag_eta_titan_seq$ }
+	}
+	set_star_class = sc_black_hole
+	every_system_planet = {
+		limit = { exists = owner ag_is_ringworld = no ag_is_habitat = no NOT = { is_planet_class = pc_nuked } num_pops > 0 }
+		add_planet_devastation = 100
+		ag_change_pc = { ag_planet_class = pc_nuked }
+		if = { limit = { has_modifier = "lush_planet" } remove_modifier = "lush_planet" }
+		if = { limit = { has_modifier = "natural_beauty" } remove_modifier = "natural_beauty" }
+		if = { limit = { has_modifier = "gaia_world" } remove_modifier = "gaia_world" }
+		if = { limit = { NOT = { has_modifier = "bleak_planet" } } random_list = { 50 = { } 50 = { add_modifier = { modifier = "bleak_planet" days = -1 } } } reroll_random = yes }
+		every_owned_pop = {
+			if = { limit = { prev = { NOT = { has_planet_flag = ag_preserved_pop_flag } } } prev = { set_planet_flag = ag_preserved_pop_flag } }
+			else = { random_list = { 80 = { } 20 = { kill_pop = yes } } reroll_random = yes }
+		}
+		remove_planet_flag = ag_preserved_pop_flag
+	}
+	every_fleet_in_system = {
+		limit = { exists = owner owner = { ag_is_mod_country = no } }
+		every_controlled_ship = { random_list = {
+			10 = { ag_reduce_hp_percent = { ag_value = 50 } }
+			10 = { ag_reduce_hp_percent = { ag_value = 55 } }
+			10 = { ag_reduce_hp_percent = { ag_value = 60 } }
+			10 = { ag_reduce_hp_percent = { ag_value = 65 } }
+			10 = { ag_reduce_hp_percent = { ag_value = 70 } }
+			10 = { ag_reduce_hp_percent = { ag_value = 75 } }
+		} reroll_random = yes }
+	}
+}
+ag_get_eta_titan_spawn_location = {
+	optimize_memory
+	random_rim_system = {
+		limit = {
+			NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void }
+			NAND = { exists = space_owner space_owner = { is_ai = no } }
+		}
+		save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+	}
+	if = {
+		limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc[[ag_index]_$ag_index$] } }
+		random_system = {
+			limit = {
+				NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void }
+				NAND = { exists = space_owner space_owner = { is_ai = no } }
+			}
+			save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+		}
+		if = {
+			limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+			random_rim_system = {
+				limit = { NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void } }
+				save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+			}
+			if = {
+				limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+				random_system = {
+					limit = { NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void } }
+					save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+				}
+				if = {
+					limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+					random_system = { save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$] }
+				}
+			}
+		}
+	}
+}
+ag_get_eta_titan_jumpdrive_target = {
+	optimize_memory
+	random_rim_system = {
+		limit = {
+			NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void is_same_value = root.solar_system }
+			NAND = { exists = space_owner space_owner = { is_ai = no } }
+		}
+		save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+	}
+	if = {
+		limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc[[ag_index]_$ag_index$] } }
+		random_system = {
+			limit = {
+				NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void is_same_value = root.solar_system }
+				NAND = { exists = space_owner space_owner = { is_ai = no } }
+			}
+			save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+		}
+		if = {
+			limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+			random_rim_system = {
+				limit = { NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void is_same_value = root.solar_system } }
+				save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+			}
+			if = {
+				limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+				random_system = {
+					limit = { NOR = { is_star_class = sc_black_hole is_star_class = sc_ag_void is_same_value = root.solar_system } }
+					save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$]
+				}
+				if = {
+					limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+					random_system = { limit = { is_same_value = root.solar_system } save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$] }
+					if = {
+						limit = { NOT = { exists = event_target:ag_eta_titan_spawn_loc } }
+						random_system = { save_event_target_as = ag_eta_titan_spawn_loc[[ag_index]_$ag_index$] }
+					}
+				}
+			}
+		}
+	}
+}
+
+ag_refresh_eta_titans_tracker = {
+	optimize_memory
+	if = {
+		limit = { is_same_value = event_target:ag_eta_titan_hostile_fleet_1 }
+		every_country = {
+			limit = { has_country_flag = ag_tracks_eta_titan_1 }
+			remove_point_of_interest = ag_eta_titan_loc_1_poi
+			switch = {
+				trigger = has_event_chain
+				ag_eta_titan_chain_stage_1 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_1_poi
+					name = ag_eta_titan_loc_1
+					desc = ag_eta_titan_loc_1_desc
+					event_chain = "ag_eta_titan_chain_stage_1"
+					location = event_target:ag_eta_titan_hostile_fleet_1.solar_system
+				} }
+				ag_eta_titan_chain_stage_2 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_1_poi
+					name = ag_eta_titan_loc_1
+					desc = ag_eta_titan_loc_1_desc
+					event_chain = "ag_eta_titan_chain_stage_2"
+					location = event_target:ag_eta_titan_hostile_fleet_1.solar_system
+				} }
+				ag_eta_titan_chain_stage_ended = { create_point_of_interest = {
+					id = ag_eta_titan_loc_1_poi
+					name = ag_eta_titan_loc_1
+					desc = ag_eta_titan_loc_1_desc
+					event_chain = "ag_eta_titan_chain_stage_ended"
+					location = event_target:ag_eta_titan_hostile_fleet_1.solar_system
+				} }
+			}
+		}
+	}
+	else_if = {
+		limit = { is_same_value = event_target:ag_eta_titan_hostile_fleet_2 }
+		every_country = {
+			limit = { has_country_flag = ag_tracks_eta_titan_2 }
+			remove_point_of_interest = ag_eta_titan_loc_2_poi
+			switch = {
+				trigger = has_event_chain
+				ag_eta_titan_chain_stage_1 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_2_poi
+					name = ag_eta_titan_loc_2
+					desc = ag_eta_titan_loc_2_desc
+					event_chain = "ag_eta_titan_chain_stage_1"
+					location = event_target:ag_eta_titan_hostile_fleet_2.solar_system
+				} }
+				ag_eta_titan_chain_stage_2 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_2_poi
+					name = ag_eta_titan_loc_2
+					desc = ag_eta_titan_loc_2_desc
+					event_chain = "ag_eta_titan_chain_stage_2"
+					location = event_target:ag_eta_titan_hostile_fleet_2.solar_system
+				} }
+				ag_eta_titan_chain_stage_ended = { create_point_of_interest = {
+					id = ag_eta_titan_loc_2_poi
+					name = ag_eta_titan_loc_2
+					desc = ag_eta_titan_loc_2_desc
+					event_chain = "ag_eta_titan_chain_stage_ended"
+					location = event_target:ag_eta_titan_hostile_fleet_2.solar_system
+				} }
+			}
+		}
+	}
+	else_if = {
+		limit = { is_same_value = event_target:ag_eta_titan_hostile_fleet_3 }
+		every_country = {
+			limit = { has_country_flag = ag_tracks_eta_titan_3 }
+			remove_point_of_interest = ag_eta_titan_loc_3_poi
+			switch = {
+				trigger = has_event_chain
+				ag_eta_titan_chain_stage_1 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_3_poi
+					name = ag_eta_titan_loc_3
+					desc = ag_eta_titan_loc_3_desc
+					event_chain = "ag_eta_titan_chain_stage_1"
+					location = event_target:ag_eta_titan_hostile_fleet_3.solar_system
+				} }
+				ag_eta_titan_chain_stage_2 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_3_poi
+					name = ag_eta_titan_loc_3
+					desc = ag_eta_titan_loc_3_desc
+					event_chain = "ag_eta_titan_chain_stage_2"
+					location = event_target:ag_eta_titan_hostile_fleet_3.solar_system
+				} }
+				ag_eta_titan_chain_stage_ended = { create_point_of_interest = {
+					id = ag_eta_titan_loc_3_poi
+					name = ag_eta_titan_loc_3
+					desc = ag_eta_titan_loc_3_desc
+					event_chain = "ag_eta_titan_chain_stage_ended"
+					location = event_target:ag_eta_titan_hostile_fleet_3.solar_system
+				} }
+			}
+		}
+	}
+	else_if = {
+		limit = { is_same_value = event_target:ag_eta_titan_hostile_fleet_4 }
+		every_country = {
+			limit = { has_country_flag = ag_tracks_eta_titan_4 }
+			remove_point_of_interest = ag_eta_titan_loc_4_poi
+			switch = {
+				trigger = has_event_chain
+				ag_eta_titan_chain_stage_1 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_4_poi
+					name = ag_eta_titan_loc_4
+					desc = ag_eta_titan_loc_4_desc
+					event_chain = "ag_eta_titan_chain_stage_1"
+					location = event_target:ag_eta_titan_hostile_fleet_4.solar_system
+				} }
+				ag_eta_titan_chain_stage_2 = { create_point_of_interest = {
+					id = ag_eta_titan_loc_4_poi
+					name = ag_eta_titan_loc_4
+					desc = ag_eta_titan_loc_4_desc
+					event_chain = "ag_eta_titan_chain_stage_2"
+					location = event_target:ag_eta_titan_hostile_fleet_4.solar_system
+				} }
+				ag_eta_titan_chain_stage_ended = { create_point_of_interest = {
+					id = ag_eta_titan_loc_4_poi
+					name = ag_eta_titan_loc_4
+					desc = ag_eta_titan_loc_4_desc
+					event_chain = "ag_eta_titan_chain_stage_ended"
+					location = event_target:ag_eta_titan_hostile_fleet_4.solar_system
+				} }
+			}
+		}
+	}
+}
+
+ag_eta_stage_2_chain_swap = {
+	optimize_memory
+	hidden_effect = {
+		if = { limit = { has_event_chain = "ag_eta_titan_chain_stage_1" } end_event_chain = "ag_eta_titan_chain_stage_1" }
+		begin_event_chain = { event_chain = "ag_eta_titan_chain_stage_2" target = root }
+		add_event_chain_counter = { event_chain = "ag_eta_titan_chain_stage_2" counter = ag_num_eta_titans_stage_2 amount = 4 }
+		country_event = { id = ag_eta.2001 days = 1 }
+	}
+}
+ag_eta_stage_ended_chain_swap = {
+	optimize_memory
+	hidden_effect = {
+		if = { limit = { has_event_chain = "ag_eta_titan_chain_stage_1" } end_event_chain = "ag_eta_titan_chain_stage_1" }
+		if = { limit = { has_event_chain = "ag_eta_titan_chain_stage_2" } end_event_chain = "ag_eta_titan_chain_stage_2" }
+		if = { limit = { has_point_of_interest = { poi = ag_eta_titan_symbol_1_poi } } remove_point_of_interest = ag_eta_titan_symbol_1_poi }
+		if = { limit = { has_point_of_interest = { poi = ag_eta_titan_symbol_2_poi } } remove_point_of_interest = ag_eta_titan_symbol_2_poi }
+		if = { limit = { has_point_of_interest = { poi = ag_eta_titan_symbol_3_poi } } remove_point_of_interest = ag_eta_titan_symbol_3_poi }
+		if = { limit = { has_point_of_interest = { poi = ag_eta_titan_symbol_4_poi } } remove_point_of_interest = ag_eta_titan_symbol_4_poi }
+		if = { limit = { has_event_chain = "ag_eta_titan_data_chain" } end_event_chain = "ag_eta_titan_data_chain" }
+		begin_event_chain = { event_chain = "ag_eta_titan_chain_stage_ended" target = this }
+		add_event_chain_counter = { event_chain = "ag_eta_titan_chain_stage_ended" counter = ag_num_eta_titans_stage_ended amount = 4 }
+		country_event = { id = ag_eta.2002 days = 1 }
+	}
+}
+
+# Color: (R, G, B), (0.8, 1] = 1, (0, 0.2] = 0
+# (1, 0, 0) = Red, seq = 1
+# (1, 1, 0) = Yellow, seq = 2
+# (0, 0, 1) = Blue, seq = 3
+# (0, 1, 0) = Green, seq = 4
+ag_randomize_eta_symbol_color = {
+	optimize_memory
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.1 } }
+	}
+	reroll_random = yes
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.01 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.02 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.03 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.04 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.05 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.06 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.07 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.08 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_r value = 0.09 } }
+	}
+	reroll_random = yes
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.1 } }
+	}
+	reroll_random = yes
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.01 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.02 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.03 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.04 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.05 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.06 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.07 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.08 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_g value = 0.09 } }
+	}
+	reroll_random = yes
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.1 } }
+	}
+	reroll_random = yes
+	random_list = {
+		10 = { }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.01 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.02 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.03 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.04 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.05 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.06 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.07 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.08 } }
+		10 = { subtract_variable = { which =  ag_eta_symbol_$ag_eta_titan_seq$_color_req_$ag_color_seq$_b value = 0.09 } }
+	}
+	reroll_random = yes
+}
+ag_spawn_eta_titan_symbol = {
+	optimize_memory
+	if = {
+		limit = { prev.fleet = { is_same_value = event_target:ag_eta_titan_hostile_fleet_1 } }
+		ag_spawn_eta_titan_symbol_1 = { ag_eta_titan_seq = 1 }
+	}
+	else_if = {
+		limit = { prev.fleet = { is_same_value = event_target:ag_eta_titan_hostile_fleet_2 } }
+		ag_spawn_eta_titan_symbol_1 = { ag_eta_titan_seq = 2 }
+	}
+	else_if = {
+		limit = { prev.fleet = { is_same_value = event_target:ag_eta_titan_hostile_fleet_3 } }
+		ag_spawn_eta_titan_symbol_1 = { ag_eta_titan_seq = 3 }
+	}
+	else_if = {
+		limit = { prev.fleet = { is_same_value = event_target:ag_eta_titan_hostile_fleet_4 } }
+		ag_spawn_eta_titan_symbol_1 = { ag_eta_titan_seq = 4 }
+	}
+}
+ag_spawn_eta_titan_symbol_1 = {
+	optimize_memory
+	if = { limit = { NOT = { has_event_chain = "ag_eta_titan_data_chain" } } begin_event_chain = { event_chain = "ag_eta_titan_data_chain" target = this } }
+	# if = { limit = { has_point_of_interest = { poi = ag_eta_titan_symbol_$ag_eta_titan_seq$_poi } } remove_point_of_interest = ag_eta_titan_symbol_$ag_eta_titan_seq$_poi }
+	if = {
+		limit = { NOT = { has_global_flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked } }
+		event_target:global_event_country = {
+			if = {
+				limit = { NOT = { is_variable_set = ag_eta_symbol_style } }
+				random_list = {
+					10 = { set_variable = { which = ag_eta_symbol_style value = 1 } }
+					10 = { set_variable = { which = ag_eta_symbol_style value = 2 } }
+					10 = { set_variable = { which = ag_eta_symbol_style value = 3 } }
+					10 = { set_variable = { which = ag_eta_symbol_style value = 4 } }
+				}
+				reroll_random = yes
+			}
+			random_list = {
+				10 = {
+					modifier = {
+						factor = 0
+						OR = {
+							AND = {
+								NOT = { check_variable = { which = ag_one_variable value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_1_color_req value = 1 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 1 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_2_color_req value = 1 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 2 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_3_color_req value = 1 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 3 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_4_color_req value = 1 }
+							}
+						}
+					}
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 1 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_r value = 1 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_g value = 0.2 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_b value = 0.2 }
+				}
+				10 = {
+					modifier = {
+						factor = 0
+						OR = {
+							AND = {
+								NOT = { check_variable = { which = ag_one_variable value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_1_color_req value = 2 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 1 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_2_color_req value = 2 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 2 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_3_color_req value = 2 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 3 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_4_color_req value = 2 }
+							}
+						}
+					}
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 2 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_r value = 1 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_g value = 1 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_b value = 0.2 }
+				}
+				10 = {
+					modifier = {
+						factor = 0
+						OR = {
+							AND = {
+								NOT = { check_variable = { which = ag_one_variable value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_1_color_req value = 3 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 1 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_2_color_req value = 3 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 2 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_3_color_req value = 3 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 3 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_4_color_req value = 3 }
+							}
+						}
+					}
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 3 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_r value = 0.2 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_g value = 0.2 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_b value = 1 }
+				}
+				10 = {
+					modifier = {
+						factor = 0
+						OR = {
+							AND = {
+								NOT = { check_variable = { which = ag_one_variable value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_1_color_req value = 4 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 1 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_2_color_req value = 4 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 2 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_3_color_req value = 4 }
+							}
+							AND = {
+								NOT = { check_variable_arithmetic = { which = ag_one_variable add = 3 value = $ag_eta_titan_seq$ } }
+								check_variable = { which = ag_eta_symbol_4_color_req value = 4 }
+							}
+						}
+					}
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 4 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_r value = 0.2 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_g value = 1 }
+					set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_0_b value = 0.2 }
+				}
+			}
+			reroll_random = yes
+			ag_randomize_eta_symbol_color = { ag_eta_titan_seq = $ag_eta_titan_seq$ ag_color_seq = 0 }
+
+			# Red
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_1 value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_1 value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_1 value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_1 value = 4 } }
+			}
+			reroll_random = yes
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_1_r value = 1 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_1_g value = 0.2 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_1_b value = 0.2 }
+			ag_randomize_eta_symbol_color = { ag_eta_titan_seq = $ag_eta_titan_seq$ ag_color_seq = 1 }
+
+			# Yellow
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_2 value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_2 value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_2 value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_2 value = 4 } }
+			}
+			reroll_random = yes
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_2_r value = 1 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_2_g value = 1 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_2_b value = 0.2 }
+			ag_randomize_eta_symbol_color = { ag_eta_titan_seq = $ag_eta_titan_seq$ ag_color_seq = 2 }
+
+			# Blue
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_3 value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_3 value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_3 value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_3 value = 4 } }
+			}
+			reroll_random = yes
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_3_r value = 0.2 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_3_g value = 0.2 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_3_b value = 1 }
+			ag_randomize_eta_symbol_color = { ag_eta_titan_seq = $ag_eta_titan_seq$ ag_color_seq = 3 }
+
+			# Green
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_4 value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_4 value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_4 value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_req_4 value = 4 } }
+			}
+			reroll_random = yes
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_4_r value = 0.2 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_4_g value = 1 }
+			set_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req_4_b value = 0.2 }
+			ag_randomize_eta_symbol_color = { ag_eta_titan_seq = $ag_eta_titan_seq$ ag_color_seq = 4 }
+
+			random_list = {
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 720 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 720 } }
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 900 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 900 } }
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1080 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1080 } }
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1260 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1260 } }
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1440 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1440 } }
+				# 10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1620 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1620 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1800 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1800 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 1980 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 1980 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 2160 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 2160 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 2340 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 2340 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 2520 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 2520 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 2700 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 2700 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 2880 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 2880 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 3060 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 3060 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 3240 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 3240 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 3420 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 3420 } }
+				10 = { set_timed_global_flag = { flag = ag_eta_titan_symbol_$ag_eta_titan_seq$_locked days = 3600 } country_event = { id = ag_eta.7$ag_eta_titan_seq$ days = 3600 } }
+			}
+			reroll_random = yes
+		}
+	}
+	if = {
+		limit = { NOT = { has_point_of_interest = { poi = ag_eta_titan_symbol_$ag_eta_titan_seq$_poi } } }
+		create_point_of_interest = {
+			id = ag_eta_titan_symbol_$ag_eta_titan_seq$_poi
+			name = ag_eta_titan_symbol_$ag_eta_titan_seq$
+			desc = ag_eta_titan_symbol_$ag_eta_titan_seq$_desc
+			event_chain = "ag_eta_titan_data_chain"
+			location = capital_scope
+		}
+	}
+}
+
+#   | 1 2 3 4
+# -----------
+# 1 | 1 2 3 4
+# 2 | 2 1 4 3
+# 3 | 3 4 1 2
+# 4 | 4 3 2 1
+
+# It's advised to use two same symbols to find the "1" first.
+
+# ag_which: 1 ~ 4
+# ag_value: 1 ~ 4
+ag_eta_symbol_add = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = {
+			limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = ag_eta_symbol_$ag_value$_var } }
+			set_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+			set_variable = { which = ag_eta_symbol_$ag_which$_var value = ag_eta_symbol_$ag_value$_var }
+		}
+		else_if = {
+			limit = { NOT = { check_variable = { which = ag_eta_symbol_$ag_value$_var value = 1 } } }
+			if = {
+				limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+				if = { limit = { check_variable = { which = ag_eta_symbol_$ag_value$_var value = 3 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+			}
+			else_if = {
+				limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				if = { limit = { check_variable = { which = ag_eta_symbol_$ag_value$_var value = 2 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+			}
+			else_if = {
+				limit = { always = yes }
+				if = { limit = { check_variable = { which = ag_eta_symbol_$ag_value$_var value = 2 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+			}
+		}
+	}
+}
+ag_eta_symbol_add_alt = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = {
+			limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = $ag_value$ } }
+			set_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 }
+		}
+		else_if = {
+			limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+			set_variable = { which = ag_eta_symbol_$ag_which$_var value = $ag_value$ }
+		}
+		else_if = {
+			limit = { NOT = { check_variable = { which = $ag_value$ value = 1 } } }
+			if = {
+				limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+				if = { limit = { check_variable = { which = $ag_value$ value = 3 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+			}
+			else_if = {
+				limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				if = { limit = { check_variable = { which = $ag_value$ value = 2 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+			}
+			else_if = {
+				limit = { always = yes }
+				if = { limit = { check_variable = { which = $ag_value$ value = 2 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				else = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+			}
+		}
+	}
+}
+ag_eta_symbol_set = {
+	optimize_memory
+	event_target:global_event_country = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = $ag_value$ } }
+}
+ag_eta_symbol_get = {
+	optimize_memory
+	event_target:global_event_country = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = ag_eta_symbol_$ag_value$_var } }
+}
+ag_eta_symbol_increase = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = {
+			limit = { NOT = { is_variable_set = ag_eta_symbol_$ag_which$_var } }
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+			}
+		}
+		else = { change_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+		if = { limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value >= 5 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+	}
+}
+ag_eta_symbol_decrease = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = {
+			limit = { NOT = { is_variable_set = ag_eta_symbol_$ag_which$_var } }
+			random_list = {
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 2 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 3 } }
+				10 = { set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+			}
+		}
+		else = { subtract_variable = { which = ag_eta_symbol_$ag_which$_var value = 1 } }
+		if = { limit = { check_variable = { which = ag_eta_symbol_$ag_which$_var value <= 0 } } set_variable = { which = ag_eta_symbol_$ag_which$_var value = 4 } }
+	}
+}
+
+ag_calculate_symbol_sum = {
+	optimize_memory
+	if = {
+		limit = { check_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 1 } }
+		ag_eta_symbol_set = { ag_which = check_temp ag_value = ag_eta_symbol_1_req_1 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_2_req_1 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_3_req_1 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_4_req_1 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 2 } }
+		ag_eta_symbol_set = { ag_which = check_temp ag_value = ag_eta_symbol_1_req_2 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_2_req_2 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_3_req_2 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_4_req_2 }
+	}
+	else_if = {
+		limit = { check_variable = { which = ag_eta_symbol_$ag_eta_titan_seq$_color_req value = 3 } }
+		ag_eta_symbol_set = { ag_which = check_temp ag_value = ag_eta_symbol_1_req_3 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_2_req_3 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_3_req_3 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_4_req_3 }
+	}
+	else_if = {
+		limit = { always = yes }
+		ag_eta_symbol_set = { ag_which = check_temp ag_value = ag_eta_symbol_1_req_4 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_2_req_4 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_3_req_4 }
+		ag_eta_symbol_add_alt = { ag_which = check_temp ag_value = ag_eta_symbol_4_req_4 }
+	}
+}
+# Output: ag_eta_symbols_check_result, 0 = false, 1 = true
+ag_check_input_symbols = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = {
+			limit = { is_variable_set = ag_eta_symbols_check_result_overwrite }
+			set_variable = { which = ag_eta_symbols_check_result value = ag_eta_symbols_check_result_overwrite }
+		}
+		else = {
+			set_variable = { which = ag_eta_symbols_check_result value = 0 }
+			if = {
+				limit = {
+					ag_eta_symbols_all_variables_set = yes
+					check_variable = { which = ag_eta_symbol_1_color_req value = ag_eta_control_group_1_color }
+				}
+				ag_calculate_symbol_sum = { ag_eta_titan_seq = 1 }
+				if = {
+					limit = {
+						check_variable = { which = ag_eta_symbol_check_temp_var value = ag_eta_symbol_1_var }
+						check_variable = { which = ag_eta_symbol_2_color_req value = ag_eta_control_group_2_color }
+					}
+					ag_calculate_symbol_sum = { ag_eta_titan_seq = 2 }
+					if = {
+						limit = {
+							check_variable = { which = ag_eta_symbol_check_temp_var value = ag_eta_symbol_2_var }
+							check_variable = { which = ag_eta_symbol_3_color_req value = ag_eta_control_group_3_color }
+						}
+						ag_calculate_symbol_sum = { ag_eta_titan_seq = 3 }
+						if = {
+							limit = {
+								check_variable = { which = ag_eta_symbol_check_temp_var value = ag_eta_symbol_3_var }
+								check_variable = { which = ag_eta_symbol_4_color_req value = ag_eta_control_group_4_color }
+							}
+							ag_calculate_symbol_sum = { ag_eta_titan_seq = 4 }
+							if = {
+								limit = { check_variable = { which = ag_eta_symbol_check_temp_var value = ag_eta_symbol_4_var } }
+								set_variable = { which = ag_eta_symbols_check_result value = 1 }
+							}
+						}
+					}
+				}
+			}
+			if = { limit = { is_variable_set = ag_eta_symbol_check_temp_var } clear_variable = ag_eta_symbol_check_temp_var }
+		}
+		clear_variable = ag_eta_symbols_check_result_overwrite
+	}
+}
+
+ag_clear_eta_event_variables = {
+	optimize_memory
+	event_target:global_event_country = {
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req } clear_variable = ag_eta_symbol_1_color_req }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_req_1 } clear_variable = ag_eta_symbol_1_req_1 }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_req_2 } clear_variable = ag_eta_symbol_1_req_2 }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_req_3 } clear_variable = ag_eta_symbol_1_req_3 }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_req_4 } clear_variable = ag_eta_symbol_1_req_4 }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_0_r } clear_variable = ag_eta_symbol_1_color_req_0_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_0_g } clear_variable = ag_eta_symbol_1_color_req_0_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_0_b } clear_variable = ag_eta_symbol_1_color_req_0_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_1_r } clear_variable = ag_eta_symbol_1_color_req_1_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_1_g } clear_variable = ag_eta_symbol_1_color_req_1_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_1_b } clear_variable = ag_eta_symbol_1_color_req_1_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_2_r } clear_variable = ag_eta_symbol_1_color_req_2_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_2_g } clear_variable = ag_eta_symbol_1_color_req_2_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_2_b } clear_variable = ag_eta_symbol_1_color_req_2_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_3_r } clear_variable = ag_eta_symbol_1_color_req_3_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_3_g } clear_variable = ag_eta_symbol_1_color_req_3_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_3_b } clear_variable = ag_eta_symbol_1_color_req_3_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_4_r } clear_variable = ag_eta_symbol_1_color_req_4_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_4_g } clear_variable = ag_eta_symbol_1_color_req_4_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_1_color_req_4_b } clear_variable = ag_eta_symbol_1_color_req_4_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req } clear_variable = ag_eta_symbol_2_color_req }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_req_1 } clear_variable = ag_eta_symbol_2_req_1 }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_req_2 } clear_variable = ag_eta_symbol_2_req_2 }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_req_3 } clear_variable = ag_eta_symbol_2_req_3 }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_req_4 } clear_variable = ag_eta_symbol_2_req_4 }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_0_r } clear_variable = ag_eta_symbol_2_color_req_0_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_0_g } clear_variable = ag_eta_symbol_2_color_req_0_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_0_b } clear_variable = ag_eta_symbol_2_color_req_0_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_1_r } clear_variable = ag_eta_symbol_2_color_req_1_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_1_g } clear_variable = ag_eta_symbol_2_color_req_1_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_1_b } clear_variable = ag_eta_symbol_2_color_req_1_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_2_r } clear_variable = ag_eta_symbol_2_color_req_2_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_2_g } clear_variable = ag_eta_symbol_2_color_req_2_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_2_b } clear_variable = ag_eta_symbol_2_color_req_2_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_3_r } clear_variable = ag_eta_symbol_2_color_req_3_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_3_g } clear_variable = ag_eta_symbol_2_color_req_3_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_3_b } clear_variable = ag_eta_symbol_2_color_req_3_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_4_r } clear_variable = ag_eta_symbol_2_color_req_4_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_4_g } clear_variable = ag_eta_symbol_2_color_req_4_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_2_color_req_4_b } clear_variable = ag_eta_symbol_2_color_req_4_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req } clear_variable = ag_eta_symbol_3_color_req }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_req_1 } clear_variable = ag_eta_symbol_3_req_1 }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_req_2 } clear_variable = ag_eta_symbol_3_req_2 }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_req_3 } clear_variable = ag_eta_symbol_3_req_3 }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_req_4 } clear_variable = ag_eta_symbol_3_req_4 }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_0_r } clear_variable = ag_eta_symbol_3_color_req_0_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_0_g } clear_variable = ag_eta_symbol_3_color_req_0_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_0_b } clear_variable = ag_eta_symbol_3_color_req_0_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_1_r } clear_variable = ag_eta_symbol_3_color_req_1_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_1_g } clear_variable = ag_eta_symbol_3_color_req_1_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_1_b } clear_variable = ag_eta_symbol_3_color_req_1_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_2_r } clear_variable = ag_eta_symbol_3_color_req_2_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_2_g } clear_variable = ag_eta_symbol_3_color_req_2_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_2_b } clear_variable = ag_eta_symbol_3_color_req_2_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_3_r } clear_variable = ag_eta_symbol_3_color_req_3_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_3_g } clear_variable = ag_eta_symbol_3_color_req_3_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_3_b } clear_variable = ag_eta_symbol_3_color_req_3_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_4_r } clear_variable = ag_eta_symbol_3_color_req_4_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_4_g } clear_variable = ag_eta_symbol_3_color_req_4_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_3_color_req_4_b } clear_variable = ag_eta_symbol_3_color_req_4_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req } clear_variable = ag_eta_symbol_4_color_req }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_req_1 } clear_variable = ag_eta_symbol_4_req_1 }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_req_2 } clear_variable = ag_eta_symbol_4_req_2 }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_req_3 } clear_variable = ag_eta_symbol_4_req_3 }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_req_4 } clear_variable = ag_eta_symbol_4_req_4 }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_0_r } clear_variable = ag_eta_symbol_4_color_req_0_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_0_g } clear_variable = ag_eta_symbol_4_color_req_0_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_0_b } clear_variable = ag_eta_symbol_4_color_req_0_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_1_r } clear_variable = ag_eta_symbol_4_color_req_1_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_1_g } clear_variable = ag_eta_symbol_4_color_req_1_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_1_b } clear_variable = ag_eta_symbol_4_color_req_1_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_2_r } clear_variable = ag_eta_symbol_4_color_req_2_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_2_g } clear_variable = ag_eta_symbol_4_color_req_2_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_2_b } clear_variable = ag_eta_symbol_4_color_req_2_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_3_r } clear_variable = ag_eta_symbol_4_color_req_3_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_3_g } clear_variable = ag_eta_symbol_4_color_req_3_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_3_b } clear_variable = ag_eta_symbol_4_color_req_3_b }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_4_r } clear_variable = ag_eta_symbol_4_color_req_4_r }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_4_g } clear_variable = ag_eta_symbol_4_color_req_4_g }
+		if = { limit = { is_variable_set = ag_eta_symbol_4_color_req_4_b } clear_variable = ag_eta_symbol_4_color_req_4_b }
+	}
+}
+
+ag_eta_situation_reward = {
+	optimize_memory
+	random_list = {
+		10 = {
+			modifier = { factor = 0 has_country_flag = ag_eta_181_fired }
+			set_country_flag = ag_eta_181_fired
+			country_event = { id = ag_eta.181 days = 5 random = 5 }
+		}
+		10 = {
+			modifier = { factor = 0 has_country_flag = ag_eta_152_fired }
+			set_country_flag = ag_eta_152_fired
+			if = {
+				limit = { event_target:ag_ancient_eta_shielded_world = { has_building = ag_ancient_eta_adm_building } }
+				country_event = { id = ag_eta.182 days = 5 random = 5 }
+			}
+			else = { country_event = { id = ag_eta.152 days = 15 random = 15 } }
+		}
+		10 = {
+			modifier = { factor = 0 has_country_flag = ag_eta_153_fired }
+			set_country_flag = ag_eta_153_fired
+			country_event = { id = ag_eta.153 days = 5 random = 5 }
+		}
+		10 = {
+			modifier = {
+				factor = 0
+				OR = {
+					has_country_flag = ag_eta_183_fired
+					event_target:ag_ancient_eta_shielded_world = { NOT = { has_building = ag_ancient_eta_monument } }
+				}
+			}
+			set_country_flag = ag_eta_183_fired
+			country_event = { id = ag_eta.183 days = 5 random = 5 }
+		}
+	}
+	reroll_random = yes
+}

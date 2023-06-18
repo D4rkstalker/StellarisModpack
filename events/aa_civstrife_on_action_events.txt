@@ -1,0 +1,380 @@
+namespace = action
+namespace = civ_action
+namespace = civ_observer
+
+@unrest_event_cooldown = 360
+
+# Country Destroyed Notification Gatekeeper
+country_event = {
+	id = action.61
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = {
+				exists = from
+			}
+			from = {
+				save_global_event_target_as = destroyer_country
+			}
+		}
+		# If the MSI got destroyed by someone else, payback empires will get a follow-up
+		# after action.62
+		if = {
+			limit = {
+				OR = {
+					has_country_flag = payback_stole_revenge
+					has_origin = origin_slavers
+				}
+			}
+			every_playable_country = {
+				limit = {
+					has_origin = origin_payback
+					NOT = { is_same_value = event_target:destroyer_country }
+				}
+				set_country_flag = payback_stolen_revenge
+			}
+		}
+		# If MSI gets destroyed by Payback, fire the on_war_won event after the country destroyed notification
+		if = {
+			limit = {
+				OR = {
+					has_country_flag = payback_stole_revenge
+					has_origin = origin_slavers
+				}
+				event_target:destroyer_country = {
+					has_origin = origin_payback
+					has_event_chain = payback_make_them_pay_swords_chain
+					is_at_war_with = prev
+				}
+			}
+			event_target:destroyer_country = { set_country_flag = payback_killed_MSI }
+		}
+		
+		every_subject = {
+			set_subject_of = {
+				who = none
+			}
+		}
+		if = {
+			limit = {
+				any_war = {
+					using_war_goal = {
+						owner = root
+						type = wg_leave_hegemony
+					}
+				}
+			}
+			random_country = {
+				limit = {
+					is_at_war_with = root
+					any_war = {
+						using_war_goal = {
+							owner = root
+							type = wg_leave_hegemony
+						}
+						is_war_participant = { who = prev side = defenders }
+						is_war_participant = { who = root side = attackers }
+					}
+				}
+				federation = {
+					change_variable = {
+						which = federation_secession_war
+						value = -1
+					}
+				}
+			}
+		}
+
+		# Expanded Espionage and Diplomacy compat
+		# Territory unclaimed if original owner dies # E
+		every_system = {
+			limit = { has_star_flag = original_owner_is@root }
+			remove_star_flag = has_original_owner
+			remove_star_flag = original_owner_is@root
+		}
+
+		# if = {
+		# 	limit = {
+		# 		is_subject = no
+		# 		OR = {
+		# 			is_country_type_with_subjects = yes
+		# 			is_country_type = fallen_empire
+		# 			is_country_type = awakened_fallen_empire
+		# 		}
+		# 		NOT = { has_country_flag = silence_destroy_event }
+		# 	}
+		# 	if = {
+		# 		limit = { is_country_type_with_subjects = yes }
+		# 		every_playable_country = {
+		# 			limit = {
+		# 				has_communications = root
+		# 				NOT = { is_same_value = root }
+		# 			}
+		# 			country_event = { id = action.62 }
+		# 		}
+		# 		random_playable_country = {
+		# 			observer_event = { id = observer.2 }
+		# 		}
+		# 	}
+		# 	else = {
+		# 		every_playable_country = {
+		# 			limit = {
+		# 				has_communications = root
+		# 				NOT = { is_same_value = root }
+		# 			}
+		# 			country_event = { id = action.63 }
+		# 		}
+		# 		random_playable_country = {
+		# 			observer_event = { id = observer.3 }
+		# 		}
+		# 	}
+		# }
+	}
+}
+
+# Country Destroyed Notification (default countries)
+country_event = {
+	id = civ_action.62
+	title = civ_action.62.name
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	is_triggered_only = yes
+
+	desc = {
+		text = civ_action.62.desc.reg
+		trigger = {
+			event_target:gov_in_exile = {
+				NOR = {
+					has_country_flag = already_exiled
+					has_country_flag = integrated_subject
+					has_country_flag = was_purifier
+				}
+			}
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.homicidal
+		trigger = {
+			event_target:gov_in_exile = {
+				NOT = { has_country_flag = integrated_subject }
+				has_country_flag = was_purifier
+			}
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.integrated
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = integrated_subject }
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.already
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = already_exiled }
+		}
+	}
+
+	option = {
+		name = OK
+	}
+
+	option = {
+		name = "action.62.memorialist.a"
+		exclusive_trigger = {
+			is_memorialist_empire = yes
+		}
+	}
+
+	after = {
+		if = {
+			limit = {
+				has_country_flag = payback_stolen_revenge
+			}
+			country_event = { id = origin.4070 days = 15 }
+		}
+	}
+}
+
+# Country Destroyed Notification (fallen/awakened empires)
+country_event = {
+	id = civ_action.63
+	title = civ_action.63.name
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	is_triggered_only = yes
+
+	desc = {
+		trigger = {
+			event_target:gov_in_exile = {
+				NOT = { has_country_flag = already_exiled }
+			}
+		}
+		text = civ_action.63.desc.reg
+	}
+
+	desc = {
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = already_exiled }
+		}
+		text = civ_action.63.desc.already
+	}
+
+	option = {
+		name = OK
+	}
+
+	option = {
+		name = "action.62.memorialist.a"
+		exclusive_trigger = {
+			is_memorialist_empire = yes
+		}
+	}
+}
+
+# Found Host
+country_event = {
+	id = civ_action.6210
+	title = civ_action.6210.name
+	desc = civ_action.6210.desc
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	location = event_target:hosting_country
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+# Found Host - Fallen Empire
+country_event = {
+	id = civ_action.6310
+	title = civ_action.6310.name
+	desc = civ_action.6310.desc
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	location = event_target:hosting_country
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+# Country Destroyed (Default)
+observer_event = {
+	id = civ_observer.2
+	title = civ_action.62.name
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+
+	is_triggered_only = yes
+
+	desc = {
+		text = civ_action.62.desc.reg
+		trigger = {
+			event_target:gov_in_exile = {
+				NOR = {
+					has_country_flag = already_exiled
+					has_country_flag = integrated_subject
+					has_country_flag = was_purifier
+				}
+			}
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.homicidal
+		trigger = {
+			event_target:gov_in_exile = {
+				NOT = { has_country_flag = integrated_subject }
+				has_country_flag = was_purifier
+			}
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.integrated
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = integrated_subject }
+		}
+	}
+
+	desc = {
+		text = civ_action.62.desc.already
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = already_exiled }
+		}
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+# Country Destroyed (Fallen Empire)
+observer_event = {
+	id = civ_observer.3
+	title = civ_action.63.name
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+
+	is_triggered_only = yes
+
+	desc = {
+		text = civ_action.63.desc.reg
+		trigger = {
+			event_target:gov_in_exile = {
+				NOT = { has_country_flag = already_exiled }
+			}
+		}
+	}
+
+	desc = {
+		text = civ_action.63.desc.already
+		trigger = {
+			event_target:gov_in_exile = { has_country_flag = already_exiled }
+		}
+	}
+
+	option = {
+		name = OK
+	}
+}
+
+# Found Host
+observer_event = {
+	id = civ_observer.210
+	title = civ_action.6210.name
+	desc = civ_action.6210.desc
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	location = event_target:hosting_country
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}
+
+# Found Host - Fallen Empire
+observer_event = {
+	id = civ_observer.310
+	title = civ_action.6310.name
+	desc = civ_action.6310.desc
+	show_sound = event_default
+	picture = "GFX_evt_city_ruins"
+	location = event_target:hosting_country
+
+	is_triggered_only = yes
+
+	option = {
+		name = OK
+	}
+}

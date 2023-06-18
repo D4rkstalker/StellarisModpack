@@ -1,0 +1,735 @@
+namespace = AAR_evt_LINE
+
+#	aar防线接战
+#	aar防线星基ship循环
+#	aar防线自动防御塔循环*/aar防线自动防御塔自毁*
+#	aar防线击毁/aar防线失效
+#	aar防线星基击毁/aar防线星基失效
+#	aar防线冲击clear		/aar防线星基冲击二段/aar防线星基冲击aura刷新*
+
+
+
+
+###_[aar防线接战]	仅PC
+#_<on_entering_battle>
+##_scopes	<root>=进攻国家/<from>=防御国家/<fromfrom>=进攻舰队/<fromfromfrom>=防御舰队
+country_event = {
+	id = AAR_evt_LINE.10
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		##	|基础|
+		exists = fromfrom.controller	# |存在舰队控制者|
+		#	|细节|
+		fromfromfrom = { is_civilian = no }	# |非民用船|
+		fromfrom = {
+			is_mobile = no	# |防御设施|
+			NOR = {
+				has_fleet_flag = AAR_flg_flt_LINE_init_CD			# |AAR防线触发CD|护盾结束后
+				has_fleet_flag = AAR_flg_flt_LINE_cycle_ONGOING		# |AAR防线循环中|以防御舰队中的<星基>为<触发点>添加和清除,且只会通过[aar防线星基ship循环]中的[脱离战斗DB]清除
+			}
+			AAR_trgr_flt_SB_valid = yes	#_|AAR星际基地|
+			NOT = { is_ship_size = starbase_outpost }	# "哨站"不触发超级防线
+			controller = {
+				is_same_value = root	# <控制者>|fromfrom.controller|与<所有者>|root|同步
+			#	is_same_value = prev.solar_system.space_owner	# <所有者><星系所有者>同步
+				has_ascension_perk = AAR_AP_defence_line	# 有|AP超级防线|
+			}
+		}
+		OR = {
+			is_ai = no
+			fromfrom.solar_system = { any_fleet_in_system = { exists = controller	controller = { is_ai = no } } }
+		#	fromfromfrom.controller = { is_ai = no }
+		}
+	}
+
+	immediate = {
+		#	<舰队1>
+		fromfrom = {
+			##############################################################################
+			set_update_modifiers_batch = begin	# 修正批处理
+			
+			AAR_eft_flt_LINE_cycle_init_FW = yes	# AAR防线触发FW
+			
+			set_update_modifiers_batch = end	# 修正批处理
+			##############################################################################
+		}
+	}
+}
+
+
+
+
+### aar防线星基ship循环		1日循环	/只要星基存在且在战斗中,当前事件就会自动循环以清除|AAR防线循环中|,<星基>被毁<星基舰队>也就不复存在,因此无需额外DB
+#_eft	<AAR防线触发FW>
+ship_event = {
+	id = AAR_evt_LINE.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = this
+		is_scope_type = ship
+	}
+
+	immediate = {
+		##	|超级防线VAR衰减|日衰减	90日
+		fleet = { subtract_variable = { which = AAR_var_flt_LINE_skw_POWER value = 0.015 } }
+		
+		##	INIT		[添加mod]与|盾等级|
+		if = { limit = { NOT = { has_ship_flag = AAR_flg_ship_LINE_combat } }	# |战斗状态ship|激活	=只有在|脱战/毁灭/失效|时才会去掉
+			set_ship_flag = AAR_flg_ship_LINE_combat
+			starbase = { set_starbase_flag = AAR_flg_sb_SB_line_combat }
+
+			# 初始蓝盾
+			if = { limit = { fleet = { num_ships > 1 } }
+				if = {#LV5
+					limit = { is_ship_size = starbase_citadel }
+					#_添加|SB护盾强度|
+					set_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|80000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|80000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 1.0 }	# 护盾回复=100%
+				}
+				else_if = {#LV4
+					limit = {
+						OR = {
+							is_ship_size = starbase_starfortress
+							is_ship_size = orbital_ring_tier_3
+						}
+					}
+					#_添加|SB护盾强度|
+					set_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|40000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|40000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 1.0 }	# 护盾回复=100%
+				}
+				else_if = {#LV3
+					limit = {
+						OR = {
+							is_ship_size = starbase_starhold
+							is_ship_size = orbital_ring_tier_2
+							is_ship_size = AAR_ship_AP_void_fortress_2
+							is_ship_size = AAR_ship_AP_void_fortress_3
+						}
+					}
+					#_添加|SB护盾强度|
+					set_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|20000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|20000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 1.0 }	# 护盾回复=100%
+				}
+				else_if = {#LV2
+					limit = {
+						OR = {
+							is_ship_size = starbase_starport
+							is_ship_size = orbital_ring_tier_1
+							is_ship_size = AAR_ship_AP_void_fortress_1
+						}
+					}
+					#_添加|SB护盾强度|
+					set_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 1.0 }	# 护盾回复=100%
+				}
+				else = {#LV1
+					#_添加|SB护盾强度|
+					set_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|5000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.1 }	# 护盾回复=10%
+				}
+
+				## 添加ambt_星系缩放		=150%		蓝盾-75/蓝aura-45
+				if = { limit = { has_global_flag = has_system_scale_mod }
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_BLUE		 SCALE = 15		 LOC = this		 DAYS = 60 }		# ambt蓝盾
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_AURA				 SCALE = 15		 LOC = this		 DAYS = 45 }		# ambt蓝aura
+				}
+				## 添加ambt_vanilla
+				else = {
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_BLUE		 SCALE = 13		 LOC = this		 DAYS = 60 }		# ambt蓝盾
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_AURA				 SCALE = 10		 LOC = this		 DAYS = 45 }		# ambt蓝aura
+				}
+			}
+			# 初始橙盾
+			else = {
+				remove_ship_flag = AAR_flg_ship_SB_blue_max		# 清除|蓝盾最大持续时间|
+				if = {#LV5
+					limit = { is_ship_size = starbase_citadel }
+					#_添加|SB护盾强度|
+					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 45 }	# |橙盾状态|=45天
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|80000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|80000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+				}
+				else_if = {#LV4
+					limit = {
+						OR = {
+							is_ship_size = starbase_starfortress
+							is_ship_size = orbital_ring_tier_3
+						}
+					}
+					#_添加|SB护盾强度|
+					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 45 }	# |橙盾状态|=45天
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|40000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|40000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+				}
+				else_if = {#LV3
+					limit = {
+						OR = {
+							is_ship_size = starbase_starhold
+							is_ship_size = orbital_ring_tier_2
+							is_ship_size = AAR_ship_AP_void_fortress_2
+							is_ship_size = AAR_ship_AP_void_fortress_3
+						}
+					}
+					#_添加|SB护盾强度|
+					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 45 }	# |橙盾状态|=45天
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|20000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|20000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+				}
+				else_if = {#LV2
+					limit = {
+						OR = {
+							is_ship_size = starbase_starport
+							is_ship_size = orbital_ring_tier_1
+							is_ship_size = AAR_ship_AP_void_fortress_1
+						}
+					}
+					#_添加|SB护盾强度|
+					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 45 }	# |橙盾状态|=45天
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+				}
+				else = {#LV1
+					#_添加|SB护盾强度|
+					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 45 }	# |橙盾状态|=45天
+					set_variable = { which = AAR_var_SHIELD_power				value = value:AAR_prmt_sv_flt_LINE_power|POWER|5000| }
+					multiply_variable = { which = AAR_var_SHIELD_power			value = owner.AAR_var_cntr_ATK_vigilance }	# 伤害加成
+					#	SB护盾mod
+					add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|5000| }	# 护盾强化
+					add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.1 }	# 护盾回复=10%
+				}
+
+				# 添加ambt_星系缩放		=150%		=橙盾-45
+				if = { limit = { has_global_flag = has_system_scale_mod }
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_ORANGE		SCALE = 15		LOC = this		DAYS = 45 }		# ambt橙盾
+				}
+				# 添加ambt_vanilla
+				else = {
+					AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_ORANGE		SCALE = 13		LOC = this		DAYS = 45 }		# ambt橙盾
+				}
+			}
+
+			##	自动防御塔DB
+			#	镜像<星基ship>的所有参数与[自循环操作]
+			#	因为3.4以前星基被毁不触发on_action,因此需要用这个<自动防御塔>实现星基毁灭产生的[星基冲击]
+			#	将|var|和|AAR星际失效|传到<自动防御塔>上, 然后varDB, 冲击
+			#	[创建flt]=自动防御塔
+		#	create_fleet = { name = AAR_NAME_sb_line_tower
+		#		effect = {
+		#			# 参数INIT
+		#			set_fleet_flag = AAR_flg_flt_SB_spawn	# |是自动防御塔|
+		#			if = { limit = { root.fleet = { has_fleet_flag = AAR_flg_flt_LINE_sp_enemy } }	# |特殊敌人|
+		#				set_fleet_flag = AAR_flg_flt_LINE_sp_enemy
+		#			}
+		#			set_variable = { which = AAR_var_flt_LINE_skw_POWER	 value = 1.3 }	# |超级防线VAR衰减|
+		#			
+		#			set_owner = prev.owner
+		#			set_location = prev
+		#			# 自动防御协议		清除aura残留
+		#			create_ship = {
+		#				name = random
+		#				random_existing_design = military_station_small
+		#				graphical_culture = prev.owner	# 可使用tgt
+		#			}
+		#			every_owned_ship = {
+		#				#	INIT
+		#				set_variable = { which = AAR_var_SHIELD_power		 value = root.AAR_var_SHIELD_power }	# 冲击能量与|星基的同步|
+		#				#	盾强度
+		#				if = { limit = { root = { has_ship_flag = AAR_flg_ship_LINE_shield_BLUE } }
+		#					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_BLUE days = 45 }
+		#					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE days = 75 }
+		#				}
+		#				else = {
+		#					set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE days = 45 }
+		#				}
+		#				
+		#				ship_event = { id = AAR_evt_LINE.2 }		# aar防线自动防御塔循环
+		#				add_modifier = { modifier = AAR_mod_ship_LINE_spawn			 days = -1 }	# 自我修复
+		#				add_modifier = { modifier = AAR_mod_ship_LINE_spawn_suicide	 days = -1 }	# 自毁
+		#			}
+		#			set_event_locked = yes
+		#		}
+		#	}
+		}
+	
+		##	脱离战斗DB
+		if = { limit = { is_in_combat = no }	# 不在战斗中
+			remove_ship_flag = AAR_flg_ship_LINE_combat	# 清除flag
+			starbase = { remove_starbase_flag = AAR_flg_sb_SB_line_combat }
+			remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod
+			remove_modifier = AAR_mod_ship_LINE_regen
+			
+			fleet = {
+				# |AAR防线循环中|移除		此flg只能通过当前effect移除
+				remove_fleet_flag = AAR_flg_flt_LINE_cycle_ONGOING
+				# 仍存在buffの防御塔DB
+				every_owned_ship = { limit = { has_ship_flag = AAR_flg_ship_LINE_combat }
+					remove_ship_flag = AAR_flg_ship_LINE_combat	# 清除flag
+					remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod_防御塔
+					if = { limit = { is_variable_set = AAR_var_SHIELD_power }		clear_variable = AAR_var_SHIELD_power }
+				}
+			}
+
+			## 冷却FX_DB
+			# 蓝盾冷却		24
+			if = { limit = { has_ship_flag = AAR_flg_ship_LINE_shield_BLUE }		# |蓝盾状态|
+				remove_ship_flag = AAR_flg_ship_LINE_shield_BLUE
+				# |AAR防线触发CD|
+				fleet = { set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 24 } }		# 6×4
+				# AAR防线CD特效
+				fleet.starbase = {
+					if = { limit = { has_global_flag = has_system_scale_mod }
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 4 DAYS_1 = 8 DAYS_2 = 12 DAYS_3 = 16 DAYS_4 = 20 DAYS_5 = 24 }
+					}
+					else = {
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 4 DAYS_1 = 8 DAYS_2 = 12 DAYS_3 = 16 DAYS_4 = 20 DAYS_5 = 24 }
+					}
+				}
+			}
+			# 橙盾冷却		48
+			else_if = { limit = { has_ship_flag = AAR_flg_ship_LINE_shield_ORANGE }	# |橙盾状态|
+				remove_ship_flag = AAR_flg_ship_LINE_shield_ORANGE
+				# |AAR防线触发CD|
+				fleet = { set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 48 } }		# 6×8
+				# AAR防线CD特效
+				fleet.starbase = {
+					if = { limit = { has_global_flag = has_system_scale_mod }
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 8 DAYS_1 = 16 DAYS_2 = 24 DAYS_3 = 32 DAYS_4 = 40 DAYS_5 = 48 }
+					}
+					else = {
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 8 DAYS_1 = 16 DAYS_2 = 24 DAYS_3 = 32 DAYS_4 = 40 DAYS_5 = 48 }
+					}
+				}
+			}
+			# 无盾冷却		72
+			else_if = { limit = { always = yes }
+				# |AAR防线触发CD|
+				fleet = { set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 72 } }		# 6×12
+				# AAR防线CD特效
+				fleet.starbase = {
+					if = { limit = { has_global_flag = has_system_scale_mod }
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 12 DAYS_1 = 24 DAYS_2 = 36 DAYS_3 = 48 DAYS_4 = 60 DAYS_5 = 72 }
+					}
+					else = {
+						AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 12 DAYS_1 = 24 DAYS_2 = 36 DAYS_3 = 48 DAYS_4 = 60 DAYS_5 = 72 }
+					}
+				}
+			}
+	
+			## 星系DB
+			solar_system = {
+				# 清理var
+				if = { limit = { is_variable_set = AAR_var_sstm_SKW_power_current }		clear_variable = AAR_var_sstm_SKW_power_current }	# |当前冲击能量|
+				# 清理ambt	=蓝盾/橙盾/aura/定位器
+				every_system_ambient_object = {
+					limit = {
+						OR = {
+							is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE
+							is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE
+							is_ambient_object_type = AAR_ambt_SB_line_AURA
+						}
+						distance = { max_distance <= 5	same_solar_system = yes		source = prevprev }	#	[只清理距离最近的目标]	<prevprev>=星基ship
+					}
+					destroy_ambient_object = this
+				}
+			}
+		}
+		##	继续循环|护盾耗尽|		仍在战斗,但是没有[盾mod],证明橙盾也用完了
+		else_if = { limit = { NOT = { has_modifier = AAR_mod_ship_LINE_shield } }
+			#	自循环
+			ship_event = { id = AAR_evt_LINE.1 days = 1 }	# 自循环
+			solar_system = {
+				# 清理ambt	=橙盾
+				every_system_ambient_object = {
+					limit = {
+						is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE
+						distance = { max_distance <= 5	same_solar_system = yes		source = prevprev }	#	[只清理距离最近的目标]	<prevprev>=星基ship
+					}
+					destroy_ambient_object = this
+				}
+			}
+		}
+		##	继续循环_切换橙盾		|复杂trigger|橙盾存在30天
+		else_if = {
+			limit = {
+				has_ship_flag = AAR_flg_ship_LINE_shield_BLUE		# |蓝盾状态|	此标签只在|脱战/毁灭/失效|时清除
+				OR = {
+					NOT = { has_ship_flag = AAR_flg_ship_SB_blue_max }		# 超过|蓝盾最大持续时间|
+					fleet = { num_ships <= 1 }	# 无防御塔|消耗+|
+				}
+			}
+			ship_event = { id = AAR_evt_LINE.1 days = 1 }	# 自循环
+			
+			# 盾状态flgDB
+			remove_ship_flag = AAR_flg_ship_SB_blue_max		# 无论是|超过蓝盾持续时间|还是|防御塔耗尽|都要清除蓝盾flag
+			remove_ship_flag = AAR_flg_ship_LINE_shield_BLUE	# |蓝盾状态|
+			set_timed_ship_flag = { flag = AAR_flg_ship_LINE_shield_ORANGE	days = 30 }	# |橙盾状态|=30日
+
+			# 重新添加限时mod	=30天
+			remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod_初始化
+			remove_modifier = AAR_mod_ship_LINE_regen
+			if = {#LV5
+				limit = { is_ship_size = starbase_citadel }
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|80000| }	# 护盾强化
+				add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+			}
+			else_if = {#LV4
+				limit = {
+					OR = {
+						is_ship_size = starbase_starfortress
+						is_ship_size = orbital_ring_tier_3
+					}
+				}
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|40000| }	# 护盾强化
+				add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+			}
+			else_if = {#LV3
+				limit = {
+					OR = {
+						is_ship_size = starbase_starhold
+						is_ship_size = orbital_ring_tier_2
+						is_ship_size = AAR_ship_AP_void_fortress_2
+						is_ship_size = AAR_ship_AP_void_fortress_3
+					}
+				}
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|20000| }	# 护盾强化
+				add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+			}
+			else_if = {#LV2
+				limit = {
+					OR = {
+						is_ship_size = starbase_starport
+						is_ship_size = orbital_ring_tier_1
+						is_ship_size = AAR_ship_AP_void_fortress_1
+					}
+				}
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|10000| }	# 护盾强化
+				add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.5 }	# 护盾回复=50%
+			}
+			else = {#LV1
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield		days = -1 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|5000| }	# 护盾强化
+				add_modifier = { modifier = AAR_mod_ship_LINE_regen			days = -1 multiplier = 0.1 }	# 护盾回复=10%
+			}
+			
+			# 重力护盾_回复
+			repair_percentage = 0.02	# 2%*50%*2
+			# 星系DB
+			solar_system = {
+				# 清理ambt	=蓝盾
+				every_system_ambient_object = {
+					limit = { is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE
+						distance = { max_distance <= 5	same_solar_system = yes		source = prevprev }	#	[只清理距离最近的目标]	<prevprev>=星基ship
+					}
+					destroy_ambient_object = this
+				}
+			}
+
+			# 添加ambt_星系缩放		=150%		=橙盾-30
+			if = { limit = { has_global_flag = has_system_scale_mod }
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_ORANGE		SCALE = 15		LOC = this		DAYS = 30 }		# ambt橙盾
+			}
+			# 添加ambt_vanilla
+			else = {
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_SB_line_shield_ORANGE		SCALE = 13		LOC = this		DAYS = 30 }		# ambt橙盾
+			}
+		}
+		##	继续循环_橙盾
+		else_if = { limit = { has_ship_flag = AAR_flg_ship_LINE_shield_ORANGE }
+			ship_event = { id = AAR_evt_LINE.1 days = 1 }	# 自循环
+
+			# 重力护盾_回复
+			repair_percentage = 0.01	# 1%*50%*2
+		}
+		##	继续循环_蓝盾
+		else = {
+			ship_event = { id = AAR_evt_LINE.1 days = 1 }	# 自循环
+
+			# 重力护盾_回复
+			repair_percentage = 0.04	# 4%*50%*2
+		#	repair_ship = yes
+		}
+	}
+}
+
+###	aar防线自动防御塔循环		---禁用
+#_evt	<aar防线星基ship循环>
+##	在3.44以前因为星际被毁不触发<舰船毁灭on_action>,所以需要这个额外ship循环触发星基冲击, 同时自动防御塔的战斗如果正常结束,还能将光环残留刷掉
+##	1日循环,在|星基被摧毁|时触发冲击,会被任意就近的[AAR防线SKW星基]		=添加|自动防御塔注销|以禁止自我debug产生的[AAR防线SKW星基]/触发[aar防线自动防御塔自毁],使其自我消亡
+ship_event = {
+	id = AAR_evt_LINE.2
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		exists = this
+		is_scope_type = ship
+	}
+
+	immediate = {
+		##	|星基未被摧毁|=继续循环
+		if = { limit = { exists = solar_system		solar_system = { exists = starbase } }
+			#	|超级防线VAR衰减|日衰减	90日
+			fleet = { subtract_variable = { which = AAR_var_flt_LINE_skw_POWER value = 0.015 } }
+			#	自我修复
+			if = { limit = { has_modifier = AAR_mod_ship_LINE_spawn }		repair_ship = yes }
+			#	自循环
+			ship_event = { id = AAR_evt_LINE.2 days = 1 }
+		}
+		##	|星基被摧毁|=触发超级冲击
+		else_if = { limit = { NOT = { fleet = { has_fleet_flag = AAR_flg_flt_SB_spawn_cancel } } }	# |自动防御塔注销|无
+			fleet = { set_event_locked = no }
+			AAR_eft_ship_LINE_skw_starbase = yes	# AAR防线SKW星基
+		}
+	}
+}
+###	aar防线自动防御塔自毁			只要|冲击发生|,必然清除[自我恢复]加速aar防线自动防御塔自毁		---禁用
+#_eft	<AAR防线SKW星基>
+fleet_event = {
+	id = AAR_evt_LINE.20
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		set_event_locked = no
+		remove_modifier = AAR_mod_ship_LINE_spawn
+		fleet_event = { id = AAR_evt_LINE.5 days = 15 }	# aar防线冲击clear
+	}
+}
+
+
+
+
+###	aar防线击毁
+#_<on_ship_destroyed_victim>
+##_scopes	<root>=毁船国家	/<from>=攻击国家	/<fromfrom>=毁船	/<fromfromfrom>=攻击船
+country_event = {
+	id = AAR_evt_LINE.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		fromfrom = {
+			has_ship_flag = AAR_flg_ship_LINE_combat
+			is_ship_class = shipclass_military_station
+		}
+	}
+
+	immediate = {
+		fromfrom = {
+			##_[AAR防线SKW防御塔]
+			AAR_eft_ship_LINE_skw_platform = yes
+		}
+	}
+}
+
+###	aar防线失效		=包含<星基>,TEST
+#_<on_ship_disabled>
+##_scopes	<root>=船	/<from>=攻击者
+ship_event = {
+	id = AAR_evt_LINE.30
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_ship_flag = AAR_flg_ship_LINE_combat
+	#	is_ship_class = shipclass_military_station
+	}
+	
+	immediate = {
+		##	添加|失效flg|
+		set_timed_ship_flag = { flag = AAR_flg_ship_disabled days = 1 }
+		
+		##_[AAR防线SKW星基]
+		if = { limit = { is_ship_class = shipclass_starbase }
+			AAR_eft_ship_LINE_skw_starbase = yes
+		}
+		##_[AAR防线SKW防御塔]
+		else = {
+			AAR_eft_ship_LINE_skw_platform = yes
+		}
+	}
+}
+
+
+
+
+###	aar防线星基击毁		注意:星基是星基
+##_[list]	超级防线
+#_<on_starbase_destroyed>
+##_scopes	<root>=星基	/<from>=攻击者
+starbase_event = {
+	id = AAR_evt_LINE.4
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_starbase_flag = AAR_flg_sb_SB_line_combat
+	}
+
+	immediate = {
+		##	超级防线
+		fleet = {
+			every_owned_ship = {
+				limit = {
+					is_ship_class = shipclass_starbase
+					has_ship_flag = AAR_flg_ship_LINE_combat
+				}
+				AAR_eft_ship_LINE_skw_starbase = yes	##_[AAR防线SKW星基]
+			}
+		}
+	}
+}
+
+###	aar防线星基失效
+##_[list]	超级防线
+#_<on_starbase_disabled>
+##_scopes	<root>=星基	/<from>=攻击者
+starbase_event = {
+	id = AAR_evt_LINE.40
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		has_starbase_flag = AAR_flg_sb_SB_line_combat
+	}
+	
+	immediate = {
+		# |战斗状态sb|清除
+		#	防止意外の重复触发,|战斗状态sb|只会用在<星基失效/击毁>触发,因此可以在这里直接清除,不像|战斗状态ship|还用于[aar防线星基ship循环]
+	#	remove_starbase_flag = AAR_flg_sb_SB_line_combat
+
+		##	超级防线
+	#	fleet = {
+	#		every_owned_ship = {
+	#			limit = {
+	#				is_ship_class = shipclass_starbase
+	#				has_ship_flag = AAR_flg_ship_LINE_combat
+	#			}
+	#			set_timed_ship_flag = { flag = AAR_flg_ship_disabled days = 1 }	# 添加|失效flg|
+	#			AAR_eft_ship_LINE_skw_starbase = yes		#_[AAR防线SKW星基]
+	#		}
+	#	}
+	}
+}
+
+
+
+
+
+
+
+
+###	aar防线冲击clear
+#_evt	<aar防线自动防御塔自毁*/aar防线星基冲击二段/aar防线星基冲击aura刷新*>
+#_eft	<AAR防线SKW防御塔/AAR防线SKW星基>
+fleet_event = {
+	id = AAR_evt_LINE.5
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		## 清理|当前冲击能量|
+		solar_system = {
+			if = { limit = { is_variable_set = AAR_var_sstm_SKW_power_current }
+				clear_variable = AAR_var_sstm_SKW_power_current
+			}
+		}
+		## 清理舰队
+		set_event_locked = no
+		destroy_fleet = this
+	}
+}
+
+
+
+
+###	aar防线星基冲击二段			直接从<星基冲击波一段ship>中继承属性使其再存在1天,不直接让其存在2天的原因是|只存在1天|不显示在战场中
+#_<AAR防线SKW星基>
+fleet_event = {
+	id = AAR_evt_LINE.50
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		random_owned_ship = {
+			create_fleet = { name = AAR_NAME_sb_line_skw_1
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					set_variable = { which = AAR_var_SHIELD_power		value = root.AAR_var_SHIELD_power }	# |SB护盾强度|继承自上一个<skw_flt>
+					AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.5 days = 1 }		#_[aar防线冲击clear]
+				#	fleet_event = { id = AAR_evt_LINE.51 days = 1 }	#_[aar防线星基冲击aura刷新]
+				}
+			}
+		}
+
+		## 清理舰队
+		set_event_locked = no
+		destroy_fleet = this
+	}
+}
+###	aar防线星基冲击aura刷新		---禁用:|3.4+|光环不会再有残留
+##_list		刷成低伤害光环,减少光环残留影响
+#_evt	<aar防线星基冲击二段>
+fleet_event = {
+	id = AAR_evt_LINE.51
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		random_owned_ship = {
+			##	aura刷新器
+			create_fleet = { name = AAR_NAME_sb_line_skw_2
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					create_ship = { name = AAR_NAME_sb_line_skw_2		design = AAR_DESIGN_skw_X }	# AAR冲击波debug添加
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.5 days = 1 }	#_[aar防线冲击clear]	>2天
+				}
+			}
+		}
+
+		## 清理|当前冲击能量|
+		solar_system = {
+			if = { limit = { is_variable_set = AAR_var_sstm_SKW_power_current }
+				clear_variable = AAR_var_sstm_SKW_power_current
+			}
+		}
+		## 清理舰队
+		set_event_locked = no
+		destroy_fleet = this
+	}
+}
+
+
+

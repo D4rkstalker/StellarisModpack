@@ -1,0 +1,2349 @@
+namespace = MasterNature_event
+
+# Foundry Event Chain Trigger
+country_event = {
+	id = MasterNature_event.30 
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+        is_ai = no
+        any_owned_planet = {		    
+		    NOR = { 
+                has_planet_flag = foundry_risk 
+                has_planet_flag = foundry_safe
+            }
+            has_modifier = pm_subterranean_foundry
+		    num_pops > 1
+		}
+	}
+	immediate = {
+        random_owned_planet = {
+            limit = {
+		        NOR = { 
+                    has_planet_flag = foundry_risk 
+                    has_planet_flag = foundry_safe
+                }
+                has_modifier = pm_subterranean_foundry
+		        num_pops > 1
+		    }
+            set_planet_flag = foundry_risk
+            random_list = {
+                3 = {}
+                1 = {
+                    planet_event = {
+                        id = MasterNature_event.31 
+                        days = 3600
+                        random = 1800
+                    }
+                }
+            }
+        }
+    }
+}
+            
+
+# Foundry Fears
+planet_event = {
+	id = MasterNature_event.31 
+	title = "MasterNature_event.31.name"
+	desc = "MasterNature_event.31.desc"
+	picture = GFX_evt_seismic_rift
+	show_sound = event_structural_collapse
+	hide_window = no
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { is_ai = no }
+		NOR = { 
+			has_planet_flag = foundry_safe
+			has_modifier = pm_impending_doom
+		}
+	}
+    immediate = {
+        start_situation = {
+            type = situation_foundry
+            target = root
+            effect = {
+                save_event_target_as = new_situation
+            }
+        }
+    }
+	option = {
+		name = "MasterNature_event.fine.name"
+		custom_tooltip = "MasterNature_event.fine.tooltip"
+        event_target:new_situation = {
+			set_situation_approach = approach_ignore
+		}
+	}
+	option = {
+		trigger = {
+			NOT = { owner = {  has_country_flag = safety_protocols } }
+		}
+		allow = {
+			custom_tooltip = {
+				fail_text = investigation_already
+				NOT = { owner = {  has_country_flag = foundry_investigation } }
+			}
+		}
+		name = "MasterNature_event.investigatefoundry.name"
+		custom_tooltip = "MasterNature_event.investigatefoundry.tooltip"
+        event_target:new_situation = {
+			set_situation_approach = approach_investigate_foundry
+		}
+		owner = { set_country_flag = foundry_investigation }
+	}
+	option = {
+		name = "MasterNature_event.closefoundry.name"
+        custom_tooltip = "MasterNature_event.closefoundry.tooltip"
+		remove_modifier = pm_subterranean_foundry
+		hidden_effect = {
+			add_modifier = {
+				modifier = pm_subterranean_foundry_closed
+			}
+			set_planet_flag = foundry_safe
+		}
+	}
+	after = {
+        add_deposit = d_seismic_rift
+		hidden_effect = {
+            random_list = {
+                5 = {
+                    modifier = {
+                        factor = 2
+                        owner = { has_technology = tech_engineering_3 }
+                    }
+                    modifier = {
+                        factor = 2
+                        owner = { has_technology = tech_alloys_2 }
+                    }
+                    planet_event = {
+                        id = MasterNature_event.32
+                        days = 800
+                        random = 200
+                    }
+                }
+                5 = {
+                    planet_event = {
+                        id = MasterNature_event.32
+                        days = 400
+                        random = 100
+                    }
+                }
+            }
+        }
+	}
+}
+
+
+# Foundry Fears Repeating
+situation_event = {
+	id = MasterNature_event.32 
+	title = "MasterNature_event.32.name"
+	desc = "MasterNature_event.32.desc"
+	picture = GFX_evt_lava_city
+	show_sound = event_structural_collapse
+	hide_window = no
+	is_triggered_only = yes
+
+    situation = this
+    location = target
+	
+	trigger = {
+		owner = { is_ai = no }
+        target = {
+            NOR = { 
+                has_planet_flag = foundry_safe
+                has_modifier = pm_impending_doom
+            }
+        }
+	}
+	option = {
+		name = "MasterNature_event.okay.name"
+		custom_tooltip = "MasterNature_event.okay.tooltip"
+		if = {
+			limit = { NOT = { has_modifier = pm_ban_demonstrations } }
+			add_modifier = {
+				modifier = pm_fine
+				months = 60
+			}
+		}
+	}
+	option = {
+		name = "MasterNature_event.bandemonstrations.name"
+		custom_tooltip = "MasterNature_event.bandemonstrations.tooltip"
+		allow = {
+			custom_tooltip = {
+				fail_text = ban_already
+				NOT = { has_modifier = pm_ban_demonstrations }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }
+		add_modifier = {
+			modifier = pm_ban_demonstrations
+			months = 60
+        }
+    }
+	option = {
+		trigger = {
+			NOT = { owner = {  has_country_flag = safety_protocols } }
+		}
+		allow = {
+			custom_tooltip = {
+				fail_text = investigation_already
+				owner = { 
+					NOT = { has_country_flag = foundry_investigation }
+				}
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 50
+                }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = energy
+                    value > 1000
+                }
+            }
+		}
+		name = "MasterNature_event.investigatefoundry.name"
+		custom_tooltip = "MasterNature_event.investigatefoundry.tooltip"
+        enable_special_project = {
+			name = "foundry_investigation"
+			location = this
+			owner = root
+		}
+        add_modifier = {
+			modifier = pm_subterranean_foundry_investigation
+		}
+		owner = { 
+            set_country_flag = foundry_investigation 
+            add_resource = {
+                influence = -50
+                energy = -1000
+            }
+        }
+	}
+	option = {
+		name = "MasterNature_event.closefoundry.name"
+		custom_tooltip = "MasterNature_event.closefoundry.tooltip"
+		remove_modifier = pm_subterranean_foundry
+		hidden_effect = {
+			add_modifier = {
+				modifier = pm_subterranean_foundry_closed
+			}
+			set_planet_flag = foundry_safe
+		}
+	}
+	option = {
+        name = "MasterNature_event.safetyprotocols.name"
+		custom_tooltip = "MasterNature_event.safetyprotocols.tooltip"
+		trigger = {
+			owner = {  has_country_flag = safety_protocols }
+		}
+		allow = {
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }			
+		add_modifier = {
+			modifier = pm_subterranean_foundry_safe
+		}
+		add_modifier = {
+            modifier = pm_fine
+            months = 60
+		}
+		hidden_effect = {
+			remove_modifier = pm_subterranean_foundry
+			set_planet_flag = foundry_safe
+		}
+	}
+	immediate = {
+        add_situation_progress = -30
+        target = {
+            random_list = {                                         ### Add a devastation blocker
+                5 = {
+                    add_deposit = d_deep_sinkhole 
+                    set_planet_flag = "blocker_d_deep_sinkhole"
+                }
+                5 = {
+                    add_deposit = d_city_ruins
+                    set_planet_flag = "blocker_d_city_ruins"
+                }
+                1 = {
+                    add_deposit = d_seismic_ruins
+                    set_planet_flag = "blocker_d_seismic_ruins"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }   
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 4 }
+                    }     
+                }
+                2 = {
+                    add_deposit = d_seismic_rift
+                    set_planet_flag = "blocker_d_seismic_rift"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }  
+                }
+                3 = {
+                    add_deposit = d_active_volcano
+                    set_planet_flag = "blocker_d_active_volcano"
+                    modifier = {
+                        factor = 0
+                        OR = {
+                            has_modifier = pm_ash_cloud
+                            has_modifier = pm_ash_cloud_gestalt
+                        }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }                 
+                    if = {
+                        limit = {
+                            owner = { is_gestalt = no }
+                        }
+                        add_modifier = {
+                            modifier = pm_ash_cloud
+                            days = 1000
+                        }
+                    }
+                    else = {                
+                        add_modifier = {
+                            modifier = pm_ash_cloud_gestalt
+                            days = 1000
+                        } 
+                    }
+                }
+                5 = {
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }   
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 4 }
+                    }
+                }
+            }
+
+            random_list = {                                         ### Disaster Casualties
+                10 = {
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }   
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 4 }
+                    }
+                }
+                8 = {
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }
+                    set_planet_flag = "casualties_1"
+                }
+                5 = {
+                    while = { 
+                        count = 2 
+                        random_owned_pop = {
+                            kill_pop = yes
+                        }                    
+                    }
+                    set_planet_flag = "casualties_2"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                }
+                3 = {
+                    while = { 
+                        count = 3 
+                        random_owned_pop = {
+                            kill_pop = yes
+                        }                    
+                    }
+                    set_planet_flag = "casualties_3"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }  
+                }
+                2 = {
+                    while = { 
+                        count = 4 
+                        random_owned_pop = {
+                            kill_pop = yes
+                        }                    
+                    }
+                    set_planet_flag = "casualties_4"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }  
+                }
+                1 = {
+                    while = { 
+                        count = 5 
+                        random_owned_pop = {
+                            kill_pop = yes
+                        }                    
+                    }
+                    set_planet_flag = "casualties_5"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }    
+                }
+            }
+            random_list = {                                         ### Govorner Killed
+                10 = {}
+                1 = {
+                    sector = {
+                        leader = {
+                            save_event_target_as = govorner_killed
+                            kill_leader = {
+                                show_notification = yes
+                            }
+                        }
+                    }
+                    set_planet_flag = "casualties_governor"
+                    set_planet_flag = govorner_killed
+                    modifier = {
+                        factor = 0
+                        has_planet_flag = govorner_killed
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    } 
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 4 }
+                    }    
+                }
+            }
+            random_list = {                                         ### Planet Devastation
+                10 = {
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    } 
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }   
+                    modifier = {
+                        factor = 0.8
+                        check_variable = { which = foundry_fractures value >= 4 }
+                    }
+                }
+                10 = {
+                    add_planet_devastation = 5 
+                    set_planet_flag = "devastation_5" 
+                }
+                8 = {
+                    add_planet_devastation = 8
+                    set_planet_flag = "devastation_8"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    } 
+                }
+                4 = {
+                    add_planet_devastation = 10
+                    set_planet_flag = "devastation_10"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }  
+                }
+                3 = {
+                    add_planet_devastation = 15
+                    set_planet_flag = "devastation_15"
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 1 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 2 }
+                    }
+                    modifier = {
+                        factor = 2
+                        check_variable = { which = foundry_fractures value >= 3 }
+                    }    
+                }
+            }
+            # change_variable = { which = foundry_fractures value = 1 }
+            # random_list = {                                     ### Chance of Catastrophic Failure
+            #     50 = {
+            #         planet_event = {
+            #             id = MasterNature_event.301
+            #             days = 800
+            #             random = 200
+            #         }
+            #         modifier = {
+            #             factor = 0.5
+            #             check_variable = { which = foundry_fractures value >= 2 }
+            #         }
+            #         modifier = {
+            #             factor = 0.5
+            #             check_variable = { which = foundry_fractures value >= 3 }
+            #         }
+            #     }
+            #     25 = {
+            #         planet_event = {
+            #             id = MasterNature_event.302
+            #             days = 400
+            #             random = 100
+            #         }
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 2 }
+            #         }
+            #         modifier = {
+            #             factor = 1.25
+            #             check_variable = { which = foundry_fractures value >= 3 }
+            #         }
+            #     }
+            #     2 = {
+            #         planet_event = {
+            #             id = MasterNature_event.34
+            #             days = 300
+            #             random = 100
+            #         }
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 1 }
+            #         }
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 2 }
+            #         }
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 3 }
+            #         }
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 4 }
+            #         }  
+            #         modifier = {
+            #             factor = 2
+            #             check_variable = { which = foundry_fractures value >= 5 }
+            #         } 
+            #     }            
+            # } 
+        }
+    }
+    after = {
+        custom_tooltip = "damage_report"
+        target = {
+            if = {
+                limit = {
+                    has_planet_flag = blocker_d_active_volcano
+                }
+                remove_planet_flag = blocker_d_active_volcano
+                custom_tooltip = blocker_d_active_volcano
+            }
+            if = {
+                limit = {
+                    has_planet_flag = blocker_d_city_ruins
+                }
+                remove_planet_flag = blocker_d_city_ruins
+                custom_tooltip = blocker_d_city_ruins
+            }
+            if = {
+                limit = {
+                    has_planet_flag = blocker_d_deep_sinkhole
+                }
+                remove_planet_flag = blocker_d_deep_sinkhole
+                custom_tooltip = blocker_d_deep_sinkhole
+            }
+            if = {
+                limit = {
+                    has_planet_flag = blocker_d_seismic_rift
+                }
+                remove_planet_flag = blocker_d_seismic_rift
+                custom_tooltip = blocker_d_seismic_rift
+            }
+            if = {
+                limit = {
+                    has_planet_flag = blocker_d_seismic_ruins
+                }
+                remove_planet_flag = blocker_d_seismic_ruins
+                custom_tooltip = blocker_d_seismic_ruins
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_1
+                }
+                remove_planet_flag = casualties_1
+                custom_tooltip = casualties_1
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_2
+                }
+                remove_planet_flag = casualties_2
+                custom_tooltip = casualties_2
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_3
+                }
+                remove_planet_flag = casualties_3
+                custom_tooltip = casualties_3
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_4
+                }
+                remove_planet_flag = casualties_4
+                custom_tooltip = casualties_4
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_5
+                }
+                remove_planet_flag = casualties_5
+                custom_tooltip = casualties_5
+            }
+            if = {
+                limit = {
+                    has_planet_flag = casualties_governor
+                }
+                remove_planet_flag = casualties_governor
+                custom_tooltip = casualties_governor
+            }
+            if = {
+                limit = {
+                    has_planet_flag = devastation_5
+                }
+                remove_planet_flag = devastation_5
+                custom_tooltip = devastation_5
+            }
+            if = {
+                limit = {
+                    has_planet_flag = devastation_8
+                }
+                remove_planet_flag = devastation_8
+                custom_tooltip = devastation_8
+            }
+            if = {
+                limit = {
+                    has_planet_flag = devastation_10
+                }
+                remove_planet_flag = devastation_10
+                custom_tooltip = devastation_10
+            }
+            if = {
+                limit = {
+                    has_planet_flag = devastation_15
+                }
+                remove_planet_flag = devastation_15
+                custom_tooltip = devastation_15
+            }
+        }
+    }
+}
+
+# Foundry Fears Repeating Variant: Energy Spike
+planet_event = {
+	id = MasterNature_event.301 
+	title = "MasterNature_event.301.name"
+	desc = "MasterNature_event.32.desc"
+	picture = GFX_evt_mining_industry
+	show_sound = event_structural_collapse
+	hide_window = no
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { is_ai = no }
+		NOR = { 
+			has_planet_flag = foundry_safe
+			has_modifier = pm_impending_doom
+		}
+	}
+	option = {
+		name = "MasterNature_event.fine.name"
+		custom_tooltip = "MasterNature_event.okay.tooltip"
+		if = {
+			limit = { NOT = { has_modifier = pm_ban_demonstrations } }
+			add_modifier = {
+				modifier = pm_fine
+				months = 60
+			}
+		}
+	}
+	option = {
+		name = "MasterNature_event.bandemonstrations.name"
+		custom_tooltip = "MasterNature_event.bandemonstrations.tooltip"
+		allow = {
+			custom_tooltip = {
+				fail_text = ban_already
+				NOT = { has_modifier = pm_ban_demonstrations }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }
+		add_modifier = {
+			modifier = pm_ban_demonstrations
+			months = 60
+        }
+    }
+	option = {
+		trigger = {
+			NOT = { owner = {  has_country_flag = safety_protocols } }
+		}
+		allow = {
+			custom_tooltip = {
+				fail_text = investigation_already
+				owner = { 
+					NOT = { has_country_flag = foundry_investigation }
+				}
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 50
+                }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = energy
+                    value > 1000
+                }
+            }
+		}
+		name = "MasterNature_event.investigatefoundry.name"
+		custom_tooltip = "MasterNature_event.investigatefoundry.tooltip"
+        enable_special_project = {
+			name = "foundry_investigation"
+			location = this
+			owner = root
+		}
+        add_modifier = {
+			modifier = pm_subterranean_foundry_investigation
+		}
+		owner = { 
+            set_country_flag = foundry_investigation 
+            add_resource = {
+                influence = -50
+                energy = -1000
+            }
+        }
+	}
+	option = {
+		name = "MasterNature_event.closefoundry.name"
+		custom_tooltip = "MasterNature_event.closefoundry.tooltip"
+		remove_modifier = pm_subterranean_foundry
+		hidden_effect = {
+			add_modifier = {
+				modifier = pm_subterranean_foundry_closed
+			}
+			set_planet_flag = foundry_safe
+		}
+	}
+	option = {
+        name = "MasterNature_event.safetyprotocols.name"
+		custom_tooltip = "MasterNature_event.safetyprotocols.tooltip"
+		trigger = {
+			owner = {  has_country_flag = safety_protocols }
+		}
+		allow = {
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }			
+		add_modifier = {
+			modifier = pm_subterranean_foundry_safe
+		}
+		add_modifier = {
+            modifier = pm_fine
+            months = 60
+		}
+		hidden_effect = {
+			remove_modifier = pm_subterranean_foundry
+			set_planet_flag = foundry_safe
+		}
+	}
+	immediate = {
+        random_list = {                                         ### Add a devastation blocker
+            5 = {
+                add_deposit = d_deep_sinkhole 
+                set_planet_flag = "blocker_d_deep_sinkhole"
+            }
+            5 = {
+                add_deposit = d_city_ruins
+                set_planet_flag = "blocker_d_city_ruins"
+            }
+            1 = {
+                add_deposit = d_seismic_ruins
+                set_planet_flag = "blocker_d_seismic_ruins"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }     
+            }
+            2 = {
+                add_deposit = d_seismic_rift
+                set_planet_flag = "blocker_d_seismic_rift"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            3 = {
+                add_deposit = d_active_volcano
+                set_planet_flag = "blocker_d_active_volcano"
+                modifier = {
+                    factor = 0
+                    OR = {
+                        has_modifier = pm_ash_cloud
+                        has_modifier = pm_ash_cloud_gestalt
+                    }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }                 
+                if = {
+                    limit = {
+                        owner = { is_gestalt = no }
+                    }
+                    add_modifier = {
+                        modifier = pm_ash_cloud
+                        days = 1000
+                    }
+                }
+                else = {                
+                    add_modifier = {
+                        modifier = pm_ash_cloud_gestalt
+                        days = 1000
+                    } 
+                }
+            }
+            5 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+        }
+
+        random_list = {                                         ### Disaster Casualties
+            10 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+            8 = {
+                random_owned_pop = {
+                    kill_pop = yes
+                }
+                set_planet_flag = "casualties_1"
+            }
+            5 = {
+                while = { 
+                    count = 2 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_2"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+            }
+            3 = {
+                while = { 
+                    count = 3 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_3"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            2 = {
+                while = { 
+                    count = 4 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_4"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            1 = {
+                while = { 
+                    count = 5 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_5"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }    
+            }
+        }
+        random_list = {                                         ### Govorner Killed
+            10 = {}
+            1 = {
+                sector = {
+                    leader = {
+                        save_event_target_as = govorner_killed
+                        kill_leader = {
+                            show_notification = yes
+                        }
+                    }
+                }
+                set_planet_flag = "casualties_governor"
+                set_planet_flag = govorner_killed
+                modifier = {
+                    factor = 0
+                    has_planet_flag = govorner_killed
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }    
+            }
+        }
+        random_list = {                                         ### Planet Devastation
+            10 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+            10 = {
+                add_planet_devastation = 5 
+                set_planet_flag = "devastation_5" 
+            }
+            8 = {
+                add_planet_devastation = 8
+                set_planet_flag = "devastation_8"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+            }
+            4 = {
+                add_planet_devastation = 10
+                set_planet_flag = "devastation_10"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }  
+            }
+            3 = {
+                add_planet_devastation = 15
+                set_planet_flag = "devastation_15"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }    
+            }
+        }
+        change_variable = { which = foundry_fractures value = 1 }
+        random_list = {                                     ### Chance of Catastrophic Failure
+            50 = {
+                planet_event = {
+                    id = MasterNature_event.302
+                    days = 800
+                    random = 200
+                }
+                modifier = {
+                    factor = 0.5
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 0.5
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+            }
+            25 = {
+                planet_event = {
+                    id = MasterNature_event.32
+                    days = 400
+                    random = 100
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 1.25
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+            }
+            2 = {
+                planet_event = {
+                    id = MasterNature_event.34
+                    days = 300
+                    random = 100
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }  
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 5 }
+                } 
+            }            
+        } 
+    }
+    after = {
+        custom_tooltip = "damage_report"
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_active_volcano
+            }
+            remove_planet_flag = blocker_d_active_volcano
+            custom_tooltip = blocker_d_active_volcano
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_city_ruins
+            }
+            remove_planet_flag = blocker_d_city_ruins
+            custom_tooltip = blocker_d_city_ruins
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_deep_sinkhole
+            }
+            remove_planet_flag = blocker_d_deep_sinkhole
+            custom_tooltip = blocker_d_deep_sinkhole
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_seismic_rift
+            }
+            remove_planet_flag = blocker_d_seismic_rift
+            custom_tooltip = blocker_d_seismic_rift
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_seismic_ruins
+            }
+            remove_planet_flag = blocker_d_seismic_ruins
+            custom_tooltip = blocker_d_seismic_ruins
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_1
+            }
+            remove_planet_flag = casualties_1
+            custom_tooltip = casualties_1
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_2
+            }
+            remove_planet_flag = casualties_2
+            custom_tooltip = casualties_2
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_3
+            }
+            remove_planet_flag = casualties_3
+            custom_tooltip = casualties_3
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_4
+            }
+            remove_planet_flag = casualties_4
+            custom_tooltip = casualties_4
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_5
+            }
+            remove_planet_flag = casualties_5
+            custom_tooltip = casualties_5
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_governor
+            }
+            remove_planet_flag = casualties_governor
+            custom_tooltip = casualties_governor
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_5
+            }
+            remove_planet_flag = devastation_5
+            custom_tooltip = devastation_5
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_8
+            }
+            remove_planet_flag = devastation_8
+            custom_tooltip = devastation_8
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_10
+            }
+            remove_planet_flag = devastation_10
+            custom_tooltip = devastation_10
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_15
+            }
+            remove_planet_flag = devastation_15
+            custom_tooltip = devastation_15
+        }
+    }
+}
+
+# Foundry Fears Repeating Variant: No Comment
+planet_event = {
+	id = MasterNature_event.302 
+	title = "MasterNature_event.302.name"
+	desc = "MasterNature_event.32.desc"
+	picture = GFX_evt_strange_sinkhole
+	show_sound = event_structural_collapse
+	hide_window = no
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { is_ai = no }
+		NOR = { 
+			has_planet_flag = foundry_safe
+			has_modifier = pm_impending_doom
+		}
+	}
+	option = {
+		name = "MasterNature_event.okay.name"
+		custom_tooltip = "MasterNature_event.okay.tooltip"
+		if = {
+			limit = { NOT = { has_modifier = pm_ban_demonstrations } }
+			add_modifier = {
+				modifier = pm_fine
+				months = 60
+			}
+		}
+	}
+	option = {
+		name = "MasterNature_event.bandemonstrations.name"
+		custom_tooltip = "MasterNature_event.bandemonstrations.tooltip"
+		allow = {
+			custom_tooltip = {
+				fail_text = ban_already
+				NOT = { has_modifier = pm_ban_demonstrations }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }
+		add_modifier = {
+			modifier = pm_ban_demonstrations
+			months = 60
+        }
+    }
+	option = {
+		trigger = {
+			NOT = { owner = {  has_country_flag = safety_protocols } }
+		}
+		allow = {
+			custom_tooltip = {
+				fail_text = investigation_already
+				owner = { 
+					NOT = { has_country_flag = foundry_investigation }
+				}
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 50
+                }
+            }
+            owner = {
+                resource_stockpile_compare = {
+                    resource = energy
+                    value > 1000
+                }
+            }
+		}
+		name = "MasterNature_event.investigatefoundry.name"
+		custom_tooltip = "MasterNature_event.investigatefoundry.tooltip"
+        enable_special_project = {
+			name = "foundry_investigation"
+			location = this
+			owner = root
+		}
+        add_modifier = {
+			modifier = pm_subterranean_foundry_investigation
+		}
+		owner = { 
+            set_country_flag = foundry_investigation 
+            add_resource = {
+                influence = -50
+                energy = -1000
+            }
+        }
+	}
+	option = {
+		name = "MasterNature_event.closefoundry.name"
+		custom_tooltip = "MasterNature_event.closefoundry.tooltip"
+		remove_modifier = pm_subterranean_foundry
+		hidden_effect = {
+			add_modifier = {
+				modifier = pm_subterranean_foundry_closed
+			}
+			set_planet_flag = foundry_safe
+		}
+	}
+	option = {
+        name = "MasterNature_event.safetyprotocols.name"
+		custom_tooltip = "MasterNature_event.safetyprotocols.tooltip"
+		trigger = {
+			owner = {  has_country_flag = safety_protocols }
+		}
+		allow = {
+            owner = {
+                resource_stockpile_compare = {
+                    resource = influence
+                    value > 25
+                }
+            }
+        }
+        owner = {
+            add_resource = {
+                influence = -25
+            }
+        }			
+		add_modifier = {
+			modifier = pm_subterranean_foundry_safe
+		}
+		add_modifier = {
+            modifier = pm_fine
+            months = 60
+		}
+		hidden_effect = {
+			remove_modifier = pm_subterranean_foundry
+			set_planet_flag = foundry_safe
+		}
+	}
+	immediate = {
+        random_list = {                                         ### Add a devastation blocker
+            5 = {
+                add_deposit = d_deep_sinkhole 
+                set_planet_flag = "blocker_d_deep_sinkhole"
+            }
+            5 = {
+                add_deposit = d_city_ruins
+                set_planet_flag = "blocker_d_city_ruins"
+            }
+            1 = {
+                add_deposit = d_seismic_ruins
+                set_planet_flag = "blocker_d_seismic_ruins"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }     
+            }
+            2 = {
+                add_deposit = d_seismic_rift
+                set_planet_flag = "blocker_d_seismic_rift"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            3 = {
+                add_deposit = d_active_volcano
+                set_planet_flag = "blocker_d_active_volcano"
+                modifier = {
+                    factor = 0
+                    OR = {
+                        has_modifier = pm_ash_cloud
+                        has_modifier = pm_ash_cloud_gestalt
+                    }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }                 
+                if = {
+                    limit = {
+                        owner = { is_gestalt = no }
+                    }
+                    add_modifier = {
+                        modifier = pm_ash_cloud
+                        days = 1000
+                    }
+                }
+                else = {                
+                    add_modifier = {
+                        modifier = pm_ash_cloud_gestalt
+                        days = 1000
+                    } 
+                }
+            }
+            5 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+        }
+
+        random_list = {                                         ### Disaster Casualties
+            10 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+            8 = {
+                random_owned_pop = {
+                    kill_pop = yes
+                }
+                set_planet_flag = "casualties_1"
+            }
+            5 = {
+                while = { 
+                    count = 2 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_2"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+            }
+            3 = {
+                while = { 
+                    count = 3 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_3"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            2 = {
+                while = { 
+                    count = 4 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_4"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }  
+            }
+            1 = {
+                while = { 
+                    count = 5 
+                    random_owned_pop = {
+                        kill_pop = yes
+                    }                    
+                }
+                set_planet_flag = "casualties_5"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }    
+            }
+        }
+        random_list = {                                         ### Govorner Killed
+            10 = {}
+            1 = {
+                sector = {
+                    leader = {
+                        save_event_target_as = govorner_killed
+                        kill_leader = {
+                            show_notification = yes
+                        }
+                    }
+                }
+                set_planet_flag = "casualties_governor"
+                set_planet_flag = govorner_killed
+                modifier = {
+                    factor = 0
+                    has_planet_flag = govorner_killed
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                } 
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }    
+            }
+        }
+        random_list = {                                         ### Planet Devastation
+            10 = {
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 2 }
+                } 
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }   
+                modifier = {
+                    factor = 0.8
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }
+            }
+            10 = {
+                add_planet_devastation = 5 
+                set_planet_flag = "devastation_5" 
+            }
+            8 = {
+                add_planet_devastation = 8
+                set_planet_flag = "devastation_8"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                } 
+            }
+            4 = {
+                add_planet_devastation = 10
+                set_planet_flag = "devastation_10"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }  
+            }
+            3 = {
+                add_planet_devastation = 15
+                set_planet_flag = "devastation_15"
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }    
+            }
+        }
+        change_variable = { which = foundry_fractures value = 1 }
+        random_list = {                                     ### Chance of Catastrophic Failure
+            50 = {
+                planet_event = {
+                    id = MasterNature_event.32
+                    days = 800
+                    random = 200
+                }
+                modifier = {
+                    factor = 0.5
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 0.5
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+            }
+            25 = {
+                planet_event = {
+                    id = MasterNature_event.301
+                    days = 400
+                    random = 100
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 1.25
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+            }
+            2 = {
+                planet_event = {
+                    id = MasterNature_event.34
+                    days = 300
+                    random = 100
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 1 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 2 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 3 }
+                }
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 4 }
+                }  
+                modifier = {
+                    factor = 2
+                    check_variable = { which = foundry_fractures value >= 5 }
+                } 
+            }            
+        } 
+    }
+    after = {
+        custom_tooltip = "damage_report"
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_active_volcano
+            }
+            remove_planet_flag = blocker_d_active_volcano
+            custom_tooltip = blocker_d_active_volcano
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_city_ruins
+            }
+            remove_planet_flag = blocker_d_city_ruins
+            custom_tooltip = blocker_d_city_ruins
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_deep_sinkhole
+            }
+            remove_planet_flag = blocker_d_deep_sinkhole
+            custom_tooltip = blocker_d_deep_sinkhole
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_seismic_rift
+            }
+            remove_planet_flag = blocker_d_seismic_rift
+            custom_tooltip = blocker_d_seismic_rift
+        }
+        if = {
+            limit = {
+                has_planet_flag = blocker_d_seismic_ruins
+            }
+            remove_planet_flag = blocker_d_seismic_ruins
+            custom_tooltip = blocker_d_seismic_ruins
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_1
+            }
+            remove_planet_flag = casualties_1
+            custom_tooltip = casualties_1
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_2
+            }
+            remove_planet_flag = casualties_2
+            custom_tooltip = casualties_2
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_3
+            }
+            remove_planet_flag = casualties_3
+            custom_tooltip = casualties_3
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_4
+            }
+            remove_planet_flag = casualties_4
+            custom_tooltip = casualties_4
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_5
+            }
+            remove_planet_flag = casualties_5
+            custom_tooltip = casualties_5
+        }
+        if = {
+            limit = {
+                has_planet_flag = casualties_governor
+            }
+            remove_planet_flag = casualties_governor
+            custom_tooltip = casualties_governor
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_5
+            }
+            remove_planet_flag = devastation_5
+            custom_tooltip = devastation_5
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_8
+            }
+            remove_planet_flag = devastation_8
+            custom_tooltip = devastation_8
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_10
+            }
+            remove_planet_flag = devastation_10
+            custom_tooltip = devastation_10
+        }
+        if = {
+            limit = {
+                has_planet_flag = devastation_15
+            }
+            remove_planet_flag = devastation_15
+            custom_tooltip = devastation_15
+        }
+    }
+}
+			
+
+# Investigation Complete
+planet_event = {
+	id = MasterNature_event.33 
+	title = "MasterNature_event.33.name"
+	desc = "MasterNature_event.33.desc"
+	picture = GFX_evt_volcanic_landscape
+	show_sound = event_cityscape
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOT = { 
+			has_modifier = pm_impending_doom
+		}
+	}
+	immediate = {
+		owner = {
+			random_owned_leader = {
+				limit = {
+					leader_class = scientist
+					is_researching_area = engineering
+				}
+				save_event_target_as = foundry_engineer
+			}
+			set_country_flag = safety_protocols
+        }
+        remove_modifier = pm_subterranean_foundry_investigation
+        remove_modifier = pm_subterranean_foundry_closed
+        remove_modifier = pm_subterranean_foundry
+        remove_modifier = pm_subterranean_foundry_safe
+	}
+	option = {
+		name = "MasterNature_event.fired.name"
+        custom_tooltip = "MasterNature_event.fired.tooltip"
+        add_modifier = {
+			modifier = pm_subterranean_foundry_safe
+		}
+		hidden_effect = {
+			event_target:foundry_engineer = {
+				exile_leader_as = exiled_foundry_engineer
+			}
+		}
+	}
+	option = {
+		name = "MasterNature_event.legal.name"
+		custom_tooltip = "MasterNature_event.legal.tooltip"
+        add_modifier = {
+			modifier = pm_subterranean_foundry
+		}
+        add_modifier = {
+			modifier = pm_legal_action
+			months = 50
+        }
+        hidden_effect = {
+            planet_event = {
+                id = MasterNature_event.32 
+                days = 600
+                random = 400
+            }
+        }
+	}
+}
+
+
+# Foundry Fractures
+planet_event = {
+	id = MasterNature_event.34 
+	title = "MasterNature_event.34.name"
+	desc = "MasterNature_event.34.desc"
+	picture = GFX_evt_planet_fracture
+	show_sound = event_life_support_fail
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOR = { 
+			has_planet_flag = foundry_safe
+			has_modifier = pm_impending_doom
+		}
+	}
+	option = {
+		name = "MasterNature_event.fine.name"
+		custom_tooltip = "MasterNature_event.really.tooltip"
+	}
+	immediate = {
+		owner = {
+			random_owned_leader = {
+				limit = {
+					leader_class = scientist
+					is_researching_area = engineering
+					}
+				save_event_target_as =  foundry_engineer
+				kill_leader = { show_notification = yes }
+			}
+		}
+        remove_modifier = pm_subterranean_foundry
+        remove_modifier = pm_subterranean_foundry_investigation
+        add_modifier = {
+			modifier = pm_subterranean_foundry_closed
+			days = -1
+        }
+        hidden_effect = {
+            planet_event = {
+                id = MasterNature_event.300
+                days = 30                
+            }
+            remove_modifier = pm_subterranean_foundry_investigation
+            owner = { 
+                abort_special_project = {
+                    type = "foundry_investigation"
+                    location = prev
+                }
+            }
+        }
+    }
+    after = {
+        add_modifier = {
+			modifier = pm_impending_doom
+			days = -1
+        }
+        enable_special_project = {
+			name = research_fracture
+			location = this
+			owner = root
+		}
+		hidden_effect = {
+			planet_event = {
+				id = MasterNature_event.35
+                days = 360
+                random = 180                
+            }
+        }
+    }
+}
+
+# Fractures Expand
+planet_event = {
+	id = MasterNature_event.35 
+	title = "MasterNature_event.35.name"
+	desc = "MasterNature_event.35.desc"
+	picture = GFX_evt_2nd_planet_fracture
+	show_sound = event_life_support_fail
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOT = { has_planet_flag = fracture_sealed }
+	}
+	option = {
+		name = "MasterNature_event.fine.name"
+		custom_tooltip = "MasterNature_event.reallyreally.tooltip"
+	}
+	immediate = {
+        add_planet_devastation = 15
+        while = { 
+            count = 5 
+            random_owned_pop = {
+                kill_pop = yes
+            }
+        }  
+    }
+    after = {
+        custom_tooltip = devastation_15
+        custom_tooltip = casualties_5                          
+    }
+}
+
+# Hidden event to add montly devastation
+planet_event = {
+	id = MasterNature_event.300
+	hide_window = yes
+    is_triggered_only = yes
+    
+    trigger = {
+		has_modifier = pm_impending_doom
+        owner = { is_ai = no }
+        NOT = { has_planet_flag = fracture_sealed }
+    }
+    immediate = {
+        add_planet_devastation = 5
+        if = {
+            limit = {
+                planet_devastation >= 100
+            }
+            planet_event = {
+                id = MasterNature_event.37                
+            }
+        }
+        else = {
+            planet_event = {
+                id = MasterNature_event.300
+                days = 30                
+            }
+        }
+    }
+}
+
+# Seismic Stabalization Protocols
+planet_event = {
+	id = MasterNature_event.36 
+	title = "MasterNature_event.36.name"
+	desc = "MasterNature_event.36.desc"
+	picture = GFX_evt_volcanic_landscape
+	show_sound = event_cityscape
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOT = { is_planet_class = pc_broken_molten }
+	}
+	option = {
+		name = "MasterNature_event.stabalize.name"
+		custom_tooltip = "MasterNature_event.stabalize.tooltip"
+		allow = {
+			owner = {
+				has_technology = tech_sensors_3					
+				has_technology = tech_antimatter_power
+				resource_stockpile_compare = {
+					resource = energy
+					value >= 10000
+				}
+			}
+		}
+		owner = {
+			add_resource = {
+				energy = -10000
+			}
+		}
+		enable_special_project = {
+			name = seal_fracture
+			location = this
+			owner = root
+		}
+	}
+	option = {
+		name = "MasterNature_event.contain.name"
+		custom_tooltip = "MasterNature_event.contain.tooltip"
+		allow = {
+			owner = {
+				resource_stockpile_compare = {
+					resource = minerals
+					value >= 5000
+				}
+			}
+		}
+		owner = {
+			add_resource = {
+				minerals = -5000
+			}
+		}
+		enable_special_project = {
+			name = contain_fracture
+			location = this
+			owner = root
+		}
+	}
+	option = {
+		name = "MasterNature_event.fine.name"
+		custom_tooltip = "MasterNature_event.ignore.tooltip"
+		enable_special_project = {
+			name = ignore_fracture
+			location = this
+			owner = root
+		}
+	}
+}
+
+# Catastrophic Failure
+planet_event = {
+	id = MasterNature_event.37 
+	title = "MasterNature_event.37.name"
+	desc = "MasterNature_event.37.desc"
+	picture = GFX_evt_planet_cracked
+	show_sound = event_life_support_fail
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOT = { has_planet_flag = fracture_sealed }
+	}
+	option = {
+		name = "MasterNature_event.lost.name"
+		custom_tooltip = "MasterNature_event.lost.tooltip"
+	}
+	immediate = {
+		clear_deposits = yes
+		clear_planet_modifiers = yes
+		every_owned_pop = {
+			kill_pop = yes
+		}
+		remove_all_buildings = yes
+		destroy_colony = yes
+		if = {
+			limit = { has_modifier = pm_sky_estate }
+			owner = {
+				remove_country_flag = sky_estate
+			}
+        }
+        owner = {
+            abort_special_project = {
+                type = "research_fracture"
+                location = prev
+            }
+            abort_special_project = {
+                type = "seal_fracture"
+                location = prev
+            }
+            abort_special_project = {
+                type = "contain_fracture"
+                location = prev
+            }
+            abort_special_project = {
+                type = "ignore_fracture"
+                location = prev
+            }
+            set_country_flag = safety_protocols
+        }
+	}
+	after = {
+        change_pc = pc_broken_molten
+        add_deposit = d_cracked_foundry
+        hidden_effect = {
+            if = {
+                limit = {
+                    planet_size >= 12
+                }
+                add_deposit = d_cracked_foundry
+            }
+            if = {
+                limit = {
+                    planet_size >= 16
+                }
+                add_deposit = d_cracked_foundry
+            }
+            if = {
+                limit = {
+                    planet_size >= 20
+                }
+                add_deposit = d_cracked_foundry
+            }
+            if = {
+                limit = {
+                    planet_size >= 24
+                }
+                add_deposit = d_cracked_foundry
+            }
+        }      
+	}
+}
+
+# Planet Saved
+planet_event = {
+	id = MasterNature_event.38 
+	title = "MasterNature_event.38.name"
+	desc = "MasterNature_event.38.desc"
+	picture = GFX_evt_planet_smoldering
+	show_sound = event_cityscape
+	hide_window = no
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+		NOT = { is_planet_class = pc_broken_molten }
+	}
+	option = {
+		name = "MasterNature_event.saved.name"
+		custom_tooltip = "MasterNature_event.saved.tooltip"
+	}
+	immediate = {
+		remove_modifier = pm_subterranean_foundry
+		remove_modifier = pm_subterranean_foundry_investigation
+		remove_modifier = pm_subterranean_foundry_closed
+        owner = { 
+            set_country_flag = safety_protocols 
+            abort_special_project = {
+                type = "foundry_investigation"
+                location = prev
+            }
+        }
+        set_planet_flag = fracture_sealed
+	}
+	after = {
+		if = {
+			limit = { 
+				has_planet_flag = foundry_stabalization
+			}
+			add_modifier = {
+				modifier = pm_subterranean_foundry_closed
+				days = -1
+			}
+		}
+		else_if = {
+			limit = { has_planet_flag = foundry_containment }
+			add_modifier = {
+				modifier = pm_subterranean_foundry_destroyed
+				days = -1
+			}
+			change_pc = pc_nuked
+		}
+        remove_modifier = pm_impending_doom	
+        remove_modifier = pm_fracture	
+	}
+}
+

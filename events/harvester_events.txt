@@ -1,0 +1,991 @@
+namespace = harvester
+
+# Triggers the harvest_crisis
+country_event = {
+	id = harvester.0
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		# Spawn the harvester home system
+		country_event  = { id = harvester.1 }
+		every_playable_country = {
+			country_event = { id = harvester.4 }
+		}
+	}
+}
+
+# Debug event to get the effect to work. It won't fire if you just use the effect because it needs the flag in place
+country_event = {
+	id = harvester.100
+	hide_window = yes
+	is_triggered_only = yes
+	immediate = {
+		set_global_flag = harvester_allowed
+		begin_crisis_harvester = yes
+	}
+}
+
+# Spawn the harvester home system
+country_event  = {
+	id = harvester.1
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		random_system = {
+			limit = { 
+				NOT = {
+					any_country_neighbor_to_system  = {
+						is_country_type = fallen_empire
+					}
+				}
+			}
+			spawn_system = {
+				initializer = "harvester_system_initializer" 
+				hyperlane = no # We will generate all the hyperlanes later 
+				is_discovered = yes
+				min_jumps = 10
+			}
+		}
+		country_event = { id = harvester.2 }
+	}
+}
+
+# Create the harvester country
+country_event = {
+	id = harvester.2
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		create_species = {
+			name = "NAME_Harvester"
+			class = MACHINE
+			namelist = MACHINE1
+			portrait = sd_mol_robot
+			traits = { trait = trait_harvesters }
+			can_be_modified = no
+			immortal = yes
+
+			effect = { save_global_event_target_as = harvester_species }
+		}
+		#Make a duplicate for Gestalts
+		create_species = {
+			name = "NAME_Harvester"
+			class = MACHINE
+			namelist = MACHINE1
+			portrait = sd_mol_robot
+			traits = { 
+				trait = trait_harvesters
+				trait = trait_machine_unit
+			}
+			can_be_modified = no
+			immortal = yes
+
+			effect = { save_global_event_target_as = harvester_species_machine }
+		}		
+		create_country = {
+			name = "harvest_country_name"
+			adjective = "harvest_country_adj"
+			type = harvester_country_type
+			species = event_target:harvester_species
+			flag = {
+				icon={
+					category="legion"
+					file="legion_04.dds"
+				}
+				background={
+					category="backgrounds"
+					file="flag_BG_13.dds"
+				}
+				colors={
+					"orange"
+					"black"
+					"blue"
+					"null"
+				}
+			}
+			effect = {
+				create_leader = {
+					class = ruler
+					species = event_target:harvester_species
+					name = "SHI-VA"
+					skill = 10
+					leader_age_min = 7545
+					leader_age_max = 7545
+					traits = {
+						trait = leader_trait_harvester_shiva_ruler
+					}
+				}
+				last_created_leader = {
+					set_leader_flag = shiva_ai
+					save_global_event_target_as = shiva_ai_ruler
+				}				
+				
+				save_global_event_target_as = harvester_country
+				country_event = { id = harvester.3 }
+				assign_leader = event_target:shiva_ai_ruler		
+			}
+		}
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = default
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			establish_communications_no_message = event_target:harvester_country
+			establish_communications_no_message = event_target:rogue_harvester_country # This event target doesn't exist bozo TODO: Fix this
+			add_opinion_modifier = {
+				who = event_target:harvester_country
+				modifier = opinion_swarm
+			}
+			event_target:harvester_country = {
+				add_opinion_modifier = {
+					who = PREV
+					modifier = opinion_prey
+				}
+			}
+		}		
+	}
+}
+
+# Spawn the harvester and its fleet
+country_event = {
+	id = harvester.3
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		spawn_harvester_fleet = yes
+		while = {
+			limit = { harvester_need_fleets_start = yes }
+			spawn_rcu_fleet = yes
+		}
+		every_country = {
+			limit = { is_country_type = fallen_empire}
+			prev = {
+				set_faction_hostility = {
+					set_hostile = no
+					set_neutral = yes
+					target = prev
+				}
+			}
+		}
+	}
+}
+
+# Notify all players that the crisis has begun
+country_event = {
+	id = harvester.4
+	title = harvester.4.name
+	desc = harvester.4.desc
+	picture  = GFX_evt_unidentified_ship
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		begin_event_chain = {
+			event_chain = harvester_chain
+			target = this
+		}
+		
+		country_event = { id = harvester.15 days = 30 random = 180 } # 360
+	}
+	
+	option = {
+		name = harvester.4.a
+	}
+}
+
+# Debug event
+country_event = {
+	id = harvester.5
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		spawn_rcu_fleet = yes
+	}
+}
+
+# The harvester has stripped one of our planets
+planet_event = {
+	id = harvester.6
+	title = harvester.6.name
+	desc = harvester.6.desc
+	location = root
+	picture = GFX_evt_relic_world_street
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.6.a
+		FromFromFromFrom = { # Scope to former owner
+			random_situation = {
+				limit = { is_situation_type = situation_harvester_analysis }
+				add_situation_progress = 10
+			}
+		}
+	}
+	option = {
+		name = harvester.6.b
+		FromFromFromFrom = {
+			random_situation = {
+				limit = { is_situation_type = situation_harvester_analysis }
+				add_situation_progress = 10
+			}
+		}
+	}
+	option = {
+		name = harvester.6.c
+		FromFromFromFrom = {
+			random_situation = {
+				limit = { is_situation_type = situation_harvester_analysis }
+				add_situation_progress = 10
+			}
+		}
+	}
+}
+
+# Yay you killed it
+fleet_event = {
+	id = harvester.7
+	title = harvester.7.name
+	desc = harvester.7.desc
+	picture  = GFX_evt_large_explosion
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		resolve_crisis_harvester = yes
+		event_target:harvester_country = {
+			every_owned_fleet = {
+				set_rogue_fleet = yes
+			}
+		}
+	}
+	
+	option = {
+		name = harvester.7.a
+		owner = {
+			# Gives the player the Harvester Core for killing the Harvester
+			add_relic = r_harvester_core
+			add_modifier = { modifier = harvest_defeated years = 10 }
+		}
+		hidden_effect = {
+			owner = {
+				create_leader = {
+					class = admiral
+					species = event_target:harvester_species
+					name = "SHI-VA"
+					skill = 10
+					leader_age_min = 7545
+					leader_age_max = 7545
+					traits = {
+						trait = trait_harvester_shiva
+					}
+					effect = {
+						save_global_event_target_as = shiva_relic_ai
+						exile_leader_as = shiva_ai_portrait
+					}
+				}
+			}
+		}
+	}
+}
+
+# Yay someone else killed it
+country_event = {
+	id = harvester.8
+	title = harvester.8.name
+	desc = harvester.8.desc
+	picture  = GFX_evt_crisis_defeated
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		end_event_chain = harvester_chain
+	}
+	
+	option = {
+		name = harvester.8.a
+	}
+}
+
+# We have killed the RCU
+country_event = {
+	id = harvester.9
+	title = harvester.9.name
+	desc = {
+		text = "harvester.9.a.desc"
+		trigger = { NOT = { has_country_flag = defeated_an_rcu } }
+	}
+	desc = {
+		text = "harvester.9.b.desc"
+		trigger = { has_country_flag = defeated_an_rcu }
+	}	
+	picture  = GFX_evt_debris
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		country_event = { id = harvester.21 days = 1 } #Need a delay for the desc flag to work
+		event_target:hackable_fleet = {
+			set_rogue_fleet = yes
+			kill_leader = { type = admiral show_notification = no }
+			clear_orders = yes
+			clear_fleet_actions = this
+			set_event_locked = yes
+			every_controlled_ship = {
+				limit = { exists = this }
+				set_disabled = yes
+			}
+		}
+		random_situation = {
+			limit = { is_situation_type = situation_harvester_analysis }
+			add_situation_progress = 5
+		}
+	}
+		
+	option = {
+		name = harvester.9.a
+		custom_tooltip = harvester.9.a.tooltip
+		hidden_effect = {
+			event_target:hackable_fleet = {
+				destroy_fleet = this
+				export_trigger_value_to_variable  = {
+					trigger = num_ships 
+					variable = rcu_salvage_count
+				}
+				owner = { 
+					add_resource = { 
+						alloys = 150
+						mult = prev.rcu_salvage_count
+					} 
+				} 
+			}
+		}
+	}	
+	
+	option = {
+		name = harvester.9.b
+		trigger = { 
+			#always = yes
+			AND = {
+				can_hack_fleets = yes 
+				NOT = { has_special_project = HACK_RCU_FLEET }
+			}
+		}
+		#exclusive_trigger = { can_hack_fleets = yes }
+		event_target:hackable_fleet = {
+			set_name = "Hacked Harvester Flotilla" 
+			random_controlled_ship = {
+				limit = { exists = this }
+				save_event_target_as = hack_project_target
+			}
+		}
+		enable_special_project = {
+			name = "HACK_RCU_FLEET"
+			location = event_target:hack_project_target
+			owner = root
+		}
+	}
+	
+	option = {
+		name = harvester.9.c
+		custom_tooltip = harvester.9.c.tooltip
+		hidden_effect = {
+			event_target:hackable_fleet = {
+				random_controlled_ship = {
+					limit = { exists = this }
+					save_event_target_as = reboot_ship
+				}
+				fleet_event = { id = harvester.503 days = 90 }
+			}
+			event_target:reboot_ship = {
+				set_rogue_fleet = yes
+			}
+		}		
+	}	
+}
+
+# Check if the RCU has been killed
+country_event = {
+	id = harvester.10
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_global_flag = harvester_in_progress
+	}
+	
+	immediate = {
+		# Scope to the victim
+		FromFromFrom = {
+			if = {
+				limit = { is_ship_size = harvest_rcu } 
+				fleet = { save_event_target_as = hackable_fleet }				
+				root = {
+					country_event = { id = harvester.9 }
+				}
+			}
+		}
+	}
+}
+
+# Check if new RCU fleets are needed
+event = {
+	id = harvester.11
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_global_flag = harvester_in_progress
+	}
+	immediate = {
+		event_target:harvester_country = {
+			if = {
+				limit = { harvester_need_fleets = yes }
+				
+				every_controlled_fleet = {
+					limit = { has_fleet_flag = harvest_engine }
+					save_global_event_target_as = harvester_location
+				}
+				random_list = {
+					20 = {
+						modifier = {
+							factor = 100
+							harvester_urgent_need_fleets = yes
+						}
+						spawn_rcu_fleet = yes
+					}
+					80 = { } # No fleet spawned
+				}
+			}
+		}
+	}
+}
+
+# Check if the harvester has been killed
+country_event = {
+	id = harvester.12
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_global_flag = harvester_in_progress
+	}
+	
+	immediate = {
+		# Scope to the victim
+		FromFromFrom = {
+			if = {
+				limit = { is_ship_size = harvest_engine }
+				set_rogue_fleet = yes
+				Root = {
+					FromFrom = { fleet = { fleet_event = { id = harvester.7 } } }
+					set_country_flag = "harvester_slayer"
+				}
+				every_playable_country = {
+					limit = { not = { has_country_flag = harvester_slayer} } 
+					country_event = { id = harvester.8 }
+				}
+			}
+		}
+	}
+}
+
+# Apply harvester planet stripping effects to a planet
+planet_event = {
+	id = harvester.13
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		if = {
+			limit = { has_planet_flag = harvester_priority_beacon }
+			remove_planet_flag = harvester_priority_beacon
+		}
+		else = {
+			remove_planet_flag = harvester_beacon
+		}
+		# Count the stripped world
+		every_playable_country = {
+			add_event_chain_counter = {
+				event_chain = harvester_chain
+				counter = stripmined_worlds
+				amount = 1
+			}
+		}
+		# Add the new minerals
+		every_playable_country = {
+			add_event_chain_counter = {
+				event_chain = harvester_chain
+				counter = minerals_harvested
+				amount = 12
+			}
+		}
+		
+		if = {
+			limit = {
+				exists = owner
+			}
+			planet_event = { id = harvester.6 }
+			
+			# Count the stripped colony
+			every_playable_country = {
+				add_event_chain_counter = {
+					event_chain = harvester_chain
+					counter = stripmined_colonies
+					amount = 1
+				}
+			}
+		}
+		
+		clear_deposits = yes
+		
+		if = {
+			limit = { habitable_planet = yes }
+			# Count the stripped colony
+			every_playable_country = {
+				add_event_chain_counter = {
+					event_chain = harvester_chain
+					counter = stripmined_colonies
+					amount = 1
+				}
+			}
+			every_owned_pop = {
+				kill_pop = yes
+			}
+			remove_all_buildings = yes
+			add_modifier = { modifier = "terraforming_candidate" }
+		}
+		
+		# Make cold planets into cold barren
+		if = {
+			limit = {
+				OR = {
+					is_planet_class = pc_frozen
+					is_planet_class = pc_barren_cold
+					is_planet_class = pc_tundra
+					is_planet_class = pc_arctic
+				}
+			}
+			change_pc = pc_barren_cold
+		}
+		else = {
+			change_pc = pc_barren
+		}
+		
+		add_deposit = harvester_deposit_stage_4
+		add_modifier = { modifier = "harvested_stage_4" days = -1 }
+		remove_modifier = "harvester_beacon"
+		remove_modifier = "harvester_priority_beacon"
+		
+		# Decrement the active beacons counter
+		every_playable_country = {
+			add_event_chain_counter = {
+				event_chain = harvester_chain
+				counter = beacons_placed
+				amount = -1
+			}
+		}
+	}
+}
+
+# Warning event to the player that the harvester has eaten a world
+planet_event = {
+	id = harvester.14
+	title = harvester.14.name
+	desc = "harvester.14.desc"
+	location = root
+	picture  = GFX_evt_fleet_from_surface
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.14.a
+	}
+}
+
+# Create the harvester response situation
+country_event = {
+	id = harvester.15
+	title = harvester.15.name
+	desc = "harvester.15.desc"
+	picture  = GFX_evt_mysterious_signal
+	
+	is_triggered_only = yes
+	trigger = {
+		can_spawn_harvester_analysis = yes
+	}
+	
+	option = {
+		name = harvester.15.a
+		start_situation = {
+			type = situation_harvester_analysis
+			target = root
+		}
+	}
+}
+
+# Track kills of ships due to crisis
+country_event = {
+	id = harvester.16
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		has_global_flag = harvester_in_progress
+	}
+	
+	immediate = {
+		# Scope to the victim
+		From = {
+			if = {
+				limit = { is_harvester_country = yes } 
+				every_playable_country = {
+					add_event_chain_counter = {
+						event_chain = harvester_chain
+						counter = harvester_drones_killed
+						amount = 1
+					}
+				}
+			}
+		}
+		# Same check but if the mining drones got the kill
+		if = {
+			limit = { is_harvester_country = yes } 
+			every_playable_country = {
+				add_event_chain_counter = {
+					event_chain = harvester_chain
+					counter = ships_harvested
+					amount = 1
+				}
+			}
+		}
+	}
+}
+
+# Warn the player there's a beacon on your colony
+planet_event = {
+	id = harvester.17
+	title = harvester.17.name
+	desc = harvester.17.desc
+	location = root
+	picture  = GFX_evt_fleet_from_surface
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+
+	option = {
+		name = harvester.17.a
+	}
+}
+
+# Warn the player there's a beacon being placed on your colony
+planet_event = {
+	id = harvester.18
+	title = harvester.18.name
+	desc = harvester.18.desc
+	location = root
+	picture  = GFX_evt_fleet_from_surface
+	show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+	
+	immediate = {
+	}
+	
+	option = {
+		name = harvester.18.a
+	}
+}
+
+
+# Clear beacon from a planet
+planet_event = {
+	id = harvester.19
+	is_triggered_only = yes
+	hide_window = yes
+	immediate = {
+		remove_modifier = "harvester_beacon"
+		remove_modifier = "harvester_priority_beacon"
+		
+		planet_event = { id = harvester.20 }
+		
+		event_target:harvester_country = {
+			every_controlled_fleet = {
+				limit = { has_fleet_flag = harvest_engine }
+				fleet_event = { id = harvester.500 days = 3 }
+			}
+		}
+	}
+}
+
+# Tell player you have cleared a beacon via special project
+planet_event = {
+	id = harvester.20
+	title = harvester.20.name
+	desc = harvester.20.desc
+	location = root
+	picture  = GFX_evt_ship_in_orbit
+	#show_sound = event_air_raid_siren
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.20.a
+		owner = {
+			random_situation = {
+				limit = { is_situation_type = situation_harvester_analysis }
+				add_situation_progress = 2
+			}
+		}
+	}
+}
+
+# Mark this country as an RCU killer
+# Used only for desc flags now, might be used later in SHIVA diplo
+country_event = {
+	id = harvester.21
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = defeated_an_rcu
+				}
+			}
+			set_country_flag = "defeated_an_rcu"
+		}
+	}
+}
+
+
+# Reset the Harvester AI as we just forgot our orders after being in combat
+fleet_event = {
+	id = harvester.500
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		exists = this
+		this = {
+			is_harvest_leviathan = yes
+		}
+	}
+	
+	immediate = {
+		harvester_ai = yes
+	}
+}
+
+# Remove the Target Flag from the Planet if we engage in combat, then reset the AI afterwards.
+fleet_event = {
+	id = harvester.501
+	is_triggered_only = yes
+	hide_window = yes
+	trigger = {
+		# We don't wan't to set rcu ai on rogue rcus once the harvester is kill
+		has_global_flag = harvester_in_progress 
+		exists = this
+		this = {
+			is_harvest_rcu = yes
+		}
+	}
+	
+	immediate = {
+		set_rcu_ai = yes
+	}
+}
+
+fleet_event = {
+	id = harvester.503
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		set_event_locked = no
+		every_controlled_ship = {
+			limit = { exists = this }
+			set_disabled = no
+		}		
+	}
+}
+
+# Yay we hacked it
+country_event = {
+	id = harvester.504
+	title = harvester.504.name
+	desc = harvester.504.desc
+	picture  = GFX_evt_debris
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.504.a
+	}
+}
+
+ship_event = {
+	id = harvester.505
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		set_rogue_fleet = yes
+	}
+}
+
+# Oops it came back online
+country_event = {
+	id = harvester.506
+	title = harvester.506.name
+	desc = harvester.506.desc
+	picture  = GFX_evt_debris
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.506.a
+	}
+}
+
+
+
+# Set the Planet a step closer towards Harvested
+planet_event = {
+	id = harvester.2001
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		
+		# Stage 4
+		if = {
+			limit = {
+				ROOT = {
+					has_planet_flag = harvest_stage_3
+				}
+			}
+			remove_planet_flag = planet_under_harvest
+			remove_planet_flag = harvest_stage_3	
+			remove_modifier = "harvested_stage_3"
+			planet_event = { id = harvester.13 } 
+			break = yes
+		}
+		
+		# Stage 3
+		if = {
+			limit = {
+				ROOT = {
+					has_planet_flag = harvest_stage_2
+				}
+			}
+			if = {
+				limit = { 
+					OR = {
+						is_colonizable = yes 
+						is_colony = yes
+					}
+				} 
+				remove_modifier = "harvested_stage_2"
+				add_modifier = { modifier = "harvested_stage_3" days = -1 }
+			}
+			else = {
+				add_deposit = harvester_deposit_stage_3
+			}
+			remove_planet_flag = harvest_stage_2
+			set_planet_flag = harvest_stage_3		
+			break = yes
+		}
+		
+		# Stage 2
+		if = {
+			limit = {
+				ROOT = {
+					has_planet_flag = harvest_stage_1
+				}
+			}
+			if = {
+				limit = { 
+					OR = {
+						is_colonizable = yes 
+						is_colony = yes
+					}
+				} 
+				remove_modifier = "harvested_stage_1"
+				add_modifier = { modifier = "harvested_stage_2" days = -1 }
+			}
+			else = {
+				add_deposit = harvester_deposit_stage_2
+			}
+			remove_planet_flag = harvest_stage_1
+			set_planet_flag = harvest_stage_2			
+			break = yes
+		}
+		
+		# Stage 1
+		if = {
+			limit = {
+				ROOT = { 
+					NOT = {
+						has_planet_flag = planet_under_harvest
+						has_planet_flag = harvest_stage_1
+					}
+				}
+			}
+			if = {
+				limit = { 
+					OR = {
+						is_colonizable = yes 
+						is_colony = yes
+					}
+				} 
+				add_modifier = { modifier = "harvested_stage_1" days = -1 }
+			}
+			else = {
+				add_deposit = harvester_deposit_stage_1
+			}
+			set_planet_flag = planet_under_harvest
+			set_planet_flag = harvest_stage_1
+			break = yes
+		}
+	}
+}
+
+#Harvester Robots found
+planet_event = {
+	id = harvester.600
+	title = harvester.600.name
+	desc = {
+		text = "harvester.600.a.desc"
+		trigger = { owner = { has_ethic = ethic_gestalt_consciousness } }
+	}
+	desc = {
+		text = "harvester.600.b.desc"
+		trigger = { NOT = { owner = { has_ethic = ethic_gestalt_consciousness } } }
+	}	
+	picture  = GFX_evt_debris
+	
+	is_triggered_only = yes
+	
+	option = {
+		name = harvester.600.a
+	}
+}
+
+#Update Value for Situation
+country_event = {
+	id = harvester.700
+	is_triggered_only = yes
+	hide_window = yes
+	
+	trigger = {
+		any_situation = {
+			is_situation_type = situation_harvester_analysis
+		}
+	}
+	
+	immediate = {
+		harvester_situation_get_tech_output = yes
+	}
+}

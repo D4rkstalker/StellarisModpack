@@ -1,0 +1,985 @@
+namespace = life_masters
+
+# A pop has finished growing
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = life_masters.0
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		from = {
+			OR = {
+				has_ascension_perk = ap_life_assemblers
+				has_ascension_perk = ap_life_masters
+			}
+			any_owned_pop = {
+				species = { 
+					has_citizenship_type = { country = from type = citizenship_organic_trophy }
+					NOT = { has_species_flag = mutated_species@root.owner }
+				}
+			}
+		}
+	}
+	immediate = {
+		random_list = {
+			5 = {#life assemblers chance
+				set_variable = { which = "mutate" value = 1 }
+			}
+			10 = {#life masters chance
+				modifier = {
+					factor = 0
+					owner = { NOT = { has_ascension_perk = ap_life_masters } }
+				}
+				set_variable = { which = "mutate" value = 1 }
+			}
+			90 = {#nothing happens
+			set_variable = { which = "mutate" value = 0 }
+			}
+		}
+		#create a mutation if we rolled a positive value
+		if = {
+			limit = { check_variable = { which = "mutate" value = 1 } }
+			#get base species
+			if = {
+				limit = {
+					FromFrom = {
+						species = {
+							is_crossbreeding_possible = no
+						}
+					}
+				}
+				FromFrom = { species = { save_event_target_as = halfspecies } }
+				random_owned_species = {
+					limit = {
+						is_crossbreeding_possible = yes
+						is_same_species = event_target:halfspecies
+						#event_target:halfspecies = {
+						#	is_subspecies = prev
+						#}
+					}
+					save_event_target_as = basespecies
+				}
+				if = {
+					limit = {
+						not = { exists = event_target:basespecies }
+					}
+					owner_species = { #this is our fallback
+						save_event_target_as = basespecies
+						set_species_flag = "tmp_main_species"
+					}
+					log = "falledback: [event_target:basespecies.GetName]"
+				}
+			}
+			else = {
+				FromFrom = {
+					species = {
+						save_event_target_as = basespecies
+					}
+				}
+			}
+
+			#get target species
+			random_owned_pop = {
+				limit = { 
+					species = {
+						has_citizenship_type = { country = from type = citizenship_organic_trophy }
+						NOT = { has_species_flag = mutated_species@root.owner }
+						is_crossbreeding_possible = yes
+					}
+				}
+				species = { save_event_target_as = targetspecies }
+			}
+
+			## if we have a valid target, we might proceed
+			if = {
+				limit = {
+					exists = event_target:basespecies
+					exists = event_target:targetspecies
+				}
+				create_half_species = { species_one = event_target:basespecies species_two = event_target:targetspecies }
+
+				#add hive thingy
+				modify_species = {
+					species = last_created_species
+					add_trait = trait_hive_mind
+					base = event_target:basespecies
+					effect = { 
+						#rename_species = {
+						#	name = speciesmutation
+						#}
+						#set_name = speciesmutation
+						save_event_target_as = finalspecies
+					} # optional effect to run on the resulting new species, is executed after any handling of change_scoped_species
+				}
+				#replace the pop
+				FromFrom = {
+					kill_pop = yes
+				}
+				while = {
+					count = 1
+					create_pop = {
+						species = event_target:finalspecies
+					}			
+				}
+				# a mutation has ocurred
+				create_message = {
+					type = MESSAGE_TYPE_SPECIES_MUTATION
+					localization = MESSAGE_SPECIES_MUTATION
+					days = 30
+					target = This
+					variable = {
+						type = name
+						localization = PLANET
+						scope = This
+					}
+				}
+				event_target:targetspecies = {
+					set_species_flag = mutated_species@root.owner
+				}
+				log = "-----------MUTATION HAPPENED-----------------"
+			}
+			else = {
+				log = "-----------INVALID SOURCES-----------------"
+			}
+			log = "- base: [event_target:basespecies.GetName]"
+			log = "- target: [event_target:targetspecies.GetName]"
+			#log = "- last created: [event_target:lastspecies.GetName]"
+			log = "- final: [event_target:finalspecies.GetName]"
+
+			#CLEAR TMP VARIABLES
+			event_target:basespecies = {
+				remove_species_flag = "tmp_main_species"
+			}
+			set_variable = { which = "mutate" value = 0 }
+		}
+	}
+}
+
+## iirc this is done to make crossbreed possible in hiveminds
+# A pop has finished growing
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = life_masters.1
+	
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {
+		if = {
+			limit = { from = { has_ascension_perk = ap_life_masters } }
+			if = {
+				limit = { FromFrom = { NOT = { has_trait = trait_hive_mind } } }
+				FromFrom = {
+					species = {
+						save_event_target_as = half_pop_species
+					}
+					modify_species = {
+						species = event_target:half_pop_species
+						add_trait = trait_hive_mind
+						add_traits_at_start_of_list = yes
+					}
+					set_citizenship_type = {
+						country = From
+						type = citizenship_full
+					}
+					set_living_standard = {
+						country = From
+						type = living_standard_hive_mind
+					}
+					set_migration_controls = {
+						country = From
+						type = migration_control_no
+					}
+					set_population_controls = {
+						country = From
+						type = population_control_no
+					}
+				}	
+			}	
+		}
+	}
+}
+
+
+
+# A pop has been assembled to the planet with ap_life_masters
+# From = Country
+# FromFrom = Pop
+# this planet
+planet_event = {
+	id = life_masters.2
+	hide_window = yes
+		is_triggered_only = yes
+
+	
+	
+	immediate = {	
+	
+		if = {
+			limit = { from = { has_ascension_perk = ap_life_masters }  }
+	
+	
+		this = { save_event_target_as = assembling_planet }
+					random_list = {
+						40 = {
+							FromFrom = {
+							pop_event = { id = life_masters.3 }	
+						
+						}	
+						}
+						60 = {}
+				
+					}
+				
+                }
+		}
+}
+
+pop_event  = {
+id = life_masters.3
+	hide_window = yes
+		is_triggered_only = yes
+		
+		
+		trigger = {
+		print_scope_trigger = yes
+		}
+		
+		
+			immediate = {	
+				 if = { #arthropohods
+				limit = { owner_species = { is_species_class = ART } }
+					random_list = {
+						70 = {
+						
+							if = {
+							limit = { NOT = { pop_has_trait = trait_exoskeleton } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_exoskeleton 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}
+			else_if = { #mammals
+				limit = { owner_species = { is_species_class = MAM } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_diaphragm } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_diaphragm 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}
+			else_if = { #fungoid
+				limit = { owner_species = { is_species_class = FUN } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_pheromones } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_pheromones 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+						
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}
+			else_if = { #humanoid
+				limit = { owner_species = { is_species_class = HUM } }
+					random_list = {
+
+						70 = {
+							if = {
+							limit = { NOT = { pop_has_trait = trait_cortex } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_cortex 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}	
+			else_if = { #molusc
+				limit = { owner_species = { is_species_class = MOL } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_shell } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_shell 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+					
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}
+			else_if = { #plantoid
+				limit = { owner_species = { is_species_class = PLANT } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_photosynthetic } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_photosynthetic 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created								
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}	
+			else_if = { #reptilian
+				limit = { owner_species = { is_species_class = REP } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_scales } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_scales 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}	
+			else_if = { #avian
+				limit = { owner_species = { is_species_class = AVI } }
+					random_list = {
+						70 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_wings } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_wings 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}			
+			else_if = { #lithoid
+				limit = { owner_species = { is_species_class = LITHOID } }
+					random_list = {
+						35 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_encrusted_minerals } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_encrusted_minerals 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						35 = {
+						if = {
+							limit = { NOT = { pop_has_trait = trait_metal_blood } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_metal_blood 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created	
+							
+						}
+						30 = {
+						pop_event = { id = life_masters.4 }	
+						}
+					}			
+			}			
+		
+			else = {
+			random_list = {
+						50 = {
+						pop_event = { id = life_masters.4 }
+							}
+							50 = {}
+							}
+			}				
+			}
+		}
+
+		
+pop_event  = {
+id = life_masters.4
+	hide_window = yes
+		is_triggered_only = yes
+		
+			immediate = {	
+					random_list = {
+							10 = { #cortex
+						
+							if = {
+							limit = { NOT = { pop_has_trait = trait_cortex } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}			
+						
+						
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_cortex 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+						}
+							10 = { #diafragm
+							
+								if = {
+							limit = { NOT = { pop_has_trait = trait_diaphragm } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_diaphragm 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+	
+						
+						}
+							10 = { #slow metabolism
+							if = {
+							limit = { NOT = { pop_has_trait = trait_scales } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_scales 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+							
+						
+						}
+							10 = { #wings
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_wings } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_wings 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+
+							
+						
+						}
+							10 = { #exosqueleton
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_exoskeleton } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_exoskeleton 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+			
+						
+						}
+							10 = { #shell
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_shell } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_shell 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+												
+						
+						}
+							10 = { #pheromones
+							if = {
+							limit = { NOT = { pop_has_trait = trait_pheromones } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_pheromones 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+													
+							
+						
+						}
+							10 = { #photosynthetic
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_photosynthetic } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_photosynthetic 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+							
+						
+						}
+							10 = { #encrusted minerals
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_encrusted_minerals } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_encrusted_minerals 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+							
+						
+						}
+							10 = { #blood metal
+							
+							if = {
+							limit = { NOT = { pop_has_trait = trait_metal_blood } }
+							# did not have trait
+							create_message = {
+									type = MESSAGE_TYPE_TRAIT_GAINED
+									localization = MESSAGE_TRAIT_GAINED
+									days = 30
+									target = event_target:assembling_planet
+										variable = {
+											type = name
+											localization = PLANET
+											scope = event_target:assembling_planet
+										}	
+								}
+							}
+							
+							
+						species = { save_event_target_as = assembled_species }
+						modify_species = {
+							species = event_target:assembled_species
+							add_trait = trait_metal_blood 
+							change_scoped_species = yes
+							# change only this pop's species
+						}
+							change_species = last_created
+							
+						
+						}
+	
+			}
+	}			
+}
+		
+# check if countries with life masters need new trait points
+## triggered when the ap is gained
+# Root = pop
+# From = planet
+country_event = {
+	id = life_masters.110
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		## check if country already has the necesary amt of additional traitpoints
+		add_or_remove_life_master_trait_modifiers = yes
+	}
+}
+# check if countries with life masters need new trait points
+# A pop has been added to the planet
+# Root = pop
+# From = planet
+pop_event = {
+	id = life_masters.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = {
+			has_ascension_perk = ap_life_masters
+		}
+	}
+
+	immediate = {
+		## check if country already has the necesary amt of additional traitpoints
+		owner = { add_or_remove_life_master_trait_modifiers = yes }
+	}
+}
+
+# A pop has been displaced
+# This = Planet scope
+# From = Country
+# FromFrom = Pop
+planet_event = {
+	id = life_masters.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			has_ascension_perk = ap_life_masters
+		}
+	}
+
+	immediate = {
+		## check if country already has the necesary amt of additional traitpoints
+		From = { add_or_remove_life_master_trait_modifiers = yes }
+	}
+}
+
+# Pop is abducted by raiding stance
+# This = Pop scope
+# From = planet abducted from
+planet_event = {
+	id = life_masters.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = {
+			has_ascension_perk = ap_life_masters
+		}
+	}
+
+	immediate = {
+		## check if country already has the necesary amt of additional traitpoints
+		From = { owner = { add_or_remove_life_master_trait_modifiers = yes } }
+	}
+}

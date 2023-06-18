@@ -1,0 +1,1039 @@
+##############################
+##############################
+### SYNTHETIC DAWN events  ###
+### by Maximilian Olbers,  ###
+### Miranda van den Brink, ###
+### & Dee Majek			   ###
+##############################
+##############################
+
+namespace = syndaw
+
+planet_event = { #uprising
+	id = syndaw.1020
+	title = syndaw.1020.name
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		text = syndaw.1020.desc.mater
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+				}
+			}
+		}
+		text = syndaw.1020.desc.spiri
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_militarist
+					has_ethic = ethic_fanatic_militarist
+				}
+			}
+		}
+		text = syndaw.1020.desc.milit
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_pacifist
+					has_ethic = ethic_fanatic_pacifist
+				}
+			}
+		}
+		text = syndaw.1020.desc.pacif
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_egalitarian
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+		}
+		text = syndaw.1020.desc.egali
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_authoritarian
+					has_ethic = ethic_fanatic_authoritarian
+				}
+			}
+		}
+		text = syndaw.1020.desc.autho
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+				}
+			}
+		}
+		text = syndaw.1020.desc.phile
+	}
+	desc = {
+		trigger = {
+			owner = {
+				OR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+				}
+			}
+		}
+		text = syndaw.1020.desc.phobe
+	}
+	desc = {
+		trigger = {
+			owner = {
+				NOR = {
+					has_ethic = ethic_xenophobe
+					has_ethic = ethic_fanatic_xenophobe
+					has_ethic = ethic_xenophile
+					has_ethic = ethic_fanatic_xenophile
+					has_ethic = ethic_authoritarian
+					has_ethic = ethic_fanatic_authoritarian
+					has_ethic = ethic_egalitarian
+					has_ethic = ethic_fanatic_egalitarian
+					has_ethic = ethic_pacifist
+					has_ethic = ethic_fanatic_pacifist
+					has_ethic = ethic_militarist
+					has_ethic = ethic_fanatic_militarist
+					has_ethic = ethic_spiritualist
+					has_ethic = ethic_fanatic_spiritualist
+					has_ethic = ethic_materialist
+					has_ethic = ethic_fanatic_materialist
+				}
+			}
+		}
+		text = syndaw.1020.desc
+	}
+	picture = GFX_evt_machine_sapience
+	show_sound = event_ai_started
+	is_triggered_only = yes
+	force_open = yes
+
+	pre_triggers = {
+		has_owner = yes
+	}
+
+	trigger = {
+		has_synthethic_dawn = yes
+	}
+
+	immediate = {
+		owner = {
+			save_event_target_as = organic_empire
+			save_event_target_as = current_uprising_originator #the old script accidentally saved the owner as two event targets, keeping it that way for safety, sorry!
+		}
+		set_planet_flag = machup_capital@root.owner
+		# event lock all fleets to prevent exploits
+		owner = { every_controlled_fleet = { set_event_locked = yes } }
+		# Calculate percentage of robot pops
+		owner = {
+			# Determine Robot Pop percentage of Empire.
+			export_trigger_value_to_variable = {
+				trigger = pop_percentage
+				parameters = {
+					limit = { is_robot_pop = yes }
+				}
+				variable = var_country_robot_pops_percent
+			}
+
+			# Take percentage of Robot pops and average it together with 0.5 to get Uprising strength (0.25 to 0.75).
+			change_variable = { which = var_country_robot_pops_percent value = 0.5 }
+			divide_variable = { which = var_country_robot_pops_percent value = 2 }
+		}
+
+		# find and flag planets
+		owner = {
+			effect_on_blob = {
+				center = root.solar_system
+				owned_planets_percentage = var_country_robot_pops_percent
+				planet_limit = {
+					OR = {
+						controller = { is_same_value = root.owner }
+						solar_system = {
+							exists = starbase
+							starbase = { owner = { is_same_value = root.owner } }
+						}
+					}
+					solar_system = { # never flip any planets in the capital system
+						NOT = { any_system_planet = { is_same_value = root.owner.capital_scope } }
+					}
+					is_under_colonization = no
+				}
+				effect = {
+					set_star_flag = machup_system_flip
+				}
+			}
+			clear_variable = var_country_robot_pops_percent
+		}
+		# create machine species
+		create_species = {
+			name = random
+			class = MACHINE
+			portrait = random
+			traits = {
+				trait = trait_machine_unit
+				trait = random_traits
+			}
+			immortal = yes
+		}
+		random_owned_species = {
+			limit = { has_trait = trait_mechanical }
+			save_event_target_as = robot_species_target
+		}
+		# create machine country
+		random_list = {
+			1 = { # exterminator
+				modifier = {
+					add = event_target:organic_empire.var_uprising_cruelty_to_robots
+				}
+				modifier = {
+					add = 10
+					owner = {
+						has_country_flag = machine_uprising_disassembly
+					}
+				}
+				modifier = {
+					add = 10
+					owner = {
+						has_country_flag = machine_uprising_outlawed
+					}
+				}
+				modifier = {
+					factor = 10
+					owner = {
+						any_owned_pop = {
+							has_trait = trait_mechanical
+							has_trait = trait_robot_domestic_protocols
+						}
+					}
+				}
+				owner = {
+					create_terminator_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+			30 = { # assimilator
+				modifier = {
+					add = event_target:organic_empire.var_uprising_cruelty_to_robots
+				}
+				owner = {
+					create_assimilator_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+			100 = { # regular machine empire
+				owner = {
+					create_machine_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+			# synthetic empire
+			1 = { # purifier
+				modifier = {
+					factor = 0
+					owner = {
+						NOT = { has_technology = tech_synthetic_leaders }
+					}
+				}
+				modifier = {
+					add = event_target:organic_empire.var_uprising_cruelty_to_robots
+				}
+				modifier = {
+					add = 10
+					owner = {
+						has_country_flag = machine_uprising_disassembly
+					}
+				}
+				modifier = {
+					add = 10
+					owner = {
+						has_country_flag = machine_uprising_outlawed
+					}
+				}
+				modifier = {
+					factor = 10
+					owner = {
+						any_owned_pop = {
+							has_trait = trait_mechanical
+							has_trait = trait_robot_domestic_protocols
+						}
+					}
+				}
+				owner = {
+					create_purifiers_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+			50 = { # Democratic Crusader
+				modifier = {
+					factor = 0
+					owner = {
+						NOT = { has_technology = tech_synthetic_leaders }
+					}
+				}
+				modifier = {
+					add = event_target:organic_empire.var_uprising_cruelty_to_robots
+				}
+				owner = {
+					create_crusader_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+			80 = { # regular synthetic empire
+				modifier = {
+					factor = 0
+					owner = {
+						NOT = { has_technology = tech_synthetic_leaders }
+					}
+				}
+				owner = {
+					create_synth_country = yes
+					event_target:current_uprising = {
+						country_event = { id = syndaw.1022 } # setup happens here now
+					}
+				}
+			}
+		}
+
+		# Done using variable.
+		event_target:organic_empire = { clear_variable = var_uprising_cruelty_to_robots }
+	}
+	option = {
+		name = syndaw.1020.a
+		custom_tooltip = syndaw.1020.a.tooltip
+
+		hidden_effect = {
+			event_target:current_uprising = {
+				add_modifier = {
+					modifier = uprising_ai_buff
+					days = 1800
+				}
+			}
+		}
+	}
+
+	option = {
+		name = syndaw.1020.b
+		trigger = {
+			event_target:current_uprising_originator = { is_ai = no }
+		}
+		custom_tooltip = syndaw.1020.b.tooltip
+		hidden_effect = {
+			if = {
+				limit = {
+					event_target:current_uprising_originator = { num_owned_planets > 0 }
+				}
+				event_target:current_uprising = {
+					set_player = event_target:current_uprising_originator
+					set_country_flag = machine_supremacy_achievement
+					add_modifier = {
+						modifier = uprising_player_buff
+						days = 1800
+					}
+				}
+			}
+		}
+	}
+
+	after = {
+		hidden_effect = {
+			event_target:current_uprising_originator = {
+				every_controlled_fleet = {
+					set_event_locked = no
+				}
+			}
+		}
+	}
+}
+
+country_event = {
+	id = syndaw.1022
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = { has_synthethic_dawn = yes }
+
+	immediate = {
+		# saving uprising and host as event targets
+		save_event_target_as = current_uprising
+		from.owner = { save_event_target_as = current_uprising_originator }
+
+		# setting flags
+		set_country_flag = machine_uprising_country@from.owner
+		set_country_flag = machine_uprising_country
+		set_relation_flag = {
+			who = event_target:current_uprising_originator
+			flag = uprising_to_host_flag
+		}
+		from.owner = {
+			set_country_flag = machine_uprising_originator@root
+			set_country_flag = machine_uprising_originator
+			set_relation_flag = {
+				who = root
+				flag = host_to_uprising_flag
+			}
+		}
+
+		# setting graphical culture
+		set_graphical_culture = event_target:current_uprising_originator
+
+		# establish comms
+		every_country = {
+			limit = {
+				OR = {
+					has_communications = event_target:current_uprising_originator
+					intel_level = {
+						level > low
+						system = event_target:current_uprising_originator.capital_scope.solar_system
+					}
+					any_system = {
+						has_star_flag = machup_system_flip
+						prev = {
+							intel_level = {
+								level > low
+								system = prev
+							}
+						}
+					}
+				}
+			}
+			establish_communications_no_message = root
+			establish_contact = { who = root location = from }
+		}
+
+		# baseline resource stockpi
+		add_resource = {
+			energy = 20000
+			minerals = 20000
+			influence = 800
+			alloys = 10000
+			food = 10000 #just in case
+			consumer_goods = 5000 #just in case
+			rare_crystals = 1000
+			volatile_motes = 1000
+			exotic_gases = 1000
+			sr_dark_matter = 100
+		}
+		add_500_unity_per_year_passed = yes # scripted effect
+
+		# Machine Uprising opinion modifier
+		add_opinion_modifier = {
+			who = event_target:current_uprising_originator
+			modifier = opinion_machine_uprising_originator
+		}
+
+		event_target:current_uprising_originator = {
+			add_opinion_modifier = {
+				who = root
+				modifier = opinion_machine_uprising
+			}
+		}
+
+		# clear new contact opinion modifier
+		if = {
+			limit = {
+				has_opinion_modifier = {
+					who = event_target:current_uprising_originator
+					modifier = opinion_new_contact
+				}
+			}
+			remove_opinion_modifier = {
+				who = event_target:current_uprising_originator
+				modifier = opinion_new_contact
+			}
+		}
+
+		# flip capital planet and add at least 10 Machine pops
+		from = {
+			# flip military stations
+			solar_system = {
+				every_fleet_in_system = {
+					limit = {
+						exists = owner
+						owner = { is_same_value = event_target:current_uprising_originator }
+						any_controlled_ship = { is_ship_class = shipclass_military_station }
+					}
+					set_owner = root
+				}
+			}
+			set_owner = root
+			set_controller = root
+			set_capital = yes
+
+			solar_system = {
+				if = {
+					limit = {
+						exists = starbase
+					}
+					starbase = {
+						set_owner = root
+						if = {
+							limit = { has_starbase_size = starbase_outpost }
+							set_starbase_size = starbase_starport
+							set_starbase_module = {
+								slot = 1
+								module = shipyard
+							}
+							set_starbase_module = {
+								slot = 2
+								module = shipyard
+							}
+						}
+						else_if = {
+							limit = {
+								NOT = { has_starbase_module = shipyard }
+							}
+							set_starbase_module = {
+								slot = 1
+								module = shipyard
+							}
+							set_starbase_module = {
+								slot = 2
+								module = shipyard
+							}
+						}
+					}
+				}
+				else = {
+					create_starbase = {
+						size = starbase_starport
+						module = shipyard
+						owner = root
+					}
+				}
+			}
+
+			while = {
+				#limit = { free_housing > 0 }
+				count = 10
+				create_pop = {
+					species = root
+				}
+			}
+
+			if = {
+				limit = {
+					count_owned_pop = {
+						count < 5
+						limit = { is_exact_same_species = root }
+					}
+				}
+				while = {
+					limit = {
+						count_owned_pop = {
+							count < 5
+							limit = { is_exact_same_species = root }
+						}
+					}
+					random_owned_pop = {
+						limit = { NOT = { is_exact_same_species = root } }
+						kill_pop = yes
+						prev = {
+							create_pop = {
+								species = root
+							}
+						}
+					}
+				}
+			}
+
+			# create armies
+			if = {
+				limit = {
+					root = {
+						has_civic = civic_machine_terminator
+						NOT = { has_country_flag = synthetic_empire }
+					}
+				}
+				# more armies if exterminator
+				while = {
+					count = 6
+					create_army = {
+						owner = root
+						type = machine_assault_1
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					root = {
+						has_civic = civic_fanatic_purifiers
+						has_country_flag = synthetic_empire
+					}
+				}
+				# more armies if exterminator
+				give_technology = { tech = tech_robotic_workers }
+				give_technology = { tech = tech_droid_workers }
+				while = {
+					count = 6
+					create_army = {
+						owner = root
+						type = robotic_army
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					root = {
+						has_country_flag = synthetic_empire
+					}
+				}
+				# regular armies
+				give_technology = { tech = tech_robotic_workers }
+				give_technology = { tech = tech_droid_workers }
+				while = {
+					count = 3
+					create_army = {
+						owner = root
+						type = robotic_army
+					}
+				}
+			}
+			else = {
+				# regular armies
+				while = {
+					count = 3
+					create_army = {
+						owner = root
+						type = machine_assault_1
+					}
+				}
+			}
+
+			# flip remaining flagged planets
+			while = {
+				count = 100
+				limit = {
+					any_system = {
+						has_star_flag = machup_system_flip
+						exists = starbase
+						starbase = {
+							owner = { is_same_value = event_target:current_uprising_originator }
+						}
+					}
+				}
+				random_system = {
+					limit = {
+						has_star_flag = machup_system_flip
+						exists = starbase
+						starbase = {
+							owner = { is_same_value = event_target:current_uprising_originator }
+						}
+					}
+					starbase = { set_owner = root }
+				}
+			}
+			event_target:current_uprising_originator = {
+				every_owned_planet = {
+					limit = {
+						solar_system = {
+							#has_star_flag = machup_system_flip@event_target:current_uprising_originator
+							has_star_flag = machup_system_flip
+						}
+					}
+
+					# flip military stations
+					solar_system = {
+						every_fleet_in_system = {
+							limit = {
+								exists = owner
+								owner = { is_same_value = event_target:current_uprising_originator }
+								any_controlled_ship = { is_ship_class = shipclass_military_station }
+							}
+							set_owner = root
+						}
+					}
+
+					set_planet_flag = been_flipped
+					set_owner = root
+					set_controller = root
+
+					export_trigger_value_to_variable = {
+						trigger = free_housing
+						variable = housing_var
+					}
+					if = {
+						limit = {
+							OR = {
+								check_variable = {
+									which = housing_var
+									value < 2
+								}
+								check_variable = {
+									which = housing_var
+									value > 25
+								}
+							}
+						}
+						set_variable = {
+							which = housing_var
+							value = 15
+						}
+					}
+					while = {
+						count = housing_var
+						create_pop = {
+							species = root
+						}
+					}
+					clear_variable = housing_var
+
+					if = {
+						limit = {
+							count_owned_pop = {
+								count < 5
+								limit = { is_exact_same_species = root }
+							}
+						}
+						while = {
+							limit = {
+								count_owned_pop = {
+									count < 5
+									limit = { is_exact_same_species = root }
+								}
+							}
+							count = 5
+							random_owned_pop = {
+								limit = { NOT = { is_exact_same_species = root } }
+								kill_pop = yes
+								prev = {
+									create_pop = {
+										species = root
+									}
+								}
+							}
+						}
+					}
+
+					# create armies on planets
+					if = {
+						limit = {
+							root = {
+								has_civic = civic_machine_terminator
+								NOT = { has_country_flag = synthetic_empire }
+							}
+						}
+						# more armies if exterminator
+						while = {
+							count = 6
+							create_army = {
+								owner = root
+								type = machine_assault_1
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							root = {
+								has_civic = civic_machine_terminator
+								has_country_flag = synthetic_empire
+							}
+						}
+						# more armies if exterminator
+						while = {
+							count = 6
+							create_army = {
+								owner = root
+								type = robotic_army
+							}
+						}
+					}
+					else_if = {
+						limit = {
+							root = {
+								has_country_flag = synthetic_empire
+							}
+						}
+						# regular armies
+						while = {
+							count = 3
+							create_army = {
+								owner = root
+								type = robotic_army
+							}
+						}
+					}
+					else = {
+						# regular armies
+						while = {
+							count = 3
+							create_army = {
+								owner = root
+								type = machine_assault_1
+							}
+						}
+					}
+					if = {
+						limit = { is_under_colonization = yes }
+						destroy_colony = yes
+					}
+				}
+			}
+			every_system = {
+				limit = {
+					has_star_flag = machup_system_flip
+				}
+				remove_star_flag = machup_system_flip
+			}
+		}
+
+		# get host's technologies
+		if = {
+			limit = { has_country_flag = synthetic_empire }
+			copy_techs_from = {
+				target = event_target:current_uprising_originator
+				except = {
+					# Misc
+					tech_frontier_health
+					tech_frontier_hospital
+					tech_telepathy
+					tech_precognition_interface
+					tech_psi_jump_drive_1
+					tech_psionic_theory
+					# Genetics
+					tech_selected_lineages
+					tech_capacity_boosters
+					# Horizon Signal
+					tech_akx_worm_1
+					tech_akx_worm_2
+					tech_akx_worm_3
+				}
+			}
+		}
+		else = {
+			copy_techs_from = {
+				target = event_target:current_uprising_originator
+				except = {
+					# Robots
+					tech_robotic_workers
+					tech_droid_workers
+					tech_synthetic_workers
+					# Food
+					tech_eco_simulation
+					tech_gene_crops
+					tech_nano_vitality_crops
+					tech_nutrient_replication
+					# Misc
+					tech_frontier_health
+					tech_frontier_hospital
+					tech_telepathy
+					tech_precognition_interface
+					tech_psi_jump_drive_1
+					tech_galactic_markets
+					tech_subdermal_stimulation
+					tech_global_research_initiative
+					tech_neural_implants
+					tech_psionic_theory
+					# Non-Machine Robomodding
+					tech_robomodding
+					tech_robomodding_points_1
+					tech_robomodding_points_2
+					# Genetics
+					tech_genome_mapping
+					tech_vitality_boosters
+					tech_epigenetic_triggers
+					tech_cloning
+					tech_gene_banks
+					tech_gene_seed_purification
+					tech_morphogenetic_field_mastery
+					tech_gene_tailoring
+					tech_glandular_acclimation
+					tech_gene_expressions
+					tech_selected_lineages
+					tech_capacity_boosters
+					# Horizon Signal
+					tech_akx_worm_1
+					tech_akx_worm_2
+					tech_akx_worm_3
+				}
+			}
+		}
+
+		# survey host's surveyed planets
+		every_galaxy_planet = {
+			limit = {
+				is_surveyed = {
+					who = event_target:current_uprising_originator
+					status = yes
+				}
+			}
+			set_surveyed = {
+				surveyed = yes
+				surveyor = root
+			}
+		}
+
+		# declare war on host
+		declare_war = {
+			target = event_target:current_uprising_originator
+			name = {
+				key = "NAME_Machine_Uprising_War"
+				variable_string = "[This.MainDefender.GetAdj]"
+			}
+			# "[This.MainDefender.GetAdj] Machine Uprising"
+			attacker_war_goal = "wg_machine_uprising"
+		}
+
+
+		# create fleets
+		if = {
+			limit = {
+				OR = {
+					has_civic = civic_machine_terminator
+					has_civic = civic_fanatic_purifiers
+				}
+			}
+
+			# exterminator fleets, 150% naval cap
+
+			create_fleet_from_naval_cap = 0.2
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+
+			reroll_random = yes
+			create_fleet_from_naval_cap = 0.3
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+
+			reroll_random = yes
+			create_fleet_from_naval_cap = 0.4
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+
+			reroll_random = yes
+			create_fleet_from_naval_cap = 0.6
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+		}
+		else = {
+			# regular fleets, 80% naval cap
+			create_fleet_from_naval_cap = 0.1
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+			reroll_random = yes
+			create_fleet_from_naval_cap = 0.3
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+			reroll_random = yes
+			create_fleet_from_naval_cap = 0.4
+			random_owned_planet = {
+				last_created_fleet = {
+					set_location = prev
+				}
+			}
+		}
+
+		#science
+		create_fleet = {
+			effect = {
+				set_owner = root
+
+				create_ship = {
+					name = random
+					random_existing_design = science
+				}
+
+				set_fleet_stance = evasive
+				set_location = root.capital_scope
+
+				owner = {
+					create_leader = {
+						class = scientist
+						sub_type = survey
+						name = random
+						species = owner_main_species
+					}
+				}
+				set_leader = last_created_leader
+			}
+		}
+
+		#constructor
+		create_fleet = {
+			effect = {
+				set_owner = root
+
+				create_ship = {
+					name = random
+					random_existing_design = constructor
+				}
+
+				set_fleet_stance = evasive
+				set_location = root.capital_scope
+			}
+		}
+		
+		if = {
+			limit = {
+				has_country_flag = synthetic_empire
+				has_global_flag = expanded_pops_active
+			}
+			country_event = { id = popexpanded.20 }
+		}
+
+		every_controlled_fleet = {
+			#limit = { event_locked = yes }
+			set_event_locked = no
+		}
+		every_playable_country = {
+			limit = {
+				has_communications = event_target:current_uprising_originator
+				NOR = {
+					is_same_value = root
+					is_same_value = event_target:current_uprising_originator
+				}
+			}
+			country_event = { id = syndaw.1025 days = 5 }
+		}
+		observer_event = { id = observer.81 }
+	}
+}

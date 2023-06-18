@@ -1,0 +1,261 @@
+############################
+#
+# Fallen Empire 'Awakening' Events
+#
+# Written by Martin Anward
+#
+############################
+
+namespace = fallen_empires_awakening
+
+# Sleepers Awake
+country_event = {
+	id = fallen_empires_awakening.1
+	title = OK
+	desc = OK
+	hide_window = yes
+	trigger = {
+		is_country_type = fallen_empire
+		OR = {
+			# Fragged a holy world
+			has_country_flag = holy_world_killed
+			AND = {
+				has_country_flag = master_archives_restored
+				NOT = { has_country_flag = master_archives_restored_timer }
+			}
+			# Original trigger
+			AND = {
+				NOT = { has_global_flag = sleepers_awake_happened }
+				NOT = { has_global_flag = guardians_of_the_galaxy_happened }
+				OR = {
+					end_game_years_passed >= 0
+					any_country = {
+						is_playable = yes
+						any_owned_planet = {
+							has_planet_flag = fallen_empire_world
+						}
+					}
+				}
+				NOT = { is_gestalt = yes }
+				is_at_war = no
+				fleet_power > 60000
+				# Wake up if regular empire is growing too strong or has started to conquer other fallen empires
+				any_country = {
+					is_playable = yes
+					OR = {
+						fleet_power > 70000
+						AND = {
+							has_federation = yes
+							federation = {
+								fleet_power > 90000
+							}
+						}
+						any_owned_planet = {
+							has_planet_flag = fallen_empire_world
+						}
+					}
+				}
+			}
+		}
+	}
+
+	mean_time_to_happen = {
+		years = 50
+		modifier = {
+			factor = 2
+			NOT = { mid_game_years_passed >= 25 }
+		}
+		modifier = {
+			factor = 1.5
+			NOT = { end_game_years_passed >= 0 }
+		}
+		modifier = {
+			factor = 0.5
+			any_country = {
+				is_playable = yes
+				fleet_power > 120000
+			}
+		}
+		modifier = {
+			factor = 1.5
+			num_fallen_empires > 1
+			num_fallen_empires < 3
+		}
+		modifier = {
+			factor = 2.0
+			num_fallen_empires > 2
+			num_fallen_empires < 4
+		}
+		modifier = {
+			factor = 2.5
+			num_fallen_empires > 3
+		}
+		modifier = {
+			factor = 0.1
+			any_country = {
+				is_playable = yes
+				any_owned_planet = {
+					has_planet_flag = fallen_empire_world
+					NOT = { is_original_owner = root }
+				}
+			}
+		}
+	}
+
+	immediate = {
+		set_global_flag = sleepers_awake_happened
+
+		country_event = { id = fallen_empires_awakening.3 }
+
+		# Notify players
+		every_country = {
+			limit = {
+				is_ai = no
+			}
+			country_event = { id = fallen_empires_awakening.2 }
+		}
+		observer_event = { id = observer.73 }
+
+		# Fragged a holy world
+		if = {
+			limit = {
+				has_country_flag = holy_world_killed
+			}
+			country_event = { id = planet_destruction.611 days = 5 }
+		}
+
+		# War in Heaven
+		if = {
+			limit = {
+				has_leviathans = yes
+				has_crisis = no
+			}
+			random_list = {
+				40 = { # War in Heaven with Fallen Empire of opposing ethos
+					random_country = {
+						limit = {
+							NOT = { is_same_value = root }
+							is_country_type = fallen_empire
+							NOT = { is_gestalt = yes }
+							OR = {
+								AND = {
+									has_ethic = ethic_fanatic_xenophobe
+									root = { has_ethic = ethic_fanatic_xenophile }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_xenophile
+									root = { has_ethic = ethic_fanatic_xenophobe }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_spiritualist
+									root = { has_ethic = ethic_fanatic_materialist }
+								}
+								AND = {
+									has_ethic = ethic_fanatic_materialist
+									root = { has_ethic = ethic_fanatic_spiritualist }
+								}
+							}
+						}
+						set_country_flag = sleepers_awake_ancient_rival
+						set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+						every_country = {
+							limit = { is_playable = yes }
+							set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						}
+					}
+				}
+				20 = { # War in Heaven with Fallen Empire of different ethos
+					random_country = {
+						limit = {
+							NOT = { is_same_value = root }
+							is_country_type = fallen_empire
+							NOT = { is_gestalt = yes }
+						}
+						set_country_flag = sleepers_awake_ancient_rival
+						set_timed_country_flag = { flag = timed_ancient_rival days = 3650 }
+						set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						root = { set_timed_country_flag = { flag = ai_no_wars days = 3650 } }
+						every_country = {
+							limit = {
+								is_playable = yes
+							}
+							set_timed_country_flag = { flag = ai_no_wars days = 3650 }
+						}
+					}
+				}
+				40 = { # No War in Heaven
+					set_global_flag = no_war_in_heaven
+				}
+			}
+		}
+		else = { set_global_flag = no_war_in_heaven }
+	}
+}
+
+# Guardians of the Galaxy
+country_event = {
+	id = fallen_empires_awakening.4
+	title = OK
+	desc = OK
+
+	hide_window = yes
+
+	trigger = {
+		NOT = { has_global_flag = war_in_heaven_ongoing }
+		has_country_flag = guardians_of_the_galaxy
+		NOT = { has_global_flag = guardians_of_the_galaxy_happened }
+		NOT = { has_country_flag = timed_guardians_of_the_galaxy }
+	}
+
+	mean_time_to_happen = {
+		years = 5
+		modifier = {
+			factor = 0.01
+			NOT = { has_country_flag = timed_guardians_of_the_galaxy_2 }
+		}
+	}
+
+	immediate = {
+		set_global_flag = guardians_of_the_galaxy_happened
+		country_event = { id = fallen_empires_awakening.3 }
+
+		every_country = {
+			limit = {
+				is_country_type = default
+			}
+			random_list = {
+				33 = { add_opinion_modifier = { who = root modifier = opinion_crisis_fighter } }
+				33 = { add_opinion_modifier = { who = root modifier = opinion_crisis_fighter_small } }
+				33 = { }
+			}
+		}
+
+		# Notify
+		every_country = {
+			limit = {
+				is_ai = no
+			}
+			country_event = { id = fallen_empires_awakening.5 }
+		}
+		if = {
+			limit = { has_crisis = no }
+			every_country = {
+				limit = {
+					OR = {
+						has_country_flag = crisis_sphere_revealed
+						has_country_flag = cracked_first_star
+					}
+				}
+				ROOT = {
+					declare_war = {
+						target = PREV
+						attacker_war_goal = "wg_end_threat_crisis"
+					}
+				}
+			}
+		}
+		observer_event = { id = observer.74 }
+	}
+}

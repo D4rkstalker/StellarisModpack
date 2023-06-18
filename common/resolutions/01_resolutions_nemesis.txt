@@ -1,0 +1,7538 @@
+@resolution_weight_hated = 3
+@resolution_weight_disliked = 4
+@resolution_weight_unpopular = 5
+@resolution_weight_normal = 6
+@resolution_weight_popular = 6.5
+@resolution_weight_loved = 7
+
+@resolution_cost_t1 = 100
+@resolution_cost_t2 = 150
+@resolution_cost_t3 = 200
+@resolution_cost_t4 = 250
+@resolution_cost_t5 = 300
+@resolution_cost_denounce = 25
+
+@resolution_flag_timer = 360
+
+#example_resolution = {
+#	icon = "name of the icon key"
+#	resources = {} # cost and category
+#	target = yes/no # if this resolution requires a target country
+#	harmful = yes/no # if the AI should consider this harmful when choosing target
+#	modifier = {} # modifier to be applied to all community members if passed
+#	triggered_modifier = {} # triggered modifier to be applied, scope is country
+#	effect = {} # effect to be applied if passed, scope is proposer unless there is a target country - then scope is target country, with proposer in from scope
+#	fail_effects = {} # effect to be applied if failed, scope is proposer unless there is a target country - then scope is target country, with proposer in from scope
+#	potential = {} # potential trigger, scope is country
+#	allow = {} # allow trigger, scope is country
+#	active = {} # Enacted resolutions are cancelled if this trigger fails
+#
+#	ai_weight = {} # ai weight modifiers, scope is country. from scope is the target country for targeted resolutions
+#	NOTE: all ai_weight modifiers are multiplicative. The end result is also multiplied with a factor based on the opinion towards the proposer and/or target,
+#	see RESOLUTION_TARGET_OPINION_MIN_FACTOR etc. in 00_defines.txt. Also see RESOLUTION_VOTE_SUPPORT_THRESHOLD etc. for balancing the values.
+#
+#	valid_target = {} # valid targets trigger, scope is country
+#}
+
+# NOTE: Remember to add Resolutions to a Resolution Category!
+
+### DECLARE CRISIS
+
+resolution_declare_crisis = {
+	icon = "GFX_resolution_declare_crisis"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = yes
+
+	valid_target = {
+		NOT = { is_same_value = from }
+		OR = {
+			is_playable = yes
+			AND = {
+				is_fallen_empire = yes
+				NOT = { has_global_flag = war_in_heaven_ongoing }
+			}
+		}
+		NOT = { has_country_flag = declared_crisis }
+	}
+
+	modifier = {
+		starbase_shipyard_build_speed_mult = 0.20
+		ships_upkeep_mult = -0.1
+	}
+
+	effect = {
+		custom_tooltip = resolution_declare_crisis_tooltip
+		from = {
+			custom_tooltip = resolution_declare_crisis_menace_tooltip
+		}
+		hidden_effect = {
+			if = {
+				limit = { is_galactic_community_member = yes }
+				remove_from_galactic_community = yes
+			}
+			if = {
+				limit = {
+					is_galactic_council_established = yes
+					is_part_of_galactic_council = yes
+				}
+				remove_from_galactic_council = yes
+			}
+			every_subject = {
+				if = {
+					limit = { is_galactic_community_member = yes }
+					remove_from_galactic_community = yes
+				}
+				if = {
+					limit = {
+						is_galactic_council_established = yes
+						is_part_of_galactic_council = yes
+					}
+					remove_from_galactic_council = yes
+				}
+			}
+			set_country_flag = declared_crisis
+			save_event_target_as = new_crisis
+			country_event = { id = crisis.4105 }
+			every_playable_country = {
+				limit = {
+					is_ai = no
+					NOT = { is_same_value = prev }
+				}
+				country_event = { id = crisis.4100 }
+			}
+			if = {
+				limit = { has_galactic_custodian = yes }
+				galactic_custodian = {
+					save_event_target_as = community_war_leader
+					if = {
+						limit = { is_in_federation_with = event_target:new_crisis }
+						event_target:new_crisis = {
+							leave_alliance = { override_requirements = yes }
+						}
+					}
+				}
+			}
+			else_if = {
+				limit = { has_galactic_emperor = yes }
+				galactic_emperor = {
+					save_event_target_as = community_war_leader
+				}
+			}
+			else = {
+				random_playable_country = {
+					limit = {
+						is_galactic_community_member = yes
+						NOT = { is_in_federation_with = event_target:new_crisis }
+					}
+					weights = {
+						base = 1
+						modifier = {
+							add = 10000
+							galactic_community_rank = 1
+						}
+						modifier = {
+							add = 1000
+							galactic_community_rank = 2
+						}
+						modifier = {
+							add = 100
+							galactic_community_rank = 3
+						}
+						modifier = {
+							add = 10
+							is_galactic_council_established = yes
+							is_part_of_galactic_council = yes
+						}
+					}
+					save_event_target_as = community_war_leader
+				}
+			}
+			if = {
+				limit = {
+					from = { has_ascension_perk = ap_become_the_crisis }
+					NOR = {
+						is_homicidal = yes
+						has_ascension_perk = ap_become_the_crisis
+						AND = {
+							is_fallen_empire = yes
+							NOT = { has_global_flag = war_in_heaven_ongoing }
+						}
+
+					}
+				}
+				from = { complete_crisis_objective = crisobj_perform_upsetting_operations }
+			}
+
+			declare_crisis_war_effect = yes
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		has_galactic_emperor = no
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+
+		# Should almost always declare on Crisis countries in end game
+		modifier = {
+			factor = 50
+			from = {
+				has_country_flag = crisis_sphere_revealed
+			}
+			desc = gal_com_crisis_sphere_revealed
+		}
+
+		# More likely to declare on very powerful homicidal empires
+		modifier = {
+			factor = 10
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_very_strong_homicidal_empire
+		}
+		# More likely to declare on very powerful homicidal empires
+		modifier = {
+			factor = 5
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = superior
+				}
+			}
+			desc = gal_com_target_is_strong_homicidal_empire
+		}
+		
+		# More likely to declare on very powerful assimilator empires
+		modifier = {
+			factor = 8
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_very_strong_assimilator_empire
+		}
+		# More likely to declare on very powerful assimilator empires
+		modifier = {
+			factor = 4
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = superior
+				}
+			}
+			desc = gal_com_target_is_strong_assimilator_empire
+		}
+
+		# More likely to declare on rivals
+		modifier = {
+			factor = 5
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+
+		# Never on yourself
+		modifier = {
+			factor = 0
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+
+		# More likely to declare on rivals
+		modifier = {
+			factor = 6
+			from = { has_country_flag = cracked_first_star }
+			desc = gal_com_target_has_cracked_stars
+		}
+
+		# Should be reluctant to use on normal countries
+		modifier = {
+			factor = 0.2
+			from = {
+				NOR = { 
+					is_homicidal = yes
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+					AND = {
+						is_civic_machine_assimilator = yes
+						is_pacifist = no
+					}
+				}
+			}
+			desc = gal_com_target_is_a_normal_empire
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_civic_machine_assimilator = yes
+			from = { is_civic_machine_assimilator = yes }
+			desc = gal_com_assimilator_civic
+		}
+
+		# Very unlikely to use on Custodian
+		modifier = {
+			factor = 0.1
+			from = { is_galactic_custodian = yes }
+			NOR = { has_ascension_perk = ap_become_the_crisis }
+			desc = gal_com_target_is_the_custodian
+		}
+		
+		# Crisis will want to remove the Custodian as a threat
+		modifier = {
+			factor = 5
+			from = { is_galactic_custodian = yes }
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_target_is_the_custodian
+		}
+
+		# Unlikely to use on scary Fallen Empire
+		modifier = {
+			factor = 0.2
+			from = {
+				is_fallen_empire = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_powerful_fallen_empire
+		}
+
+		modifier = {
+			factor = 0.5
+			from = {
+				NOT = { has_ascension_perk = ap_become_the_crisis }
+			}
+			desc = gal_com_target_does_not_have_crisis_perk
+		}
+
+		modifier = {
+			factor = 3
+			from = {
+				has_crisis_level = crisis_level_3
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_3
+		}
+
+		modifier = {
+			factor = 5
+			from = {
+				has_crisis_level = crisis_level_4
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_4
+		}
+
+		modifier = {
+			factor = 10
+			from = {
+				has_crisis_level = crisis_level_5
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_5
+		}
+		
+		modifier = {
+			factor = 0
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+		}
+		
+		modifier = {
+			factor = 3
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.75
+			OR = {
+				has_ethic = ethic_pacifist
+				has_valid_civic = civic_harm_hive
+				has_valid_civic = civic_harm_machine
+				has_ai_personality = closed_hive_mind
+				has_ai_personality = closed_machine_intelligence
+			}
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 0.5
+			has_ethic = ethic_fanatic_pacifist
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 10
+			has_ascension_perk = ap_defender_of_the_galaxy
+			from = {
+				OR = {
+					has_crisis_level = crisis_level_3
+					is_homicidal = yes
+				}
+			}
+			desc = ap_defender_of_the_galaxy
+		}
+	}
+}
+
+resolution_repeal_crisis = {
+	icon = "GFX_resolution_repeal_red"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = no
+
+	valid_target = {
+		OR = {
+			is_playable = yes
+			is_fallen_empire = yes
+		}
+		has_country_flag = declared_crisis
+	}
+
+	effect = {
+		hidden_effect = {
+			remove_country_flag = declared_crisis
+			save_event_target_as = former_crisis
+			random_war = {
+				limit = {
+					using_war_goal = {
+						type = wg_declared_crisis
+						owner = event_target:former_crisis
+					}
+				}
+				every_war_participant = {
+					limit = {
+						NOT = { is_same_value = event_target:former_crisis }
+					}
+					country_event = { id = crisis.4110 }
+				}
+				every_war_participant = {
+					prev = {
+						remove_war_participant = prev
+					}
+				}
+			}
+			country_event = { id = crisis.4111 }
+		}
+	}
+
+	potential = {
+		has_galactic_emperor = no
+		has_nemesis = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+
+		# More likely to repeal if it's a normal country
+		modifier = {
+			factor = 4
+			from = {
+				is_homicidal = no
+				NOR = {
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+					has_crisis_level = crisis_level_5
+				}
+			}
+			desc = gal_com_target_is_a_normal_empire
+		}
+
+		# Should be very unlikely to repeal end game crisis country
+		modifier = {
+			factor = 0.2
+			from = {
+				OR = {
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+				}
+			}
+			desc = gal_com_target_is_a_crisis_empire
+		}
+
+		# Unlikely to repeal very powerful homicidal countries
+		modifier = {
+			factor = 0.2
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_strong_homicidal_empire
+		}
+		
+		# Unlikely to repeal very powerful assimilator empires
+		modifier = {
+			factor = 0.2
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_strong_assimilator_empire
+		}
+		
+		modifier = {
+			factor = 20
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+		}
+		
+		modifier = {
+			factor = 0.5
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 3
+			OR = {
+				has_ethic = ethic_pacifist
+				has_valid_civic = civic_harm_hive
+				has_valid_civic = civic_harm_machine
+				has_ai_personality = closed_hive_mind
+				has_ai_personality = closed_machine_intelligence
+			}
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 6
+			has_ethic = ethic_fanatic_pacifist
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		
+		modifier = {
+			factor = 0.75
+			from = {
+				has_crisis_level = crisis_level_4
+			}
+			desc = gal_com_crisis_level_4
+		}
+		modifier = {
+			factor = 0.25
+			from = {
+				has_crisis_level = crisis_level_5
+			}
+			desc = gal_com_crisis_level_5
+		}
+		
+		modifier = {
+			factor = 5
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+			desc = gal_com_target_does_not_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_defender_of_the_galaxy
+			from = {
+				OR = {
+					has_crisis_level = crisis_level_3
+					is_homicidal = yes
+				}
+			}
+			desc = ap_defender_of_the_galaxy
+		}
+	}
+}
+
+resolution_declare_crisis_empire = {
+	icon = "GFX_resolution_declare_crisis"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = yes
+
+	valid_target = {
+		NOT = { is_same_value = from }
+		is_galactic_emperor = no
+		OR = {
+			is_playable = yes
+			AND = {
+				is_fallen_empire = yes
+				NOT = { has_global_flag = war_in_heaven_ongoing }
+			}
+		}
+		NOT = { has_country_flag = declared_crisis }
+	}
+
+	modifier = {
+		starbase_shipyard_build_speed_mult = 0.20
+		ships_upkeep_mult = -0.1
+	}
+
+	effect = {
+		custom_tooltip = resolution_declare_crisis_empire_tooltip
+		from = {
+			custom_tooltip = resolution_declare_crisis_menace_tooltip
+		}
+		hidden_effect = {
+			if = {
+				limit = { is_galactic_community_member = yes }
+				remove_from_galactic_community = yes
+			}
+			if = {
+				limit = {
+					is_galactic_council_established = yes
+					is_part_of_galactic_council = yes
+				}
+				remove_from_galactic_council = yes
+			}
+			every_subject = {
+				if = {
+					limit = { is_galactic_community_member = yes }
+					remove_from_galactic_community = yes
+				}
+				if = {
+					limit = {
+						is_galactic_council_established = yes
+						is_part_of_galactic_council = yes
+					}
+					remove_from_galactic_council = yes
+				}
+			}
+
+			set_country_flag = declared_crisis
+			save_event_target_as = new_crisis
+			country_event = { id = crisis.4106 }
+			every_playable_country = {
+				limit = {
+					is_ai = no
+					NOT = { is_same_value = prev }
+				}
+				country_event = { id = crisis.4101 }
+			}
+			galactic_emperor = {
+				save_event_target_as = community_war_leader
+			}
+			declare_crisis_war_effect = yes
+			if = {
+				limit = {
+					from = { has_ascension_perk = ap_become_the_crisis }
+					NOR = {
+						is_homicidal = yes
+						has_ascension_perk = ap_become_the_crisis
+						AND = {
+							is_fallen_empire = yes
+							NOT = { has_global_flag = war_in_heaven_ongoing }
+						}
+					}
+				}
+				from = { complete_crisis_objective = crisobj_perform_upsetting_operations }
+			}
+		}
+	}
+
+	potential = {
+		has_galactic_emperor = yes
+		has_nemesis = yes
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+
+		# Should almost always declare on Crisis countries in end game
+		modifier = {
+			factor = 50
+			from = {
+				has_country_flag = crisis_sphere_revealed
+			}
+			desc = gal_com_crisis_sphere_revealed
+		}
+
+		# More likely to declare on very powerful homicidal empires
+		modifier = {
+			factor = 10
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_very_strong_homicidal_empire
+		}
+		# More likely to declare on very powerful homicidal empires
+		modifier = {
+			factor = 5
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = superior
+				}
+			}
+			desc = gal_com_target_is_strong_homicidal_empire
+		}
+		
+		# More likely to declare on very powerful assimilator empires
+		modifier = {
+			factor = 8
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_strong_assimilator_empire
+		}
+		# More likely to declare on very powerful assimilator empires
+		modifier = {
+			factor = 4
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = superior
+				}
+			}
+			desc = gal_com_target_is_strong_assimilator_empire
+		}
+
+		# More likely to declare on rivals
+		modifier = {
+			factor = 5
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+
+		# Never on yourself
+		modifier = {
+			factor = 0
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+
+		# More likely to declare on rivals
+		modifier = {
+			factor = 6
+			from = { has_country_flag = cracked_first_star }
+			desc = gal_com_target_has_cracked_stars
+		}
+
+		# Should be reluctant to use on normal countries
+		modifier = {
+			factor = 0.2
+			from = {
+				NOR = { 
+					is_homicidal = yes
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+					AND = {
+						is_civic_machine_assimilator = yes
+						is_pacifist = no
+					}
+				}
+			}
+			desc = gal_com_target_is_a_normal_empire
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_civic_machine_assimilator = yes
+			from = { is_civic_machine_assimilator = yes }
+			desc = gal_com_assimilator_civic
+		}
+
+		# Unlikely to use on scary Fallen Empire
+		modifier = {
+			factor = 0.2
+			from = {
+				is_fallen_empire = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_powerful_fallen_empire
+		}
+
+		modifier = {
+			factor = 0.5
+			from = {
+				NOT = { has_ascension_perk = ap_become_the_crisis }
+			}
+			desc = gal_com_target_does_not_have_crisis_perk
+		}
+
+		modifier = {
+			factor = 3
+			from = {
+				has_crisis_level = crisis_level_3
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_3
+		}
+
+		modifier = {
+			factor = 5
+			from = {
+				has_crisis_level = crisis_level_4
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_4
+		}
+
+		modifier = {
+			factor = 10
+			from = {
+				has_crisis_level = crisis_level_5
+			}
+			has_intel_level = {
+				who = from
+				category = government
+				level >= 2
+			}
+			desc = gal_com_crisis_level_5
+		}
+		
+		modifier = {
+			factor = 0
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+		}
+		
+		modifier = {
+			factor = 3
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.75
+			OR = {
+				has_ethic = ethic_pacifist
+				has_valid_civic = civic_harm_hive
+				has_valid_civic = civic_harm_machine
+				has_ai_personality = closed_hive_mind
+				has_ai_personality = closed_machine_intelligence
+			}
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 0.5
+			has_ethic = ethic_fanatic_pacifist
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 10
+			has_ascension_perk = ap_defender_of_the_galaxy
+			from = {
+				OR = {
+					has_crisis_level = crisis_level_3
+					is_homicidal = yes
+				}
+			}
+			desc = ap_defender_of_the_galaxy
+		}
+	}
+}
+
+resolution_repeal_crisis_empire = {
+	icon = "GFX_resolution_repeal_red"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = no
+
+	valid_target = {
+		OR = {
+			is_playable = yes
+			is_fallen_empire = yes
+		}
+		has_country_flag = declared_crisis
+	}
+
+	effect = {
+		hidden_effect = {
+			remove_country_flag = declared_crisis
+			save_event_target_as = former_crisis
+			random_playable_country = {
+				limit = { is_galactic_emperor = yes }
+				save_event_target_as = gal_emperor
+			}
+			random_war = {
+				limit = {
+					using_war_goal = {
+						type = wg_declared_crisis
+						owner = event_target:former_crisis
+					}
+				}
+				every_war_participant = {
+					limit = {
+						NOT = { is_same_value = event_target:former_crisis }
+					}
+					country_event = { id = crisis.4112 }
+				}
+				every_war_participant = {
+					prev = {
+						remove_war_participant = prev
+					}
+				}
+			}
+			country_event = { id = crisis.4113 }
+		}
+	}
+
+	potential = {
+		has_galactic_emperor = yes
+		has_nemesis = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+
+		# More likely to repeal if it's a normal country
+		modifier = {
+			factor = 4
+			from = {
+				is_homicidal = no
+				NOR = {
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+					has_crisis_level = crisis_level_5
+				}
+			}
+			desc = gal_com_target_is_a_normal_empire
+		}
+
+		# Should be very unlikely to repeal end game crisis country
+		modifier = {
+			factor = 0.2
+			from = {
+				OR = {
+					has_country_flag = crisis_sphere_revealed
+					has_country_flag = cracked_first_star
+				}
+			}
+			desc = gal_com_target_is_a_crisis_empire
+		}
+
+		# Unlikely to repeal very powerful homicidal countries
+		modifier = {
+			factor = 0.2
+			from = {
+				is_homicidal = yes
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_very_strong_homicidal_empire
+		}
+		
+		# Unlikely to repeal very powerful assimilator empires
+		modifier = {
+			factor = 0.2
+			from = {
+				is_civic_machine_assimilator = yes
+				is_pacifist = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value = overwhelming
+				}
+			}
+			desc = gal_com_target_is_very_strong_assimilator_empire
+		}
+		
+		modifier = {
+			factor = 20
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+		}
+		
+		modifier = {
+			factor = 0.5
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 3
+			OR = {
+				has_ethic = ethic_pacifist
+				has_valid_civic = civic_harm_hive
+				has_valid_civic = civic_harm_machine
+				has_ai_personality = closed_hive_mind
+				has_ai_personality = closed_machine_intelligence
+			}
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 6
+			has_ethic = ethic_fanatic_pacifist
+			from = {
+				NOT = { has_country_flag = crisis_sphere_revealed }
+			}
+			desc = ethic_pacifist
+		}
+		
+		modifier = {
+			factor = 0.75
+			from = {
+				has_crisis_level = crisis_level_4
+			}
+			desc = gal_com_crisis_level_4
+		}
+		modifier = {
+			factor = 0.25
+			from = {
+				has_crisis_level = crisis_level_5
+			}
+			desc = gal_com_crisis_level_5
+		}
+		
+		modifier = {
+			factor = 5
+			from = {
+				NOR = {
+					has_ascension_perk = ap_become_the_crisis
+					is_homicidal = yes
+					AND = {
+						is_fallen_empire = yes
+						NOT = { has_global_flag = war_in_heaven_ongoing }
+					}
+				}
+			}
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+			desc = gal_com_target_does_not_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_defender_of_the_galaxy
+			from = {
+				OR = {
+					has_crisis_level = crisis_level_3
+					is_homicidal = yes
+				}
+			}
+			desc = ap_defender_of_the_galaxy
+		}
+	}
+}
+
+### GALACTIC CUSTODIANSHIP
+
+# Nominate Custodian
+resolution_galacticreforms_nominate_custodian = {
+	icon = "GFX_resolution_nominate_custodian"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = no
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = yes
+		is_part_of_galactic_council = yes
+		custom_tooltip = {
+			fail_text = "nominate_other_custodian_requires_independence"
+			is_subject = no
+		}
+		custom_tooltip = {
+			fail_text = "nominate_other_custodian_not_crisis"
+			NOR = {
+				has_ascension_perk = ap_become_the_crisis
+				has_valid_civic = civic_pompous_purists
+			}
+		}
+	}
+
+	effect = {
+		set_galactic_custodian = yes
+		hidden_effect = {
+			country_event = { id = custodian.1 }
+			if = {
+				limit = { has_global_flag = gdf_active }
+				country_event = { id = custodian.35 days = 10 }
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_council_established = yes
+		has_galactic_custodian = no
+		has_galactic_emperor = no
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "nominate_custodian_requires_independence"
+			is_subject = no
+		}
+		custom_tooltip = {
+			fail_text = "nominate_custodian_not_crisis"
+			NOT = { has_ascension_perk = ap_become_the_crisis }
+		}
+	}
+
+	active = {
+		has_galactic_custodian = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+		modifier = {
+			factor = 5
+			is_same_value = from
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 2
+			is_same_value = from
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 4
+			is_same_value = from
+			is_militarist = yes
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 2
+			is_same_value = from
+			has_ethic = ethic_fanatic_militarist
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Unseat Custodian
+resolution_galacticreforms_unseat_custodian = {
+	icon = "GFX_resolution_end_custodianship"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = yes
+	harmful = yes
+	valid_target = {
+		is_galactic_custodian = yes
+	}
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_galacticreforms_unseat_custodian_tooltip
+		hidden_effect = {
+			if = {
+				limit = { is_active_resolution = "resolution_custodian_perpetual_custodianship" }
+				cancel_resolution = "resolution_custodian_perpetual_custodianship"
+			}
+			country_event = { id = custodian.16 }
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		is_galactic_custodian = no
+	}
+
+	active = {
+		has_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 1.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.2
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_ongoing_grey_goo_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_ongoing_great_khan_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 0.2
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 0.1
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 0
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 0
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 0
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 20
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			is_subject = yes
+			overlord = { 
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+		modifier = {
+			factor = 20
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 20
+			desc = gal_com_custodian_threat
+			from = { has_country_flag = tried_to_become_emperor }
+			OR = {
+				is_egalitarian = yes
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				is_civic_cutthroat_politics = yes
+				is_civic_machine_servitor = yes
+			}
+			is_authoritarian = no
+			is_civic_authoritarian = no
+		}
+		modifier = {
+			factor = 10
+			desc = gal_com_custodian_threat
+			from = { has_country_flag = tried_to_become_emperor }
+			NOR = {
+				is_egalitarian = yes
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+				is_authoritarian = yes
+				is_civic_authoritarian = yes
+				is_civic_cutthroat_politics = yes
+				is_civic_machine_servitor = yes
+			}
+		}
+		modifier = {
+			factor = 3
+			desc = gal_com_custodian_threat
+			from = { has_country_flag = tried_to_become_emperor }
+			has_galactic_republic = yes
+			is_authoritarian = no
+			is_civic_authoritarian = no
+		}
+		modifier = {
+			factor = 0.2
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 0.2
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+			
+		}
+		modifier = {
+			factor = 3
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 2
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 2
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants chance to be custodian
+			is_galactic_custodian = no
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Form the Galactic Empire
+resolution_custodian_form_empire = {
+	icon = "GFX_resolution_form_galactic_empire"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		if = {
+			limit = { is_gestalt = no }
+			custom_tooltip = resolution_custodian_form_empire_tooltip
+		}
+		if = {
+			limit = { is_machine_empire = yes }
+			custom_tooltip = resolution_custodian_form_empire_tooltip_machine
+		}
+		if = {
+			limit = { is_hive_empire = yes }
+			custom_tooltip = resolution_custodian_form_empire_tooltip_hive
+		}
+		hidden_effect = {
+			set_global_flag = galactic_headquarter_founded
+			if = {
+				limit = { exists = event_target:headquarter_founder }
+				event_target:headquarter_founder = { remove_modifier = galactic_headquarter_founder }
+			}
+			if = {
+				limit = { exists = event_target:headquarter_founder_planet }
+				event_target:headquarter_founder_planet = { remove_deposit = d_galactic_senate }
+			}
+			clear_global_event_target = headquarter_founder
+			clear_global_event_target = headquarter_founder_planet
+			random_playable_country = {
+				limit = { is_galactic_custodian = yes }
+				set_timed_country_flag = { flag = galcom_resolution_passed_anti_progressive days = 7200 }
+				country_event = { id = emperor.1 }
+				add_modifier = {
+					modifier = galactic_headquarter_founder
+					days = -1
+				}
+				save_global_event_target_as = headquarter_founder
+				capital_scope = {
+					add_deposit = d_galactic_senate
+					save_global_event_target_as = headquarter_founder_planet
+				}
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = tried_to_become_emperor days = 7200 }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		is_subject = no
+		is_active_resolution = "resolution_custodian_perpetual_custodianship"
+		has_galactic_emperor = no
+		has_galactic_republic = no
+	}
+	
+	active = {
+		has_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = {
+			factor = 10
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 20
+			is_galactic_custodian = yes
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = { 
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+			NOT = {
+				any_country = {
+					is_galactic_custodian = yes
+					is_civic_machine_servitor = yes
+				}
+			}
+		}
+		modifier = {
+			factor = 2
+			is_civic_has_elite = yes
+			desc = gal_com_elite_civic
+		}
+		modifier = {
+			factor = 2
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 2
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_has_meritocracy = yes
+			desc = gal_com_meritocracy_civic
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants to be emperor
+			is_galactic_custodian = no
+		}
+		modifier = {
+			factor = 4
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants to be emperor
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 2
+			is_egalitarian = no
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# United Front
+resolution_custodian_united_front = {
+	icon = "GFX_resolution_united_front"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		description = resolution_custodian_united_front_modifier_desc
+		# Undercoat static modifier
+		damage_vs_crisis_mult = 0.2
+    	country_energy_produces_mult = -0.03
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_united_front }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_republic = no
+		any_country = { is_crisis_faction = yes }
+	}
+	
+	active = {
+		has_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = {
+			factor = 12
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 1.6
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = gal_com_militarist_custodian
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 0.8
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Galactic Mobilization
+resolution_custodian_galactic_mobilization = {
+	icon = "GFX_resolution_galactic_mobilization"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	triggered_modifier = {
+		potential = {
+			is_gestalt = no
+		}
+		modifier = {
+			resolution_custodian_galactic_mobilization = 1
+		}
+	}
+
+	triggered_modifier = {
+		potential = {
+			is_gestalt = yes
+		}
+		modifier = {
+			resolution_custodian_galactic_mobilization_gestalt = 1
+		}
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_galactic_mobilization }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+	
+	active = {
+		has_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+		modifier = {
+			factor = 1.6
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.6
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0
+			 has_ascension_perk = ap_become_the_crisis
+			 desc = ap_become_the_crisis
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = gal_com_militarist_custodian
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 0.9
+			is_capitalist = yes
+			desc = auth_corporate  # reduces trade value
+		}
+	}
+}
+
+# Introduce Galactic Standard
+resolution_custodian_galactic_standard = {
+	icon = "GFX_resolution_galactic_standard"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_galactic_standard = 1
+	}
+
+	effect = {
+		set_timed_country_flag = { flag = galcom_resolution_passed_anti_isolationist days = 7200 }
+		set_timed_country_flag = { flag = galcom_resolution_passed_anti_supremacist days = 7200 }
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_galactic_standard }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+	
+	active = {
+		has_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 2
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_efficient_bureaucracy = yes
+			desc = gal_com_efficient_civic
+		}
+		modifier = {
+			factor = 1.25
+			has_ai_personality = peaceful_traders
+			desc = gal_com_trader_ai_personality
+		}
+		modifier = {
+			factor = 1.25
+			is_capitalist = yes
+			desc = auth_corporate  # should include ruthless capitalists
+		}
+		modifier = {
+			factor = 1.1
+			is_civic_has_meritocracy = yes
+			desc = gal_com_meritocracy_civic
+		}
+		modifier = {
+			factor = 1.1
+			is_materialist = yes
+			desc = ethic_materialist
+		}
+		modifier = {
+			factor = 0.9
+			has_valid_civic = civic_byzantine_bureaucracy # dislikes anything that makes bureaucracy easier
+			desc = civic_byzantine_bureaucracy
+		}
+		modifier = {
+			factor = 0.9
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.8
+			is_civic_has_elite = yes
+			desc = gal_com_elite_civic
+		}
+		modifier = {
+			factor = 0.8
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0
+			has_ethic = ethic_fanatic_xenophobe
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+	}
+}
+
+# Anti-Piracy Initiative
+resolution_custodian_anti_piracy = {
+	icon = "GFX_resolution_anti_piracy_initiative"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		description = resolution_custodian_anti_piracy_modifier_desc
+		local_trade_protection_add = 5
+    	ship_piracy_suppression_mult = 0.25
+    	damage_vs_country_type_pirate_mult = 0.2
+    	damage_vs_country_type_dormant_marauders_mult = 0.2
+    	damage_vs_country_type_awakened_marauders_mult = 0.2
+    	country_energy_produces_mult = -0.03
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_anti_piracy }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+	
+	active = {
+		has_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 0.25
+			is_gestalt = yes
+			is_civic_machine_servitor = no
+			NOT = {
+				any_neighbor_country = { is_country_type = dormant_marauders }
+			}
+			desc = ethic_gestalt_consciousness
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 2
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor # cares about the safety of organics
+		}
+		modifier = {
+			factor = 1.5
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 0.75
+			is_spy_empire = yes
+			desc = gal_com_spy_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_criminal_syndicate = yes
+			desc = gov_criminal_syndicate
+		}
+		modifier = {
+			factor = 10
+			any_neighbor_country = { is_country_type = dormant_marauders }
+			desc = gal_com_neighboring_marauders
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Extend Custodianship
+resolution_custodian_extend_custodianship = {
+	icon = "GFX_resolution_term_limits"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_custodian_extend_custodianship_tooltip
+		hidden_effect = {
+			add_custodian_term_days = 10800
+			set_country_flag = extended_custodianship
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		NOT = { 
+			is_active_resolution = "resolution_custodian_perpetual_custodianship"
+			has_country_flag = extended_custodianship
+		}
+		has_galactic_republic = no
+	}
+
+	active = {
+		has_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			is_authoritarian  = yes
+			desc = gal_com_authoritarian_custodian
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_has_elite = yes
+			desc = gal_com_elite_civic
+		}
+		modifier = {
+			factor = 1.25
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.75
+			is_civic_has_meritocracy = yes
+			desc = gal_com_meritocracy_civic
+		}
+		modifier = {
+			factor = 0.75
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants to be emperor
+			is_galactic_custodian = no
+		}
+		modifier = {
+			factor = 4
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants to be emperor
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.8
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+	}
+}
+
+# Remove Custodianship Term Limit
+resolution_custodian_perpetual_custodianship = {
+	icon = "GFX_resolution_term_limits"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_custodian_perpetual_custodianship_tooltip
+		hidden_effect = {
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_progressive days = 7200 }
+			set_custodian_term_days = -1 # -1 means that the timer will stop counting
+		}
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_perpetual_custodianship }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_republic = no
+	}
+
+	active = {
+		has_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		
+		modifier = {
+			factor = 0.4
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 0
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0
+			is_democratic_crusaders = yes
+			desc = personality_democratic_crusaders
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			is_authoritarian  = yes
+			desc = gal_com_authoritarian_custodian
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_has_elite = yes
+			desc = gal_com_elite_civic
+		}
+		modifier = {
+			factor = 1.5
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.75
+			is_civic_has_meritocracy = yes
+			desc = gal_com_meritocracy_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants chance to be custodian
+			is_galactic_custodian = no
+		}
+		modifier = {
+			factor = 4
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants chance to be custodian
+			is_galactic_custodian = yes
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Prematurely End Custodianship
+resolution_custodian_end_custodianship = {
+	icon = "GFX_resolution_end_custodianship"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_custodian_end_custodianship_tooltip
+		hidden_effect = {
+			country_event = { id = custodian.14 }
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+	}
+
+	active = {
+		has_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_popular
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 0.1
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 0.75
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+		modifier = {
+			factor = 0.5
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+		modifier = {
+			factor = 0.25
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+		modifier = {
+			factor = 0.1
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 0.1
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 0.25
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 0.25
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.25
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.25
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 0.1
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 3
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 2
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 2
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic # wants chance to be custodian
+			is_galactic_custodian = no
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Galactic Defense force
+resolution_custodian_gdf = {
+	icon = "GFX_resolution_galactic_defense_force"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_gdf }
+		}
+	}
+
+	modifier = {
+		resolution_custodian_gdf = 1
+	}
+
+	effect = {
+		set_galactic_defense_force = yes
+		hidden_effect = {
+			set_global_flag = gdf_active
+			random_playable_country = {
+				limit = { is_galactic_custodian = yes }
+				save_event_target_as = custodian
+			}
+			every_playable_country = {
+				limit = { is_ai = no }
+				country_event = { id = custodian.30 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 0.6
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 1.4
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 14
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 14
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 14
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			is_galactic_custodian = yes
+			desc = gal_com_militarist_custodian
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+	}
+}
+
+# Expand GDF
+resolution_custodian_expand_gdf = {
+	icon = "GFX_resolution_expand_gdf"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_expand_gdf }
+		}
+	}
+
+	modifier = {
+		resolution_custodian_gdf_2 = 1
+		country_community_gdf_naval_capacity = 400
+	}
+
+	effect = {
+		hidden_effect = {
+			if = {
+				limit = { 
+					has_global_flag = independent_gdf
+					exists = event_target:gdf_country
+				}
+				event_target:gdf_country = {
+					remove_modifier = "gdf_naval_cap"
+					add_modifier = { modifier = gdf_naval_cap_2 }
+				}
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		is_active_resolution = "resolution_custodian_gdf"
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = {
+			factor = 0.6
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 1.4
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 2
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			is_galactic_custodian = yes
+			desc = gal_com_militarist_custodian
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+	}
+}
+
+# Disband the GDF
+resolution_custodian_disband_gdf = {
+	icon = "GFX_resolution_disband_gdf"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_galactic_defense_force = no
+		hidden_effect = {
+			cancel_resolution = "resolution_custodian_gdf"
+			remove_global_flag = gdf_active
+			if = {
+				limit = { has_global_flag = independent_gdf }
+				remove_global_flag = independent_gdf
+			}
+			if = {
+				limit = { exists = event_target:gdf_country }
+				event_target:gdf_country = {
+					every_owned_fleet = { delete_fleet = this }
+					destroy_country = yes
+				}
+			}
+			if = {
+				limit = { is_active_resolution = "resolution_custodian_expand_gdf" }
+				cancel_resolution = "resolution_custodian_expand_gdf"
+			}
+			every_playable_country = {
+				limit = { is_ai = no }
+				country_event = { id = custodian.40 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_active_resolution = "resolution_custodian_gdf"
+		has_galactic_emperor = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 2
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 1.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.8
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.2
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_ongoing_grey_goo_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_ongoing_great_khan_crisis
+		}
+
+		modifier = {
+			factor = 0.2
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 0.2
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 0.1
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 0
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 0
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 0
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 20
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 20
+			is_subject = yes
+			overlord = { 
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+		modifier = {
+			factor = 0.2
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 0.2
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+			
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 0.75
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+	}
+}
+
+# Interstellar Navigation Agency
+resolution_custodian_ina = {
+	icon = "GFX_resolution_form_ina"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_ina = 1
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_ina }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 0.8
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 1.2
+			has_ai_personality = peaceful_traders
+			desc = gal_com_trader_ai_personality
+		}
+		modifier = {
+			factor = 1.2
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 2
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.25
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Disband the Interstellar Navigation Agency
+resolution_custodian_disband_ina = {
+	icon = "GFX_resolution_disband_ina"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		cancel_resolution = "resolution_custodian_ina"
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_active_resolution = "resolution_custodian_ina"
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 1.2
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 2
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0.8
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 0.4
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 1.25
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 1.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Galactic Trade Organization
+resolution_custodian_gto = {
+	icon = "GFX_resolution_form_gto"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_gto = 1
+	}
+
+	active = {
+		has_galactic_emperor = no
+	}
+
+	effect = {
+		set_timed_country_flag = { flag = galcom_resolution_passed_anti_isolationist days = 7200 }
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+		has_galactic_emperor = no
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_custodian_gto }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 1.5
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+
+		modifier = {
+			factor = 1.5
+			OR = {
+				has_ai_personality = peaceful_traders
+				has_ai_personality = ruthless_capitalists
+			}
+			desc = gal_com_trader_ai_personality
+		}
+
+		modifier = {
+			factor = 0.7
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 0.2
+			is_gestalt = yes
+			desc = ethic_gestalt_consciousness
+		}
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 3
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+	}
+}
+
+# Disband the Galactic Trade Organization
+resolution_custodian_disband_gto = {
+	icon = "GFX_resolution_disband_gto"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		cancel_resolution = "resolution_custodian_gto"
+		set_timed_country_flag = { flag = galcom_resolution_passed_anti_prosperity days = 7200 }
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_active_resolution = "resolution_custodian_gto"
+		has_galactic_emperor = no
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 0.6
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+
+		modifier = {
+			factor = 0.6
+			OR = {
+				has_ai_personality = peaceful_traders
+				has_ai_personality = ruthless_capitalists
+			}
+			desc = gal_com_trader_ai_personality
+		}
+
+		modifier = {
+			factor = 1.3
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+
+		modifier = {
+			factor = 1.8
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 2
+			is_gestalt = yes
+			desc = ethic_gestalt_consciousness
+		}
+
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 2
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+	}
+}
+
+# GALPOL
+resolution_custodian_galpol = {
+	icon = "GFX_resolution_form_galpol"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_galpol = 1
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_custodian = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_custodian_galpol" }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 2
+			any_owned_planet = {
+				planet_crime > 40
+			}
+			desc = gal_com_owns_high_crime_planet
+		}
+
+		modifier = {
+			factor = 2
+			any_owned_planet = {
+				has_branch_office = yes
+				exists = branch_office_owner
+				branch_office_owner = { is_criminal_syndicate = yes }
+			}
+			desc = gal_com_owns_planet_with_criminal_syndicate_branch_office
+		}
+
+		modifier = {
+			factor = 0
+			is_criminal_syndicate = yes
+			desc = gov_criminal_syndicate
+		}
+
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 4
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_spy_empire = yes
+			desc = gal_com_spy_civic
+		}
+		
+		modifier = {
+			factor = 5
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+		
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Disband GALPOL
+resolution_custodian_disband_galpol = {
+	icon = "GFX_resolution_disband_galpol"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		cancel_resolution = "resolution_custodian_galpol"
+		if = {
+			limit = { is_active_resolution = "resolution_custodian_expand_galpol" }
+			cancel_resolution = "resolution_custodian_expand_galpol"
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		is_active_resolution = "resolution_custodian_galpol"
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 6
+			is_criminal_syndicate = yes
+			desc = gov_criminal_syndicate
+		}
+
+		modifier = {
+			factor = 1.8
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 0.4
+			any_owned_planet = {
+				planet_crime > 40
+			}
+			desc = gal_com_owns_high_crime_planet
+		}
+
+		modifier = {
+			factor = 0.2
+			any_owned_planet = {
+				has_branch_office = yes
+				exists = branch_office_owner
+				branch_office_owner = { is_criminal_syndicate = yes }
+			}
+			desc = gal_com_owns_planet_with_criminal_syndicate_branch_office
+		}
+
+		modifier = {
+			factor = 0
+			is_galactic_custodian = yes
+			desc = gal_com_is_the_custodian
+		}
+		
+		modifier = {
+			factor = 3
+			is_spy_empire = yes
+			desc = gal_com_spy_civic
+		}
+		
+		modifier = {
+			factor = 0
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.25
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 1.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+### GALACTIC EMPIRE
+
+# Imperial Crusade
+resolution_galactic_empire_imperial_crusade = {
+	icon = "GFX_resolution_imperial_crusade"
+
+	potential = {
+		has_galactic_emperor = yes
+		NOT = { # Only one crusade at a time
+			any_war = {
+				using_war_goal = {
+					type = wg_imperial_crusade
+					owner = attacker
+				}
+			}
+		}
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1
+		}
+	}
+
+	target = yes
+	harmful = yes
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = no
+		NOR = { 
+			has_country_flag = imperial_crusade_target
+			has_country_flag = empire_rebel
+		}
+		is_homicidal = no
+		NOT = { is_at_war_with = galactic_emperor }
+	}
+
+	allow = {
+		imperial_authority >= 140
+	}
+
+	active = {
+		has_galactic_emperor = yes
+		from = { is_at_war_with = galactic_emperor }
+	}
+
+	effect = {
+		custom_tooltip = resolution_imperial_crusade_tooltip
+		hidden_effect = {
+			save_event_target_as = crusade_target
+			galactic_emperor = {
+				set_timed_country_flag = { flag = galcom_resolution_passed_anti_prosperity days = 7200 }
+				set_timed_country_flag = { flag = galcom_resolution_passed_anti_isolationist days = 7200 }
+				save_event_target_as = gal_emperor
+				declare_war = {
+					target = event_target:crusade_target
+					name = "NAME_Imperial_Crusade_War"
+					attacker_war_goal = "wg_imperial_crusade"
+				}
+			}
+			random_war = {
+				limit = {
+					using_war_goal = {
+						type = wg_imperial_crusade
+						owner = event_target:gal_emperor
+					}
+				}
+				save_event_target_as = imperial_crusade_war
+			}
+			every_playable_country = {
+				limit = { 
+					is_galactic_emperor = no
+					is_galactic_community_member = yes
+					NOR = {
+						is_in_federation_with = event_target:crusade_target
+						AND = {
+							exists = overlord
+							overlord = { is_same_value = event_target:crusade_target }
+						}
+					}
+				}
+				if = {
+					limit = {
+						any_war = { 
+							any_war_participant = {
+								is_same_value = event_target:crusade_target
+							}
+						}
+					}
+					every_war = {
+						limit = {
+							any_war_participant = {
+								is_same_value = event_target:crusade_target
+							}
+						}
+						remove_war_participant = event_target:crusade_target
+					}
+				}
+				join_war_on_side = {
+					war = event_target:imperial_crusade_war
+					side = event_target:gal_emperor
+				}
+			}
+			event_target:crusade_target = {
+				country_event = { id = emperor.350 }
+			}
+			every_playable_country = {
+				limit = {
+					is_ai = no
+					has_communications = event_target:gal_emperor
+					has_communications = event_target:crusade_target
+					NOT = { is_same_value = event_target:crusade_target }
+				}
+				country_event = { id = emperor.351 }
+			}
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 0.2
+			is_pacifist = yes
+			desc = ethic_pacifist 
+		}
+		modifier = {
+			factor = 0.6
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 1.4
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		modifier = {
+			factor = 5
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0.8
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic # prefers diplomacy
+		}
+	}
+}
+
+# United Front (Imperial version)
+resolution_emperor_united_front = {
+	icon = "GFX_resolution_united_front"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		description = resolution_custodian_united_front_modifier_desc
+		# Undercoat static modifier
+		damage_vs_crisis_mult = 0.2
+    	country_energy_produces_mult = -0.03
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_united_front" }
+		}
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		any_country = { is_crisis_faction = yes }
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = {
+			factor = 12
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 1.6
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0
+			has_ascension_perk = ap_become_the_crisis
+			desc = gal_com_we_have_crisis_perk
+		}
+		modifier = {
+			factor = 4
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 20
+			OR = {
+				is_militarist = yes
+				is_civic_militarist = yes
+			}
+			desc = gal_com_militarist_emperor
+			is_galactic_emperor = yes
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 0.8
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Imperial Armada
+resolution_emperor_imperial_armada = {
+	icon = "GFX_resolution_imperial_armada"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_gdf = 1
+		country_community_gdf_naval_capacity = 400
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_imperial_armada" }
+		}
+	}
+
+	effect = {
+		if = {
+			limit = { galactic_defense_force_exists = no } #e.g. Custodian becomes Emperor
+			set_galactic_defense_force = yes
+		}
+		hidden_effect = {
+			every_playable_country = {
+				limit = { is_galactic_community_member = yes }
+				country_event = { id = emperor.50 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 0.6
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 1.2
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 0
+			is_subject = yes
+			overlord = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = awakened_fallen_empire
+				}
+			}
+			desc = gal_com_subject_of_fallen_empire
+		}
+
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+	}
+}
+
+# Expand Imperial Armada
+resolution_emperor_expand_ia = {
+	icon = "GFX_resolution_expand_armada"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_expand_ia" }
+		}
+	}
+
+	modifier = {
+		resolution_custodian_gdf_2 = 1
+		country_community_gdf_naval_capacity = 1000
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_active_resolution = "resolution_emperor_imperial_armada"
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = {
+			factor = 0.6
+			is_pacifist = yes
+			desc = ethic_pacifist 
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 0.6
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+		}
+		modifier = {
+			factor = 1.2
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 2
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 8
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_machine_servitor = yes
+			desc = civic_machine_servitor
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+	}
+}
+
+# Imperial Legions
+resolution_emperor_imperial_legions = {
+	icon = "GFX_resolution_imperial_legions"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_imperial_legions" }
+		}
+	}
+
+	modifier = {
+	}
+
+	effect = {
+		random_playable_country = {
+			limit = { is_galactic_emperor = yes }
+			custom_tooltip = resolution_emperor_imperial_legions_tooltip
+			hidden_effect = {
+				if = {
+					limit = { is_ai = yes }
+					country_event = { id = diploevent.300 days = 1 }
+				}
+			}
+		}
+		hidden_effect = {
+			every_playable_country = {
+				limit = { is_galactic_community_member = yes }
+				country_event = { id = emperor.55 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 0.4
+			OR = {
+				is_pacifist = yes
+				is_open_gestalt = yes
+				is_civic_machine_servitor = yes
+			}
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+			desc = ethic_pacifist
+		}
+		modifier = {
+			factor = 0.6
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+			}
+			NOT = {
+				any_neighbor_country = { is_crisis_faction = yes }
+			}
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 1.2
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 6
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 8
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 20
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 20
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 14
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 8
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 14
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 10
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 20
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 2
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+	}
+}
+
+# Imperial Navigation Agency
+resolution_emperor_ina = {
+	icon = "GFX_resolution_form_ina"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_ina = 1
+	}
+
+	effect = {
+	}
+
+	fail_effects = {
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_ina" }
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 0.8
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 1.2
+			has_ai_personality = peaceful_traders
+			desc = gal_com_trader_ai_personality
+		}
+		modifier = {
+			factor = 1.2
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 2
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 4
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 1.25
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Disband the Interstellar Navigation Agency
+resolution_emperor_disband_ina = {
+	icon = "GFX_resolution_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		cancel_resolution = "resolution_emperor_ina"
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_active_resolution = "resolution_emperor_ina"
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 1.2
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+		modifier = {
+			factor = 2
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+		modifier = {
+			factor = 0.8
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 0.4
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 0
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 1.25
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 1.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Galactic Trade Organization
+resolution_emperor_gto = {
+	icon = "GFX_resolution_form_gto"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+		resolution_custodian_gto = 1
+	}
+
+	effect = {
+		galactic_emperor = {
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_isolationist days = 7200 }
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = resolution_emperor_gto }
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = {
+			factor = 1.5
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+
+		modifier = {
+			factor = 1.5
+			OR = {
+				has_ai_personality = peaceful_traders
+				has_ai_personality = ruthless_capitalists
+			}
+			desc = gal_com_trader_ai_personality
+		}
+
+		modifier = {
+			factor = 0.7
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+
+		modifier = {
+			factor = 0.5
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 0.2
+			is_gestalt = yes
+			desc = ethic_gestalt_consciousness
+		}
+		modifier = {
+			factor = 4
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 3
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+	}
+}
+
+# Disband the Galactic Trade Organization
+resolution_emperor_disband_gto = {
+	icon = "GFX_resolution_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		cancel_resolution = "resolution_emperor_gto"
+		galactic_emperor = {
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_prosperity days = 7200 }
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_active_resolution = "resolution_emperor_gto"
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 0.6
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+
+		modifier = {
+			factor = 0.6
+			OR = {
+				has_ai_personality = peaceful_traders
+				has_ai_personality = ruthless_capitalists
+			}
+			desc = gal_com_trader_ai_personality
+		}
+
+		modifier = {
+			factor = 1.3
+			is_xenophobe = yes
+			desc = ethic_xenophobe
+		}
+
+		modifier = {
+			factor = 1.8
+			is_xenophobic_isolationists = yes
+			desc = gal_com_isolationist_civic
+		}
+
+		modifier = {
+			factor = 2
+			is_gestalt = yes
+			desc = ethic_gestalt_consciousness
+		}
+
+		modifier = {
+			factor = 0
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		modifier = {
+			factor = 0.25
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 2
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+	}
+}
+
+# Imperial Security Directorate
+resolution_emperor_isd = {
+	icon = "GFX_resolution_imperial_security_directorate"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_isd" }
+		}
+	}
+
+	modifier = {
+		resolution_emperor_isd = 1
+	}
+
+	effect = {
+		random_playable_country =  {
+			limit = { is_galactic_emperor = yes }
+			add_modifier = { modifier = "imperial_security_directorate" }
+		}
+		hidden_effect = {
+			every_playable_country = {
+				limit = { is_galactic_community_member = yes }
+				country_event = { id = emperor.70 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 2
+			any_owned_planet = {
+				planet_crime > 40
+			}
+			desc = gal_com_owns_high_crime_planet
+		}
+
+		modifier = {
+			factor = 2
+			any_owned_planet = {
+				has_branch_office = yes
+				exists = branch_office_owner
+				branch_office_owner = { is_criminal_syndicate = yes }
+			}
+			desc = gal_com_owns_planet_with_criminal_syndicate_branch_office
+		}
+
+		modifier = {
+			factor = 0
+			is_criminal_syndicate = yes
+			desc = gov_criminal_syndicate
+		}
+
+		modifier = {
+			factor = 0.6
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_spy_empire = yes
+			desc = gal_com_spy_civic
+		}
+		
+		modifier = {
+			factor = 5
+			is_civic_police_state = yes
+			desc = gal_com_police_civic
+		}
+		
+		modifier = {
+			factor = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0.75
+			has_monthly_income = { resource = energy  value < 20 }
+			desc = gal_com_energy_income
+		}
+		modifier = {
+			factor = 0.5
+			has_deficit = energy
+			desc = gal_com_energy_income
+		}
+	}
+}
+
+# Imperial Charter
+resolution_emperor_imperial_charter = {
+	icon = "GFX_resolution_imperial_trade_company"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+
+	target = yes
+	harmful = no
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_imperial_charter" }
+		}
+	}
+
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = yes
+		is_megacorp = yes
+		is_galactic_emperor = no
+	}
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_imperial_charter_tooltip
+		hidden_effect = {
+			set_global_flag = imperial_charter_granted
+			add_modifier = { modifier = imperial_charter }
+			random_playable_country = {
+				limit = { is_galactic_emperor = yes }
+				set_variable = {
+					which = "imp_concession_ports"
+					value = 0
+				}
+			}
+			every_playable_country = {
+				limit = {
+					is_ai = no
+					NOT = { is_same_value = prev }
+					is_galactic_community_member = yes
+					is_galactic_emperor = no
+				}
+				country_event = { id = emperor.60 }
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		NOR = {
+			has_civic = civic_galactic_sovereign_megacorp # Megacorp Emperors build their own concession ports
+			has_global_flag = imperial_charter_granted
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+		}
+
+		modifier = {
+			factor = 20
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+		
+		modifier = {
+			factor = 0
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+		modifier = {
+			factor = 0
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+			}
+			desc = ethic_xenophobe
+		}
+		
+		modifier = {
+			factor = 1.5
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+		
+		modifier = {
+			factor = 0.2
+			OR = {
+				is_hostile_to = FROM
+				is_domineering_to = FROM
+				is_unfriendly_to = FROM
+			}
+			desc = gal_com_target_is_unfriendly
+		}
+		
+		modifier = {
+			factor = 0.2
+			from = { is_criminal_syndicate = yes }
+			is_criminal_syndicate = no
+			desc = gal_com_target_is_criminal
+		}
+		
+		modifier = {
+			factor = 2
+			from = { is_criminal_syndicate = yes }
+			is_criminal_syndicate = yes
+			desc = gal_com_target_is_criminal
+		}
+	}
+}
+
+# Revoke Imperial Charter
+resolution_emperor_revoke_imperial_charter = {
+	icon = "GFX_resolution_imperial_trade_company"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	
+	target = yes
+	harmful = yes
+
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = yes
+		is_megacorp = yes
+		is_galactic_emperor = no
+		has_modifier = imperial_charter
+	}
+
+	modifier = {
+	}
+
+	effect = {
+		hidden_effect = {
+			remove_global_flag = imperial_charter_granted
+			remove_modifier =  imperial_charter
+			every_galaxy_planet = {
+				limit = { has_planet_flag = imp_concession_port }
+				remove_holding = {
+					holding = building_imperial_concession_port
+					owner = galactic_emperor
+				}
+				remove_planet_flag = imp_concession_port
+			}
+			random_playable_country = {
+				limit = { is_galactic_emperor = yes }
+				set_variable = {
+					which = "imp_concession_ports"
+					value = 0
+				}
+				add_imp_concession_ports_0 = yes
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		has_global_flag = imperial_charter_granted
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_popular
+
+		modifier = {
+			factor = 1.4
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+
+		modifier = {
+			factor = 20
+			is_galactic_emperor = yes
+			desc = gal_com_emperor_unfriendly_to_proposer
+			OR = {
+				is_hostile_to = FROM
+				is_domineering_to = FROM
+				is_unfriendly_to = FROM
+			}
+		}
+		
+		modifier = {
+			factor = 0
+			is_galactic_emperor = yes
+			desc = galactic_emperor
+			NOR = {
+				is_hostile_to = FROM
+				is_domineering_to = FROM
+				is_unfriendly_to = FROM
+				from = { is_criminal_syndicate = yes }
+			}
+		}
+		
+		modifier = {
+			factor = 7.5
+			is_anti_corp = yes
+			desc = gal_com_anti_corp_civic
+		}
+		
+		modifier = {
+			factor = 10
+			OR = {
+				is_xenophobe = yes
+				is_xenophobic_isolationists = yes
+			}
+			desc = ethic_xenophobe
+		}
+		
+		modifier = {
+			factor = 0.75
+			is_capitalist = yes
+			desc = auth_corporate 
+		}
+		
+		modifier = {
+			factor = 10
+			OR = {
+				is_hostile_to = FROM
+				is_domineering_to = FROM
+				is_unfriendly_to = FROM
+			}
+			desc = gal_com_target_is_unfriendly
+		}
+		
+		modifier = {
+			factor = 10
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		
+		modifier = {
+			factor = 20
+			from = { is_criminal_syndicate = yes }
+			is_criminal_syndicate = no
+			desc = gal_com_target_is_criminal
+		}
+		
+		modifier = {
+			factor = 0
+			from = { is_criminal_syndicate = yes }
+			is_criminal_syndicate = yes
+			desc = gov_criminal_syndicate
+		}
+	}
+}
+
+### IMPERIAL COUNCIL
+
+# Abolish Imperial Council
+resolution_emperor_abolish_council = {
+	icon = "GFX_resolution_abolish_imperial_council"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_abolish_council_tooltip
+		hidden_effect = {
+			set_council_size = 0
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+
+		modifier = {
+			factor = 0
+			is_part_of_galactic_council = yes
+			is_galactic_emperor = no
+			desc = gal_com_on_galatic_council
+		}
+
+		modifier = {
+			factor = 0.5
+			is_subject = yes
+			overlord = {
+				opinion_level = { who = prev level >= neutral }
+				is_part_of_galactic_council = yes
+				is_galactic_emperor = no
+			}
+			desc = gal_com_support_overlord_on_galatic_council
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_egalitarian = yes
+			desc = ethic_egalitarian # closest thing to democracy the imperium has
+		}
+		modifier = {
+			factor = 0
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 0
+			is_democratic_crusaders = yes
+			desc = personality_democratic_crusaders
+		}
+		modifier = {
+			factor = 1.5
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.5
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.5
+			OR = {
+				is_civic_diplomatic_corps = yes
+				is_civic_machine_servitor = yes
+			}
+			desc = gal_com_opposing_civics
+		}
+		modifier = {
+			factor = 0.8
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 0.8
+			has_ethic = ethic_fanatic_xenophile
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 0.8
+			is_open_gestalt = yes
+			desc = gal_com_open_gestalt
+		}
+	}
+}
+
+# Restore Imperial Council
+resolution_emperor_restore_council = {
+	icon = "GFX_resolution_imperial_council"
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = no
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	allow = {
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_restore_council_tooltip
+		hidden_effect = {
+			set_council_size = 3
+			set_council_veto = no
+			set_global_flag = galactic_community_resolution_passed
+
+			set_global_flag = resolution_with_breach_effect_passed # council denouncement
+
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_loved
+
+		modifier = {
+			factor = 3
+			OR = {
+				is_civic_diplomatic_corps = yes
+				is_civic_machine_servitor = yes
+			}
+			desc = gal_com_supporting_civics
+		}
+
+		modifier = {
+			factor = 1.5
+			OR = {
+				galactic_community_rank <= 3
+				AND = {
+					is_subject = yes
+					overlord = {
+						opinion_level = { who = prev level >= neutral }
+						galactic_community_rank <= 3
+					}
+				}
+			}
+			desc = gal_com_they_or_overlord_high_ranked
+		}
+
+		modifier = {
+			factor = 0.8
+			galactic_community_rank > 5
+			NAND = {
+				is_subject = yes
+				overlord = {
+					opinion_level = { who = prev level >= neutral }
+					galactic_community_rank <= 3
+				}
+			}
+			desc = gal_com_neither_they_or_overlord_high_ranked
+		}
+
+		modifier = {
+			factor = 1.2
+			is_xenophile = yes
+			desc = ethic_xenophile
+		}
+		modifier = {
+			factor = 1.2
+			has_ethic = ethic_fanatic_xenophile
+			desc = ethic_xenophile
+		}
+		
+		modifier = {
+			factor = 3
+			is_egalitarian = yes
+			desc = ethic_egalitarian # closest thing to democracy the imperium has
+		}
+		modifier = {
+			factor = 3
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			factor = 3
+			is_democratic_crusaders = yes
+			desc = personality_democratic_crusaders
+		}
+		modifier = {
+			factor = 0.75
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.75
+			is_civic_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.2
+			is_open_gestalt = yes
+			desc = gal_com_open_gestalt
+		}
+	}
+}
+
+resolution_emperor_council_size_1 = {
+	icon = "GFX_resolution_imperial_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_council_size = 1
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		num_council_positions = 2
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+		
+		modifier = {
+			factor = 3
+			OR = {
+				galactic_community_rank = 1
+				AND = {
+					is_subject = yes
+					overlord = {
+						opinion_level = { who = prev level >= neutral }
+						galactic_community_rank = 1
+					}
+				}
+			}
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+		modifier = {
+			factor = 0
+			galactic_community_rank = 2
+			desc = gal_com_second_rank
+		}
+
+		modifier = {
+			factor = 0
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		
+		modifier = {
+			factor = 0
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+
+		modifier = {
+			factor = 1.5
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		
+		modifier = {
+			factor = 1.5
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+	}
+}
+
+resolution_emperor_council_size_2 = {
+	icon = "GFX_resolution_imperial_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_council_size = 2
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		OR = {
+			num_council_positions = 1
+			num_council_positions = 3
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = { # raising the number of slots is more popular than lowering it
+			factor = 1.25
+			num_council_positions = 1
+			desc = gal_com_increase_council_size_positive
+		}
+		
+		modifier = {
+			factor = 0
+
+			AND = {
+				num_council_positions = 3
+				OR = {
+					galactic_community_rank = 3
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank = 3
+						}
+					}
+				}
+			}
+			desc = gal_com_they_or_overlord_would_be_removed_from_council
+		}
+
+		modifier = {
+			factor = 0
+			num_council_positions = 1
+			OR = {
+				galactic_community_rank = 1
+				AND = {
+					is_subject = yes
+					overlord = {
+						opinion_level = { who = prev level >= neutral }
+						galactic_community_rank = 1
+					}
+				}
+			}
+			desc = gal_com_alone_on_council_or_overlord
+		}
+
+
+		modifier = {
+			factor = 3
+			
+				AND = {
+					num_council_positions = 1
+					OR = {
+						galactic_community_rank = 2
+						AND = {
+							is_subject = yes
+							overlord = {
+								opinion_level = { who = prev level >= neutral }
+								galactic_community_rank = 2
+							}
+						}
+					}
+				}
+			
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+
+		modifier = {
+			factor = 3
+			AND = {
+				num_council_positions = 3
+				OR = {
+					galactic_community_rank <= 2
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank <= 2
+						}
+					}
+				}
+			}
+			desc = gal_com_wants_to_reduce_council_size
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 3
+			galactic_community_rank <= 2
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 1
+			galactic_community_rank = 2
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+		modifier = {
+			factor = 0.5
+			OR = {
+				AND = {
+					num_council_positions = 3
+					is_egalitarian = yes
+				}
+				AND = {
+					num_council_positions = 1
+					is_authoritarian = yes
+				}
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 0
+			num_council_positions = 3
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		
+		modifier = {
+			factor = 0.5
+			num_council_positions = 1
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		
+		modifier = {
+			factor = 1.5
+			OR = {
+				AND = {
+					num_council_positions = 3
+					has_ethic = ethic_fanatic_authoritarian
+				}
+				AND = {
+					num_council_positions = 1
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+
+		modifier = {
+			factor = 1.5
+			OR = {
+				AND = {
+					num_council_positions = 3
+					is_authoritarian = yes
+				}
+				AND = {
+					num_council_positions = 1
+					is_egalitarian = yes
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			num_council_positions = 3
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		
+		modifier = {
+			factor = 1.5
+			num_council_positions = 1
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+resolution_emperor_council_size_3 = {
+	icon = "GFX_resolution_imperial_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_council_size = 3
+		set_global_flag = galactic_council_formed
+
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		OR = {
+			num_council_positions = 2
+			num_council_positions = 4
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+
+		modifier = { # raising the number of slots is more popular than lowering it
+			factor = 1.25
+			num_council_positions = 2
+			desc = gal_com_increase_council_size_positive
+		}
+
+		modifier = {
+			factor = 0
+
+			AND = {
+				num_council_positions = 4
+				OR = {
+					galactic_community_rank = 4
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank = 4
+						}
+					}
+				}
+			}
+			desc = gal_com_they_or_overlord_would_be_removed_from_council
+		}
+
+		modifier = {
+			factor = 0
+			is_egalitarian = no
+			AND = {
+				num_council_positions = 2
+				OR = {
+					galactic_community_rank <= 2
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank <= 2
+						}
+					}
+				}
+			}
+			desc = gal_com_dont_let_others_in_on_the_council
+		}
+
+		modifier = {
+			factor = 3
+
+			AND = {
+				num_council_positions = 4
+				OR = {
+					galactic_community_rank <= 3
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank <= 3
+						}
+					}
+				}
+			}
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+		modifier = {
+			factor = 3
+			AND = {
+				num_council_positions = 2
+				OR = {
+					galactic_community_rank = 3
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank = 3
+						}
+					}
+				}
+			}
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 4
+			galactic_community_rank <= 3
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 2
+			galactic_community_rank = 3
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+		modifier = {
+			factor = 0.75
+			OR = {
+				AND = {
+					num_council_positions = 4
+					is_egalitarian = yes
+				}
+				AND = {
+					num_council_positions = 2
+					is_authoritarian = yes
+				}
+			}
+			desc = gal_com_opposing_ethics
+		}
+
+		modifier = {
+			factor = 1.33
+			OR = {
+				AND = {
+					num_council_positions = 4
+					is_authoritarian = yes
+				}
+				AND = {
+					num_council_positions = 2
+					is_egalitarian = yes
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.75
+			OR = {
+				AND = {
+					num_council_positions = 2
+					has_ethic = ethic_fanatic_authoritarian
+				}
+				AND = {
+					num_council_positions = 4
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 1.33
+			OR = {
+				AND = {
+					num_council_positions = 4
+					has_ethic = ethic_fanatic_authoritarian
+				}
+				AND = {
+					num_council_positions = 2
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			num_council_positions = 4
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		
+		modifier = {
+			factor = 1.5
+			num_council_positions = 2
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+resolution_emperor_council_size_4 = {
+	icon = "GFX_resolution_imperial_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_council_size = 4
+		set_global_flag = galactic_council_formed
+
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		OR = {
+			num_council_positions = 3
+			num_council_positions = 5
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_normal
+
+		modifier = { # raising the number of slots is more popular than lowering it
+			factor = 1.25
+			num_council_positions = 3
+			desc = gal_com_increase_council_size_positive
+		}
+
+		modifier = {
+			factor = 0
+
+			AND = {
+				num_council_positions = 5
+				OR = {
+					galactic_community_rank = 5
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank = 5
+						}
+					}
+				}
+			}
+			desc = gal_com_they_or_overlord_would_be_removed_from_council
+		}
+
+
+		modifier = {
+			factor = 0
+			is_egalitarian = no
+			AND = {
+				num_council_positions = 3
+				OR = {
+					galactic_community_rank <= 3
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank <= 3
+						}
+					}
+				}
+			}
+			desc = gal_com_dont_let_others_in_on_the_council
+		}
+
+
+		modifier = {
+			factor = 3
+
+			AND = {
+				num_council_positions = 5
+				OR = {
+					galactic_community_rank <= 4
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank <= 4
+						}
+					}
+				}
+			}	
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+
+		modifier = {
+			factor = 3
+			AND = {
+				num_council_positions = 3
+				OR = {
+					galactic_community_rank = 4
+					AND = {
+						is_subject = yes
+						overlord = {
+							opinion_level = { who = prev level >= neutral }
+							galactic_community_rank = 4
+						}
+					}
+				}
+			}
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 5
+			galactic_community_rank <= 4
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 3
+			galactic_community_rank = 4
+			desc = gal_com_wants_to_reduce_council_size
+		}
+
+		modifier = {
+			factor = 0.5
+			OR = {
+				AND = {
+					num_council_positions = 5
+					is_egalitarian = yes
+				}
+				AND = {
+					num_council_positions = 3
+					is_authoritarian = yes
+				}
+			}
+			desc = gal_com_opposing_ethics
+		}
+
+		modifier = {
+			factor = 1.5
+			OR = {
+				AND = {
+					num_council_positions = 5
+					is_authoritarian = yes
+				}
+				AND = {
+					num_council_positions = 3
+					is_egalitarian = yes
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			num_council_positions = 5
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		
+		modifier = {
+			factor = 0
+			num_council_positions = 3
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		
+		modifier = {
+			factor = 1.5
+			OR = {
+				AND = {
+					num_council_positions = 5
+					has_ethic = ethic_fanatic_authoritarian
+				}
+				AND = {
+					num_council_positions = 3
+					has_ethic = ethic_fanatic_egalitarian
+				}
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			num_council_positions = 5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		
+		modifier = {
+			factor = 1.5
+			num_council_positions = 3
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+resolution_emperor_council_size_5 = {
+	icon = "GFX_resolution_imperial_council_size"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		set_council_size = 5
+		set_global_flag = galactic_council_formed
+
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		num_council_positions = 4
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_popular
+
+		modifier = {
+			factor = 3
+			num_council_positions = 4
+			OR = {
+				galactic_community_rank = 5
+				AND = {
+					is_subject = yes
+					overlord = {
+						opinion_level = { who = prev level >= neutral }
+						galactic_community_rank = 5
+					}
+				}
+			}
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+		
+		modifier = {
+			factor = 10
+			num_council_positions = 4
+			galactic_community_rank = 5
+			desc = gal_com_wants_to_add_themselves_or_overlord_to_council
+		}
+
+		modifier = {
+			factor = 0.8
+			is_part_of_galactic_council = yes
+			is_egalitarian = no
+			desc = gal_com_negative_sentiment
+		}
+
+		modifier = {
+			factor = 0
+			is_authoritarian = yes
+			desc = ethic_authoritarian
+		}
+
+		modifier = {
+			factor = 1.5
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		
+		modifier = {
+			factor = 1.5
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		
+		modifier = {
+			factor = 1.5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Permanent Seat
+resolution_emperor_permanent_seat = {
+	icon = "GFX_resolution_imperial_council_member_permanent"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = no
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = yes
+		is_part_of_galactic_council = yes
+		is_permanent_councillor = no
+		is_galactic_emperor = no
+	}
+
+	effect = {
+		add_permanent_councillor = yes
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		NOR = { 
+			is_active_resolution = "resolution_emperor_trial_of_advancement"
+			is_active_resolution = "resolution_emperor_by_appointment"
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_permanent_seat" }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		modifier = { # raising the number of slots is more popular than lowering it
+			factor = 1.25
+			num_council_positions = 4
+			desc = gal_com_increase_council_size_positive
+		}
+		modifier = {
+			factor = 1.1
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.1
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 1.1
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+		}
+		# More likely to vote for yourself
+		modifier = {
+			factor = 10
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+		# Never vote for your rival
+		modifier = {
+			factor = 0
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+	}
+}
+
+# Revoke Permanent Seat
+resolution_emperor_revoke_permanent_seat = {
+	icon = "GFX_resolution_imperial_council_member_permanent"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t5
+		}
+	}
+
+	target = yes
+	harmful = yes
+	valid_target = {
+		is_playable = yes
+		is_galactic_community_member = yes
+		is_part_of_galactic_council = yes
+		is_permanent_councillor = yes
+		is_galactic_emperor = no
+	}
+
+	effect = {
+		remove_permanent_councillor = yes
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+		is_galactic_council_established = yes
+		NOR = { 
+			is_active_resolution = "resolution_emperor_trial_of_advancement"
+			is_active_resolution = "resolution_emperor_by_appointment"
+		}
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+		# Never on yourself
+		modifier = {
+			factor = 0
+			is_same_value = from
+			desc = gal_com_target_is_me
+		}
+		# More likely against rival
+		modifier = {
+			factor = 5
+			is_rival = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 5
+			is_at_war_with = from
+			desc = gal_com_target_is_rival
+		}
+		modifier = {
+			factor = 0.8
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			factor = 0.8
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+	}
+}
+
+# Trial of Advancement
+resolution_emperor_trial_of_advancement = {
+	icon = "GFX_resolution_imperial_council_trial"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_trial_of_advancement_tooltip
+		hidden_effect = {
+			galactic_emperor = {
+				set_timed_country_flag = { flag = galcom_resolution_passed_anti_prosperity days = 7200 }
+			}
+			# Suspend Council Elections
+			every_playable_country = {
+				limit = {
+					is_galactic_community_member = yes
+					is_part_of_galactic_council = yes
+					is_galactic_emperor = no
+				}
+				add_permanent_councillor = yes
+			}
+			if = {
+				limit = { is_active_resolution = "resolution_emperor_by_appointment" }
+				cancel_resolution = "resolution_emperor_by_appointment"
+			}
+			else_if = {
+				limit = { is_active_resolution = "resolution_emperor_by_election" }
+				cancel_resolution = "resolution_emperor_by_election"
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_trial_of_advancement" }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			weight = 10
+			is_part_of_galactic_council = no
+			any_playable_country = {
+				is_part_of_galactic_council = yes
+				is_galactic_emperor = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value <= equivalent
+				}
+			}
+			desc = gal_com_stronger_than_council_member
+		}
+
+		modifier = {
+			weight = 0
+			is_pacifist = yes
+			desc = ethic_pacifist 
+		}
+
+		modifier = {
+			weight = 1.6
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+
+		modifier = {
+			weight = 4
+			is_honorbound_warriors = yes
+			desc = personality_honorbound_warriors
+		}
+
+		modifier = {
+			weight = 4
+			is_civic_militarist = yes
+			desc = gal_com_military_civic
+		}
+		
+		modifier = {
+			weight = 0.9
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		
+		modifier = {
+			weight = 0.2
+			OR = {
+				is_civic_diplomatic_corps = yes
+				is_civic_machine_servitor = yes
+			}
+			desc = gal_com_opposing_civics
+		}
+
+		modifier = {
+			weight = 0
+			is_part_of_galactic_council  = yes
+			desc = gal_com_on_galatic_council
+			is_galactic_emperor = no
+			any_playable_country = {
+				is_part_of_galactic_council = no
+				relative_power = {
+					who = prev
+					category = fleet
+					value >= equivalent
+				}
+			}
+		}
+	}
+}
+
+# By Appointment
+resolution_emperor_by_appointment = {
+	icon = "GFX_resolution_imperial_council_appointment"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_by_appointment_tooltip
+		hidden_effect = {
+			every_playable_country = {
+				limit = {
+					is_galactic_community_member = yes
+					is_part_of_galactic_council = yes
+					is_galactic_emperor = no
+				}
+				add_permanent_councillor = yes
+			}
+			set_emperor_can_change_council_members = yes
+			if = {
+				limit = { is_active_resolution = "resolution_emperor_trial_of_advancement" }
+				cancel_resolution = "resolution_emperor_trial_of_advancement"
+			}
+			else_if = {
+				limit = { is_active_resolution = "resolution_emperor_by_election" }
+				cancel_resolution = "resolution_emperor_by_election"
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_by_appointment" }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_hated
+		modifier = {
+			weight = 2
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			weight = 2
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			weight = 0
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			weight = 3
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# By Election
+resolution_emperor_by_election = {
+	icon = "GFX_resolution_imperial_council_diplomatic_weight"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_by_election_tooltip
+		hidden_effect = {
+			# Restore Council Elections
+			every_playable_country = {
+				limit = {
+					is_galactic_community_member = yes
+					is_part_of_galactic_council = yes
+					is_galactic_emperor = no
+					is_permanent_councillor = yes
+				}
+				remove_permanent_councillor = yes
+			}
+			if = {
+				limit = { is_active_resolution = "resolution_emperor_trial_of_advancement" }
+				cancel_resolution = "resolution_emperor_trial_of_advancement"
+			}
+			else_if = {
+				limit = { is_active_resolution = "resolution_emperor_by_appointment" }
+				cancel_resolution = "resolution_emperor_by_appointment"
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		is_galactic_emperor = yes
+	}
+
+	active = {
+		has_galactic_emperor = yes
+	}
+
+	allow = {
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_by_election" }
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_disliked
+
+		modifier = {
+			factor = 10
+			num_council_positions = 1
+			galactic_community_rank = 1
+			is_part_of_galactic_council = no
+			desc = gal_com_empire_council_candidate
+		}
+		modifier = {
+			factor = 10
+			num_council_positions = 2
+			galactic_community_rank = 2
+			is_part_of_galactic_council = no
+			desc = gal_com_empire_council_candidate
+		}
+		modifier = {
+			factor = 10
+			num_council_positions = 3
+			galactic_community_rank = 3
+			is_part_of_galactic_council = no
+			desc = gal_com_empire_council_candidate
+		}
+		modifier = {
+			factor = 10
+			num_council_positions = 4
+			galactic_community_rank = 4
+			is_part_of_galactic_council = no
+			desc = gal_com_empire_council_candidate
+		}
+		modifier = {
+			factor = 10
+			num_council_positions = 5
+			galactic_community_rank = 5
+			is_part_of_galactic_council = no
+			desc = gal_com_empire_council_candidate
+		}
+		
+		modifier = {
+			factor = 0
+			num_council_positions = 1
+			galactic_community_rank > 1
+			is_egalitarian = no
+			is_civic_diplomatic_corps = no
+			desc = gal_com_top_two_rank
+		}
+		modifier = {
+			factor = 0
+			num_council_positions = 2
+			galactic_community_rank > 2
+			is_egalitarian = no
+			is_civic_diplomatic_corps = no
+			desc = gal_com_top_two_rank
+		}
+		modifier = {
+			factor = 0.5
+			num_council_positions = 3
+			galactic_community_rank > 3
+			is_egalitarian = no
+			is_civic_diplomatic_corps = no
+			desc = gal_com_empire_or_overlord_unlikely_council_candidate
+		}
+		modifier = {
+			factor = 0.5
+			num_council_positions = 4
+			galactic_community_rank > 4
+			is_egalitarian = no
+			is_civic_diplomatic_corps = no
+			desc = gal_com_empire_or_overlord_unlikely_council_candidate
+		}
+		modifier = {
+			factor = 0.5
+			num_council_positions = 5
+			galactic_community_rank > 5
+			is_egalitarian = no
+			is_civic_diplomatic_corps = no
+			desc = gal_com_empire_or_overlord_unlikely_council_candidate
+		}
+		
+		modifier = {
+			weight = 5
+			is_egalitarian = yes
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			weight = 5
+			has_ethic = ethic_fanatic_egalitarian
+			desc = ethic_egalitarian
+		}
+		modifier = {
+			weight = 0.5
+			is_authoritarian  = yes
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			weight = 0.5
+			has_ethic = ethic_fanatic_authoritarian
+			desc = ethic_authoritarian
+		}
+		modifier = {
+			weight = 5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+	}
+}
+
+# Pax Galactica
+resolution_emperor_pax_galactica = {
+	icon = "GFX_resolution_pax_galactica"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_pax_galactica_tooltip
+		hidden_effect = {
+			if = {
+				limit = { NOT = { has_ai_personality = vb_keepers_of_peace } }
+				set_timed_country_flag = { flag = galcom_resolution_passed_anti_imperialist days = 7200 }
+			}
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_supremacist days = 7200 }
+			every_war = {
+				limit = {
+					NOR = {
+						using_war_goal = {
+							type = wg_seize_council_seat
+							owner = attacker
+						}
+						using_war_goal = {
+							type = wg_seize_council_seat
+							owner = defender
+						}
+						using_war_goal = {
+							type = wg_declared_crisis
+							owner = attacker
+						}
+					}
+					any_attacker = { is_galactic_community_member = yes }
+					any_defender = { is_galactic_community_member = yes }
+				}
+				every_war_participant = {
+					limit = { is_galactic_community_member = yes }
+					prev = { remove_war_participant = prev }
+					country_event = { id = emperor.360 }
+				}
+			}
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		OR = {
+			is_galactic_emperor = yes
+			is_galactic_president = yes
+		}
+	}
+
+	allow = {
+		if = {
+			limit = { has_galactic_emperor = yes }
+			imperial_authority >= 180
+		}
+		else_if = {
+			limit = { has_galactic_republic = yes }
+			is_active_resolution = resolution_custodian_expand_gdf
+			is_active_resolution = resolution_custodian_expand_galpol
+			is_active_resolution = resolution_custodian_ina
+		}
+		custom_tooltip = {
+			fail_text = "resolution_already_active"
+			NOT = { is_active_resolution = "resolution_emperor_pax_galactica" }
+		}
+	}
+
+	active = {
+		OR = {
+			has_galactic_emperor = yes
+			has_galactic_republic = yes
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 5
+			is_pacifist = yes
+			desc = ethic_pacifist 
+		}
+		modifier = {
+			factor = 0.2
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 4
+			any_country = { is_crisis_faction = yes }
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			any_neighbor_country = { is_crisis_faction = yes }
+			desc = gal_com_neighboring_crisis_empire
+		}
+		modifier = {
+			factor = 4
+			has_crisis_stage_1 = yes
+			desc = gal_com_crisis_stage_1
+		}
+
+		modifier = {
+			factor = 4
+			has_crisis_stage_2 = yes
+			desc = gal_com_crisis_stage_2
+		}
+
+		modifier = {
+			factor = 4
+			has_crisis_stage_3 = yes
+			desc = gal_com_crisis_stage_3
+		}
+
+		modifier = {
+			factor = 4
+			has_crisis_stage_4 = yes
+			desc = gal_com_crisis_stage_4
+		}
+		modifier = {
+			factor = 4
+			any_playable_country = { has_country_flag = crisis_sphere_revealed }
+			desc = gal_com_crisis_sphere_revealed
+		}
+		modifier = {
+			factor = 2
+			any_playable_country = { has_been_declared_crisis = yes }
+			desc = gal_com_someone_declared_crisis
+		}
+		modifier = {
+			factor = 4
+			has_global_flag = gray_goo_crisis_active
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 4
+			has_global_flag = marauder_crisis_ongoing
+			desc = gal_com_someone_is_revealed_crisis
+		}
+		modifier = {
+			factor = 2
+			any_country = { is_country_type = awakened_fallen_empire }
+			desc = gal_com_exists_awakened_fallen_empire
+		}
+		modifier = {
+			factor = 4
+			has_global_flag = war_in_heaven_ongoing
+			desc = gal_com_ongoing_war_in_heaven
+		}
+		modifier = {
+			factor = 5
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 0
+			is_honorbound_warriors = yes
+			desc = personality_honorbound_warriors
+		}
+		modifier = {
+			factor = 1.5
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 0.5
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_efficient_bureaucracy = yes
+			desc = gal_com_efficient_civic
+		}
+		modifier = {
+			factor = 1.25
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 1.25
+			has_ai_personality = peaceful_traders
+			desc = gal_com_trader_ai_personality
+		}
+	}
+}
+
+# Repeal Pax Galactica
+resolution_emperor_repeal_pax_galactica = {
+	icon = "GFX_resolution_repeal_pax_galactica"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t3
+		}
+	}
+	target = no
+
+	modifier = {
+	}
+
+	effect = {
+		custom_tooltip = resolution_emperor_repeal_pax_galactica_tooltip
+		hidden_effect = {
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_prosperity days = 7200 }
+			set_timed_country_flag = { flag = galcom_resolution_passed_anti_isolationist days = 7200 }
+			cancel_resolution = "resolution_emperor_pax_galactica"
+		}
+	}
+
+	fail_effects = {
+	}
+
+	potential = {
+		has_nemesis = yes
+		OR = {
+			is_galactic_emperor = yes
+			has_galactic_republic = yes
+		}
+		is_active_resolution = "resolution_emperor_pax_galactica"
+	}
+
+	active = {
+		OR = {
+			has_galactic_emperor = yes
+			has_galactic_republic = yes
+		}
+	}
+
+	ai_weight = {
+		base = @resolution_weight_unpopular
+		modifier = {
+			factor = 0
+			is_pacifist = yes
+			desc = ethic_pacifist 
+		}
+		modifier = {
+			factor = 0
+			is_civic_diplomatic_corps = yes
+			desc = gal_com_diplo_civic
+		}
+		modifier = {
+			factor = 5
+			is_honorbound_warriors = yes
+			desc = personality_honorbound_warriors
+		}
+		modifier = {
+			factor = 0.8
+			is_erudite_explorers = yes
+			desc = personality_erudite_explorers
+		}
+		modifier = {
+			factor = 0.8
+			is_civic_efficient_bureaucracy = yes
+			desc = gal_com_efficient_civic
+		}
+		modifier = {
+			factor = 0.8
+			is_civic_free_traders = yes
+			desc = gal_com_trade_civic
+		}
+		modifier = {
+			factor = 4
+			OR = { is_militarist = yes is_civic_militarist = yes }
+			desc = ethic_militarist
+		}
+		modifier = {
+			factor = 2
+			is_civic_cutthroat_politics = yes
+			desc = gal_com_cutthroat_civic
+		}
+		modifier = {
+			factor = 0.8
+			has_ai_personality = peaceful_traders
+			desc = gal_com_trader_ai_personality
+		}
+	}
+}

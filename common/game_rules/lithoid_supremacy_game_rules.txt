@@ -1,0 +1,262 @@
+#Lithoid Supremacy Game Rules
+
+#Species assembly
+can_species_be_assembled = {
+	is_sapient = yes
+	OR = {
+		AND = {
+			is_robotic = yes
+			root = {
+				check_modifier_value = {
+					modifier = planet_pop_assembly_add
+					value > 0
+				}
+			}
+		}
+		AND = {
+			is_organic_species = yes
+			if = {
+				limit = {
+					root.owner = { is_hive_empire = yes }
+				}
+				has_trait = trait_hive_mind
+			}
+			else_if = {
+				limit = { has_budding_trait = yes }
+				root = {
+					any_owned_species = { is_exact_same_species = prevprev }
+				}
+			}
+			### Lithoid supremacy Content
+			else_if = {
+				limit = { 
+					OR = {
+					has_trait = trait_pearl_born_drone 
+					has_trait = trait_pearl_born_royal
+				} 
+			}
+				root = {
+					any_owned_species = { 
+						OR = {
+							has_trait = trait_pearl_born_drone 
+							has_trait = trait_pearl_born_royal
+						}
+					}
+				}
+			}
+			else_if = {
+				limit = { has_trait = trait_fractal_crystalisation }
+				root = {
+					any_owned_species = { is_exact_same_species = prevprev }
+				}
+			}
+			###
+			else_if = {
+				limit = { has_trait = trait_tiyanki }
+				root = {
+					any_owned_species = { is_exact_same_species = prevprev }
+				}
+			}
+			else_if = {
+				limit = {
+					root.owner = {
+						has_tradition = tr_cybernetics_assembly_standards
+						has_policy_flag = roboticist_output_build_cyborgs
+					}
+				}
+				has_trait = trait_cybernetic
+			}
+			else_if = {
+				limit = {
+					OR = {
+						has_trait = trait_clone_soldier_infertile
+						has_trait = trait_clone_soldier_infertile_full_potential
+					}
+				}
+				root = {
+					# Event 'clones.3' should cover this, but extra safety check.
+					has_building = building_clone_army_clone_vat
+					NOT = {
+						check_variable = {
+							which = clone_pops_missing
+							value = 0
+						}
+					}
+				}
+			}
+			else = {
+				root = {
+					OR = {
+						has_building = building_clone_vats
+						has_modifier = tiyanki_trophy
+						owner = { has_modifier = syamelles_curse }
+						AND = {
+							has_building = building_posthumous_employment_center
+							owner = { has_civic = civic_permanent_employment }
+						}
+						has_planet_flag = can_organic_assemble_flag #for mod compatibility
+					}
+				}
+			}
+		}
+	}
+	has_population_control = {
+		type = no
+		country = root.owner
+	}
+}
+
+#Species Procreation
+can_species_procreate = {
+	is_sapient = yes
+	NOR = {
+		has_trait = trait_machine_unit
+		has_trait = trait_mechanical
+
+		### Lithoid Supremacy Content
+		has_trait = trait_pearl_born_drone
+		###
+	}
+	NAND = {
+		root = { has_modifier = slave_colony }
+		NOT = { has_citizenship_type = { type = citizenship_slavery country = root.owner } }
+	}
+	if = {
+		limit = {
+			has_trait = trait_necrophage
+		}
+		NOT = {
+			root = {
+				any_owned_species = {
+					has_population_control = { country = root.owner type = no }
+					species_can_be_necrophaged = yes
+				}
+			}
+		}
+	}
+	NOT = { has_species_flag = nivlac_no_procreation }
+}
+
+#Leader Generation
+can_generate_leader_from_pop = {
+	has_citizenship_rights = yes
+	NOT = { has_trait = trait_syncretic_proles }
+
+	### Lithoid Supremacy Content
+	NOT = { has_trait = trait_pearl_born_drone }
+	###
+
+	can_think = yes
+	OR = {
+		is_robot_pop = no
+		root = {
+			OR = {
+				has_technology = tech_synthetic_leaders
+				has_authority = auth_machine_intelligence
+				is_mechanical_empire = yes
+			}
+		}
+	}
+	OR = {
+		is_same_species = root
+		root = {
+			NAND = {
+				has_origin = origin_necrophage
+				has_trait = trait_necrophage
+			}
+		}
+	}
+}
+
+#Ruler Job
+can_fill_ruler_job = {
+	if = {
+		limit = {
+			exists = owner
+			owner = {
+				has_origin = origin_necrophage
+				has_trait = trait_necrophage
+			}
+		}
+		custom_tooltip = {
+			text = RULER_JOB_NECROPHAGE_TRIGGER
+			has_trait = trait_necrophage
+			is_enslaved = no
+			is_being_purged = no
+			is_being_assimilated = no
+		}
+	}
+	else = {
+		custom_tooltip = RULER_JOB_TRIGGER
+		hidden_trigger = {
+			NOT = { has_ethic = ethic_gestalt_consciousness }
+			exists = owner
+			is_enslaved = no
+			is_being_purged = no
+			is_being_assimilated = no
+			NOT = { has_trait = trait_syncretic_proles }
+			can_think = yes
+			
+			### Lithoid Supremacy Content
+			NOT = { has_trait = trait_pearl_born_drone }
+			###
+
+			OR = {
+				NOT = { has_trait = trait_mechanical }
+				AND = {
+					owner = { has_technology = tech_synthetic_workers }
+					owner = { has_policy_flag = ai_full_rights }
+				}
+			}
+			NOT = { has_citizenship_type = { type = citizenship_organic_trophy } }
+			if = {
+				limit = {
+					divinity_right_to_work_job_check_trigger_exempt = no
+				}
+				divinity_right_to_work_job_check_trigger_ruler = yes
+			}
+		}
+	}
+}
+
+#Species colonization
+can_colonize_with_species = {
+	has_colonization_control = {
+		type = colonization_control_no
+		country = root
+	}
+	OR = {
+		NOT = { has_trait = trait_self_modified }
+		is_same_species = root
+	}
+	if = {
+		limit = {
+			OR = {
+				is_sapient = no
+				has_trait = trait_zombie
+			}
+		}
+		custom_tooltip = {
+			always = no
+		}
+	}
+	else_if = {
+		limit = { has_trait = trait_hive_mind }
+		root = { is_hive_empire = yes }
+	}
+	else_if = {
+		limit = { has_trait = trait_machine_unit }
+		root = { is_machine_empire = yes }
+	}
+	### Lithoid Supremacy Content
+	else_if = {
+		limit = { has_trait = trait_pearl_born_drone }
+		custom_tooltip = {
+			always = no
+		}
+	}
+	###
+	else = {
+		always = yes
+	}
+}

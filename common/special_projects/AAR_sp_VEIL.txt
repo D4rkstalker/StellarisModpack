@@ -1,0 +1,268 @@
+#	铁幕特殊项目
+
+
+###	铁幕特殊项目
+special_project = {
+	key = "AAR_sp_VEIL_tech_CLOSED"
+	icon = "gfx/interface/icons/situation_log/AAR_log_VEIL.dds"
+	picture = GFX_AAR_evt_VEIL_project_1
+	cost = 0
+	days_to_research = 240
+#	timelimit = 1080
+	event_chain = AAR_chain_CORE
+	tech_department = physics_technology
+	same_option_group_as = { AAR_sp_VEIL_tech_OPEN } # determines that this project is one of several options, along with other specified projects
+
+	event_scope = country_event
+
+	requirements = {
+		leader = scientist
+	}
+
+	##	实验条件debug
+	on_start = {
+		##_scopes	<this>=特殊项目|event_scope|/<from>=地点(如果设置的话)/<prev>=国家
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	on_progress_25 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	on_progress_50 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	
+		#	领袖事故	|进度+|概率+|
+		random_list = {
+			75 = {}
+			1 = { modifier = { factor = AAR_var_cntr_VEIL_tech		always = yes }
+				random_owned_leader = {
+					limit = { is_researching_special_project = AAR_sp_VEIL_tech_CLOSED }
+					leader_event = { id = AAR_evt_VEIL.33 }
+				}
+			}
+		}
+		#	领袖奖励
+		if = { limit = { check_variable = { which = AAR_var_cntr_VEIL_tech value >= 80 } }
+			random_owned_leader = { limit = { is_researching_special_project = AAR_sp_VEIL_tech_CLOSED }
+				set_leader_flag = AAR_flg_ldr_VEIL_lab_reward
+			}
+		}
+	}
+	on_progress_75 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	##	阶段结果
+	on_success = {
+		#	|条件不符|
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+		#	|条件符合|	=结果
+		if = { limit = { NOT = { has_country_flag = AAR_flg_cntr_VEIL_sp_CANCEL } }
+
+			#	进度骰子
+			random_list = {
+				1 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 20 } }
+				2 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 18 } }
+				3 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 16 } }
+				4 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 14 } }
+				3 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 12 } }
+				2 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 10 } }
+			}
+
+			#	|未完成研究|
+			if = { limit = { check_variable = { which = AAR_var_cntr_VEIL_tech value < 100 } }
+				abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+				abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+				enable_special_project = { name = AAR_sp_VEIL_tech_CLOSED	owner = root }
+				enable_special_project = { name = AAR_sp_VEIL_tech_OPEN		owner = root }
+			}
+			#	|完成研究|
+			else = {
+				set_update_modifiers_batch = begin
+
+				#	添加科技
+				clear_variable = AAR_var_cntr_VEIL_tech
+				give_technology = { tech = AAR_tech_AP_VEIL }
+				#	lab修正转为地块
+				random_owned_planet = {
+					limit = { has_modifier = AAR_mod_plnt_VEIL_lab }
+					remove_modifier = AAR_mod_plnt_VEIL_lab
+					add_deposit = AAR_dep_VEIL_lab
+				}
+				AAR_eft_glbl_VEIL_lab_CLEAN = yes	# AAR铁幕LAB清理
+				#	领袖奖励
+				random_owned_leader = { limit = { has_leader_flag = AAR_flg_ldr_VEIL_lab_reward }
+					remove_leader_flag = AAR_flg_ldr_VEIL_lab_reward
+					#	|经历事故|	获得高级奖励
+					if = { limit = { has_leader_flag = AAR_flg_ldr_VEIL_lab_accident }
+						remove_leader_flag = AAR_flg_ldr_VEIL_lab_accident
+						add_trait = AAR_trait_ldr_VEIL_master
+					}
+					#	|一路平安|	获得普通奖励
+					else = {
+						add_trait = AAR_trait_ldr_VEIL_scientist
+					}
+					leader_event = { id = AAR_evt_VEIL.34 days = 1 }	# aar铁幕lab领袖奖励
+				}
+
+				set_update_modifiers_batch = end
+
+				#	aar铁幕lab研究完成
+				country_event = { id = AAR_evt_VEIL.36 }
+				abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+				abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+			}
+		}
+	}
+	##	截断
+	on_cancel = {
+		##_scopes	<this>=国家/<from>=特殊项目|event_scope|/<fromfrom>=地点(如果设置的话)
+		#	条件不符
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+		#	|条件符合|	=重启
+		if = { limit = { NOT = { has_country_flag = AAR_flg_cntr_VEIL_sp_CANCEL } }
+			abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+			abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+			enable_special_project = { name = AAR_sp_VEIL_tech_CLOSED	owner = root }
+			enable_special_project = { name = AAR_sp_VEIL_tech_OPEN		owner = root }
+		}
+	}
+}
+special_project = {
+	key = "AAR_sp_VEIL_tech_OPEN"
+	icon = "gfx/interface/icons/situation_log/AAR_log_VEIL.dds"
+	picture = GFX_AAR_evt_VEIL_project_2
+	cost = 0
+	days_to_research = 240
+#	timelimit = 1080
+	event_chain = AAR_chain_CORE
+	tech_department = physics_technology
+	same_option_group_as = { AAR_sp_VEIL_tech_CLOSED } # determines that this project is one of several options, along with other specified projects
+
+	event_scope = country_event
+
+	requirements = {
+		leader = scientist
+	}
+
+	##	实验条件debug
+	on_start = {
+		##_scopes	<this>=特殊项目|event_scope|/<from>=地点(如果设置的话)/<prev>=国家
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	on_progress_25 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	on_progress_50 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	
+		#	研究事故DB		|进度+|概率-|
+		random_owned_planet = {
+			limit = {
+				is_colony = yes
+				has_modifier = AAR_mod_plnt_VEIL_lab
+				NOT = { has_deposit = AAR_dep_VEIL_accident_BLOCKER }	# |星球未出现事故|
+			}
+			set_variable = { which = TEMP_var_accident value = 100 }
+			subtract_variable = { which = TEMP_var_accident value = prev.AAR_var_cntr_VEIL_tech }
+			random_list = {
+				75 = {}
+				1 = { modifier = { factor = TEMP_var_accident		always = yes }
+
+					set_update_modifiers_batch = begin
+					add_deposit = AAR_dep_VEIL_accident_BLOCKER
+					AAR_eft_plnt_VEIL_sp_OPEN_accident = yes	# AAR铁幕SP事故_开放
+					set_update_modifiers_batch = end
+
+					planet_event = { id = AAR_evt_VEIL.35 }	# aar铁幕lab星球事故
+				}
+			}
+			clear_variable = TEMP_var_accident
+			prev = {
+				random_owned_leader = { limit = { is_researching_special_project = AAR_sp_VEIL_tech_OPEN }
+					set_leader_flag = AAR_flg_ldr_VEIL_lab_accident
+				}
+			}
+		}
+		#	领袖奖励
+		if = { limit = { check_variable = { which = AAR_var_cntr_VEIL_tech value >= 40 } }
+			random_owned_leader = { limit = { is_researching_special_project = AAR_sp_VEIL_tech_OPEN }
+				set_leader_flag = AAR_flg_ldr_VEIL_lab_reward
+			}
+		}
+	}
+	on_progress_75 = {
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+	}
+	##	阶段结果
+	on_success = {
+		#	|条件不符|
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+		#	|条件符合|	=结果
+		if = { limit = { NOT = { has_country_flag = AAR_flg_cntr_VEIL_sp_CANCEL } }
+			#	进度骰子
+			random_list = {
+				1 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 60 } }
+				2 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 57 } }
+				3 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 54 } }
+				4 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 51 } }
+				3 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 48 } }
+				2 = { change_variable = { which = AAR_var_cntr_VEIL_tech value = 45 } }
+			}
+
+			#	|未完成研究|
+			if = { limit = { check_variable = { which = AAR_var_cntr_VEIL_tech value < 100 } }
+				abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+				abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+				enable_special_project = { name = AAR_sp_VEIL_tech_CLOSED	owner = root }
+				enable_special_project = { name = AAR_sp_VEIL_tech_OPEN		owner = root }
+			}
+			#	|完成研究|
+			else = {
+				set_update_modifiers_batch = begin
+
+				#	添加科技
+				clear_variable = AAR_var_cntr_VEIL_tech
+				give_technology = { tech = AAR_tech_AP_VEIL }
+				#	lab修正转为地块
+				random_owned_planet = {
+					limit = { has_modifier = AAR_mod_plnt_VEIL_lab }
+					remove_modifier = AAR_mod_plnt_VEIL_lab
+					add_deposit = AAR_dep_VEIL_lab
+				}
+				AAR_eft_glbl_VEIL_lab_CLEAN = yes	# AAR铁幕LAB清理
+				#	领袖奖励
+				random_owned_leader = { limit = { has_leader_flag = AAR_flg_ldr_VEIL_lab_reward }
+					remove_leader_flag = AAR_flg_ldr_VEIL_lab_reward
+					#	|经历事故|	=高级奖励
+					if = { limit = { has_leader_flag = AAR_flg_ldr_VEIL_lab_accident }
+						remove_leader_flag = AAR_flg_ldr_VEIL_lab_accident
+						add_trait = AAR_trait_ldr_VEIL_master
+					}
+					#	|一帆风顺|	=普通奖励
+					else = {
+						add_trait = AAR_trait_ldr_VEIL_scientist
+					}
+					leader_event = { id = AAR_evt_VEIL.34 days = 1 }	# aar铁幕lab领袖奖励
+				}
+
+				set_update_modifiers_batch = end
+
+				#	aar铁幕lab研究完成
+				country_event = { id = AAR_evt_VEIL.36 }
+				abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+				abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+			}
+		}
+	}
+	##	截断
+	on_cancel = {
+		##_scopes	<this>=国家/<from>=特殊项目|event_scope|/<fromfrom>=地点(如果设置的话)
+		#	条件不符
+		AAR_eft_cntr_VEIL_sp_DB = yes	# AAR铁幕SP_DB
+		#	|条件符合|	=重启
+		if = { limit = { NOT = { has_country_flag = AAR_flg_cntr_VEIL_sp_CANCEL } }
+			abort_special_project = { type = AAR_sp_VEIL_tech_CLOSED }
+			abort_special_project = { type = AAR_sp_VEIL_tech_OPEN }
+			enable_special_project = { name = AAR_sp_VEIL_tech_CLOSED	owner = root }
+			enable_special_project = { name = AAR_sp_VEIL_tech_OPEN		owner = root }
+		}
+	}
+}
+

@@ -1,0 +1,196 @@
+###	fw触发框架|AAR|	####################################################################
+namespace = FW_evt_CORE
+
+#_[fw接战框架pc/fw接战框架ai/fw战斗循环框架/fw脱战框架]
+#_[fw跃迁框架]
+
+
+
+
+###_[fw接战框架pc]	##############################################################################
+#_<on_entering_battle>
+#_[AAR框架]		AAR航海抵消FW/AAR敌对海域FW/AAR防线触发FW
+##_scopes	<root>=攻击国家/<from>=防御国家		/<fromfrom>=攻击舰队/<fromfromfrom>=防御舰队
+country_event = {
+	id = FW_evt_CORE.3
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		OR = {
+			is_ai = yes
+			from = { is_ai = yes }
+		}
+	}
+
+	immediate = {
+		###	<舰队1>
+		fromfrom = {
+			###	|无限制|=参数DB
+			remove_fleet_flag = FW_flg_flt_CORE_combat_end_COUNTED	# |FW已脱战|清除
+
+
+			###	|单次触发|=功能执行
+			if = { limit = { NOT = { has_fleet_flag = FW_flg_flt_BATTLE_enter_counted } }
+				set_timed_fleet_flag = { flag = FW_flg_flt_BATTLE_enter_counted days = 1 }
+				
+				##	|fw战斗循环框架|激活
+				if = { limit = { NOT = { has_fleet_flag = FW_flg_flt_CORE_combat_cycle_ONGOING } }	# |FW战斗循环中|
+					set_fleet_flag = FW_flg_flt_CORE_combat_cycle_ONGOING
+					fleet_event = { id = FW_evt_CORE.30 days = 3 }
+				}
+			}
+		}
+	}
+}
+###_[fw接战框架ai]	##############################################################################
+#_<on_entering_battle>
+#_[AAR框架]		AAR航海抵消FW/AAR敌对海域FW/AAR防线触发FW
+##_scopes	<root>=攻击国家/<from>=防御国家		/<fromfrom>=攻击舰队/<fromfromfrom>=防御舰队
+country_event = {
+	id = FW_evt_CORE.300
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { always = no }
+
+	immediate = {
+	}
+}
+
+
+###_[fw战斗循环框架]
+#_evt	<fw接战框架pc>
+#_[AAR框架]		AAR航海抵消FW/AAR敌对海域FW
+fleet_event = {
+	id = FW_evt_CORE.30
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { exists = this }
+	
+	immediate = {
+		###	|战斗中+星系内|	=自循环
+		if = { limit = { is_in_combat = yes		exists = solar_system }
+			fleet_event = { id = FW_evt_CORE.30 days = 3 }
+		}
+		
+		
+		###	|脱战|	=截断循环
+		else = {
+			remove_fleet_flag = FW_flg_flt_CORE_combat_cycle_ONGOING	# |FW战斗循环中|清除
+			
+			
+			if = { limit = { NOT = { has_fleet_flag = FW_flg_flt_CORE_combat_end_COUNTED } }	# |FW已脱战|
+				##############################################################################
+				set_fleet_flag = TEMP_flg_flt_BATTLE_end		# |执行类型标签|添加
+
+
+				###_[框架检测]开始	################################################
+				set_fleet_flag = TEMP_flg_flt_FW_condition
+				
+				##_[AAR框架]
+				AAR_eft_flt_NAVIGATOR_offset_FW = yes		# AAR航海抵消FW
+				AAR_eft_flt_HOSTILE_modifier_FW = yes		# AAR敌对海域FW
+				
+				remove_fleet_flag = TEMP_flg_flt_FW_condition
+				###_[框架检测]结束	################################################
+
+
+				###_[框架执行]开始	################################################
+				if = { limit = { has_fleet_flag = EXECUTE_flg_flt_BATTLE_end }
+					remove_fleet_flag = EXECUTE_flg_flt_BATTLE_end
+					set_update_modifiers_batch = begin	#_|修正更新|暂停
+					
+					##_[AAR框架]
+					AAR_eft_flt_NAVIGATOR_offset_FW = yes		# AAR航海抵消FW
+					AAR_eft_flt_HOSTILE_modifier_FW = yes		# AAR敌对海域FW
+					
+					set_update_modifiers_batch = end	#_|修正更新|重启
+				}
+				###_[框架执行]结束	################################################
+
+
+				remove_fleet_flag = TEMP_flg_flt_BATTLE_end		# |执行类型标签|清除
+				##############################################################################
+			}
+		}
+	}
+}
+
+
+###_[fw脱战框架]	##############################################################################
+#_<on_space_battle_won/on_space_battle_lost>
+#_[AAR框架]		AAR航海抵消FW/AAR敌对海域FW
+##_scopes	<root>=舰队1国家/<from>=舰队2国家/<fromfrom>=舰队1/<fromfromfrom>=舰队2
+country_event = {
+	id = FW_evt_CORE.31
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { fromfrom = { NOT = { has_fleet_flag = FW_flg_flt_CORE_combat_end_COUNTED } } }
+	immediate = {
+		fromfrom = {
+			set_timed_fleet_flag = { flag = FW_flg_flt_CORE_combat_end_COUNTED days = 4 }	# |FW已脱战|添加	比[fw战斗循环框架]循环周期多1日
+
+
+			##############################################################################
+			set_fleet_flag = TEMP_flg_flt_BATTLE_end		# |执行类型标签|添加
+
+
+			###_[框架检测]开始	################################################
+			set_fleet_flag = TEMP_flg_flt_FW_condition
+			
+			##_[AAR框架]
+			AAR_eft_flt_NAVIGATOR_offset_FW = yes		# AAR航海抵消FW
+			AAR_eft_flt_HOSTILE_modifier_FW = yes		# AAR敌对海域FW
+			
+			remove_fleet_flag = TEMP_flg_flt_FW_condition
+			###_[框架检测]结束	################################################
+
+
+			###_[框架执行]开始	################################################
+			if = { limit = { has_fleet_flag = EXECUTE_flg_flt_BATTLE_end }
+				remove_fleet_flag = EXECUTE_flg_flt_BATTLE_end
+				set_update_modifiers_batch = begin	#_|修正更新|暂停
+				
+				##_[AAR框架]
+				AAR_eft_flt_NAVIGATOR_offset_FW = yes		# AAR航海抵消FW
+				AAR_eft_flt_HOSTILE_modifier_FW = yes		# AAR敌对海域FW
+				
+				set_update_modifiers_batch = end	#_|修正更新|重启
+			}
+			###_[框架执行]结束	################################################
+
+
+			remove_fleet_flag = TEMP_flg_flt_BATTLE_end		# |执行类型标签|清除
+			##############################################################################
+		}
+	}
+}
+
+
+
+
+###_[fw跃迁框架]		##############################################################################
+#_<on_jump_drive>
+#_[AAR框架]		AAR神速跃迁FW
+ship_event = {
+	id = FW_evt_CORE.40
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = {
+		controller = {
+			is_ai = no
+			has_ascension_perk = AAR_AP_jumper
+		}
+		fleet = { NOT = { has_fleet_flag = FW_flg_flt_JUMP_counted } }
+	}
+
+	immediate = {
+		fleet = {
+			set_timed_fleet_flag = { flag = FW_flg_flt_JUMP_counted days = 1 }	# |单次触发|
+			
+			##_[AAR框架]
+			AAR_eft_flt_JUMPER_FW = yes		# AAR神速跃迁FW
+		}
+	}
+}
+
+

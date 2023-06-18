@@ -1,0 +1,212 @@
+mmgsiege_can_stockpile = {
+	# controlled by owner
+	exists = owner
+	exists = controller
+	owner = {
+		is_same_value = prev.controller
+	}
+	# has established colony
+	is_colony = yes
+	is_under_colonization = no
+	# not under siege
+	exists = solar_system
+	solar_system = {
+		exists = starbase
+		starbase = {
+			exists = controller
+			controller = {
+				is_same_value = prevprevprev.owner
+			}
+		}
+	}
+	# not above max
+	is_variable_set = mmgsiege_stockpile_maximum
+	OR = {
+		AND = {
+			is_variable_set = mmgsiege_$RESOURCE$_stockpile
+			check_variable = {
+				which = mmgsiege_stockpile_maximum
+				value > mmgsiege_$RESOURCE$_stockpile
+			}
+		}
+		AND = {
+			NOT = { is_variable_set = mmgsiege_$RESOURCE$_stockpile }
+			check_variable = {
+				which = mmgsiege_stockpile_maximum
+				value > 0
+			}
+		}
+	}
+}
+
+mmgsiege_is_under_siege = {
+	custom_tooltip = {
+		fail_text = "mmgsiege_is_not_under_siege_success"
+		success_text = "mmgsiege_is_not_under_siege_fail"
+		AND = {
+			exists = solar_system
+			exists = solar_system.starbase
+			exists = solar_system.starbase.controller
+			exists = controller
+			controller = {
+				NOT = {
+					is_same_value = prev.solar_system.starbase.controller
+				}
+				is_hostile = prev.solar_system.starbase.controller
+			}
+		}
+	}
+}
+
+mmgsiege_has_resource_shortage = {
+	AND = {
+		has_planet_flag = mmgsiege_$RESOURCE$_shortage
+		[[LEVEL]
+		is_variable_set = mmgsiege_$RESOURCE$_shortage_level
+		check_variable = {
+			which = mmgsiege_$RESOURCE$_shortage_level
+			value = $LEVEL$
+		}
+		]
+	}
+}
+
+
+mmgsiege_has_recovering_resource_shortage = {
+	AND = {
+		mmgsiege_has_resource_shortage = { RESOURCE = $RESOURCE$ }
+		OR = {
+			mmgsiege_is_under_siege = no
+			planet_resource_compare = {
+				resource = $RESOURCE$
+				type = balance
+				value >= value:mmgsiege_planet_production_offset_$RESOURCE$
+			}
+		}
+	}
+}
+
+# mmgsiege_planet_has_army_supply_shortage = {
+# 	AND = {
+# 		OR = {
+# 			mmgsiege_has_resource_shortage = { RESOURCE = energy }
+# 			mmgsiege_has_resource_shortage = { RESOURCE = minerals }
+# 			mmgsiege_has_resource_shortage = { RESOURCE = food }
+# 			mmgsiege_has_resource_shortage = { RESOURCE = consumer_goods }
+# 		}
+# 		is_variable_set = mmgsiege_army_shortage
+# 		check_variable = {
+# 			which = mmgsiege_army_shortage
+# 			value >= 1
+# 		}
+# 	}
+# }
+
+# mmgsiege_general_is_on_planet_with_army_supply_shortage = {
+# 	AND = {
+# 		leader_class = general
+# 		exists = owner
+# 		owner = {
+# 			any_owned_planet = {
+# 				mmgsiege_planet_has_army_supply_shortage = yes
+# 				OR = {
+# 					AND = {
+# 						exists = army_leader
+# 						army_leader = { is_same_value = prevprevprev }
+# 					}
+# 					any_planet_army = {
+# 						exists = leader
+# 						leader = { is_same_value = prevprevprevprev }
+# 					}
+# 					any_ground_combat_defender = {
+# 						exists = leader
+# 						leader = { is_same_value = prevprevprevprev }
+# 					}
+# 				}
+# 			}
+# 		}
+# 	}
+# }
+
+mmgsiege_is_biological_army = {
+	OR = {
+		AND = {
+			exists = species
+			species = { is_archetype = BIOLOGICAL }
+		}
+		army_type = xenomorph_army
+		army_type = mutant_army
+		army_type = swarm_army
+		army_type = enraged_army
+		army_type = titanic_assault_army
+		army_type = titanic_azizian_assault_army
+		army_type = titanic_guardian_army
+		AND = {
+			OR = {
+				army_type = new_world_order_defensive_army
+				army_type = new_world_order_offensive_army
+			}
+			exists = owner_main_species
+			owner_main_species = { is_archetype = BIOLOGICAL }
+		}
+	}
+}
+
+mmgsiege_is_lithoid_army = {
+	OR = {
+		AND = {
+			exists = species
+			species = { is_archetype = LITHOID }
+		}
+		army_type = crystal_kraken_army
+		AND = {
+			OR = {
+				army_type = new_world_order_defensive_army
+				army_type = new_world_order_offensive_army
+			}
+			exists = owner_main_species
+			owner_main_species = { is_archetype = LITHOID }
+		}
+	}
+}
+
+mmgsiege_is_mechanical_army = {
+	OR = {
+		AND = {
+			exists = species
+			OR = {
+				species = { is_archetype = MACHINE }
+				species = { is_archetype = ROBOT }
+			}
+		}
+		army_type = machine_assault_3
+		army_type = robot_uprising_army
+		army_type = gray_army
+		army_type = care_defensive_protocols
+		army_type = sentinel_army
+		army_type = cybrex_warform
+		AND = {
+			OR = {
+				army_type = new_world_order_defensive_army
+				army_type = new_world_order_offensive_army
+			}
+			exists = owner_main_species
+			owner_main_species = {
+				OR = {
+					is_archetype = MACHINE
+					is_archetype = ROBOT
+				}
+			}
+		}
+	}
+}
+
+# this isn't actually used; just documenting un-categorized armies
+mmgsiege_is_other_army = {
+	OR = {
+		army_type = imperial_legion # lore reason: recruited from all species of imperium
+		army_type = tree_army
+		army_type = ice_army
+		army_type = shroud_army
+	}
+}

@@ -1,0 +1,342 @@
+# TARGET : should accept set_name
+# country scope = player country
+dmm_keyboard_rename = {
+	$TARGET$ = {
+		save_event_target_as = dmm_keyboard_rename_target
+	}
+	country_event = {
+		id = dmm_keyboard.0
+	}
+}
+
+dmm_keyboard_get_idle_country = {
+	if = {
+		limit = {
+			NOT = {
+				any_country = {
+					has_country_flag = dmm_keyboard_country
+					has_country_flag = dmm_keyboard_idle_country
+				}
+			}
+		}
+		dmm_keyboard_create_country = yes
+	}
+	random_country = {
+		limit = {
+			has_country_flag = dmm_keyboard_country
+			has_country_flag = dmm_keyboard_idle_country
+		}
+		remove_country_flag = dmm_keyboard_idle_country
+		save_event_target_as = dmm_keyboard_country
+		set_variable = {
+			which = dmm_keyboard_selected_color
+			value = 0
+		}
+		set_variable = {
+			which = dmm_keyboard_current_color
+			value = dmm_keyboard_selected_color
+		}
+	}
+}
+
+dmm_keyboard_create_country = {
+	if = {
+		limit = {
+			NOT = {
+				exists = event_target:dmm_global_species
+			}
+		}
+		create_species = {
+			class = MOL
+			portrait = mol17
+			effect = {
+				save_global_event_target_as = dmm_global_species
+			}
+		}
+	}
+	create_country = {
+		type = dmm_global_country
+		name = "DMM Keyboard Event Country"
+		species = event_target:dmm_global_species
+		effect = {
+			save_event_target_as = dmm_keyboard_country
+			set_country_flag = dmm_keyboard_idle_country
+			set_country_flag = dmm_keyboard_country
+		}
+	}
+}
+
+# this = dmm keyboard country
+dmm_keyboard_create_leader = {
+	create_leader = {
+		class = general
+		species = event_target:dmm_global_species
+		immortal = yes
+		effect = {
+			set_leader_flag = dmm_keyboard_idle
+		}
+	}
+}
+
+# this = dmm keyboard country
+# remove idle 
+dmm_keyboard_get_idle_leader = {
+	if = {
+		limit = {
+			NOT = {
+				any_owned_leader = {
+					has_leader_flag = dmm_keyboard_idle
+				}
+			}
+		}
+		dmm_keyboard_create_leader = yes
+	}
+	random_owned_leader = {
+		limit = {
+			has_leader_flag = dmm_keyboard_idle
+		}
+		remove_leader_flag = dmm_keyboard_idle
+		save_event_target_as = dmm_keyboard_leader
+		if = {
+			limit = {
+				is_variable_set = dmm_keyboard_selected_color
+			}
+			clear_variable = dmm_keyboard_selected_color
+		}
+	}
+}
+
+# this = leader
+dmm_keyboard_free_leader = {
+	set_leader_flag = dmm_keyboard_idle
+	if = {
+		limit = {
+			is_variable_set = dmm_keyboard_name_length
+		}
+		clear_variable = dmm_keyboard_name_length
+	}
+}
+
+# this = country
+dmm_keyboard_add_letter = {
+	event_target:dmm_keyboard_country = {
+		dmm_keyboard_get_idle_leader = yes
+		event_target:dmm_keyboard_leader = {
+			# set_name = "[dmm_keyboard_current_leader.GetName]"
+			set_variable = {
+				which = dmm_keyboard_name_length
+				value = event_target:dmm_keyboard_current_leader.dmm_keyboard_name_length
+			}
+			set_variable = {
+				which = dmm_keyboard_current_color
+				value = prev.dmm_keyboard_current_color
+			}
+			prev = {
+				set_leader = prev
+			}
+			set_variable = {
+				which = dmm_keyboard_spaces_amount				# number of spaces at the end of his name
+				value = event_target:dmm_keyboard_country.dmm_keyboard_spaces_amount
+			}
+		}
+	}
+	event_target:dmm_keyboard_current_leader = {
+		change_variable = {
+			which = dmm_keyboard_name_length
+			value = 1
+		}
+	}
+}
+
+# dmm_keyboard_add_letter_post = {
+# 	event_target:dmm_keyboard_country = {
+# 		set_variable = {
+# 			which = dmm_keyboard_spaces_amount
+# 			value = 0
+# 		}
+# 		if = {
+# 			limit = {
+# 				check_variable = {
+# 					which = dmm_keyboard_current_color
+# 					value != dmm_keyboard_selected_color
+# 				}
+# 			}
+# 			# color changed
+# 			set_variable = {
+# 				which = dmm_keyboard_current_color
+# 				value = dmm_keyboard_selected_color
+# 			}
+# 			if = {
+# 				limit = {
+# 					has_country_flag = dmm_keyboard_colored
+# 				}
+# 				if = {
+# 					limit = {
+# 						check_variable = {
+# 							which = dmm_keyboard_current_color
+# 							value = 0
+# 						}
+# 					}
+# 					# color goes back to default
+# 					remove_country_flag = dmm_keyboard_colored
+# 				}
+# 				else = {
+# 					event_target:dmm_keyboard_leader = {
+# 						set_leader_flag = dmm_keyboard_colored
+# 					}
+# 				}
+# 			}
+# 			else = {
+# 				if = {
+# 					limit = {
+# 						check_variable = {
+# 							which = dmm_keyboard_current_color
+# 							value != 0
+# 						}
+# 					}
+# 					# this is non-default color
+# 					set_country_flag = dmm_keyboard_colored
+# 					event_target:dmm_keyboard_leader = {
+# 						set_leader_flag = dmm_keyboard_colored
+# 					}
+# 				}
+# 			}
+# 		}
+# 	}
+# 	dmm_keyboard_clear_diacritics = yes
+# }
+# this = country
+dmm_keyboard_remove_letter = {
+	# copy info from the ruler to the country and free the ruler
+	# ie load previous letter and its spaces/color
+	# here, the ruler is != current leader, because they can be the same only when spaces > 0 (and don't execute this code)
+	# and when spaces gets to 0, another leader is selected as leader (next delete will execute this)
+	event_target:dmm_keyboard_country = {
+		# save_event_target_as = dmm_keyboard_current_leader
+		set_variable = {
+			which = dmm_keyboard_spaces_amount
+			value = ruler.dmm_keyboard_spaces_amount
+		}
+		set_variable = {
+			which = dmm_keyboard_current_color
+			value = ruler.dmm_keyboard_current_color
+		}
+		ruler = {
+			dmm_keyboard_free_leader = yes
+		}
+	}
+	event_target:dmm_keyboard_current_leader = {
+		# set_name = "[dmm_keyboard_country.ruler.GetName]"
+		subtract_variable = {
+			which = dmm_keyboard_name_length
+			value = 1
+		}
+		if = {
+			limit = {
+				check_variable = {
+					which = dmm_keyboard_name_length
+					value > 0
+				}
+			}
+			subtract_variable = {
+				which = dmm_keyboard_name_length
+				value = 1
+			}
+			dmm_keyboard_get_previous_leader = yes
+			change_variable = {
+				which = dmm_keyboard_name_length
+				value = 1
+			}
+		}
+	}
+}
+
+# dmm_keyboard_get_next_leader = {
+# 	event_target:dmm_keyboard_current_leader = {
+# 		save_event_target_as = dmm_keyboard_previous_leader
+# 	}
+# 	event_target:dmm_keyboard_country = {
+# 		dmm_keyboard_get_idle_leader = yes
+# 		event_target:dmm_keyboard_leader = {
+# 			set_variable = {
+# 				which = dmm_keyboard_name_length
+# 				value = event_target:dmm_keyboard_current_leader
+# 			}
+# 			change_variable = {
+# 				which = dmm_keyboard_name_length
+# 				value = 1
+# 			}
+# 			save_event_target_as = dmm_keyboard_current_leader
+# 		}
+# 	}
+# }
+# this = leader
+# assume dmm_keyboard_name_length > 0
+dmm_keyboard_get_previous_leader = {
+	event_target:dmm_keyboard_country = {
+		random_owned_leader = {
+			limit = {
+				NOT = {
+					is_same_value = prevprev
+				}
+				is_variable_set = dmm_keyboard_name_length
+				check_variable = {
+					which = dmm_keyboard_name_length
+					value = prevprev.dmm_keyboard_name_length
+				}
+			}
+			prev = {
+				set_leader = prev
+			}
+			# save_event_target_as = dmm_keyboard_previous_leader
+		}
+	}
+}
+
+# # this = leader
+# dmm_keyboard_generate_next_letter = {
+# 	dmm_keyboard_generate_next_letter_aux = {
+# 		LETTER = c
+# 	}
+# 	dmm_keyboard_generate_next_letter_aux = {
+# 		LETTER = e
+# 	}
+# 	dmm_keyboard_generate_next_letter_aux = {
+# 		LETTER = C
+# 	}
+# 	dmm_keyboard_generate_next_letter_aux = {
+# 		LETTER = E
+# 	}
+# }
+# # this = leader
+# dmm_keyboard_generate_next_letter_aux = {
+# 	owner = {
+# 		dmm_keyboard_get_idle_leader = yes
+# 	}
+# 	event_target:dmm_keyboard_leader = {
+# 		set_name = "[Prev.GetName]$LETTER$"
+# 		set_variable = {
+# 			which = dmm_keyboard_name_length
+# 			value = prev
+# 		}
+# 		change_variable = {
+# 			which = dmm_keyboard_name_length
+# 			value = 1
+# 		}
+# 		save_event_target_as = dmm_keyboard_leader_$LETTER$
+# 	}
+# }
+dmm_keyboard_clear_diacritics = {
+	remove_country_flag = dmm_keyboard_acute
+	remove_country_flag = dmm_keyboard_grave
+	remove_country_flag = dmm_keyboard_circumflex
+	remove_country_flag = dmm_keyboard_diaeresis
+	remove_country_flag = dmm_keyboard_tilde
+	event_target:dmm_keyboard_country = {
+		remove_country_flag = dmm_keyboard_acute
+		remove_country_flag = dmm_keyboard_grave
+		remove_country_flag = dmm_keyboard_circumflex
+		remove_country_flag = dmm_keyboard_diaeresis
+		remove_country_flag = dmm_keyboard_tilde
+	}
+}

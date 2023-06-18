@@ -1,0 +1,789 @@
+# Set up ACE SFEX Core Global Event Country.
+acemod_sfex_core_create_global_country_if_needed = {
+	optimize_memory
+	if = {
+		limit = {
+			NOT = {
+				exists = event_target:acemod_sfex_core_global_country
+			}
+		}
+		create_species = {
+			class = MOL
+			portrait = mol17
+			effect = {
+				save_global_event_target_as = acemod_sfex_core_global_species
+			}
+		}
+		event_target:global_event_country = {
+			save_global_event_target_as = acemod_sfex_core_global_country			# For better savegame compatibility.
+			create_leader = {
+				class = general
+				name = acemod_sfex_name_register
+				species = event_target:acemod_sfex_core_global_species
+				immortal = yes
+			}
+			last_created_leader = {
+				set_leader_flag = acemod_sfex_name_register
+				save_global_event_target_as = acemod_sfex_event_target_mod_name_register
+			}
+		}
+		# create_country = {
+		# 	type = acemod_sfex_core_global_country
+		# 	name = "ACE SFEX Core Global Event Country"
+		# 	species = event_target:acemod_sfex_core_global_species
+		# 	effect = {
+		# 		save_global_event_target_as = acemod_sfex_core_global_country
+		# 	}
+		# }
+		# last_created_country = {
+		# 	create_leader = {
+		# 		class = general
+		# 		name = acemod_sfex_name_register
+		# 		species = event_target:acemod_sfex_core_global_species
+		# 		immortal = yes
+		# 	}
+		# 	last_created_leader = {
+		# 		set_leader_flag = acemod_sfex_name_register
+		# 		save_global_event_target_as = acemod_sfex_event_target_mod_name_register
+		# 	}
+		# }
+	}
+}
+
+# FLAG = unique flag across all mods
+# NAME = name displayed on the button
+acemod_sfex_core_register_name = {
+	optimize_memory
+	acemod_sfex_core_create_global_country_if_needed = yes	# Set up acemod_sfex Core Global Event Country.
+	event_target:acemod_sfex_core_global_country = {
+		if = {
+			limit = {
+				NOT = {
+					any_owned_leader = {
+						has_leader_flag = $NAME$
+					}
+				}
+			}
+			create_leader = {
+				class = general
+				name = $NAME$
+				species = event_target:acemod_sfex_core_global_species
+				immortal = yes
+			}
+			last_created_leader = {
+				set_leader_flag = $NAME$
+				save_global_event_target_as = acemod_sfex_core_event_target_name_$NAME$
+			}
+		}
+	}
+}
+
+# FLAG = unique flag across all mods
+acemod_sfex_core_deregister_name = {
+	optimize_memory
+	acemod_sfex_core_create_global_country_if_needed = yes	# Set up acemod_sfex Core Global Event Country.
+	event_target:acemod_sfex_global_country = {
+		every_owned_leader = {
+			limit = {
+				has_leader_flag = $FLAG$
+			}
+			kill_leader = {
+				type = general
+			}
+		}
+		clear_global_event_target = acemod_sfex_core_event_target_name_$FLAG$
+	}
+}
+
+# Main acemod_sfex_set_fleet_order effect.
+acemod_sfex_set_fleet_order = {
+	optimize_memory
+	[[ORDER]
+	set_timed_fleet_flag = {
+		flag = acemod_sfex_fleet_flag_$ORDER$_order
+		days = 1
+	}
+	]
+	[[MODNAME]
+	set_timed_fleet_flag = {
+		flag = acemod_sfex_fleet_flag_$MODNAME$_value
+		days = 16
+	}
+	if = {
+		limit = {
+			has_global_flag = acemod_sfex_verbose_logging_enabled
+		}
+		log = "acemod_sfex_set_fleet_order MODNAME: $MODNAME$"
+	}
+	# check if optional MODNAME exist
+	event_target:acemod_sfex_core_global_country = {
+		if = {
+			limit = {
+				NOT = {
+					any_owned_leader = {
+						has_leader_flag = $MODNAME$
+					}
+				}
+			}
+			create_leader = {
+				class = general
+				name = random
+				species = event_target:acemod_sfex_core_global_species
+				immortal = yes
+			}
+			last_created_leader = {
+				set_name = $MODNAME$
+				set_leader_flag = $MODNAME$
+				save_global_event_target_as = acemod_sfex_core_event_target_name_$MODNAME$
+			}
+		}
+	}
+	]
+	if = {
+		limit = {
+			has_global_flag = acemod_sfex_verbose_logging_enabled
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_fleet_flag = acemod_sfex_fleet_flag_$MODNAME$_value
+				}
+			}
+			log = "acemod_sfex_set_fleet_order: MODNAME not set. Continuing anyway."
+		}
+	}
+	# grab TARGET scope
+	[[TARGET]
+	set_fleet_flag = acemod_sfex_$TARGET$
+	set_timed_fleet_flag = {
+		flag = acemod_sfex_TARGET_exists
+		days = 1
+	}
+	]
+	[[TARGET]
+	if = {
+		limit = {
+			has_fleet_flag = acemod_sfex_$TARGET$
+		}
+		if = {
+			limit = {
+				is_scope_set = $TARGET$
+			}
+			$TARGET$ = {
+				save_event_target_as = acemod_sfex_core_event_target_1
+			}
+		}
+		else_if = {
+			limit = {
+				is_scope_set = event_target:$TARGET$
+			}
+			event_target:$TARGET$ = {
+				save_event_target_as = acemod_sfex_core_event_target_1
+			}
+		}
+		else = {
+			log = "acemod_sfex_set_fleet_order: Unsupported scope operator or scope does not exist. event_targets must be referenced by name only."
+		}
+	}
+	]
+	if = {
+		limit = {
+			NOT = {
+				has_fleet_flag = acemod_sfex_TARGET_exists
+			}
+			has_fleet_flag = acemod_sfex_fleet_flag_build_order			# Subroutine to allow issue build starbase order without specifying TARGET.
+		}
+		acemod_sfex_core_create_global_country_if_needed = yes
+		event_target:acemod_sfex_core_global_country = {
+			random_owned_leader = {
+				limit = {
+					has_leader_flag = acemod_sfex_$BUILD_STRUCTURE$
+				}
+				save_event_target_as = acemod_sfex_event_target_build_order_structure
+			}
+			if = {
+				limit = {
+					exists = event_target:acemod_sfex_event_target_build_order_structure
+				}
+				event_target:acemod_sfex_event_target_build_order_structure = {
+					set_leader_flag = acemod_sfex_$BUILD_STRUCTURE$
+				}
+			}
+			if = {
+				limit = {
+					NOT = {
+						exists = event_target:acemod_sfex_event_target_build_order_structure
+					}
+				}
+				create_leader = {
+					class = general
+					name = "$BUILD_STRUCTURE$"
+					species = event_target:acemod_sfex_core_global_species
+					immortal = yes
+				}
+				last_created_leader = {
+					set_leader_flag = acemod_sfex_$BUILD_STRUCTURE$
+					save_event_target_as = acemod_sfex_event_target_build_order_structure
+				}
+			}
+			if = {
+				limit = {
+					event_target:acemod_sfex_event_target_build_order_structure = {
+						has_leader_flag = acemod_sfex_starbase
+					}
+				}
+				prev.solar_system = {
+					save_event_target_as = acemod_sfex_core_event_target_1
+				}
+			}
+			else = {
+				log = "acemod_sfex_set_fleet_order: only build starbase ORDER does not require TARGET."
+			}
+		}
+	}
+	# Print scopes for debug.
+	if = {
+		limit = {
+			has_global_flag = acemod_sfex_verbose_logging_scopes_enabled
+		}
+		if = {
+			limit = {
+				exists = event_target:acemod_sfex_core_event_target_1
+			}
+			event_target:acemod_sfex_core_event_target_1 = {
+				log = "event_target:acemod_sfex_core_event_target_1 = \\[this.GetName]"
+			}
+		}
+		root = {
+			log = "0. root = \\[this.GetName]"
+		}
+		this = {
+			log = "1. this = \\[this.GetName]"
+		}
+		if = {
+			limit = {
+				exists = prev
+			}
+			prev = {
+				log = "2. prev = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = prevprev
+			}
+			prevprev = {
+				log = "3. prevprev = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = prevprevprev
+			}
+			prevprevprev = {
+				log = "4. prevprevprev = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = prevprevprevprev
+			}
+			prevprevprevprev = {
+				log = "5. prevprevprevprev = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = from
+			}
+			from = {
+				log = "6. from = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = fromfrom
+			}
+			fromfrom = {
+				log = "7. fromfrom = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = fromfromfrom
+			}
+			fromfromfrom = {
+				log = "8. fromfromfrom = \\[this.GetName]"
+			}
+		}
+		if = {
+			limit = {
+				exists = fromfromfromfrom
+			}
+			fromfromfromfrom = {
+				log = "9. fromfromfromfrom = \\[this.GetName]"
+			}
+		}
+	}
+	# scope validator
+	# none, megastructure, planet, country, ship, pop, fleet, galactic_object, leader, army, ambient_object, species, design,pop_faction, war, alliance, starbase,deposit,observer, sector.
+	if = {
+		limit = {
+			exists = event_target:acemod_sfex_core_event_target_1
+		}
+		switch = {
+			trigger = has_fleet_flag
+			# jumpdrive_order
+			acemod_sfex_fleet_flag_jumpdrive_order = {
+				event_target:acemod_sfex_core_event_target_1 = {
+					switch = {
+						trigger = is_scope_type
+						ambient_object = {
+						}
+						galactic_object = {
+						}
+						planet = {
+						}
+						fleet = {
+						}
+						megastructure = {
+						}
+						default = {
+							prev = {
+								set_timed_fleet_flag = {
+									flag = acemod_sfex_core_scope_1_invalid
+									days = 1
+								}
+							}
+							log = "ORDER jumpdrive: invalid scope type. Must be galactic_object (solar_system), ambient_object, planet, fleet or megastructure. "
+						}
+					}
+				}
+			}
+			# build_order
+			acemod_sfex_fleet_flag_build_order = {
+				event_target:acemod_sfex_core_event_target_1 = {
+					switch = {
+						trigger = is_scope_type
+						planet = {
+						}
+						galactic_object = {
+						}
+						default = {
+							prev = {
+								set_timed_fleet_flag = {
+									flag = acemod_sfex_core_scope_1_invalid
+									days = 1
+								}
+							}
+							log = "ORDER build: invalid scope type. Must be planet or galactic_object (for starbase)."
+						}
+					}
+				}
+			}
+			# survey_order
+			acemod_sfex_fleet_flag_survey_order = {
+				event_target:acemod_sfex_core_event_target_1 = {
+					switch = {
+						trigger = is_scope_type
+						planet = {
+						}
+						galactic_object = {
+						}
+						default = {
+							prev = {
+								set_timed_fleet_flag = {
+									flag = acemod_sfex_core_scope_1_invalid
+									days = 1
+								}
+							}
+							log = "ORDER survey: invalid scope type. Must be planet or galactic_object (solar_system)."
+						}
+					}
+				}
+			}
+		}
+	}
+	if = {
+		limit = {
+			NOT = {
+				has_fleet_flag = acemod_sfex_core_scope_1_invalid
+			}
+		}
+		switch = {
+			trigger = has_fleet_flag
+			# jumpdrive_order
+			acemod_sfex_fleet_flag_jumpdrive_order = {
+				if = {
+					limit = {
+						exists = event_target:acemod_sfex_core_event_target_1
+					}
+					[[JUMPDRIVE_CUSTOM_MAX_RANGE]
+					set_variable = {
+						which = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+						value = $JUMPDRIVE_CUSTOM_MAX_RANGE$
+					}
+					]
+					if = {
+						limit = {
+							NOR = {
+								is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+								owner = {
+									is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+								}
+								event_target:global_event_country = {
+									is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+								}
+							}
+						}
+						set_variable = {
+							which = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+							value = 100							# Vanilla default
+						}
+					}
+					else_if = {
+						limit = {
+							owner = {
+								is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+							}
+						}
+						set_variable = {
+							which = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+							value = owner.acemod_sfex_fleet_order_var_jumpdrive_custom_max_range							# Vanilla default
+						}
+					}
+					else_if = {
+						limit = {
+							event_target:global_event_country = {
+								is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+							}
+						}
+						set_variable = {
+							which = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+							value = event_target:global_event_country.acemod_sfex_fleet_order_var_jumpdrive_custom_max_range							# Vanilla default
+						}
+					}
+					else_if = {
+						limit = {
+							is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+						}
+						set_variable = {
+							which = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range_set
+							value = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range							# Vanilla default
+						}
+					}
+					[[JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE]
+					set_timed_fleet_flag = {
+						flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_jump_drive_$JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE$
+						days = 16
+					}
+					]
+					[[JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP]
+					set_timed_fleet_flag = {
+						flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_enter_system_by_jump_$JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP$
+						days = 16
+					}
+					]
+					if = {
+						limit = {
+							has_global_flag = acemod_sfex_verbose_logging_enabled
+						}
+						if = {
+							limit = {
+								NOT = {
+									is_variable_set = acemod_sfex_fleet_order_var_jumpdrive_custom_max_range
+								}
+							}
+							log = "acemod_sfex_set_fleet_order: JUMPDRIVE_CUSTOM_MAX_RANGE not set. Using default value."
+						}
+						if = {
+							limit = {
+								NOT = {
+									has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_enter_system_by_jump_$JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP$
+								}
+							}
+							log = "acemod_sfex_set_fleet_order: JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP not set. Using default value."
+						}
+						if = {
+							limit = {
+								NOT = {
+									has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_jump_drive_$JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE$
+								}
+							}
+							log = "acemod_sfex_set_fleet_order: JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE not set. Using default value."
+						}
+					}
+					# Summary of else below. Do not uncomment.
+					# if = {
+					# 	limit = {
+					# 		has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_jump_drive_yes
+					# 		has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_enter_system_by_jump_yes
+					# 	}
+					# 	acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = yes							# jumpdrive_windup
+					# }
+					if = {
+						limit = {
+							NOT = {
+								has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_jump_drive_yes
+							}
+						}
+						if = {
+							limit = {
+								acemod_sfex_jumpdrive_order_can_jump_drive_scripted_trigger = yes
+							}
+							if = {
+								limit = {
+									has_global_flag = acemod_sfex_verbose_logging_enabled
+								}
+								log = "acemod_sfex_can_jump_drive_scripted_trigger returned true."
+							}
+							if = {
+								limit = {
+									NOT = {
+										has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_enter_system_by_jump_yes
+									}
+								}
+								if = {
+									limit = {
+										event_target:acemod_sfex_core_event_target_1 = {
+											acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger = yes
+										}
+									}
+									if = {
+										limit = {
+											has_global_flag = acemod_sfex_verbose_logging_enabled
+										}
+										log = "acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger returned true."
+									}
+									acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = yes									# jumpdrive_windup
+								}
+								else = {
+									log = "acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger returned false."
+								}
+							}
+							else = {
+								acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = yes								# jumpdrive_windup
+							}
+						}
+						else = {
+							log = "acemod_sfex_jumpdrive_order_can_jump_drive_scripted_trigger returned false."
+						}
+					}
+					else = {
+						if = {
+							limit = {
+								NOT = {
+									has_fleet_flag = acemod_sfex_jumpdrive_order_fleet_flag_ignore_can_enter_system_by_jump_yes
+								}
+							}
+							if = {
+								limit = {
+									event_target:acemod_sfex_core_event_target_1 = {
+										acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger = yes
+									}
+								}
+								if = {
+									limit = {
+										has_global_flag = acemod_sfex_verbose_logging_enabled
+									}
+									log = "acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger returned true."
+								}
+								acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = yes								# jumpdrive_windup
+							}
+							else = {
+								log = "acemod_sfex_jumpdrive_order_can_enter_system_by_jump_scripted_trigger returned false."
+							}
+						}
+						else = {
+							acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = yes							# jumpdrive_windup
+						}
+					}
+				}
+				else = {
+					log = "ORDER jumpdrive: event_target:acemod_sfex_core_event_target_1 does not exist."
+				}
+			}
+			# build_order
+			# acemod_sfex_fleet_flag_build_order = {
+			# 	if = {
+			# 		limit = {
+			# 			exists = event_target:acemod_sfex_core_event_target_1
+			# 		}
+			# 		acemod_sfex_core_create_global_country_if_needed = yes
+			# 		event_target:acemod_sfex_core_global_country = {
+			# 			random_owned_leader = {
+			# 				limit = {
+			# 					has_leader_flag = acemod_sfex_$BUILD_STRUCTURE$
+			# 				}
+			# 				save_event_target_as = acemod_sfex_event_target_build_order_structure
+			# 			}
+			# 			if = {
+			# 				limit = {
+			# 					NOT = {
+			# 						exists = event_target:acemod_sfex_event_target_build_order_structure
+			# 					}
+			# 				}
+			# 				create_leader = {
+			# 					class = general
+			# 					name = "$BUILD_STRUCTURE$"
+			# 					species = event_target:acemod_sfex_core_global_species
+			# 					immortal = yes
+			# 				}
+			# 				last_created_leader = {
+			# 					set_leader_flag = acemod_sfex_$BUILD_STRUCTURE$
+			# 					save_event_target_as = acemod_sfex_event_target_build_order_structure
+			# 				}
+			# 			}
+			# 		}
+			# 		fleet_event = {
+			# 			id = acemod_sfex_build_order.2
+			# 		}
+			# 	}
+			# 	else = {
+			# 		log = "ORDER build: event_target:acemod_sfex_core_event_target_1 does not exist."
+			# 	}
+			# }
+			# survey_order
+			# acemod_sfex_fleet_flag_survey_order = {
+			# 	if = {
+			# 		limit = {
+			# 			exists = event_target:acemod_sfex_core_event_target_1
+			# 		}
+			# 		fleet_event = {
+			# 			id = acemod_sfex_survey_order.2
+			# 		}
+			# 	}
+			# 	else = {
+			# 		log = "ORDER survey: event_target:acemod_sfex_core_event_target_1 does not exist."
+			# 	}
+			# }
+			default = {
+				log = "acemod_sfex_set_fleet_order: ORDER must be: jumpdrive build survey."
+			}
+		}
+	}
+}
+
+acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect = {
+	optimize_memory
+	if = {
+		limit = {
+			acemod_sfex_jumpdrive_order_has_ftl_drive_scripted_trigger = yes
+		}
+		if = {
+			limit = {
+				has_global_flag = acemod_sfex_verbose_logging_enabled
+			}
+			log = "acemod_sfex_jumpdrive_order_has_ftl_drive_scripted_trigger returned true."
+		}
+		# Validate if target is the same solar_system as origin. If not check distance against fleet range.
+		if = {
+			limit = {
+				OR = {
+					AND = {
+						event_target:acemod_sfex_core_event_target_1 = {
+							is_scope_type = galactic_object
+						}
+						solar_system = {
+							is_same_value = event_target:acemod_sfex_core_event_target_1
+						}
+					}
+					AND = {
+						NOT = {
+							event_target:acemod_sfex_core_event_target_1 = {
+								is_scope_type = galactic_object
+							}
+						}
+						event_target:acemod_sfex_core_event_target_1 = {
+							exists = solar_system
+							solar_system = {
+								is_same_value = prevprev.solar_system
+							}
+						}
+					}
+				}
+			}
+			if = {
+				limit = {
+					has_global_flag = acemod_sfex_verbose_logging_enabled
+				}
+				log = "acemod_sfex_core_evaluate_scripted_triggers_and_jump_effect: target solar system is_same_value as origin solar_system."
+			}
+			fleet_event = {
+				id = acemod_sfex_jumpdrive_order.2				# jumpdrive_windup
+			}
+		}
+		else = {
+			acemod_sfex_jumpdrive_order_calculate_effective_range_effect = yes
+			acemod_sfex_jumpdrive_order_measure_origin_distance_set_var_storage_effect = yes
+			acemod_sfex_jumpdrive_order_measure_origin_distance_to_target_save_var_to_fleet = yes
+			if = {
+				limit = {
+					acemod_sfex_jumpdrive_order_target_in_range_scripted_trigger = yes
+				}
+				if = {
+					limit = {
+						has_global_flag = acemod_sfex_verbose_logging_enabled
+					}
+					log = "acemod_sfex_jumpdrive_order_target_in_range_scripted_trigger returned true."
+				}
+				fleet_event = {
+					id = acemod_sfex_jumpdrive_order.2					# jumpdrive_windup
+				}
+			}
+			else = {
+				log = "acemod_sfex_jumpdrive_order_target_in_range_scripted_trigger returned false."
+			}
+		}
+	}
+	else = {
+		log = "acemod_sfex_jumpdrive_order_has_ftl_drive_scripted_trigger returned false."
+	}
+}
+
+acemod_sfex_set_fleet_order_jumpdrive = {
+	optimize_memory
+	acemod_sfex_set_fleet_order = {
+		ORDER = jumpdrive
+		[[MODNAME]
+		MODNAME = $MODNAME$
+		]
+		[[TARGET]
+		TARGET = $TARGET$
+		]
+		[[JUMPDRIVE_CUSTOM_MAX_RANGE]
+		JUMPDRIVE_CUSTOM_MAX_RANGE = $JUMPDRIVE_CUSTOM_MAX_RANGE$
+		]
+		[[JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE]
+		JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE = $JUMPDRIVE_IGNORE_CAN_JUMP_DRIVE$
+		]
+		[[JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP]
+		JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP = $JUMPDRIVE_IGNORE_CAN_ENTER_SYSTEM_BY_JUMP$
+		]
+	}
+}
+
+acemod_sfex_set_fleet_order_build = {
+	optimize_memory
+	acemod_sfex_set_fleet_order = {
+		ORDER = build
+		[[MODNAME]
+		MODNAME = $MODNAME$
+		]
+		[[TARGET]
+		TARGET = $TARGET$
+		]
+		[[BUILD_STRUCTURE]
+		BUILD_STRUCTURE = $BUILD_STRUCTURE$
+		]
+	}
+}
+
+acemod_sfex_set_fleet_order_survey = {
+	optimize_memory
+	acemod_sfex_set_fleet_order = {
+		ORDER = survey
+		MODNAME = $MODNAME|acemod_sfex_set_fleet_order_survey$
+		TARGET = $TARGET|solar_system$
+	}
+}

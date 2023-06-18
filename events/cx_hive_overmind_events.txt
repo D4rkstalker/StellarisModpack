@@ -1,0 +1,239 @@
+namespace = cx_overmind
+
+#overmind start
+# set all the living standards
+country_event = {
+	id = cx_overmind.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = { owner = { has_origin = origin_hive_overmind } }
+			#ruler = { add_ruler_trait = leader_trait_ruler_overmind }
+			random_owned_pop = {
+				limit = { species = { has_trait = trait_hive_mind_remote_drone } }
+				set_citizenship_type = {
+					country = root.owner
+					type = citizenship_full
+				}		
+				set_living_standard = {
+					country = root.owner
+					type = living_standard_hive_mind
+				}
+				set_migration_controls = {
+					country = root.owner
+					type = migration_control_no
+				}
+				set_population_controls = {
+					country = root.owner
+					type = population_control_no
+				}
+			}
+		}
+	}
+}
+
+planet_event = {
+	id = cx_overmind.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		if = {
+			limit = { owner = { has_origin = origin_hive_overmind } }
+			## clear everything out
+			every_deposit = {
+				limit = { is_deposit_type = d_hibernating_lithoids }
+				remove_deposit = yes
+			}
+			every_deposit = {
+				limit = {is_deposit_type = d_collapsed_burrows}
+				remove_deposit = yes
+				##add_deposit = d_collapsed_burrows_remote
+			}
+			every_deposit = {
+				limit = {is_deposit_type = d_decrepit_dwellings}
+				remove_deposit = yes
+				##add_deposit = d_collapsed_burrows_remote
+			}
+			## create for remote drones
+			if = {
+				limit = { 
+					owner = { has_lithoid_overminded_species = yes }
+				}
+				while = {
+					count = 4
+					add_deposit = d_hibernating_lithoids_remote
+				}
+				if = {
+					limit = { owner_species = { is_lithoid = no } }
+					## remove default districts and rebuild them based on overminded pop		
+					remove_district = district_farming
+					remove_district = district_farming
+					add_district = district_mining
+					add_district = district_mining
+					owner = { add_modifier = {   modifier = overmind_lithoids  days = -1 } }
+					owner = { add_resource = { food = -200 } }
+					owner = { add_resource = { minerals = 200 } }
+				}
+			}
+			else = {
+				if = {
+					limit = { owner = {  owner_species = { is_lithoid = yes } } }
+					## remove default districts and rebuild them based on overminded pop		
+					add_district = district_farming
+					add_district = district_farming
+					remove_district = district_mining
+					remove_district = district_mining
+					## what about base resources
+					owner = { add_modifier = {   modifier = overmind_biological  days = -1 } }
+					owner = { add_resource = { minerals = -200 } }
+					owner = { add_resource = { food = 200 } }
+				}
+				add_deposit = d_collapsed_burrows_remote
+			}
+		}
+  	}
+}
+
+
+
+# Hive Mind stops purging and sets rights for integrated species
+# on_modification_complete
+country_event = {
+	id = cx_overmind.2001
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		has_authority = auth_hive_mind
+		from = { has_trait = trait_hive_mind_remote_drone }
+	}
+
+	immediate = {
+		from = { # modified species
+			set_citizenship_type = {
+				country = root
+				type = citizenship_full
+				cooldown = no
+			}
+			set_living_standard = {
+				country = root
+				type = living_standard_hive_mind
+				cooldown = no
+			}
+			set_migration_controls = {
+				country = root
+				type = migration_control_no
+				cooldown = no
+			}
+			set_population_controls = {
+				country = root
+				type = population_control_no
+				cooldown = no
+			}
+		}
+	}
+}
+
+
+# A pop has been added to the planet
+# Root = pop
+# From = planet
+pop_event = {
+	id = cx_overmind.3000
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {					
+		if = { 
+			limit = {
+				exists = owner
+				owner = { has_origin = origin_hive_overmind } 
+				is_same_species = owner_species
+			}
+			kill_pop = yes
+			from = {
+			  	planet_event = { id = cx_overmind.3001 }
+			}			
+		}
+	}
+}
+
+
+# A pop has been added to the planet
+# Root = planet
+## planet_pop_added
+planet_event = {
+	id = cx_overmind.3001
+	is_triggered_only = yes
+	hide_window = yes
+	
+	immediate = {	
+		random_owned_pop = {
+			limit = { species = { has_trait = trait_hive_mind_remote_drone } } 
+			species = { save_event_target_as = overminded_species }
+		}	
+		while = {
+			count = 1
+			create_pop = {
+				 species = event_target:overminded_species 
+			}
+		}
+	}
+}
+	
+
+# New Leaders Get Eonian trait (10 %)
+country_event = {
+	id = cx_overmind.4000
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = origin_hive_overmind
+	}
+
+	immediate = {
+		from = {
+			add_trait_no_notify = leader_trait_eonian
+		}
+	}
+}
+
+# New Leaders Get Psionic Trait (Latent Psionic)
+country_event = {
+	id = cx_overmind.4001
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = origin_hive_overmind
+		has_ascension_perk = ap_mind_meld
+	}
+
+	immediate = {
+		from = {
+			add_trait_no_notify = leader_trait_psionic
+		}
+	}
+}
+
+# New Leaders Get Psionic Trait
+country_event = {
+	id = cx_overmind.4002
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		has_origin = origin_hive_overmind
+		has_ascension_perk = ap_omnipresence
+	}
+
+	immediate = {
+		from = {
+			add_trait_no_notify = leader_trait_psionic
+		}
+	}
+}

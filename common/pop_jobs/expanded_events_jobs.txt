@@ -1,0 +1,901 @@
+###################
+# Event Jobs
+###################
+
+zro_harvester = {
+	category = worker
+	condition_string = WORKER_JOB_TRIGGER
+	building_icon = building_gas_mine
+	clothes_texture_index = 2
+	possible_precalc = can_fill_worker_job
+	possible = {
+		owner = { is_gestalt = no }
+	}
+	
+	resources = {
+		category = planet_miners
+		produces = {
+			sr_zro = 3
+		}
+		upkeep = {
+			consumer_goods = 0.5
+		}
+	}	
+	
+	weight = {
+		weight = @specialist_job_weight
+		mult = value:job_weights_modifier|JOB|zro_harvester|RESOURCE|sr_zro|
+		modifier = {
+			factor = 10
+			is_enslaved = yes
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			NOT = { has_slavery_type = { type = slavery_indentured } }
+		}
+		modifier = {
+			factor = 2
+			OR = {
+				is_non_sapient_robot = yes
+				is_shackled_robot = yes
+			}
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			owner = { has_technology = tech_droid_workers }
+		}
+		modifier = {
+			factor = 200
+			OR = {
+				is_non_sapient_robot = yes
+				is_shackled_robot = yes
+			}
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			owner = { NOT = { has_technology = tech_droid_workers } }
+		}
+		modifier = {
+			factor = 0.1
+			can_take_servant_job = yes
+		}
+		modifier = {
+			factor = 0.25
+			can_take_grunt_job = yes
+		}
+		modifier = {
+			factor = 0
+			has_living_standard = { type = living_standard_chemical_bliss }
+		}
+	}
+}
+
+zro_harvesting_drone = {	
+	category = simple_drone
+	condition_string = DRONE_JOB_TRIGGER
+	building_icon = building_zro_harvesters
+	
+	possible_precalc = can_fill_drone_job
+	
+	resources = {
+		category = planet_jobs
+		produces = {
+			sr_zro = 3
+		}
+		upkeep = {
+			energy = 1
+		}		
+	}	
+	
+	weight = {
+		weight = @simple_drone_job_weight
+		mult = value:job_weights_modifier|JOB|zro_harvesting_drone|RESOURCE|sr_zro|
+		modifier = {
+			factor = 1.1
+			years_passed < 1
+			owner = { has_valid_civic = civic_machine_assimilator }
+			has_trait = trait_cybernetic
+		}
+	}
+}
+
+scrap_miner_event = {
+	category = worker
+	condition_string = WORKER_JOB_TRIGGER
+	building_icon = building_mineral_purification_plant
+	icon = miner
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_worker_job
+
+	resources = {
+		category = planet_miners
+		produces = {
+			minerals = 2
+			alloys = 2
+		}
+		produces = {
+			trigger = {
+				exists = owner
+				owner = { is_scavenger = yes }
+			}
+			alloys = 1
+		}
+		produces = {
+			trigger = {
+				exists = planet
+				planet = { has_planet_flag = pirate_graveyard }
+				exists = owner
+				owner = { is_gestalt = no }
+			}
+			consumer_goods = 1
+			volatile_motes = 0.5
+			exotic_gases = 0.5
+			rare_crystals = 0.5
+		}
+		produces = {
+			trigger = { 
+				is_lithoid = yes
+			}
+			minerals = 1
+		}
+	}
+	
+	triggered_pop_modifier = {
+		potential = {
+			is_enslaved = no
+			owner = {
+				has_edict = mining_subsidies
+			}
+		}
+		modifier = {
+			pop_political_power = 1
+			pop_happiness = 0.05
+		}
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_enslaved = no
+			owner = { has_valid_civic = civic_mining_guilds }
+		}
+		modifier = {
+			pop_political_power = 1
+			pop_happiness = 0.05
+		}
+	}
+
+	triggered_planet_modifier = {
+		# Gives some Stability per "Mining Guild" Councilor level.
+		potential = {
+			has_councilor = { COUNCILOR = "councilor_mining_guilds" }
+		}
+		planet_stability_add = @councilor_mining_guilds_miner_stability
+		mult = value:councilor_level|TYPE|councilor_mining_guilds|
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_enslaved = no
+			owner = {
+				is_agrarian_empire = { allow_invalid = yes }
+				is_lithoid_empire = yes
+			}
+		}
+		modifier = {
+			pop_political_power = 1
+			pop_happiness = 0.05
+		}
+	}
+
+	triggered_planet_modifier = {
+		potential = {
+			owner = { is_agrarian_empire = { allow_invalid = yes } is_lithoid_empire = yes }
+		}
+		planet_amenities_add = 2
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+
+	triggered_planet_modifier = {
+		potential = {
+			exists = owner
+			owner = {
+				is_agrarian_empire = { allow_invalid = yes }
+				is_lithoid_empire = yes
+				has_technology = tech_housing_agrarian_idyll
+			}
+		}
+		planet_amenities_add = 1
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+
+	triggered_planet_modifier = {
+		# Gives some Trade Value per "Mining Company" Councilor level.
+		potential = {
+			has_councilor = { COUNCILOR = "councilor_mining_company" }
+		}
+		trade_value_add = @councilor_mining_guilds_miner_trade_value
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_trade_mult|
+		mult = value:councilor_level|TYPE|councilor_mining_company|
+	}	
+
+	weight = {
+		weight = @worker_job_weight
+		mult = value:job_weights_multiple_resources_modifier|JOB|scrap_miner_event|RESOURCE1|minerals|WEIGHT1|0.7|RESOURCE2|alloys|WEIGHT2|0.3|
+		modifier = {
+			factor = 1.1
+			owner = { is_agrarian_empire = { allow_invalid = yes } is_lithoid_empire = yes }
+		}
+		modifier = {
+			factor = 10
+			is_enslaved = yes
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			NOT = { has_slavery_type = { type = slavery_indentured } }
+		}
+		modifier = {
+			factor = 3
+			OR = {
+				is_non_sapient_robot = yes
+				is_shackled_robot = yes
+			}
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			owner = { has_technology = tech_droid_workers }
+		}
+		modifier = {
+			factor = 200
+			OR = {
+				is_non_sapient_robot = yes
+				is_shackled_robot = yes
+			}
+			can_take_servant_job = no
+			can_take_grunt_job = no
+			owner = { NOT = { has_technology = tech_droid_workers } }
+		}
+		modifier = {
+			factor = 0.25
+			can_take_servant_job = yes
+		}
+		modifier = {
+			factor = 0.25
+			can_take_grunt_job = yes
+		}
+		modifier = {
+			factor = 0
+			has_living_standard = { type = living_standard_chemical_bliss }
+		}
+		# low income modifier
+		modifier = {
+			factor = 1.1
+			exists = planet
+			planet = {
+				has_available_jobs = "scrap_miner_event"
+			}
+			owner = {
+				has_monthly_income = {
+					resource = minerals
+					value < 0
+				}
+			}
+		}
+	}
+}
+
+scrap_miner_drone_event = {
+	category = simple_drone
+	condition_string = DRONE_JOB_TRIGGER
+	building_icon = building_mineral_purification_plant
+	icon = miner
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_enslaved = no
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_drone_job
+
+	resources = {
+		category = planet_miners
+		produces = {
+			minerals = 2
+			alloys = 2
+		}
+		produces = {
+			trigger = {
+				exists = owner
+				owner = { is_scavenger = yes }
+			}
+			alloys = 1
+		}
+		produces = {
+			trigger = {
+				exists = planet
+				planet = { has_planet_flag = pirate_graveyard }
+				exists = owner
+				owner = { is_gestalt = yes }
+			}
+			minerals = 2
+			volatile_motes = 0.5
+			exotic_gases = 0.5
+			rare_crystals = 0.5
+		}
+		produces = {
+			trigger = {
+				owner = { is_hive_empire = yes }
+				is_lithoid = yes
+			}
+			minerals = 1
+		}
+		produces = {
+			trigger = { 
+				is_lithoid = yes
+			}
+			minerals = 1
+		}
+		produces = {
+			trigger = {
+				has_global_flag = EcologyMod_active
+			}
+			waste = 1
+		}
+	}
+
+	weight = {
+		weight = @simple_drone_job_weight
+		mult = value:job_weights_multiple_resources_modifier|JOB|scrap_miner_drone_event|RESOURCE1|minerals|WEIGHT1|0.7|RESOURCE2|alloys|WEIGHT2|0.3|
+		modifier = {
+			factor = 1.1
+			years_passed < 1
+			owner = { has_valid_civic = civic_machine_assimilator }
+			has_trait = trait_cybernetic
+		}
+		modifier = {
+			factor = 1.2
+			has_job = scrap_miner_drone_event
+		}
+		# low income modifier
+		modifier = {
+			factor = 1.2
+			exists = planet
+			planet = {
+				has_available_jobs = scrap_miner_drone_event
+			}
+			owner = {
+				has_monthly_income = {
+					resource = minerals
+					value < 0
+				}
+			}
+		}
+	}
+}
+
+pearl_diver_event = {
+	category = specialist
+	condition_string = SPECIALIST_JOB_TRIGGER
+	building_icon = building_food_processing_facility
+	clothes_texture_index = 2
+	icon = pearl_diver
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_specialist_job
+	possible = {
+		hidden_trigger = { exists = owner }
+		owner = {
+			is_gestalt = no
+		}
+	}
+
+	resources = {
+		category = planet_artisans
+		produces = {
+			consumer_goods = 6
+			food = 3
+		}
+		produces = {
+			trigger = {
+				has_councilor = { COUNCILOR = "councilor_anglers" }
+			}
+
+			consumer_goods = @councilor_anglers_pearl_diver_consumer_goods_bonus
+			mult = value:councilor_level|TYPE|councilor_anglers|
+		}
+		produces = {
+			trigger = { 
+				exists = owner
+				owner = {
+					has_valid_civic = civic_agribusiness
+				}
+			}
+			food = 1
+		}
+		produces = {
+			trigger = { 
+				exists = owner
+				owner = {
+					has_edict = angler_bounty_campaign
+				}
+			}
+			consumer_goods = 1
+		}
+		produces = {
+			trigger = { 
+				exists = owner
+				owner = {
+					is_lithoid_empire = no
+					has_technology = tech_agrarian_goods 
+					is_agrarian_empire = { allow_invalid = yes }
+				}
+			}
+			consumer_goods = 1
+		}
+		produces = {
+			trigger = {
+				exists = owner
+				owner = {
+					is_lithoid_empire = no
+					has_technology = tech_agrarian_goods 
+					is_agrarian_empire = { allow_invalid = yes }
+				}
+				planet = { has_active_building = building_factory_2 }
+			}
+			consumer_goods = 0.5
+		}
+		produces = {
+			trigger = {
+				exists = owner
+				owner = {
+					is_lithoid_empire = no
+					has_technology = tech_agrarian_goods 
+					is_agrarian_empire = { allow_invalid = yes }
+				}
+				planet = { has_active_building = building_factory_3 }
+			}
+			consumer_goods = 1
+		}
+		upkeep = {
+			minerals = 4
+		}
+
+		produces = {
+			trigger = {
+				planet = {
+					has_planet_flag = has_produce_requisitorium
+					exists = owner.overlord
+					owner.overlord = { is_gestalt = no }
+				}
+			}
+			consumer_goods = @requisitorium_consumer_goods_reduction
+		}
+		upkeep = {
+			trigger = {
+				planet = {
+					has_planet_flag = has_produce_requisitorium
+					exists = owner.overlord
+					owner.overlord = { is_gestalt = no }
+				}
+			}
+			minerals = 1
+		}
+	}
+
+	triggered_planet_modifier = {
+		potential = {
+			has_councilor = { COUNCILOR = "councilor_corporate_anglers" } 
+		}
+
+		trade_value_add = @councilor_corporate_anglers_pearl_diver_trade_value_bonus
+		mult = value:scripted_modifier_councilor_level_mult|MODIFIER|pop_job_trade_mult|TYPE|councilor_corporate_anglers|
+	}
+
+	overlord_resources = {
+		category = planet_requisitioned_consumer_goods
+		produces = {
+			trigger = {
+				planet = {
+					has_planet_flag = has_produce_requisitorium
+					exists = owner.overlord
+					owner.overlord = { is_gestalt = no }
+				}
+			}
+			consumer_goods = @requisitorium_consumer_goods_overlord
+		}
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_enslaved = no
+			owner = {
+				has_edict = farming_subsidies
+			}
+		}
+		modifier = {
+			pop_political_power = 1
+			pop_happiness = 0.05
+		}
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_enslaved = no
+			owner = {
+				is_agrarian_empire = { allow_invalid = yes }
+				is_lithoid_empire = no
+			}
+		}
+		modifier = {
+			pop_political_power = 1
+			pop_happiness = 0.05
+		}
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_plantoid = yes
+		}
+		pop_housing_usage_add = -1
+		pop_happiness = 0.05
+	}
+
+	triggered_planet_modifier = {
+		potential = {
+			owner = { is_agrarian_empire = { allow_invalid = yes } is_lithoid_empire = no }
+		}
+		planet_amenities_add = 2
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+
+	triggered_planet_modifier = {
+		potential = {
+			exists = owner
+			owner = {
+				is_agrarian_empire = { allow_invalid = yes }
+				is_lithoid_empire = no
+				has_technology = tech_housing_agrarian_idyll
+			}
+		}
+		planet_amenities_add = 1
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+
+	triggered_planet_modifier = {
+		# Gives some Trade Value per "Agribusiness" Councilor level.
+		potential = {
+			has_councilor = { COUNCILOR = "councilor_agribusiness" }
+		}
+		trade_value_add = @councilor_mining_guilds_miner_trade_value
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_trade_mult|
+		mult = value:councilor_level|TYPE|councilor_agribusiness|
+	}
+	
+	triggered_planet_modifier = {
+		potential = {
+			always = yes
+		}
+		trade_value_add = 2
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_trade_mult|
+	}
+
+	weight = {
+		weight = @specialist_job_weight
+		mult = value:job_weights_modifier|JOB|pearl_diver_event|RESOURCE|consumer_goods|FACTOR|0.75|
+		mult = value:scripted_modifier_job_weight_mult|MODIFIER|pop_job_trade_mult|
+		modifier = {
+			factor = value:scripted_modifier_job_weight_mult|MODIFIER|pop_job_amenities_mult|
+			owner = { is_agrarian_empire = { allow_invalid = yes } }
+		}
+		modifier = { factor = 0.5 is_unemployed = no is_pop_category = worker }
+		modifier = {
+			factor = 2
+			is_enslaved = yes
+			can_take_servant_job = no
+		}
+		modifier = {
+			factor = 0.1
+			NOT = { has_job = pearl_diver_event }
+			exists = owner
+			owner = {
+				resource_income_compare = {
+					resource = food
+					value < 5
+				}
+			}
+		}
+		modifier = {
+			factor = 5
+			has_job = pearl_diver_event
+		}
+		modifier = {
+			factor = 10
+			has_job = pearl_diver_event
+			OR = {
+				has_trait = trait_robust
+				has_trait = trait_robot_efficient_processors
+			}
+		}
+
+		# low income modifier
+		modifier = {
+			factor = 1.2
+			exists = planet
+			planet = {
+				has_available_jobs = "pearl_diver_event"
+			}
+			exists = owner
+			owner = {
+				is_ai = yes
+				has_monthly_income = {
+					resource = consumer_goods
+					value < 5
+				}
+			}
+		}
+	}
+}
+
+pearl_diver_drone_event = {
+	category = specialist
+	condition_string = SPECIALIST_JOB_TRIGGER
+	building_icon = building_food_processing_facility
+	clothes_texture_index = 2
+	icon = pearl_diver
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_drone_job
+	possible = {
+		hidden_trigger = { exists = owner }
+		owner = {
+			is_gestalt = yes
+		}
+	}
+
+	resources = {
+		category = planet_farmers
+		produces = {
+			food = 4
+		}
+		produces = {
+			trigger = { 
+				OR = {
+					owner = { is_robot_empire = yes }
+					is_lithoid = yes
+				}
+			}
+			food = -1
+		}
+		produces = {
+			trigger = {
+				owner = { is_hive_empire = yes }
+				is_lithoid = no
+			}
+			food = 1
+		}
+		upkeep = {
+			trigger = {
+				exists = owner
+				is_reptilian = yes
+			}
+			energy = 0.5
+		}
+		produces = {
+			trigger = {
+				planet = {
+					has_planet_flag = has_produce_requisitorium
+				}
+			}
+			food = @requisitorium_food_reduction
+		}
+	}
+	
+	overlord_resources = {
+		category = planet_requisitioned_food
+		produces = {
+			trigger = {
+				planet = {
+					has_planet_flag = has_produce_requisitorium
+				}
+			}
+			food = @requisitorium_food_overlord
+		}
+	}
+	
+	triggered_planet_modifier = {
+		potential = {
+			always = yes
+		}
+		planet_amenities_no_happiness_add = 12
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+	triggered_planet_modifier = {
+		potential = {
+			is_reptilian = yes
+		}
+		planet_amenities_no_happiness_add = 1
+		mult = value:scripted_modifier_mult|MODIFIER|pop_job_amenities_mult|
+	}
+
+	triggered_pop_modifier = {
+		potential = {
+			is_plantoid = yes
+		}
+		pop_housing_usage_add = -1
+	}
+	
+	weight = {
+		weight = @simple_drone_job_weight
+		mult = value:job_weights_modifier|JOB|agri_drone|RESOURCE|food|
+		mult = value:scripted_modifier_job_weight_mult|MODIFIER|pop_job_amenities_mult|
+		modifier = {
+			factor = 0.9
+			NOT = { has_job = pearl_diver_drone_event }
+			owner = {
+				has_monthly_income = {
+					resource = food
+					value > 50
+				}
+			}
+		}
+		# low income modifier
+		modifier = {
+			factor = 1.2
+			exists = planet
+			planet = {
+				has_available_jobs = pearl_diver_drone_event
+			}
+			owner = {
+				has_monthly_income = {
+					resource = food
+					value < 0
+				}
+			}
+		}
+		modifier = {
+			factor = 0.9
+			owner = {
+				is_robot_empire = yes
+			}
+		}
+		modifier = {
+			factor = 1.1
+				years_passed < 1
+			owner = { has_valid_civic = civic_machine_assimilator }
+			has_trait = trait_cybernetic
+		}
+		modifier = {
+			factor = 1.2
+			has_job = pearl_diver_drone_event
+		}
+		modifier = {
+			factor = 0.9
+			owner = {
+				is_robot_empire = yes
+			}
+		}
+	}
+}
+
+###################
+# Fallen Empire Jobs
+###################
+
+fe_maintenance_worker = {
+	category = worker
+	is_capped_by_modifier = no
+	building_icon = building_residence
+	clothes_texture_index = 3
+	icon = primitive_laborer
+		
+	possible_pre_triggers = {
+		has_owner = yes
+	}
+
+	possible = {
+		owner = { is_country_type = gate_builders_remnant }
+	}
+	
+	planet_modifier = {
+		planet_amenities_add = 7
+	}
+	
+	resources = {
+		category = planet_jobs
+	}
+	
+	weight = {
+		weight = @special_job_weight
+	}
+}
+
+###################
+# Primitive Jobs
+###################
+
+lost_trophy = {
+	category = specialist
+	can_set_priority = no
+	condition_string = SPECIALIST_JOB_TRIGGER
+	clothes_texture_index = 1
+	building_icon = building_organic_sanctuary
+	icon = bio_trophy
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_specialist_job
+
+	resources = {
+		category = planet_bio_trophies
+		produces = {
+			unity = 3
+			society_research = 3
+		}
+		upkeep = {
+			consumer_goods = 2
+		}
+	}
+	weight = {
+		weight = @ruler_job_weight
+		mult = value:job_weights_multiple_resources_modifier|JOB|lost_trophy|RESOURCE1|unity|WEIGHT1|0.75|RESOURCE2|society_research|WEIGHT2|0.25|
+		modifier = {
+			factor = 3
+			has_trait = "trait_decadent"
+		}
+	}
+}
+
+programmer = {
+	category = specialist
+	condition_string = SPECIALIST_JOB_TRIGGER
+	clothes_texture_index = 1
+	building_icon = building_drone_storage
+	icon = low_tech_researcher
+
+	possible_pre_triggers = {
+		has_owner = yes
+		is_being_purged = no
+		is_being_assimilated = no
+		is_sapient = yes
+	}
+
+	possible_precalc = can_fill_specialist_job
+
+	resources = {
+		category = planet_bio_trophies
+		produces = {
+			physics_research = 3
+			engineering_research = 2
+			society_research = 1
+		}
+		upkeep = {
+			consumer_goods = 1
+			energy = 1
+		}
+	}
+	weight = {
+		weight = @ruler_job_weight
+		mult = value:job_weights_multiple_resources_modifier|JOB|lost_trophy|RESOURCE1|physics_research|WEIGHT1|0.6|RESOURCE2|engineering_research|WEIGHT2|0.4|
+	}
+}

@@ -1,0 +1,738 @@
+namespace = bok
+
+# Set Up
+event = {
+	id = bok.0
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	immediate = {
+		every_playable_country = {
+			limit = { has_origin = origin_born_of_knowledge }
+			set_country_type = default_bok
+			country_event = { id = bok.1 }
+		}
+	}
+}
+
+# Set Up 2: Electric Boogaloo
+country_event = {
+	id = bok.1
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			NOT = { has_country_flag = bok_setup_complete }
+		}
+	}
+	
+	immediate = {
+		set_country_flag = bok_empire
+		save_global_event_target_as = bok_empire@root
+		owner = {
+			set_variable = {
+				which = bok_biomech_world_cap
+				value = 1
+			}
+			set_variable = {
+				which = bok_biomech_world_amount
+				value = 0
+			}
+			set_variable = {
+				which = bok_pros_world_cap
+				value = 0
+			}
+			set_variable = {
+				which = bok_pros_world_amount
+				value = 0
+			}
+			begin_event_chain = {
+				event_chain = "bok_chain"
+				target = THIS
+			}
+		}
+		#Economy bonus
+		add_modifier = {
+			modifier = "bok_start_boon"
+			days = 3600 #10 years
+		}
+		add_resource = {
+			energy = 250
+			minerals = 750
+			alloys = 500
+			influence = 200
+			unity = 100
+		}
+		#Destroy ships
+		every_owned_ship = {
+			limit = {
+				OR = {
+					is_ship_size = mining_station
+					is_ship_size = research_station
+					is_ship_size = science
+					is_ship_size = constructor
+					is_ship_size = corvette
+					#is_ship_size = starbase_starport
+				}
+			}
+			fleet = {
+				delete_fleet = {
+					target = this
+					kill_leader = no
+				}
+			}		
+		}
+		# Create construction + science ship
+		capital_scope = {
+			save_global_event_target_as = bok_homeworld@root
+			solar_system = {
+				create_fleet = {
+					effect = {
+						set_owner = root
+						create_ship = {
+							name = random
+							random_existing_design = constructor
+						}
+						set_fleet_stance = evasive
+						set_location = prevprev
+					}
+				}
+				create_fleet = {
+					effect = {
+						set_owner = root
+						create_ship = {
+							name = random
+							random_existing_design = science
+						}
+						set_fleet_stance = evasive
+						set_location = prevprev
+						owner = {
+							create_leader = {
+								class = scientist
+								sub_type = survey
+								name = random
+								species = owner_main_species
+							}
+						}
+						set_leader = last_created_leader
+					}
+				}
+				# Create Infinite Intelligence Core Vessel
+				create_fleet = {
+					name = "The Infinite Intelligence"
+					settings = { spawn_debris = no }
+					effect = {
+						set_owner = root
+						create_ship_design = {
+							design = "NAME_Infinite_Intelligence_Core"
+						}
+						create_ship = {
+							name = "The Core"
+							design = last_created_design
+							effect = {
+								set_ship_flag = bok_start_ship@root
+								save_global_event_target_as = bok_start_ship@root
+							}
+						}
+						set_location = prevprev
+						set_fleet_stance = evasive
+						set_aggro_range_measure_from = return_point
+						set_aggro_range = 50
+
+						owner = {
+							create_leader = {
+								class = scientist
+								sub_type = survey
+								name = random
+								species = owner_main_species
+							}
+						}
+						set_leader = last_created_leader
+					}
+				}
+			}
+			# Destroy start world
+			reroll_planet = yes
+			remove_all_buildings = yes
+			destroy_colony = yes
+			change_pc = pc_broken
+		}
+		set_country_flag = bok_setup_complete
+	}
+}
+
+#Upon colonising new homeworld
+planet_event = {
+	id = bok.2
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = { 
+			has_origin = origin_born_of_knowledge
+			is_country_type = default_bok
+			NOT = { has_country_flag = bok_capital_founded }
+		} 
+	}
+	
+	immediate = {
+		owner = {
+			export_resource_stockpiles_bok = yes
+			set_country_type = default
+			set_country_flag = bok_capital_founded
+			add_research_option = tech_emex_biomech_world
+			import_resource_stockpiles_bok = yes
+		}
+		set_capital = yes
+		remove_all_buildings = yes
+		#remove_building = building_deployment_post
+		add_building = building_bok_capital_1
+		while = {
+			count = 2
+			add_district = district_nexus
+		}
+		while = {
+			count = 4
+			create_pop = {
+				species = owner.species
+			}
+		}
+	}
+}
+
+#Marks POIs in Log
+country_event = {
+	id = bok.3
+	title = "bok.3.name"
+	desc = "bok.3.desc"
+	picture = GFX_evt_asteroid_ring
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+	}
+	
+	immediate = {
+		country_event = { id = bok.20 days = 1800 }
+	}
+	
+	option = {
+		name = bok.3.a
+		create_point_of_interest = {
+			id = bok_poi_1
+			name = "bok_poi_1"
+			desc = "bok_poi_1_desc"
+			event_chain = bok_chain
+			location = event_target:bok_poi1_planet
+		}
+		create_point_of_interest = {
+			id = bok_poi_2
+			name = "bok_poi_2"
+			desc = "bok_poi_2_desc"
+			event_chain = bok_chain
+			location = event_target:bok_poi2_planet
+		}
+	}
+}
+
+# Entering POI system 1
+ship_event = {
+	id = bok.4
+	title = "bok.4.name"
+	desc = "bok.4.desc"
+	picture = GFX_evt_planet_fall
+	location = event_target:bok_poi1_planet
+	
+	is_triggered_only = yes
+	
+	fire_only_once = yes
+	
+	trigger = {
+		owner = { 
+			has_origin = origin_born_of_knowledge
+			NOT = {
+				has_country_flag = poi1_system_entered
+			}
+		}
+		from = { # solar system scope
+			has_star_flag = bok_poi1_system
+		}
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = poi1_system_entered
+			remove_point_of_interest = bok_poi_1
+		}
+	}
+	
+	option = {
+		name = bok.4.a
+		event_target:bok_poi1_planet = {
+			enable_special_project = {
+				name = "BOK_POI1_SURVEY"
+				location = this
+				owner = root.owner
+				#event_chain = bok_chain
+			}
+		}
+	}
+}
+
+# Entering POI system 2
+ship_event = {
+	id = bok.5
+	title = "bok.5.name"
+	desc = "bok.5.desc"
+	picture = GFX_evt_space_threshold
+	location = event_target:bok_poi2_planet
+	
+	is_triggered_only = yes
+	
+	fire_only_once = yes
+	
+	trigger = {
+		owner = { 
+			has_origin = origin_born_of_knowledge
+			NOT = {
+				has_country_flag = poi2_system_entered
+			}
+		}
+		from = { # solar system scope
+			has_star_flag = bok_poi2_system
+		}
+	}
+	
+	immediate = {
+		owner = {
+			set_country_flag = poi2_system_entered
+			remove_point_of_interest = bok_poi_2
+		}
+	}
+	
+	option = {
+		name = bok.5.a
+		event_target:bok_poi2_planet = {
+			enable_special_project = {
+				name = "BOK_POI2_SURVEY"
+				location = this
+				owner = root.owner
+				#event_chain = bok_chain
+			}
+		}
+	}
+}
+
+# Project 1 completed
+country_event = {
+	id = bok.6
+	title = "bok.6.name"
+	desc = "bok.6.desc"
+	picture = GFX_evt_nebula_eye
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+	}
+	
+	immediate = {
+		set_country_flag = bok_poi1_done
+	}
+	
+	option = {
+		name = bok.6.a
+		add_resource = {
+			society_research = 100
+			energy = 2000
+		}
+		hidden_effect = {
+			country_event = { id = bok.8 }
+		}
+	}
+}
+
+# Project 2 completed
+country_event = {
+	id = bok.7
+	title = "bok.7.name"
+	desc = "bok.7.desc"
+	picture = GFX_evt_giant_crater
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+	}
+	
+	immediate = {
+		set_country_flag = bok_poi2_done
+	}
+	
+	option = {
+		name = bok.7.a
+		event_target:bok_poi2_planet = {
+			add_modifier = {
+				modifier = "bok_old_infrastructure"
+			}
+		}
+		hidden_effect = {
+			country_event = { id = bok.8 }
+		}
+	}
+}
+
+# Projects Completed; Homeworld can be chosen
+country_event = {
+	id = bok.8
+	title = "bok.8.name"
+	desc = "bok.8.desc"
+	picture = GFX_evt_bustling_cityscape
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+		NOR = {
+			has_country_flag = bok_homeworld_can_be_chosen
+			has_country_flag = bok_chain_skipped
+		}
+		has_country_flag = bok_poi1_done
+		has_country_flag = bok_poi2_done
+	}
+	
+	immediate = {
+		set_country_flag = bok_homeworld_can_be_chosen
+	}
+	
+	option = {
+		name = bok.8.a
+		custom_tooltip = bok_colonise_now
+		# Deletes Surveyor II core, replaces with Colonizer II core
+		hidden_effect = {
+			event_target:bok_start_ship@root = {
+				fleet = {
+					delete_fleet = {
+						target = this
+						kill_leader = no
+					}
+				}
+			}
+				event_target:bok_homeworld@root = {
+					create_fleet = {
+						name = "The Infinite Intelligence"
+						settings = { spawn_debris = no }
+						effect = {
+							set_owner = root
+							create_ship_design = {
+								design = "NAME_Infinite_Intelligence_Core2"
+							}
+							create_ship = {
+								name = "The Core"
+								design = last_created_design
+								effect = {
+									set_ship_flag = bok_start_ship@root
+									save_global_event_target_as = bok_start_ship@root
+								}
+							}
+							set_location = prev
+							set_fleet_stance = evasive
+							set_aggro_range_measure_from = return_point
+							set_aggro_range = 50
+						}
+					}
+				}
+		}
+	}
+}
+
+# Transformed into Bio-Mechanical World
+planet_event = {
+	id = bok.9
+	title = "bok.9.name"
+	desc = "bok.9.desc"
+	picture = GFX_evt_bustling_cityscape
+	location = root
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			has_origin = origin_born_of_knowledge
+			NOT = { has_country_flag = bok_homeworld_biomech }
+		}
+		is_planet_class = pc_emex_bio_mechanical
+	}
+	
+	immediate = {
+		remove_modifier = bok_old_infrastructure
+		#districts
+		while = {
+			limit = {
+				num_unemployed > 3
+			}
+			if = {
+				limit = {
+					num_districts = {
+						type = district_biomechanical_industrial
+						value < 5
+					}
+				}
+				random_list = {
+					60 = {
+						add_district = district_biomechanical_nexus
+					}
+					20 = {
+						add_district = district_biomechanical_industrial
+					}
+					20 = {
+						add_district = district_biomechanical_generator
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					num_districts = {
+						type = district_biomechanical_industrial
+						value >= 5
+					}
+				}
+				random_list = {
+					65 = {
+						add_district = district_biomechanical_nexus
+					}
+					5 = {
+						add_district = district_biomechanical_industrial
+					}
+					30 = {
+						add_district = district_biomechanical_generator
+					}
+				}
+			}
+			else_if = {
+				limit = {
+					num_districts = {
+						type = district_biomechanical_industrial
+						value > 8
+					}
+				}
+				random_list = {
+					70 = {
+						add_district = district_biomechanical_nexus
+					}
+					30 = {
+						add_district = district_biomechanical_generator
+					}
+				}
+			}
+		}
+		#deposits
+		clear_deposits = yes
+		add_deposit = d_bok_geothermal_vent #guarantee energy
+		while = {
+			count = 8
+			emex_bok_populate_deposits = yes
+		}
+		owner = {
+			set_country_flag = bok_homeworld_biomech
+		}
+	}
+	
+	option = {
+		name = bok.9.a #build districts for pops
+	}
+	option = {
+		name = bok.9.b #dont build districts for pops
+	}
+}
+
+# Transformed into Processing World
+planet_event = {
+	id = bok.10
+	title = "bok.10.name"
+	desc = "bok.10.desc"
+	picture = GFX_evt_robot_assembly_plant
+	location = root
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		owner = {
+			has_origin = origin_born_of_knowledge
+		}
+		is_planet_class = pc_emex_bio_mechanical
+	}
+	
+	immediate = {
+		while = {
+			limit = {
+				num_unemployed > 2
+			}
+			add_district = district_biomechanical_nexus
+		}
+		# owner = {
+		# 	if = {
+		# 		limit = {
+		# 			NOT = { has_country_flag = bok_homeworld_copo }
+		# 		}
+		# 		set_country_flag = bok_homeworld_copo
+		# 	}
+		# }
+		clear_deposits = yes
+		# add_deposit = d_copo_cc_centre
+	}
+	
+	option = {
+		name = bok.10.a
+	}
+}
+
+# Increasing Cap
+country_event = {
+	id = bok.11
+	hide_window = yes
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		OR = {
+			last_increased_tech = tech_emex_biomech_world_cap1
+			last_increased_tech = tech_emex_biomech_world_cap2
+			last_increased_tech = tech_emex_processing_world
+			AND = {
+				has_ascension_perk = ap_bok_ascension
+				NOT = { has_country_flag = has_bok_ap }
+			}
+		}
+	}
+	
+	immediate = {
+		root = {
+			if = {
+				limit = {
+					OR = {
+						last_increased_tech = tech_emex_biomech_world_cap1
+						last_increased_tech = tech_emex_biomech_world_cap2
+					}
+					NOR = {
+						has_country_flag = bok_tech1_done
+						has_country_flag = bok_tech2_done
+					}
+				}
+				change_variable = {
+					which = bok_biomech_world_cap
+					value = 1
+				}
+				if = {
+					limit = {
+						last_increased_tech = tech_emex_biomech_world_cap1
+					}
+					set_country_flag = bok_tech1_done
+				}
+				else_if = {
+					limit = {
+						last_increased_tech = tech_emex_biomech_world_cap2
+					}
+					set_country_flag = bok_tech2_done
+				}
+			}
+			else_if = {
+				limit = {
+					last_increased_tech = tech_emex_processing_world
+					NOT = { has_country_flag = bok_tech3_done }
+				}
+				change_variable = {
+					which = bok_biomech_world_cap
+					value = 1
+				}
+				change_variable = {
+					which = bok_pros_world_cap
+					value = 1
+				}
+				set_country_flag = bok_tech3_done
+			}
+			if = {
+				limit = {
+					has_ascension_perk = ap_bok_ascension
+					NOT = { has_country_flag = has_bok_ap }
+				}
+				set_country_flag = has_bok_ap
+				change_variable = {
+					which = bok_biomech_world_cap
+					value = 2
+				}
+				change_variable = {
+					which = bok_pros_world_cap
+					value = 2
+				}
+			}
+			# Total is 5 Bio-Mechanical Worlds, 3 Core Processing Worlds
+		}
+	}
+}
+
+# Failsafe 1 - POIs not completed
+country_event = {
+	id = bok.20
+	title = "bok.20.name"
+	desc = "bok.20.desc"
+	picture = GFX_evt_inhabited_solar_system
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+	}
+	
+	immediate = {
+		country_event = { id = bok.21 days = 3600 }
+	}
+	
+	option = {
+		name = bok.20.a
+		custom_tooltip = bok_failsafe_1
+	}
+}
+
+# Failsafe 2 - Planet Colonised
+country_event = {
+	id = bok.21
+	title = "bok.21.name"
+	desc = "bok.21.desc"
+	picture = GFX_evt_asteroid_approaching_planet
+	location = event_target:bok_colonising_world
+	
+	is_triggered_only = yes
+	
+	trigger = {
+		has_origin = origin_born_of_knowledge
+	}
+	
+	immediate = {
+		set_country_flag = bok_chain_skipped
+		event_target:bok_poi2_planet = {
+			start_colony = {
+				owner = root
+				species = root
+			}
+		}
+		event_target:bok_start_ship@root = {
+			fleet = {
+				delete_fleet = {
+					target = this
+					kill_leader = yes
+				}
+			}
+		}
+	}
+	
+	option = {
+		name = bok.21.a
+		custom_tooltip = bok_failsafe_2
+	}
+}

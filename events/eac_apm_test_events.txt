@@ -1,0 +1,117 @@
+namespace = eac_apm_test
+
+country_event = {
+    id = eac_apm_test.0
+    hide_window = yes
+    is_triggered_only = yes
+
+    immediate = {
+        log = "--- Test Country for APM ---"
+        log = "Country = [This.GetName]"
+        
+        if = { limit = { has_modifier = eac_apm_on_modifier } log = "APM is turned on" }
+        else = { log = "APM is OFF" }
+
+        if = { limit = { has_policy_flag = eac_apm_habitability_60 } log = "Habitability policy: 60" }
+        else = { log = "Habitability policy: any" }
+
+        if = { limit = { has_policy_flag = eac_apm_eligibility_overcrowded_unemployed } log = "Eligibility policy: unemployed on overcrowded worlds" }
+        else = { log = "Eligibility policy: all unemployed" }
+
+        if = { limit = { has_country_resource = { type = energy amount > 1000 } } log = "Has 1000+ energy." }
+        else = { log = "Less than 1000 energy so APM will not move pops." }
+    }
+}
+
+planet_event = {
+    id = eac_apm_test.1
+    hide_window = yes
+    is_triggered_only = yes
+
+    immediate = {
+        log = "--- Test Planet for APM Migration Source ---"
+        log = "Planet = [This.GetName]"
+
+        if = { limit = { has_modifier = eac_apm_planet_preference_modifier }  log = "Planet Preference" }
+        else_if = { limit = { has_modifier = eac_apm_focus_research_modifier }  log = "Research Focus" }
+        else_if = { limit = { has_modifier = eac_apm_focus_minerals_modifier }  log = "Mineral Focus" }
+        else_if = { limit = { has_modifier = eac_apm_focus_food_modifier }  log = "Food Focus" }
+        else_if = { limit = { has_modifier = eac_apm_focus_energy_modifier }  log = "Energy Focus" }
+        else_if = { limit = { has_modifier = eac_apm_focus_toilers_modifier }  log = "Toilers Focus" }
+        else_if = { limit = { has_modifier = eac_apm_focus_no_migration_modifier }  log = "No Migration Allowed Focus" }
+        else = { log = "No APM planet modifiers found." }
+
+        if = { limit = { free_housing = 0 }  log = "free housing = 0" }
+        else_if =  { limit = { free_housing < 0 }  log = "free housing < 0" }
+        else_if =  { limit = { free_housing > 0 }  log = "free housing > 0" }
+
+        if = { limit = { count_owned_pop = { limit = { is_unemployed = yes } count > 0 } }  log = "has unemployed" }
+        else = {  log = "no unemployed found" }
+
+        if = { 
+            limit = { 
+                count_owned_pop = { 
+                    limit = { 
+                            is_unemployed = yes 
+                            NOT = { has_citizenship_type = { type = citizenship_assimilation } } # Ignore assimilating pops
+                            owner = { has_country_resource = { type = energy amount > 1000 } } # minimum of 1K energy to move pops
+                            OR = {
+                                has_migration_control = {
+                                    type = no
+                                }
+                                pop_has_trait = trait_machine_unit 
+                                pop_has_trait = trait_mechanical 
+                            }
+                    } 
+                    count > 0 
+                } 
+            } 
+            log = "moveable pops found" 
+        }
+        else = { log = "no moveable pops found"}
+        
+        if = { 
+            limit = { 
+                has_modifier = slave_colony
+                has_modifier = eac_apm_focus_toilers_modifier
+                count_owned_pop = { 
+                    limit = { 
+                        has_job = slave_toiler 
+                        NOT = { has_citizenship_type = { type = citizenship_assimilation } } # Ignore assimilating pops
+                        owner = { has_country_resource = { type = energy amount > 1000 } } # minimum of 1K energy to move pops
+                        OR = {
+                            has_migration_control = {
+                                type = no
+                            }
+                            species = { has_trait = trait_machine_unit }
+                            species = { has_trait = trait_mechanical }
+                        }
+                    } 
+                    count > 0 
+                } 
+            } 
+            log = "thrall-world toilers found" 
+        }
+    }
+}
+
+country_event = {
+    id = eac_apm_test.100
+    hide_window = yes
+    is_triggered_only = yes
+
+    immediate = {
+        set_variable = { which = country_unemployed_pops value = 0 }
+        set_variable = { which = country_free_jobs value = 0 }
+        set_variable = { which = country_free_housing value = 0 }
+
+        every_owned_planet = {
+            if = { limit = { free_jobs > 0 } eac_apm_compute_planet_free_jobs = yes }
+            if = { limit = { free_housing > 0 } eac_apm_compute_planet_free_housing = yes }
+            eac_apm_compute_planet_unemployed_pops = yes
+        }
+        log = "Empire Free Jobs: [This.country_free_jobs]"
+        log = "Empire Free Housing: [This.country_free_housing]"
+        log = "Empire Unemployed Pops: [This.country_unemployed_pops]"
+    }
+}

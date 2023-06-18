@@ -1,0 +1,809 @@
+namespace = mzilli_capture_ships
+
+##### Creates debris "owner" country
+event = {
+	id = mzilli_capture_ships.1
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		create_country = {
+			name = ""
+			type = faction
+			flag = {
+				icon= {
+					category = "special"
+					file = "abandoned.dds"
+				}
+				background= {
+					category = "backgrounds"
+					file = "00_solid.dds"
+				}
+				colors={
+					"black"
+					"black"
+					"null"
+					"null"
+				}
+			}
+			effect = {
+				every_country = {
+					limit = { is_country_type = default }
+					prev = {
+						establish_communications_no_message = prev
+						establish_contact = { who = prev location = prev.capital_scope.solar_system }
+					}
+				}
+				save_global_event_target_as = disabled_fleet_country
+				set_faction_hostility = { set_friendly = yes }
+			}
+		}
+		# For "home fleets" that don't move around
+		every_country = {
+			limit = {
+				OR = {
+					is_country_type = fallen_empire
+					is_country_type = dormant_marauders
+				}
+			}
+			every_owned_fleet = {
+				limit = {
+					is_civilian = no
+					any_owned_ship = { valid_capture_type = yes }
+				}
+				fleet_event = { id = mzilli_capture_ships.2 }
+			}
+		}
+	}
+}
+
+# Scope = Fleet
+# From = System
+##### Marks ships for disabling when entering a system, or when triggered by .1
+fleet_event = {
+	id = mzilli_capture_ships.2
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		is_civilian = no
+		any_owned_ship = { valid_capture_type = yes }
+		owner = {
+			OR = {
+				is_country_type = default
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+				is_country_type = pirate
+				is_country_type = dormant_marauders
+				is_country_type = ruined_marauders
+				is_country_type = awakened_marauders
+				is_country_type = caravaneer_fleet
+				is_country_type = enclave_mercenary
+			}
+		}
+		#NOT = { leader = { has_leader_trait = leader_trait_ruler_great_khan } }
+	}
+
+	immediate = {
+		every_owned_ship = {
+			limit = { valid_capture_type = yes }
+			if = {
+				limit = { has_ship_flag = mzilli_disabled_ship }
+				remove_ship_flag = mzilli_disabled_ship
+			}
+			random_list = {
+				90 = { }
+				5 = {
+					modifier = {
+						factor = 2
+						higher_capture_chance = yes
+					}
+					modifier = {
+						factor = 2
+						much_higher_capture_chance = yes
+					}
+					modifier = {
+						factor = 0.5
+						root = {
+							count_owned_ship = {
+								limit = { has_ship_flag = mzilli_disabled_ship }
+								count > 4
+							}
+						}
+					}
+					modifier = {
+						factor = 0
+						root = {
+							count_owned_ship = {
+								limit = { has_ship_flag = mzilli_disabled_ship }
+								count > 9
+							}
+						}
+					}
+					set_ship_flag = mzilli_disabled_ship
+				}
+			}
+		}
+	}
+}
+
+# This = owner of ship 1 (destroyed)
+# From = owner of ship 2 (combatant)
+# FromFrom = ship 1
+# FromFromFrom = ship 2
+##### Ship is destroyed; a disabled duplicate is spawned
+country_event = {
+	id = mzilli_capture_ships.3
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		FROMFROM = { has_ship_flag = mzilli_disabled_ship }
+		FROM = {
+			OR = {
+				is_country_type = default
+				is_country_type = nomad
+				is_country_type = pirate
+				is_country_type = dormant_marauders
+				is_country_type = ruined_marauders
+				is_country_type = awakened_marauders
+				is_country_type = marauder_raiders
+				is_country_type = fallen_empire
+				is_country_type = awakened_fallen_empire
+				is_country_type = enclave
+				is_country_type = enclave_mercenary
+				is_country_type = caravaneer_home
+				is_country_type = caravaneer_fleet
+				is_country_type = swarm
+				is_country_type = ai_empire
+			}
+		}
+	}
+
+	immediate = {
+		if = {
+			limit = { NOT = { exists = event_target:disabled_fleet_country } }
+			create_country = {
+				name = ""
+				type = faction
+				flag = {
+					icon= {
+						category = "special"
+						file = "abandoned.dds"
+					}
+					background= {
+						category = "backgrounds"
+						file = "00_solid.dds"
+					}
+					colors={
+						"black"
+						"black"
+						"null"
+						"null"
+					}
+				}
+				effect = {
+					every_country = {
+						limit = { is_country_type = default }
+						prev = {
+							establish_communications_no_message = prev
+							establish_contact = { who = prev location = prev.capital_scope.solar_system }
+						}
+					}
+					save_global_event_target_as = disabled_fleet_country
+					set_faction_hostility = { set_friendly = yes }
+				}
+			}
+		}
+		create_fleet = {
+			effect = {
+				set_owner = event_target:disabled_fleet_country
+				#set_owner = root
+				create_ship = {
+					name = FROMFROM
+					design = FROMFROM
+					graphical_culture = FROMFROM
+				}
+				set_location = { target = FROMFROM }
+				random_owned_ship = {
+					prev = { set_name = prev }
+					set_disabled = yes
+					set_ship_flag = belonged_to_@root
+					reduce_hp_percent = 95
+					add_modifier = { modifier = mzilli_disabled_ship_modifier }
+					ship_event = { id = mzilli_capture_ships.4 }
+					#ship_event = { id = mzilli_capture_ships.9 days = 721 }
+				}
+			}
+		}
+	}
+}
+
+# From = owner of ship 1 (destroyed)
+# FromFrom = owner of ship 2 (combatant)
+##### Creates special projects
+ship_event = {
+	id = mzilli_capture_ships.4
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		fleet = {
+			set_name = ROOT
+			#set_event_locked = yes
+		}
+		FROM = {
+			if = {
+				limit = { is_country_type = default }
+				ROOT = {
+					enable_special_project = {
+						name = "MZILLI_RECOVER_SHIP"
+						location = ROOT
+						owner = PREV
+					}
+				}
+				if = {
+					limit = {
+						OR = {
+							NOT = { has_country_flag = mzilli_disabled_ship }
+							root = { higher_capture_chance = yes }
+						}
+					}
+					country_event = { id = mzilli_capture_ships.5 }
+				}
+			}
+		}
+		FROMFROM = {
+			if = {
+				limit = {
+					is_country_type = default
+					FROM = { NOT = { has_ascension_perk = ap_enigmatic_engineering } }
+				}
+				ROOT = {
+					enable_special_project = {
+						name = "MZILLI_CAPTURE_SHIP"
+						location = ROOT
+						owner = PREV
+					}
+				}
+				if = {
+					limit = {
+						OR = {
+							NOT = { has_country_flag = mzilli_disabled_ship }
+							root = { higher_capture_chance = yes }
+						}
+					}
+					country_event = { id = mzilli_capture_ships.5 }
+				}
+			}
+		}
+	}
+}
+
+# From = disabled ship
+# FromFrom = owner of ship 1 (destroyed)
+# FromFromFrom = owner of ship 2 (combatant)
+##### Owner and attacker are notified that a ship has been disabled
+country_event = {
+	id = mzilli_capture_ships.5
+	title = "mzilli_capture_ships.5.name"
+	desc = {
+		trigger = { FROM = { NOT = { has_ship_flag = belonged_to_@root } } }
+		text = "mzilli_capture_ships.5.desc.a"
+	}
+	desc = {
+		trigger = {
+			FROM = { has_ship_flag = belonged_to_@root }
+			NOT = { has_ascension_perk = ap_enigmatic_engineering }
+		}
+		text = "mzilli_capture_ships.5.desc.b"
+	}
+	desc = {
+		trigger = {
+			FROM = { has_ship_flag = belonged_to_@root }
+			has_ascension_perk = ap_enigmatic_engineering
+		}
+		text = "mzilli_capture_ships.5.desc.c"
+	}
+	picture = { # Juggernaut
+		trigger = { FROM = { is_ship_size = juggernaut } }
+		picture = GFX_evt_juggernaut
+	}
+	picture = { # Repaired Automated Dreadnought
+		trigger = { FROM = { is_ship_size = npc_warship_01 } }
+		picture = GFX_evt_automated_dreadnought
+	}
+	picture = { # Pirate/Marauder ship
+		trigger = {
+			FROM = {
+				OR = {
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+				}
+			}
+		}
+		picture = GFX_evt_pirates_attacking_cargo
+	}
+	picture = { # Titan, or Fallen/Awakened Empire ship
+		trigger = {
+			FROM = {
+				OR = {
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+				}
+			}
+		}
+		picture = GFX_evt_fallen_empire_awakes
+	}
+	picture = { # Caravaneer ship
+		trigger = {
+			FROM = {
+				OR = {
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_caravaneers
+	}
+	picture = { # Other
+		trigger = {
+			FROM = {
+				NOR = {
+					is_ship_size = juggernaut
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+					is_ship_size = npc_warship_01
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_sabotaged_ship
+	}
+	location = FROM
+	show_sound = event_structural_collapse
+	
+	is_triggered_only = yes
+
+	option = {
+		name = "mzilli_capture_ships.5.a"
+		if = {
+			limit = {
+				FROM = { has_ship_flag = belonged_to_@root }
+				has_ascension_perk = ap_enigmatic_engineering
+			}
+			custom_tooltip = "mzilli_capture_ships.5.tooltip.a"
+		}
+		else = { custom_tooltip = "mzilli_capture_ships.5.tooltip.b" }
+		if = {
+			limit = { NOT = { has_country_flag = mzilli_disabled_ship } }
+			custom_tooltip = "mzilli_capture_ships.5.tooltip.c"
+			hidden_effect = { set_country_flag = mzilli_disabled_ship }
+		}
+	}
+}
+
+##### Ship has been recovered by original owner
+ship_event = {
+	id = mzilli_capture_ships.6
+	title = "mzilli_capture_ships.6.name"
+	desc = "mzilli_capture_ships.6.desc"
+
+	picture = { # Juggernaut
+		trigger = { FROMFROM = { is_ship_size = juggernaut } }
+		picture = GFX_evt_juggernaut
+	}
+	picture = { # Repaired Automated Dreadnought
+		trigger = { FROMFROM = { is_ship_size = npc_warship_01 } }
+		picture = GFX_evt_automated_dreadnought
+	}
+	picture = { # Pirate/Marauder ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+				}
+			}
+		}
+		picture = GFX_evt_pirates_attacking_cargo
+	}
+	picture = { # Titan, or Fallen/Awakened Empire ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+				}
+			}
+		}
+		picture = GFX_evt_fallen_empire_awakes
+	}
+	picture = { # Caravaneer ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_caravaneers
+	}
+	picture = { # Other
+		trigger = {
+			FROMFROM = {
+				NOR = {
+					is_ship_size = juggernaut
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+					is_ship_size = npc_warship_01
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_sabotaged_ship
+	}
+	location = FROMFROM
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		trigger = { owner = { any_owned_ship = { is_same_value = FROMFROM } } }
+		name = EXCELLENT
+		custom_tooltip = "mzilli_capture_ships.6.tooltip"
+	}
+}
+
+##### Ship has been captured from its original owner
+ship_event = {
+	id = mzilli_capture_ships.7
+	title = "mzilli_capture_ships.7.name"
+	desc = "mzilli_capture_ships.7.desc"
+
+	picture = { # Juggernaut
+		trigger = { FROMFROM = { is_ship_size = juggernaut } }
+		picture = GFX_evt_juggernaut
+	}
+	picture = { # Repaired Automated Dreadnought
+		trigger = { FROMFROM = { is_ship_size = npc_warship_01 } }
+		picture = GFX_evt_automated_dreadnought
+	}
+	picture = { # Pirate/Marauder ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+				}
+			}
+		}
+		picture = GFX_evt_pirates_attacking_cargo
+	}
+	picture = { # Titan, or Fallen/Awakened Empire ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+				}
+			}
+		}
+		picture = GFX_evt_fallen_empire_awakes
+	}
+	picture = { # Caravaneer ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_caravaneers
+	}
+	picture = { # Other
+		trigger = {
+			FROMFROM = {
+				NOR = {
+					is_ship_size = juggernaut
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+					is_ship_size = npc_warship_01
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_sabotaged_ship
+	}
+	location = FROMFROM
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		trigger = { owner = { any_owned_ship = { is_same_value = FROMFROM } } }
+		name = EXCELLENT
+		custom_tooltip = "mzilli_capture_ships.7.tooltip"
+	}
+}
+
+##### Former owner is notified that their ship has been captured
+country_event = {
+	id = mzilli_capture_ships.8
+	title = "mzilli_capture_ships.8.name"
+	desc = "mzilli_capture_ships.8.desc"
+
+	picture = { # Juggernaut
+		trigger = { FROMFROM = { is_ship_size = juggernaut } }
+		picture = GFX_evt_juggernaut
+	}
+	picture = { # Repaired Automated Dreadnought
+		trigger = { FROMFROM = { is_ship_size = npc_warship_01 } }
+		picture = GFX_evt_automated_dreadnought
+	}
+	picture = { # Pirate/Marauder ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+				}
+			}
+		}
+		picture = GFX_evt_pirates_attacking_cargo
+	}
+	picture = { # Titan, or Fallen/Awakened Empire ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+				}
+			}
+		}
+		picture = GFX_evt_fallen_empire_awakes
+	}
+	picture = { # Caravaneer ship
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_caravaneers
+	}
+	picture = { # Other
+		trigger = {
+			FROMFROM = {
+				NOR = {
+					is_ship_size = juggernaut
+					is_ship_size = marauder_corvette
+					is_ship_size = marauder_destroyer
+					is_ship_size = marauder_cruiser
+					is_ship_size = marauder_galleon
+					is_ship_size = pirate_corvette
+					is_ship_size = pirate_destroyer
+					is_ship_size = pirate_cruiser
+					is_ship_size = galleon
+					is_ship_size = small_ship_fallen_empire
+					is_ship_size = large_ship_fallen_empire
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = titan
+					is_ship_size = npc_warship_01
+					is_ship_size = caravaneer_cruiser_01
+					is_ship_size = caravaneer_destroyer_01
+				}
+			}
+		}
+		picture = GFX_evt_sabotaged_ship
+	}
+	location = FROMFROM
+	show_sound = event_construction
+	
+	is_triggered_only = yes
+
+	option = {
+		trigger = {
+			FROMFROM = {
+				NOR = {
+					is_ship_size = battleship
+					is_ship_size = titan
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = juggernaut
+					is_ship_size = colossus
+					is_ship_size = star_eater
+					is_ship_size = npc_warship_01
+				}
+			}
+		}
+		name = distar.10953.a
+		custom_tooltip = "mzilli_capture_ships.8.tooltip"
+	}
+	option = {
+		trigger = { FROMFROM = { is_ship_size = battleship } }
+		name = mzilli_capture_ships.8.battleship
+		custom_tooltip = "mzilli_capture_ships.8.tooltip"
+	}
+	option = {
+		trigger = {
+			FROMFROM = {
+				OR = {
+					is_ship_size = titan
+					is_ship_size = massive_ship_fallen_empire
+					is_ship_size = juggernaut
+					is_ship_size = colossus
+					is_ship_size = star_eater
+					is_ship_size = npc_warship_01
+				}
+			}
+		}
+		name = mzilli_capture_ships.8.titan
+		custom_tooltip = "mzilli_capture_ships.8.tooltip"
+	}
+}
+
+# FromFrom = owner of ship 1 (destroyed)
+# FromFromFrom = owner of ship 2 (combatant)
+##### Ship breaks up, or is captured by Marauders, after 720 days without recovery
+ship_event = {
+	id = mzilli_capture_ships.9
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	immediate = {
+		every_country = {
+			limit = { has_special_project = MZILLI_RECOVER_SHIP }
+			abort_special_project = {
+				type = MZILLI_RECOVER_SHIP
+				location = root
+			}
+		}
+		every_country = {
+			limit = { has_special_project = MZILLI_CAPTURE_SHIP }
+			abort_special_project = {
+				type = MZILLI_CAPTURE_SHIP
+				location = root
+			}
+		}
+		if = {
+			limit = { is_disabled = yes }
+			if = {
+				limit = {
+					solar_system = {
+						any_fleet_in_system = {
+							owner = {
+								OR = {
+									is_country_type = pirate
+									is_country_type = dormant_marauders
+									is_country_type = ruined_marauders
+									is_country_type = awakened_marauders
+									is_country_type = marauder_raiders
+								}
+							}
+							any_owned_ship = { valid_capture_type = yes }
+						}
+					}
+					any_country = {
+						root = { has_ship_flag = belonged_to_@prev }
+						NOT = { has_ascension_perk = ap_enigmatic_engineering }
+					}
+				}
+				solar_system = {
+					random_fleet_in_system = {
+						limit = {
+							owner = {
+								OR = {
+									is_country_type = pirate
+									is_country_type = dormant_marauders
+									is_country_type = ruined_marauders
+									is_country_type = awakened_marauders
+									is_country_type = marauder_raiders
+								}
+							}
+							any_owned_ship = { valid_capture_type = yes }
+						}
+						root = {
+							set_disabled = no
+							remove_modifier = mzilli_disabled_ship_modifier
+							add_modifier = {
+								modifier = mzilli_repairing_ship_modifier
+								days = 190
+							}
+							fleet = {
+								#set_event_locked = no
+								set_owner = prevprev.owner
+								auto_follow_fleet = { target = prevprev attack_fleet = no }
+							}
+							if = {
+								limit = { higher_capture_chance = yes }
+								random_country = {
+									limit = { prev = { has_ship_flag = belonged_to_@prev } }
+									country_event = { id = mzilli_capture_ships.8 }
+								}
+							}
+							random_country = {
+								limit = { prev = { has_ship_flag = belonged_to_@prev } }
+								prev = { remove_ship_flag = belonged_to_@prev }
+							}
+						}
+					}
+				}
+			}
+			else = { destroy_ship = this }
+		}
+	}
+}

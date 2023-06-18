@@ -1,0 +1,178 @@
+# operation_type_name = {			# Key of the site, used for name lookup etc.
+#	target = <target type>			# Valid target types are country, megastructure, starbase, fleet, army, pop_faction, spynetwork, federation and none (spy network target is the target then)
+#	picture = <sprite key>			# GFX_* sprite key for the operation image
+#	desc = <triggered event desc>	# Description generator for the operation, with scope this=spy network
+#	stages = <int>					# Should match number of defined stages below.
+#	potential = <trigger>			# Trigger checking if a scope with this=spy network is potential to use (this will add/remove this operation without giving the player a reason).
+#	allow = <trigger>				# Trigger checking if a scope with this=spy network is allowed to use (this will toggle enable/disabled mode on buttons etc).
+#	stage = {						# Stage definition, order dependent.
+#		difficulty = <interval int>	# min max interval type. interval is defined either by '<int>' or '{ min = <int> max=<int> }' where the later will randomize a value between min and max.
+#		icon = <string>				# icon gfx type.
+#		event = <string>			# event to fire when finished the state.
+#	}
+#	stage = {...}					# Second stage, the total number of 'stage' entries should match value of 'stages'
+#	on_roll_failed = <effect>		# Effect to fire when a roll fails, with scope this=spy operation.
+#	on_create = <effect>			# Effect to fire upon operation creation, with scope this=spy operation.
+#}
+
+@diff_t0 = 4
+@diff_t1 = 5
+@diff_t2 = 6
+@diff_t3 = 7
+@diff_t4 = 8
+@diff_t5 = 9
+@diff_t6 = 10
+@diff_t7 = 11
+@diff_t8 = 12
+@diff_t9 = 13
+
+@operationTargetedByTimer = 10800 #30 years during which the effects of an operation may be felt by select Spy Network events
+
+# this = operation
+# from = operation target
+
+### Galactic Imperium
+operation_weaken_galactic_empire = {
+	target = none
+	categories = { op_cat_subterfuge op_cat_imperium }
+	picture = GFX_evt_galactic_empire
+	desc = operation_weaken_galactic_empire_desc
+	stages = 3
+
+	resources = {
+		category = operations
+		cost = {
+			influence = 80
+		}
+		upkeep = {
+			energy = 7
+		}
+	}
+
+	spy_power_cost = 35
+	potential = {
+		has_nemesis = yes
+		has_galactic_emperor = yes
+		target = { is_galactic_emperor = yes }
+		root.owner = {
+			is_galactic_community_member = yes
+			is_galactic_emperor = no
+		}
+	}
+	allow = {
+		custom_tooltip = {
+			is_running_espionage_operation = no
+			fail_text = operation_one_at_a_time
+		}
+	}
+	stage = {
+		difficulty = @diff_t3
+		icon = GFX_espionage_chapter_icon_motion
+		event = operation.6000
+	}
+	stage = {
+		difficulty = @diff_t3
+		icon = GFX_espionage_chapter_icon_surveillance
+		event = operation.6005
+	}
+	stage = {
+		difficulty = @diff_t3
+		icon = GFX_espionage_chapter_icon_target
+		event = operation.6010
+	}
+	on_roll_failed = {
+		standard_espionage_operation_on_roll_failed = {
+			RANDOM_EVENTS = operation_random_events_generic
+		}
+	}
+	on_create = { }
+}
+
+operation_spark_rebellion = { #禁用，重写一个挪到排序最后
+	target = none
+	categories = { op_cat_subterfuge op_cat_technology }
+	picture = GFX_evt_open_revolt
+	desc = operation_spark_rebellion_desc
+	stages = 5
+
+	resources = {
+		category = operations
+		cost = {
+			influence = 250
+		}
+		upkeep = {
+			influence = 1
+			energy = 15
+		}
+	}
+
+	spy_power_cost = 70
+	potential = {
+		has_nemesis = yes
+		has_galactic_emperor = yes
+		target = { is_galactic_emperor = yes }
+		root.owner = {
+			is_galactic_community_member = yes
+			is_galactic_emperor = no
+		}
+		root.owner = { #防止同时出现
+			is_running_espionage_operation = yes
+			any_espionage_operation = { has_espionage_type = operation_spark_rebellion }
+		}
+	}
+	allow = {
+		imperial_authority <= 50
+		# civil war is not currently ongoing
+		custom_tooltip = {
+			fail_text = spark_rebellion_already_sparked
+			NOT = {
+				any_playable_country = {
+					any_war = {
+						using_war_goal = {
+							type = wg_galactic_civil_war_loyalists
+							owner = attacker
+						}
+					}
+				}
+			}
+		}
+		custom_tooltip = {
+			is_running_espionage_operation = no
+			fail_text = operation_one_at_a_time
+		}
+	}
+	abort = {
+		has_global_flag = abort_spark_rebellion # set for 10 days by emperor.101
+	}
+	stage = {
+		difficulty = @diff_t7
+		icon = GFX_espionage_chapter_icon_motion
+		event = operation.6100
+	}
+	stage = {
+		difficulty = @diff_t7
+		icon = GFX_espionage_chapter_icon_target
+		event = operation.6105
+	}
+	stage = {
+		difficulty = @diff_t7
+		icon = GFX_espionage_chapter_icon_motion
+		event = operation.6110
+	}
+	stage = {
+		difficulty = @diff_t7
+		icon = GFX_espionage_chapter_icon_motion
+		event = operation.6115
+	}
+	stage = {
+		difficulty = @diff_t7
+		icon = GFX_espionage_chapter_icon_success
+		event = operation.6120
+	}
+	on_roll_failed = {
+		standard_espionage_operation_on_roll_failed = {
+			RANDOM_EVENTS = operation_random_events_generic
+		}
+	}
+	on_create = { }
+}

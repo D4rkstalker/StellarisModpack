@@ -1,0 +1,141 @@
+namespace = starbase_extra
+
+# (on_monthly_pulse_country)
+country_event = {
+	id = starbase_extra.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {
+		exists = this
+		is_scope_type = country
+		is_ai = no
+		has_technology = tech_space_defense_station_improvement
+		any_owned_starbase = { has_starbase_building = starbase_extra }
+		NOT = { has_global_flag = starbase_spawned }
+	}
+
+	immediate = {
+		set_global_flag = starbase_spawned
+		every_owned_starbase = {
+			limit = {
+				has_starbase_building = starbase_extra	
+				solar_system = {
+					NOT = {
+						has_star_flag = starbase_extra_system
+					}
+				}
+			}
+			solar_system = {
+				spawn_system = {
+					min_distance = 10
+					max_distance = 20
+					max_jumps = 0
+					initializer = "starbase_extra_system"
+					effect = {
+						root = { set_visited = prev }
+						star = {
+							save_global_event_target_as = starbase_extra_base
+						}
+					}
+				}
+				if = {
+					limit = { last_created_system = { NOT = { has_hyperlane_to = prev } } }
+					add_hyperlane = {
+						from = this
+						to = last_created_system
+					}
+				}
+				set_star_flag = starbase_extra_system
+				save_global_event_target_as = starbase_extra_capital
+			}
+		}
+		if = {
+			limit = {
+				NOT = {
+					has_country_flag = starbase_destination_system
+				}
+			}
+			set_country_flag = starbase_destination_system
+		}
+	}
+}
+
+starbase_event = {
+	id = starbase_extra.2
+	title = "starbase_extra.2.name"
+	desc = "starbase_extra.2.desc"
+	picture = GFX_evt_communication_event
+	show_sound = event_the_great_awakening
+	location = event_target:starbase_extra_base
+	
+	is_triggered_only = yes
+
+	trigger = {
+		exists = solar_system
+		solar_system = {
+			has_star_flag = starbase_extra_system
+		}
+	}
+
+	option = {
+		name = OK
+		hidden_effect = {
+			event_target:starbase_extra_base = {
+				solar_system = {
+					if = {
+						limit = { 
+							NOT = { exists = starbase } 
+						}
+						create_starbase = {
+							size = starbase_starhold
+							owner = root
+							module = shipyard
+							module = shipyard
+							module = shipyard
+							module = shipyard
+							building = crew_quarters
+							building = aux_module
+						}
+					}
+					save_global_event_target_as = starbase_extra_base
+					set_star_flag = starbase_extra_base
+				}
+			}
+		}
+	}
+}
+
+event = {
+	id = starbase_extra.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = solar_system
+		solar_system = {
+			NAND = {
+				exists = starbase
+				starbase = { has_starbase_building = starbase_extra }
+			}
+		}
+	}
+
+	immediate = {
+		every_system = { 
+			limit = { 
+				has_star_flag = starbase_extra_system
+				solar_system = {
+					NAND = {
+						exists = starbase
+						starbase = { has_starbase_building = starbase_extra }
+					}
+				}
+			}
+			remove_hyperlane = {
+				from = event_target:starbase_extra_capital
+				to = event_target:starbase_extra_base
+			}
+		}
+	}
+}

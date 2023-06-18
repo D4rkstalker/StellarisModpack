@@ -1,0 +1,779 @@
+###	防御AP_超级防线	############################################################
+
+#	AAR防线触发FW
+
+#	AAR防线CD特效
+#	AAR防线SKW星基/AAR防线SKW防御塔
+#	AAR防线SKW载体
+
+@SVAR_weight_1 = 0.15		# 伤害权重_星基
+@SVAR_weight_1_SP = 0.6		# 伤害权重_星基_特殊敌人
+@SVAR_weight_1_disable = 0.015	# 伤害权重_星基_失效
+@SVAR_weight_2 = 0.2		# 伤害权重_防御塔
+@SVAR_skw_MAX = 15000		# 冲击伤害最值
+#_|AAR_var_flt_LINE_skw_POWER|	冲击衰减变化范围=0~1.3
+
+
+
+
+###_[AAR防线触发FW]
+#_evt	<aar防线接战>
+##_scopes	<root>=触发舰队owner	/<from>=对方舰队owner	/<fromfrom>=触发舰队	/<fromfromfrom>=对方舰队
+AAR_eft_flt_LINE_cycle_init_FW = {
+	#	基于<owner>,且<owner><controller>必须同步
+	#	所有<星基舰队>均可触发,以其中的<星基>作为<触发点>和<循环检测点>		/因为<星基>被毁<星基舰队>也就不复存在,因此只在<星基>本身进行DB即可		/同时适应于<星基><星环>和一些<特殊移动基地>
+	#	所有<防御塔>会添加暂时buff		/所有<星基>会添加[aar防线星基ship循环]进行循环DB	=|超级防线VAR衰减|DB以控制skw伤害
+	#	|最强冲击波|控制防御塔冲击伤害
+	#	|AAR防线触发CD|期间不会重新触发
+	#	|AAR防线循环中|防止已经激活护盾的舰队再次激活,前提是<星基舰队>不会自动拆分的(这个即便有也影响不大)
+
+
+	##	|相对FP检测|
+	#	|战力bug|		存在0值
+	if = {
+		limit = {
+			OR = {
+				fleet_power = 0
+				fromfromfrom = { fleet_power = 0 }
+			}
+		}
+		#	|执行FLG|DB
+		set_fleet_flag = EXECUTE_flg_flt_LINE_cycle_init	# |EFT执行|
+	}
+	#	|非碾压局|		<星基>战力不超过对手400%
+	else = {
+		set_variable = { which = TEMP_var_FP_enemy		 value = fromfromfrom.trigger:fleet_power }
+		multiply_variable = { which = TEMP_var_FP_enemy	 value = 4 }
+		# 战力比较
+		if = { limit = { fleet_power < TEMP_var_FP_enemy }	# 非|>=4倍敌战力|
+			#	|执行FLG|DB
+			set_fleet_flag = EXECUTE_flg_flt_LINE_cycle_init	# |EFT执行|
+		}
+		clear_variable = TEMP_var_FP_enemy
+	}
+
+
+	##	|EFT执行|
+	if = { limit = { has_fleet_flag = EXECUTE_flg_flt_LINE_cycle_init }
+		remove_fleet_flag = EXECUTE_flg_flt_LINE_cycle_init
+
+		##_[预热]	|AAR防线触发CD|添加		
+		set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 15 }
+		##_[触发]	|AAR防线循环中|添加
+		set_fleet_flag = AAR_flg_flt_LINE_cycle_ONGOING
+
+		##	特殊天灾检测
+	#	remove_fleet_flag = AAR_flg_flt_LINE_sp_enemy	# INIT	|无需|多重接战可能会导致无法对天灾生效
+		root.from = {
+			if = {
+				limit = {
+					NOR = {# |原版可摧毁星基|
+						is_country_type = origin_dragon
+						is_country_type = awakened_marauders
+						is_country_type = swarm
+						is_country_type = extradimensional
+						is_country_type = extradimensional_2
+						is_country_type = extradimensional_3
+						is_country_type = ai_empire
+						is_country_type = enigmatic_cache
+						is_country_type = gray_goo
+						# leviathan
+						is_country_type = guardian
+						is_country_type = guardian_dragon
+						is_country_type = guardian_stellarite
+						is_country_type = guardian_wraith
+						is_country_type = guardian_hiver
+						is_country_type = guardian_horror
+						is_country_type = guardian_fortress
+						is_country_type = guardian_dreadnought
+						is_country_type = guardian_sphere
+						# DS
+						is_country_type = guardian_scavenger_bot
+						is_country_type = guardian_elderly_tiyanki
+						is_country_type = guardian_hatchling
+					}
+				}
+				prev = { set_fleet_flag = AAR_flg_flt_LINE_sp_enemy }
+			}
+		#	else_if = {
+		#		limit = {
+		#			always = no	# 禁用
+		#			NOR = {# 非|不摧毁星基|
+		#				is_country_type = default
+		#				is_country_type = pirate
+		#				is_country_type = dormant_marauders
+		#				is_country_type = fallen_empire
+		#				is_country_type = awakened_fallen_empire
+		#				is_country_type = rebel
+		#				is_country_type = shroud_spirits
+		#				is_country_type = marauder_raiders
+		#			}
+		#		}
+		#		prev = { set_fleet_flag = AAR_flg_flt_星基毁灭者 }
+		#	}
+		}
+		
+		##	|超级防线VAR衰减|INIT	1.3/0.015=86
+		set_variable = { which = AAR_var_flt_LINE_skw_POWER value = 1.3 }
+		
+		##	防御塔buff添加		与buff对应的数据,防御塔储存在ship上,星基储存在sstm里
+		every_owned_ship = { limit = { NOT = { has_ship_flag = AAR_flg_ship_LINE_combat } }	# |战斗状态ship|激活	=只有在|脱战/毁灭/失效|时才会去掉
+			#	INIT
+			remove_modifier = AAR_mod_ship_LINE_shield
+			#	按类型添加
+			if = { limit = { is_ship_class = shipclass_starbase }
+				set_timed_ship_flag = { flag = AAR_flg_ship_SB_blue_max days = 45 }	# |蓝盾最大持续时间|=45天
+				ship_event = { id = AAR_evt_LINE.1 }		#_[aar防线星基ship循环]	添加|战斗状态ship|,|战斗状态sb|,初始化并循环DB
+			}
+			else_if = { limit = { is_ship_size = ion_cannon }
+				set_ship_flag = AAR_flg_ship_LINE_combat
+				set_variable = { which = AAR_var_SHIELD_power			value = value:AAR_prmt_sv_flt_LINE_power|POWER|8000| }	#_添加|SB护盾强度|
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield	days = 45 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|8000| }
+			}
+			else_if = { limit = { is_ship_size = military_station_small }
+				set_ship_flag = AAR_flg_ship_LINE_combat
+				set_variable = { which = AAR_var_SHIELD_power			value = value:AAR_prmt_sv_flt_LINE_power|POWER|2500| }
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield	days = 45 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|2500| }
+			}
+			else = {#防御站/其他
+				set_ship_flag = AAR_flg_ship_LINE_combat
+				set_variable = { which = AAR_var_SHIELD_power			value = value:AAR_prmt_sv_flt_LINE_power|POWER|4500| }
+				add_modifier = { modifier = AAR_mod_ship_LINE_shield	days = 45 multiplier = value:AAR_prmt_sv_flt_LINE_power|POWER|4500| }
+			}
+			
+		}
+	}
+	
+}
+
+
+
+
+
+
+
+
+###_[AAR防线CD特效]
+#_<aar防线星基ship循环>
+#_<AAR防线SKW星基>
+#_prmt	SCALE/DAYS_0/DAYS_1/DAYS_2/DAYS_3/DAYS_4/DAYS_5
+AAR_prmt_eft_glbl_LINE_cd_ambt = {
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_0
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_0$
+	}
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_1
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_1$
+	}
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_2
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_2$
+	}
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_3
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_3$
+	}
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_4
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_4$
+	}
+	create_ambient_object = {
+		type = AAR_ambt_LINE_skw_CD_5
+		entity_scale_to_size = no
+		scale = $SCALE$
+		location = this
+		entity_face_object = this
+		duration = $DAYS_5$
+	}
+}
+
+
+
+
+
+
+
+
+###_[AAR防线SKW星基]
+#_evt	<aar防线自动防御塔循环*	/aar防线失效		/aar防线星基击毁/aar防线星基失效*>
+#_var输入	|AAR_var_SHIELD_power[aar防线星基ship循环-INIT]
+#_flg导入	|AAR_flg_ship_disabled|非天灾摧毁	|AAR_flg_flt_LINE_sp_enemy|特殊敌人
+AAR_eft_ship_LINE_skw_starbase = {
+	##	varINIT
+	if = { limit = { has_ship_flag = AAR_flg_ship_disabled }	# |失效flg|
+		multiply_variable = { which = AAR_var_SHIELD_power value = @SVAR_weight_1_disable }	# 伤害权重
+	}
+	else_if = { limit = { fleet = { has_fleet_flag = AAR_flg_flt_LINE_sp_enemy } }	# |特殊敌人|
+		fleet = { remove_fleet_flag = AAR_flg_flt_LINE_sp_enemy }
+		multiply_variable = { which = AAR_var_SHIELD_power value = @SVAR_weight_1_SP }	# 伤害权重	400%
+	}
+
+	## 蓝盾	=蓝盾破碎=7/蓝冲击=5
+	if = { limit = { has_ship_flag = AAR_flg_ship_LINE_shield_BLUE }	# |蓝盾状态|
+		remove_ship_flag = AAR_flg_ship_LINE_shield_BLUE
+
+		##_|超级防线VAR衰减|
+		fleet = {
+			if = { limit = { check_variable = { which = AAR_var_flt_LINE_skw_POWER value > 0.64 } }
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = prev.AAR_var_flt_LINE_skw_POWER } }
+			}
+			else = {
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = 0.64 } }
+			}
+		}
+		
+		##_|星基失效|
+		if = { limit = { has_ship_flag = AAR_flg_ship_disabled	}	# |失效flg|
+			#_|冲击伤害最值|
+			if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > @SVAR_skw_MAX } }
+				set_variable = { which = AAR_var_SHIELD_power value = @SVAR_skw_MAX }
+			}
+			# |AAR防线触发CD|		击碎护盾进入|disable|都视为90天CD
+			fleet = {# 盾过载
+				set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 90 }
+				if = { limit = { exists = starbase }
+					starbase = {
+						if = { limit = { has_global_flag = has_system_scale_mod }
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+						else = {
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+					
+					}
+				}
+			}
+		}
+
+		## 发射冲击波
+		if = {
+			# |当前冲击能量|CHECK
+			limit = {
+				solar_system = {
+					NAND = {
+						is_variable_set = AAR_var_sstm_SKW_power_current
+						check_variable = { which = AAR_var_sstm_SKW_power_current		 value > prev.AAR_var_SHIELD_power }	# |当前冲击能量|>|冲击伤害|
+					}
+				}
+			}
+			#_|当前冲击能量|刷新
+			solar_system = { set_variable = { which = AAR_var_sstm_SKW_power_current	 value = prev.AAR_var_SHIELD_power } }
+			create_fleet = { name = AAR_NAME_sb_line_skw_1
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					set_variable = { which = AAR_var_SHIELD_power		 value = prev.AAR_var_SHIELD_power }	# |SB护盾强度|转存入<skw_flt>
+					AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.50 days = 1 }	#_[aar防线星基冲击二段]
+				}
+			}
+		}
+
+		# 添加ambt_星系缩放		=150%
+		if = { limit = { has_global_flag = has_system_scale_mod }
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_BLUE			 SCALE = 75		 LOC = this		 DAYS = 7 }		# ambt蓝冲击
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_break_BLUE		 SCALE = 15		 LOC = this		 DAYS = 5 }		# ambt蓝碎盾
+		}
+		# 添加ambt_vanilla
+		else = {
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_BLUE			 SCALE = 50		 LOC = this		 DAYS = 7 }		# ambt蓝冲击
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_break_BLUE		 SCALE = 13		 LOC = this		 DAYS = 5 }		# ambt蓝碎盾
+		}
+	}
+	## 橙盾	=橙盾破碎=7/橙冲击=5
+	else_if = { limit = { has_ship_flag = AAR_flg_ship_LINE_shield_ORANGE }	# |橙盾状态|
+		remove_ship_flag = AAR_flg_ship_LINE_shield_ORANGE
+
+		##_|超级防线VAR衰减|
+		fleet = {
+			if = { limit = { check_variable = { which = AAR_var_flt_LINE_skw_POWER value > 0.16 } }
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = prev.AAR_var_flt_LINE_skw_POWER } }
+			}
+			else = {
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = 0.16 } }
+			}
+		}
+		
+		##_|星基失效|
+		if = { limit = { has_ship_flag = AAR_flg_ship_disabled	}	# |失效flg|
+			#_|冲击伤害最值|
+			if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > @SVAR_skw_MAX } }
+				set_variable = { which = AAR_var_SHIELD_power value = @SVAR_skw_MAX }
+			}
+			# |AAR防线触发CD|		击碎护盾进入|disable|都视为90天CD
+			fleet = {# 盾过载
+				set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 90 }
+				if = { limit = { exists = starbase }
+					starbase = {
+						if = { limit = { has_global_flag = has_system_scale_mod }
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+						else = {
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+					
+					}
+				}
+			}
+		}
+
+		## 发射冲击波
+		if = {
+			# |当前冲击能量|CHECK
+			limit = {
+				solar_system = {
+					NAND = {
+						is_variable_set = AAR_var_sstm_SKW_power_current
+						check_variable = { which = AAR_var_sstm_SKW_power_current		 value > prev.AAR_var_SHIELD_power }	# |当前冲击能量|>|冲击伤害|
+					}
+				}
+			}
+			#_|当前冲击能量|刷新
+			solar_system = { set_variable = { which = AAR_var_sstm_SKW_power_current	 value = prev.AAR_var_SHIELD_power } }
+			create_fleet = { name = AAR_NAME_sb_line_skw_1
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					set_variable = { which = AAR_var_SHIELD_power		 value = prev.AAR_var_SHIELD_power }	# |SB护盾强度|转存入<skw_flt>
+					AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.50 days = 1 }	#_[aar防线星基冲击二段]
+				}
+			}
+		}
+
+		# 添加ambt_星系缩放		=150%
+		if = { limit = { has_global_flag = has_system_scale_mod }
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_ORANGE		 SCALE = 75		 LOC = this		 DAYS = 7 }		# ambt橙冲击
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_break_ORANGE		 SCALE = 15		 LOC = this		 DAYS = 5 }		# ambt橙碎盾
+		}
+		# 添加ambt_vanilla
+		else = {
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_ORANGE		 SCALE = 50		 LOC = this		 DAYS = 7 }		# ambt橙冲击
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_break_ORANGE		 SCALE = 13		 LOC = this		 DAYS = 5 }		# ambt橙碎盾
+		}
+	}
+	## 无盾	=橙冲击=5
+	else = {
+		##_|超级防线VAR衰减|
+		fleet = {
+			if = { limit = { check_variable = { which = AAR_var_flt_LINE_skw_POWER value > 0.04 } }
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = prev.AAR_var_flt_LINE_skw_POWER } }
+			}
+			else = {
+				prev = { multiply_variable = { which = AAR_var_SHIELD_power value = 0.04 } }
+			}
+		}
+
+		##_|星基失效|
+		if = { limit = { has_ship_flag = AAR_flg_ship_disabled	}	# |失效flg|
+			# |AAR防线触发CD|		击碎护盾进入|disable|都视为90天CD
+			fleet = {# 盾过载
+				set_timed_fleet_flag = { flag = AAR_flg_flt_LINE_init_CD days = 90 }
+				if = { limit = { exists = starbase }
+					starbase = {
+						if = { limit = { has_global_flag = has_system_scale_mod }
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 9		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+						else = {
+							AAR_prmt_eft_glbl_LINE_cd_ambt = { SCALE = 8		DAYS_0 = 15 DAYS_1 = 30 DAYS_2 = 45 DAYS_3 = 60 DAYS_4 = 75 DAYS_5 = 90 }
+						}
+					
+					}
+				}
+			}
+		}
+		##	|天灾触发|
+		else = {
+			## 发射冲击波
+			if = {
+				# |当前冲击能量|CHECK
+				limit = {
+					solar_system = {
+						NAND = {
+							is_variable_set = AAR_var_sstm_SKW_power_current
+							check_variable = { which = AAR_var_sstm_SKW_power_current		 value > prev.AAR_var_SHIELD_power }	# |当前冲击能量|>|冲击伤害|
+						}
+					}
+				}
+				#_|当前冲击能量|刷新
+				solar_system = { set_variable = { which = AAR_var_sstm_SKW_power_current	 value = prev.AAR_var_SHIELD_power } }
+				create_fleet = { name = AAR_NAME_sb_line_skw_1
+					effect = {
+						set_event_locked = yes
+						set_fleet_flag = AAR_flg_flt_SKW
+						set_owner = prev.owner
+						set_variable = { which = AAR_var_SHIELD_power		 value = prev.AAR_var_SHIELD_power }	# |SB护盾强度|转存入<skw_flt>
+						AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+						set_location = prev
+						fleet_event = { id = AAR_evt_LINE.50 days = 1 }	#_[aar防线星基冲击二段]
+					}
+				}
+			}
+
+			# 添加ambt_星系缩放		|无碎盾|=150%
+			if = { limit = { has_global_flag = has_system_scale_mod }
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_ORANGE		 SCALE = 75		 LOC = this		 DAYS = 7 }		# ambt橙冲击
+			}
+			# 添加ambt_vanilla		|无碎盾|
+			else = {
+				AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_ORANGE		 SCALE = 50		 LOC = this		 DAYS = 7 }		# ambt橙冲击
+			}
+		}
+	}
+
+
+	## 清除数据
+#	remove_ship_flag = AAR_flg_ship_LINE_combat	# |战斗状态ship|清除		这个应当通过[aar防线星基ship循环]清除,否则会在战斗结束前重复开启护盾
+#	starbase = { remove_starbase_flag = AAR_flg_sb_SB_line_combat }	# |战斗状态sb|清除
+	remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod_星基
+	remove_modifier = AAR_mod_ship_LINE_regen
+	# 仍存在buffの防御塔DB
+	fleet = {
+		every_owned_ship = {
+			limit = {
+				has_ship_flag = AAR_flg_ship_LINE_combat
+				NOT = { is_same_value = prevprev }	# 非|星基|
+			}
+			remove_ship_flag = AAR_flg_ship_LINE_combat	# |战斗状态ship|清除
+			remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod_防御塔
+			if = { limit = { is_variable_set = AAR_var_SHIELD_power }		clear_variable = AAR_var_SHIELD_power }
+		}
+	}
+	##	清理星系数据
+	solar_system = {
+		# 清理var
+		if = { limit = { is_variable_set = AAR_var_SHIELD_power }		clear_variable = AAR_var_SHIELD_power }
+		# 清理ambt	=蓝盾/橙盾/aura/定位器
+		every_system_ambient_object = {
+			limit = {
+				distance = { max_distance <= 5	same_solar_system = yes		source = prevprev }	#	[只清理距离最近的目标]	<prevprev>=星基ship
+				OR = {
+					is_ambient_object_type = AAR_ambt_SB_line_shield_BLUE
+					is_ambient_object_type = AAR_ambt_SB_line_shield_ORANGE
+					is_ambient_object_type = AAR_ambt_SB_line_AURA
+				}
+			}
+			destroy_ambient_object = this
+		}
+		#	清理<自动防御塔>		用|distance|判断附近,无论<disable星基>还是<自动防御塔自我触发>都可以执行
+		#	既然[星基冲击]已发生,那么就不需要<自动防御塔>触发[AAR防线SKW星基]
+	#	every_fleet_in_system = {
+	#		limit = {
+	#			has_fleet_flag = AAR_flg_flt_SB_spawn
+	#			distance = { max_distance <= 5	same_solar_system = yes		source = prevprev }	#	[只清理距离最近的目标]	<prevprev>=星基ship
+	#		}
+	#		set_fleet_flag = AAR_flg_flt_SB_spawn_cancel	# |自动防御塔注销|
+	#		fleet_event = { id = AAR_evt_LINE.20 days = 4 }	# aar防线自动防御塔自毁
+	#	}
+	}
+}
+
+
+###_[AAR防线SKW防御塔]
+#_evt	<aar防线击毁	/aar防线失效>
+##_var输入	|AAR_var_SHIELD_power<AAR防线触发FW>/AAR_var_cntr_ATK_vigilance<AAR防御参数DB>|
+AAR_eft_ship_LINE_skw_platform = {
+	## 冲击伤害值DB
+	multiply_variable = { which = AAR_var_SHIELD_power value = owner.AAR_var_cntr_ATK_vigilance }	# 国家伤害参数DB
+	multiply_variable = { which = AAR_var_SHIELD_power value = @SVAR_weight_2 }	# 伤害权重
+	#_|超级防线VAR衰减|
+	if = { limit = { fleet = { check_variable = { which = AAR_var_flt_LINE_skw_POWER value > 0.4 } } }
+		multiply_variable = { which = AAR_var_SHIELD_power value = fleet.AAR_var_flt_LINE_skw_POWER }
+	}
+	else = {
+		multiply_variable = { which = AAR_var_SHIELD_power value = 0.4 }
+	}
+	
+	## aura存在
+	if = { limit = { has_modifier = AAR_mod_ship_LINE_shield }
+		# 发射冲击波
+		if = {
+			# |当前冲击能量|CHECK
+			limit = {
+				solar_system = {
+					NAND = {
+						is_variable_set = AAR_var_sstm_SKW_power_current
+						check_variable = { which = AAR_var_sstm_SKW_power_current		 value > prev.AAR_var_SHIELD_power }	# |当前冲击能量|>|冲击伤害|
+					}
+				}
+			}
+			#_|当前冲击能量|刷新
+			solar_system = { set_variable = { which = AAR_var_sstm_SKW_power_current	 value = prev.AAR_var_SHIELD_power } }
+			create_fleet = { name = AAR_NAME_sb_line_skw_1
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					set_variable = { which = AAR_var_SHIELD_power value = prev.AAR_var_SHIELD_power }	# 冲击强度数据转存入flt
+					AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.5 days = 1 }	#_[aar防线冲击clear]
+				}
+			}
+		}
+
+		# 添加ambt_星系缩放		=150%
+		if = { limit = { has_global_flag = has_system_scale_mod }
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_platform		 SCALE = 66		 LOC = this		 DAYS = 5 }		# ambt塔冲击
+		}
+		# 添加ambt_vanilla
+		else = {
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_platform		 SCALE = 37		 LOC = this		 DAYS = 5 }		# ambt塔冲击
+		}
+	}
+
+	## aura耗尽
+	else = {
+		multiply_variable = { which = AAR_var_SHIELD_power value = 0.20 }	# 耗尽=20%
+
+		# 发射冲击波
+		if = {
+			# |当前冲击能量|CHECK
+			limit = {
+				solar_system = {
+					NAND = {
+						is_variable_set = AAR_var_sstm_SKW_power_current
+						check_variable = { which = AAR_var_sstm_SKW_power_current		 value > prev.AAR_var_SHIELD_power }	# |当前冲击能量|>|冲击伤害|
+					}
+				}
+			}
+			#_|当前冲击能量|刷新
+			solar_system = { set_variable = { which = AAR_var_sstm_SKW_power_current	 value = prev.AAR_var_SHIELD_power } }
+			create_fleet = { name = AAR_NAME_sb_line_skw_1
+				effect = {
+					set_event_locked = yes
+					set_fleet_flag = AAR_flg_flt_SKW
+					set_owner = prev.owner
+					set_variable = { which = AAR_var_SHIELD_power value = prev.AAR_var_SHIELD_power }	# 冲击强度数据转存入flt
+					AAR_eft_flt_LINE_skw_ship = yes	#_[AAR防线SKW载体]
+					set_location = prev
+					fleet_event = { id = AAR_evt_LINE.5 days = 1 }	#_[aar防线冲击clear]
+				}
+			}
+		}
+
+		# 添加ambt_星系缩放		=150%
+		if = { limit = { has_global_flag = has_system_scale_mod }
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_platform_orange		 SCALE = 66		 LOC = this		 DAYS = 5 }		# ambt塔冲击
+		}
+		# 添加ambt_vanilla
+		else = {
+			AAR_prmt_eft_all_MISC_ambt = { TYPE = AAR_ambt_LINE_skw_platform_orange		 SCALE = 37		 LOC = this		 DAYS = 5 }		# ambt塔冲击
+		}
+	}
+
+	## 清除数据
+	remove_ship_flag = AAR_flg_ship_LINE_combat	# |战斗状态ship|清除
+	remove_modifier = AAR_mod_ship_LINE_shield	# 清除SBmod_防御塔
+	if = { limit = { is_variable_set = AAR_var_SHIELD_power }		clear_variable = AAR_var_SHIELD_power }
+}
+
+
+
+
+
+
+
+
+###_[AAR防线SKW载体]
+#_eft	<AAR防线SKW星基/AAR防线SKW防御塔>
+##_var输入	|AAR_var_SHIELD_power|
+AAR_eft_flt_LINE_skw_ship = {
+
+	if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 5906682 } }
+		# 溢出
+	#	if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 30477183 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 30477183 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 25397653 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 25397653 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 21164711 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 21164711 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 17637259 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 17637259 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 14697716 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 14697716 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 12248096 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 12248096 }
+	#	}
+	#	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 10206747 } }
+	#		AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 10206747 }
+	#	}
+
+		if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 8505622 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 8505622 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 7088019 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 7088019 }
+		}
+		else = {
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 5906682 }
+		}
+	}
+	
+	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 953962 } }
+		if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 4922235 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 4922235 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 4101863 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 4101863 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 3418219 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 3418219 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 2848516 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 2848516 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 2373763 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 2373763 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 1978136 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 1978136 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 1648447 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 1648447 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 1373706 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 1373706 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 1144755 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 1144755 }
+		}
+		else = {
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 953962 }
+		}
+	}
+	
+	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 154070 } }
+		if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 794968 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 794968 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 662474 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 662474 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 552061 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 552061 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 460051 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 460051 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 383376 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 383376 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 319480 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 319480 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 266233 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 266233 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 221861 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 221861 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 184884 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 184884 }
+		}
+		else = {
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 154070 }
+		}
+	}
+
+	else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 24883 } }
+		if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 128392 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 128392 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 106993 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 106993 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 89161 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 89161 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 74301 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 74301 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 61917 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 61917 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 51598 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 51598 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 42998 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 42998 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 35832 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 35832 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 29860 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 29860 }
+		}
+		else = {
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 24883 }
+		}
+	}
+	else = {
+		if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 20736 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 20736 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 17280 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 17280 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 14400 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 14400 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 12000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 12000 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 10000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 10000 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 8000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 8000 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 6000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 6000 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 4000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 4000 }
+		}
+		else_if = { limit = { check_variable = { which = AAR_var_SHIELD_power value > 2000 } }
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 2000 }
+		}
+		else = {
+			AAR_prmt_eft_flt_LINE_skw_ship = { VALUE = 1000 }
+		}
+	}
+}
+#_eft	[AAR防线SKW载体]
+#_prmt	VALUE
+AAR_prmt_eft_flt_LINE_skw_ship = {
+	create_ship = { name = AAR_NAME_sb_line_skw_1		 design = AAR_DESIGN_skw_$VALUE$ }
+}
+

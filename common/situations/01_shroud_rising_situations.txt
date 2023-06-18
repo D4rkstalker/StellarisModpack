@@ -1,0 +1,370 @@
+
+situation_shroud_uprising = {
+	picture = GFX_evt_conclave
+	category = negative
+
+	desc = {
+		trigger = {
+			owner = { is_gestalt = no }
+		}
+		text = situation_shroud_uprising_desc_standard
+	}
+
+	fail_icon = GFX_situation_outcome_meh
+	fail_icon_frame = GFX_situation_outcome_frame_green
+	complete_icon = GFX_situation_outcome_revolt
+	complete_icon_frame = GFX_situation_outcome_frame_red
+
+	on_start = {
+		if = {
+			limit = { years_passed < 3 }
+			log_error = "Isn't it a bit early to have a revolt? Owner: [Owner.GetName], Target: [Target.GetName]."
+		}
+	}
+	on_progress_complete = {
+		custom_tooltip = situation_shroud_uprising_complete_tooltip
+		hidden_effect = {
+			target = {
+				save_event_target_as = cult_uprising_planet
+				planet_event = { id = shroud_rising_cult_uprising.9 }
+			}
+			destroy_situation = this
+			cleanup_cult_uprising_situation = yes
+		}
+	}
+
+	on_fail = {
+		custom_tooltip = situation_shroud_uprising_fail_tooltip
+		hidden_effect = {
+			target = {
+				planet_event = { id = shroud_rising_cult_uprising.5 }
+				set_timed_planet_flag = {
+					flag = recent_revolt_attempt
+					days = 3600
+				}
+				remove_planet_flag = cult_uprising_planet
+			}
+			cleanup_cult_uprising_situation = yes
+			destroy_situation = this
+		}
+	}
+
+	on_abort = {
+		cleanup_cult_uprising_situation = yes
+		target = {				
+				remove_planet_flag = cult_uprising_planet
+			}
+	}
+
+	abort_trigger = {
+		# NOT = {
+			# owner = { #otherwise, that event flips ownership, which immediately invalidates the Situation
+				# has_active_event = { unrest.4200 }
+			# }
+		# }
+		# OR = {
+			# NOT = { exists = target.owner }
+			# target.owner = { NOT = { is_same_value = root.owner } }
+			# target.controller = { NOT = { is_same_value = root.owner } }
+		# }
+	}
+
+	start_value = 5
+
+	stages = {
+		revolt_severity_1 = {
+			icon = GFX_situation_stage_1
+			icon_background = GFX_situation_stage_frame_red
+			target_modifier = { planet_stability_add = -10 pop_ethic_spiritualist_attraction_mult = 0.25   }
+			end = 25
+		}
+		revolt_severity_2 = {
+			icon = GFX_situation_stage_2
+			icon_background = GFX_situation_stage_frame_red
+			on_first_enter = {
+				#Influence Spreads
+				situation_event = { id = shroud_rising_cult_uprising.4 }
+			}
+			target_modifier = { planet_stability_add = -10 pop_ethic_spiritualist_attraction_mult = 0.50  }
+			end = 50
+		}
+		revolt_severity_3 = {
+			icon = GFX_situation_stage_3
+			icon_background = GFX_situation_stage_frame_red
+			on_first_enter = {				
+				situation_event = { id = shroud_rising_cult_uprising.41 }
+			}
+			target_modifier = { planet_stability_add = -10 pop_ethic_spiritualist_attraction_mult = 0.75 }
+			end = 75
+		}
+		revolt_severity_4 = {
+			icon = GFX_situation_stage_4
+			icon_background = GFX_situation_stage_frame_red
+			on_first_enter = {				
+				situation_event = { id = shroud_rising_cult_uprising.61 }
+			}
+			target_modifier = { planet_stability_add = -10 pop_ethic_spiritualist_attraction_mult = 1.0  }
+			end = 100
+		}
+	}
+
+	approach = {
+		name = approach_revolt_do_nothing
+		icon = GFX_situation_approach_this_is_fine
+		icon_background = GFX_situation_approach_bg_yellow		
+		on_select = {
+			custom_tooltip = deficit_approach_do_nothing_tooltip
+		}		
+	}
+
+	approach = {
+		name = approach_cult_uprising_local_authorities
+		icon = GFX_situation_approach_pop
+		icon_background = GFX_situation_approach_bg_green
+		default = yes
+		triggered_target_modifier = {
+			potential = {
+				owner = { is_gestalt = no }
+			}
+			modifier = {
+				job_soldier_stability_add = 2
+				planet_army_build_speed_mult = 0.25
+				planet_soldiers_energy_upkeep_add = 0.50
+			}
+		}
+		resources = {
+			category = situations
+			upkeep = {
+				trigger = {
+					owner = { is_gestalt = no }
+				}
+				unity = 15
+			}			
+		}
+		ai_weight = {
+			base = 4
+		}
+	}
+
+	approach = {
+		name = approach_cult_uprising_task_force
+		icon = GFX_situation_approach_sword
+		icon_background = GFX_situation_approach_bg_red			
+		triggered_target_modifier = {
+			potential = {
+				owner = { is_gestalt = no }
+			}
+			modifier = {
+				job_soldier_stability_add = 3 
+				planet_army_build_speed_mult = 0.5
+				planet_building_stronghold_build_speed_mult = 0.5
+				planet_soldiers_energy_upkeep_add = 2				
+			}
+		}
+		resources = {
+			category = situations
+			upkeep = {
+				unity = 30
+			}
+		}
+		ai_weight = {
+			base = 1
+			modifier = {
+				factor = 8
+				owner = {
+					OR = {
+						is_militarist = yes
+						is_authoritarian = yes
+						is_machine_empire = yes
+					}
+				}
+			}
+		}
+	}
+
+	on_monthly = {
+		random_events = {
+			100 = 0
+			3 = shroud_rising_cult_uprising.42
+			3 = shroud_rising_cult_uprising.43
+			3 = shroud_rising_cult_uprising.44
+		}
+	}
+
+	monthly_progress = {
+		base = 0
+		modifier = {
+			add = target.value:revolt_situation_low_stability_factor
+			desc = STRING_LOW_STABILITY
+			target = { planet_stability < @stabilitylevel2 }
+		}		
+		modifier = {
+			add = 1
+			desc = STRING_UNEMPLOYMENT
+			target = { num_unemployed >= 2 }
+		}
+		modifier = {
+			add = 2
+			desc = STRING_CULTIST_INFLUENCE
+			target = { has_planet_flag = recent_cult_influence }
+		}
+		modifier = {
+			add = 2
+			desc = STRING_PURGING
+			target = {
+				has_current_purge = yes
+				any_owned_pop = {
+					is_being_purged = yes
+					NOT = {
+						has_purge_type = { type = purge_neutering }
+					}
+				}
+			}
+		}
+		modifier = {
+			add = 1
+			desc = STRING_PURGING
+			target = {
+				has_current_purge = yes
+				count_owned_species = {
+					limit = {
+						OR = {
+							has_citizenship_type = { type = citizenship_purge country = root.owner }
+							has_citizenship_type = { type = citizenship_purge_machine country = root.owner }
+						}
+						NOT = { has_purge_type = { type = purge_neutering country = root.owner } }
+					}
+					count = 0
+				}
+			}
+		}
+		modifier = {
+			add = 1
+			desc = STRING_ASSIMILATION
+			target = {
+				any_owned_species = {
+					has_citizenship_type = { type = citizenship_assimilation country = root.owner }
+				}
+			}
+		}
+		modifier = {
+			subtract = target.value:revolt_situation_high_stability_factor
+			desc = STRING_HIGH_STABILITY
+			target = { planet_stability > 70 }
+		}
+		modifier = {
+			desc = STRING_STARBASE_CITADEL
+			subtract = 1
+			exists = target.solar_system.starbase
+			target.solar_system.starbase = {
+				has_starbase_size >= starbase_citadel
+				NOT = { is_starbase_type = sfortress }
+			}
+		}
+		modifier = {
+			desc = STRING_STARBASE_BASTION
+			subtract = 1
+			exists = target.solar_system.starbase
+			target.solar_system.starbase = {
+				has_starbase_size > starbase_starport
+				has_starbase_size < starbase_citadel
+				is_starbase_type = sfortress
+			}
+		}
+		modifier = {
+			desc = STRING_STARBASE_BASTION
+			subtract = 2
+			exists = target.solar_system.starbase
+			target.solar_system.starbase = {
+				has_starbase_size >= starbase_citadel
+				is_starbase_type = sfortress
+			}
+		}
+		complex_trigger_modifier = {
+			trigger = count_system_planet
+			trigger_scope = target.solar_system
+			parameters = {
+				limit = {
+					is_colony = yes
+					NOT = { is_same_value = root.target }
+					planet_stability >= 70
+					num_pops > 5
+				}
+			}
+			potential = {
+				target.solar_system = {
+					any_system_planet = {
+						is_colony = yes
+						NOT = { is_same_value = root.target }
+						planet_stability >= 70
+						num_pops > 5
+					}
+				}
+			}
+			desc = STRING_LOYAL_PLANETS_IN_SYSTEM
+			mode = subtract
+			mult = 2
+		}
+		complex_trigger_modifier = {
+			trigger = count_system_planet
+			trigger_scope = target.solar_system
+			parameters = {
+				limit = {
+					is_colony = yes
+					NOT = { is_same_value = root.target }
+					planet_stability < 50
+					num_pops > 5
+				}
+			}
+			potential = {
+				target.solar_system = {
+					any_system_planet = {
+						is_colony = yes
+						NOT = { is_same_value = root.target }
+						planet_stability < 50
+						num_pops > 5
+					}
+				}
+			}
+			desc = STRING_REBELLIOUS_PLANETS_IN_SYSTEM
+			mode = add
+			mult = 2
+		}
+		modifier = {
+			subtract = target.value:revolt_situation_garrison_factor
+			desc = STRING_PLANETARY_GARRISON
+			target = { is_occupied_flag = no planet_garrison_strength > 400 }
+		}
+		modifier = {
+			add = 1
+			desc = STRING_WEAK_PLANET
+			target = { num_pops < 30 }			
+		}
+		modifier = {
+			subtract = 1
+			desc = STRING_STRONG_PLANET
+			target = { num_pops > 60 }
+		}
+		modifier = {
+			desc = STRING_HAS_INQUISITOR
+			subtract = 2
+			owner = {
+				any_owned_leader = {
+					has_trait = leader_trait_shroud_inquisitor					
+				}
+			}
+		}	
+		modifier = {
+			desc = STRING_REBELLIOUS_JOINER_PLANETS_IN_OWNER
+			add = value:revolt_situation_rebellion_joiners
+			owner = {
+				any_owned_planet = {
+					has_modifier = instability_join_revolt
+					planet_stability < @[ stabilitylevel2 + 10 ]
+					exists = controller
+					controller = { is_same_value = root.owner }
+				}
+			}
+		}		
+	}
+}

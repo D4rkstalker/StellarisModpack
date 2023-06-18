@@ -1,0 +1,130 @@
+##########################################################################
+# Decisions
+##########################################################################
+
+decision_create_planet_state = {
+	icon = decision_de_mark_off
+	owned_planets_only = yes
+	resources = {
+		category = decisions
+		cost = { influence = 0 }
+	}
+	potential = {
+		NOR = {
+			solar_system = { is_capital_system = yes }
+			has_planet_flag = verf_maybe_planet_state
+		}
+		owner = { is_ai = no }
+	}
+	allow = {
+		num_pops >= 5
+		any_owned_pop = {
+			can_think = yes
+			is_enslaved = no
+		}
+	}
+	effect = {
+		hidden_effect = { set_timed_planet_flag = { flag = verf_maybe_planet_state days = 90 } }
+	}
+	ai_weight = { weight = 0 }
+}
+
+decision_affirm_planet_state = {
+	icon = decision_de_mark_on
+	owned_planets_only = yes
+	resources = {
+		category = decisions
+		cost = { influence = 0 }
+	}
+	potential = {
+		NOT = { solar_system = { is_capital_system = yes } }
+		has_planet_flag = verf_maybe_planet_state
+		owner = { is_ai = no }
+	}
+	allow = {
+		num_pops >= 5
+		any_owned_pop = {
+			can_think = yes
+			is_enslaved = no
+		}
+	}
+	effect = {
+		hidden_effect = {
+			remove_planet_flag = verf_maybe_planet_state
+			owner = { save_event_target_as = mother_country }
+			if = {
+				limit = { NOT = { any_owned_pop = { is_same_species = owner_species } } }
+				random_owned_pop = {
+					limit = {
+						can_think = yes
+						is_enslaved = no
+					}
+					species = { save_event_target_as = ps_species }
+				}
+			}
+			else = { owner_species = { save_event_target_as = ps_species } }
+
+			if = {
+				limit = { event_target:mother_country = { is_megacorp = no } }
+				create_country = {
+					name = random
+					type = default
+					species = event_target:ps_species
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					origin = origin_planet_state
+					civics = random
+					flag = random
+					authority = event_target:mother_country
+					ethos = event_target:mother_country
+					effect = {
+						save_event_target_as = new_ps_country
+						establish_communications_no_message = event_target:mother_country
+					}
+				}
+			}
+			else = {
+				create_country = {
+					name = random
+					type = default
+					species = event_target:ps_species
+					ignore_initial_colony_error = yes
+					day_zero_contact = no
+					origin = origin_planet_state
+					civics = random
+					flag = random
+					authority = random
+					ethos = random
+					effect = {
+						save_event_target_as = new_ps_country
+						establish_communications_no_message = event_target:mother_country
+					}
+				}
+			}
+			
+
+			solar_system = {
+				starbase = { set_owner = event_target:new_ps_country }
+				every_system_planet = { 
+			        limit = {
+			            exists = owner
+			            OR = {
+			                is_colony = yes
+			                is_under_colonization = yes
+			            }
+			        }                
+			        set_owner = event_target:new_ps_country 
+			    }
+			}
+
+			event_target:new_ps_country = {
+				set_name = random
+				set_subject_of = {
+					who = event_target:mother_country
+					preset = preset_vassal
+				}
+			}
+		}
+	}
+	ai_weight = { weight = 0 }
+}

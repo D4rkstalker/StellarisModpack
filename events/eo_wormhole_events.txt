@@ -1,0 +1,164 @@
+namespace = eo_wormhole
+
+country_event = {
+	id = eo_wormhole.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		any_system_within_border = {
+			has_star_flag = wormhole_home_of_@prev
+		}
+	}
+	immediate = {
+		save_event_target_as = wormhole_owner
+		random_system_within_border = {
+			limit = {
+				has_star_flag = wormhole_home_of_@prev
+			}
+			save_event_target_as = wormhole_home_system
+		}
+		random_system = {
+			limit = {
+				has_star_flag = connected_system_of_@event_target:wormhole_home_system
+			}
+			save_event_target_as = wormhole_connected_system
+			create_country = {
+				name = "NAME_Incoming_Asteroid"
+				type = neutral_faction
+			}
+			last_created_country = {
+				set_country_flag = wormhole_asteroid
+				establish_communications_no_message = event_target:wormhole_owner
+				create_fleet = {
+					name = "NAME_Asteroid"
+					effect = {
+						set_owner = PREV
+						create_ship = {
+							name = "NAME_Asteroid"
+							design = "NAME_Asteroid"
+						}
+						set_fleet_flag = wormhole_asteroid
+						set_location = {
+							target = event_target:wormhole_connected_system
+							distance = 200
+							angle = 270
+						}
+						queue_actions = {
+							move_to = event_target:wormhole_home_system
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+ship_event = {
+	id = eo_wormhole.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		fleet = { has_fleet_flag = wormhole_asteroid }
+		solar_system = {
+			has_star_flag = wormhole_origin_home_system
+		}
+	}
+	immediate = {
+		save_event_target_as = wormhole_asteroid
+		create_ambient_object = {
+			type = eo_empty_object
+			location = this
+			use_3d_location = yes
+		}
+		solar_system = {
+			system_event = {
+				id = eo_wormhole.4
+				days = 240
+			}
+			owner = {
+				country_event = {
+					id = eo_wormhole.3
+					days = 10
+				}
+			}
+		}
+	}
+}
+
+country_event = {
+	id = eo_wormhole.3
+	title = eo_wormhole.3.name
+	desc = eo_wormhole.3.desc
+	picture = GFX_evt_wormhole
+	location = event_target:wormhole_asteroid
+	show_sound = event_mysterious_signal
+
+	is_triggered_only = yes
+
+	trigger = {
+		has_origin = origin_wormhole
+	}
+
+	option = {
+		name = eo_wormhole.3.a
+	}
+}
+
+system_event = {
+	id = eo_wormhole.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		save_event_target_as = solar_system
+		random_fleet_in_system = {
+			limit = {
+				has_fleet_flag = wormhole_asteroid
+			}
+			create_ambient_object = {
+				type = wormhole_asteroid_object
+				location = this
+				use_3d_location = yes
+			}
+			destroy_fleet = this
+		}
+		random_system_ambient_object = {
+			limit = {
+				is_ambient_object_type = wormhole_asteroid_object
+			}
+			save_event_target_as = wormhole_asteroid
+		}
+		owner = {
+			save_event_target_as = wormhole_country
+			country_event = { id = eo_wormhole.5 }
+		}
+	}
+}
+
+country_event = {
+	id = eo_wormhole.5
+	title = eo_wormhole.5.name
+	desc = eo_wormhole.5.desc
+	picture = GFX_evt_asteroid_field
+	location = event_target:wormhole_asteroid
+	show_sound = event_scanner
+
+	is_triggered_only = yes
+
+	trigger = {
+		has_origin = origin_wormhole
+	}
+
+	option = {
+		name = eo_wormhole.5.a
+		event_target:wormhole_asteroid = {
+			enable_special_project = {
+				name = "EO_WORMHOLE_STUDY_EXTRASOLAR_ASTEROID"
+				location = this
+				owner = event_target:wormhole_country
+			}
+		}
+	}
+}

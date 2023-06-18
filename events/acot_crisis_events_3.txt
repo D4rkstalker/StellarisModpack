@@ -1,0 +1,235 @@
+############################
+#
+# Crisis Events III
+#
+# Written by Henrik Eklund and Miranda van den Brink
+#
+############################
+
+namespace = crisis
+
+# Machine World Army Reinforcement Cycle
+planet_event = {
+	id = crisis.2052
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		is_planet_class = pc_ai
+		NOT = { has_planet_flag = machine_lair }
+		owner = { is_country_type = "ai_empire" }
+	}
+	
+	immediate = {
+		# If at army cap, check again later
+		if = {
+			limit = {
+				owner = {
+					count_owned_army = {
+						limit = { army_type = acot_army_machine_light_ae }
+						count > 140
+					}
+				}
+			}
+			planet_event = { id = crisis.2052 days = 300 }
+		}
+		# If being bombarded, check again later
+		else_if = {
+			limit = { has_orbital_bombardment = yes }
+			planet_event = { id = crisis.2052 days = 300 }
+		}
+		# Ghost Signal 2
+		else_if = {
+			limit = { has_global_flag = ghost_signal_2_flag }
+			planet_event = { id = crisis.2053 days = 1600 random = 200 }
+		}
+		# Ghost Signal 3
+		else_if = {
+			limit = { has_global_flag = ghost_signal_3_flag }
+			planet_event = { id = crisis.2053 days = 1300 random = 200 }
+		}
+		# Ghost Signal 4
+		else_if = {
+			limit = { has_global_flag = ghost_signal_4_flag }
+			planet_event = { id = crisis.2053 days = 1000 random = 200 }
+		}
+		# Ghost Signal 5
+		else_if = {
+			limit = { has_global_flag = ghost_signal_5_flag }
+			planet_event = { id = crisis.2053 days = 700 random = 200 }
+		}
+	}
+}
+
+# AI Army Reinforcements Arrive
+planet_event = {
+	id = crisis.2053
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		is_planet_class = pc_ai
+		NOT = { has_planet_flag = machine_lair }
+		owner = { is_country_type = "ai_empire" }
+	}
+	
+	immediate = {
+		owner = { save_event_target_as = AI_crisis }
+		create_ai_armies_acot = yes
+		planet_event = { id = crisis.2052 }
+	}
+}
+
+
+# Cybrex First Attacks (HIDDEN)
+country_event = {
+	id = crisis.2421
+	hide_window = yes
+	
+	is_triggered_only = yes
+
+	trigger = {
+		has_global_flag = ai_invasion_ongoing
+	}
+	
+	immediate = {
+		random_country = { 
+			limit = { is_country_type = ai_empire }
+			save_event_target_as = contingency
+		}
+		create_leader = {
+			class = admiral
+			species = owner_main_species
+			name = random
+			skill = 5
+			traits = {
+				trait = leader_trait_cybrex
+			}
+		}
+		last_created_leader = { set_age = 0 }
+		capital_scope = {
+			save_event_target_as = cybrex_home
+			create_fleet = {
+				effect = {
+					set_owner = event_target:cybrex
+					while = {
+						count = 15
+						create_ship = {
+							name = random
+							design = "NAME_Taciturn"
+							graphical_culture = "ai_01"
+						}
+					}
+					assign_leader = last_created_leader
+					while = {
+						count = 30
+						create_ship = {
+							name = random
+							design = "NAME_Reticent"
+							graphical_culture = "ai_01"
+						}
+					}
+					set_location = {
+						target = prev
+						distance = 45
+						angle = random
+					}
+					
+					save_event_target_as = cybrex_fleet
+					set_aggro_range = 500
+					set_fleet_stance = aggressive
+					set_aggro_range_measure_from = self
+					set_fleet_flag = cybrex_attack_fleet
+				}
+			}
+		}
+		#country_event = { id = crisis.2421 days = 1800 }
+	}
+}
+
+# Fleet Donation
+country_event = {
+	id = crisis.2473
+	title = "TRANSMISSION"
+	desc = "crisis.2473.desc"
+	
+	diplomatic = yes
+	
+	picture_event_data = {
+		portrait = event_target:cybrex
+		room = event_target:cybrex
+	}
+	
+	trigger = {
+		is_ai = no
+		has_global_flag = cybrex_resurface
+		NOT = { has_global_flag = cybrex_destroyed }
+		NOT = { has_country_flag = cybrex_donation }
+		check_variable = {
+			which = "contingency_fleet_kills" 
+			value > 100 
+		}
+		any_country = {
+			is_country_type = cybrex_empire
+			count_owned_ship = {
+				count > 30
+			}
+			ROOT = {
+				NOT = { is_at_war_with = PREV }
+			}
+		}
+	}
+	
+	mean_time_to_happen = {
+		months = 22
+	}
+	
+	immediate = {
+		set_country_flag = cybrex_donation
+	}
+	
+	option = {
+		name = crisis.2473.a
+		custom_tooltip = cybrex_fleet_gained
+		hidden_effect = {
+			capital_scope = {
+				create_fleet = {
+					effect = {
+						set_owner = event_target:cybrex # For Cybrex ship names and difficulty modifiers
+						while = {
+							count = 15
+							create_ship = {
+								name = random
+								design = "NAME_Taciturn"
+								graphical_culture = "ai_01"
+							}
+						}
+						while = {
+							count = 30
+							create_ship = {
+								name = random
+								design = "NAME_Reticent"
+								graphical_culture = "ai_01"
+							}
+						}
+						set_location = {
+							target = prev
+							distance = 45
+							angle = random
+						}
+						set_owner = root
+					}
+					settings = {
+						uses_naval_capacity = no
+						can_disband = no
+					}
+				}
+			}
+		}
+	}
+	option = {
+		name = crisis.2473.b
+	}
+}

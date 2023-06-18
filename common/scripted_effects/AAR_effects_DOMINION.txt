@@ -1,0 +1,102 @@
+#	AAR威压星球
+
+
+
+
+###_[AAR威压星球]		|框架EFT|=统计威压factor,并进行修正DB
+#_evt	<aar月检/fw殖民地月度debug>
+AAR_eft_plnt_DOMINION = {
+	switch = { trigger = has_planet_flag
+	
+		##	AAR威压FACTOR统计
+		AAR_flg_plnt_DOMINION_cycle_READY = {
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_READY	# |威压FACTOR统计READY|
+		
+			##	|factor|DB
+			#	旧factor
+			if = { limit = { is_variable_set = AAR_factor_plnt_DOMINION }
+				set_variable = { which = TEMP_factor_OLD value = AAR_factor_plnt_DOMINION }
+			}
+			else = {
+				set_variable = { which = TEMP_factor_OLD value = 0 }
+			}
+			#	新factor
+			set_variable = { which = AAR_factor_plnt_DOMINION value = 0 }
+			#	舰队统计
+			every_fleet_in_orbit = {
+				limit = {
+					is_in_combat = no	# |非战斗状态|
+					controller = { has_ascension_perk = AAR_AP_dominion_FEAR }	# |威压AP|
+				}
+				#	我方舰队|正值|
+				if = {
+					limit = {
+						controller = {
+							OR = {
+								is_same_value = root.owner	# <星球所有者>是<舰队控制者>
+								has_subject = root.owner	# <星球所有者>是<舰队控制者>的附庸
+							}
+						}
+					}
+					prev = { change_variable = { which = AAR_factor_plnt_DOMINION value = prev.trigger:fleet_size } }
+				}
+				#	敌方舰队|负值|
+				else_if = {
+					limit = {# |战争/威胁/敌对/竞争|
+						controller = {
+							OR = {
+								is_hostile = root.owner
+								is_threatened_to = root.owner
+								is_hostile_to = root.owner
+								is_rival = root.owner
+							}
+						}
+					}
+					prev = { subtract_variable = { which = AAR_factor_plnt_DOMINION value = prev.trigger:fleet_size } }
+				}
+			}
+			
+			##	修正DB
+			if = { limit = { NOT = { check_variable = { which = TEMP_factor_OLD value = AAR_factor_plnt_DOMINION } } }	# |FACTOR变动|
+				#	清理旧修正
+				remove_modifier = AAR_pm_dominion_FEAR_enemy_gestalt
+				remove_modifier = AAR_pm_dominion_FEAR_enemy
+				remove_modifier = AAR_pm_dominion_FEAR_own_gestalt
+				remove_modifier = AAR_pm_dominion_FEAR_own
+				#	|正值|
+				if = { limit = { check_variable = { which = AAR_factor_plnt_DOMINION value > 0 } }
+					#	|格式塔|
+					if = { limit = { owner = { is_gestalt = yes } }
+						add_modifier = { modifier = AAR_pm_dominion_FEAR_own_gestalt	days = -1 multiplier = AAR_factor_plnt_DOMINION }
+					}
+					else = {
+						add_modifier = { modifier = AAR_pm_dominion_FEAR_own			days = -1 multiplier = AAR_factor_plnt_DOMINION }
+					}
+				}
+				#	|负值|
+				else_if = { limit = { check_variable = { which = AAR_factor_plnt_DOMINION value < 0 } }
+					#	|格式塔|
+					if = { limit = { owner = { is_gestalt = yes } }
+						add_modifier = { modifier = AAR_pm_dominion_FEAR_enemy_gestalt	days = -1 multiplier = AAR_factor_plnt_DOMINION }
+					}
+					else = {
+						add_modifier = { modifier = AAR_pm_dominion_FEAR_enemy			days = -1 multiplier = AAR_factor_plnt_DOMINION }
+					}
+				}
+			}
+			clear_variable = TEMP_factor_OLD
+		}
+		
+		##	|AAR威压循环截断|
+		AAR_flg_plnt_DOMINION_cycle_STOP = {
+			remove_planet_flag = AAR_flg_plnt_DOMINION_cycle_STOP
+			
+			set_variable = { which = AAR_var_plnt_DOMINION value = 0 }
+			remove_modifier = AAR_pm_dominion_FEAR_enemy_gestalt
+			remove_modifier = AAR_pm_dominion_FEAR_enemy
+			remove_modifier = AAR_pm_dominion_FEAR_own_gestalt
+			remove_modifier = AAR_pm_dominion_FEAR_own
+		}
+	}
+}
+

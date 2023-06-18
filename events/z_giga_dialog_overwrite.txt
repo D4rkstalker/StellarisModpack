@@ -1,0 +1,196 @@
+namespace = giga_dialog
+
+####
+####this overwrites a event in giga_003_dialog to make fusion supressor explosions create stellar plasma
+####
+
+country_event = {
+	id = giga_dialog.3409
+	title = "giga_dialog.3409.title"
+	desc = "giga_dialog.3409.desc"
+	picture = GFX_evt_exploding_planet
+	show_sound = event_super_explosion
+	location = event_target:giga_planet
+	is_triggered_only = yes
+
+	option = {
+		name = "giga_dialog.3409.a"
+		hidden_effect = {
+			add_resource = { 
+				influence = 200 
+		sr_stellar_plasma = 15000
+		}
+			event_target:giga_system = {
+
+				# Destroy System
+				every_system_megastructure = {
+					limit = {
+						NOR = {
+							mega_blokkats_wont_stripmine = yes
+							is_megastructure_type = quasi_stellar_marker_star_firing
+							is_megastructure_type = quasi_stellar_marker_cluster_firing
+							is_megastructure_type = blokkat_harvester_charged_mothership
+							is_megastructure_type = blokkat_harvester_charged
+							is_megastructure_type = blokkat_harvester_charging_up_mothership
+							is_megastructure_type = blokkat_harvester_charging_up
+						}
+					}
+					remove_megastructure = this
+				}
+	
+				giga_remove_system_debris = yes
+				every_fleet_in_system = {
+					limit = { owner = { NOT = { is_immune_to_giga_hyperweapon = yes } } } 
+					destroy_fleet = this 
+				}
+				star = { change_pc = pc_neutron_star }
+				set_asteroid_belt = {
+					radius = 0
+				}
+
+				# remove planets and change types
+				every_system_planet = {
+					limit = { is_star = no }
+					if = {
+						limit = {
+							OR = {
+								is_asteroid = yes
+								is_giga_habitat = yes
+							}
+						}
+						random_list = {
+							0 = { modifier = { add = 1 is_asteroid = yes } }
+							4 = { set_planet_flag = giga_suppressor_remove }
+						}
+					}
+					if = { limit = { is_planet_class = pc_gas_giant }			set_planet_size = 5 change_pc = pc_molten }
+					else_if = { limit = { is_planet_class = pc_ice_asteroid } 	set_planet_size = 1 change_pc = pc_asteroid }
+					else_if = { limit = { planet_size <7 }						set_planet_size = 2 change_pc = pc_asteroid }
+					else_if = { limit = { planet_size <= 10 planet_size >= 7 }	change_planet_size = -5 change_pc = pc_asteroid }
+					else_if = { limit = { planet_size > 10 } 					change_planet_size = -5 }
+					if = {
+						limit = {
+							NOR = {
+								is_asteroid = yes
+								is_planet_class = pc_gas_giant
+								is_planet_class = pc_molten
+								is_planet_class = pc_shattered
+								is_planet_class = pc_broken
+							}
+						}
+						change_pc = pc_molten
+					}
+				}
+
+				# if every target is going to be removed, save one!
+				if = {
+					limit = {
+						# if every prospective planet has a science deposit
+						not = {
+							any_system_planet = {
+								is_star = no
+								not = { has_planet_flag = giga_suppressor_remove }
+							}
+						}
+					}
+					random_system_planet = {
+						limit = {
+							is_star = no
+							has_planet_flag = giga_suppressor_remove
+						}
+						remove_planet_flag = giga_suppressor_remove
+					}
+				}
+
+				# set deposits
+				every_system_planet = {
+					limit = { 
+						is_star = no 
+						not = { has_planet_flag = giga_suppressor_remove }
+					}
+					clear_deposits = yes
+
+					random_list = {
+						5 = {}
+						3 = {
+							add_deposit = d_physics_2
+						}
+						3 = {
+							add_deposit = d_energy_1
+						}
+						4 = {
+							add_deposit = d_energy_2
+						}
+						2 = {
+							add_deposit = d_energy_3
+						}
+						2 = {
+							add_deposit = d_iodizium_deposit_1
+						}
+						1 = {
+							add_deposit = d_iodizium_deposit_1
+							add_deposit = d_iodizium_deposit_1
+						}
+					}
+				}
+
+				# make sure at least one planet is receptive to iodizium
+				if = {
+					limit = {
+						# if every prospective planet has a science deposit
+						not = {
+							any_system_planet = {
+								is_star = no
+								not = { has_planet_flag = giga_suppressor_remove }
+								not = {
+									has_deposit_for = shipclass_research_station
+								}
+							}
+						}
+					}
+					# pick one of them and clear it to make way
+					random_system_planet = {
+						limit = {
+							is_star = no
+							not = { has_planet_flag = giga_suppressor_remove }
+						}
+						clear_deposits = yes
+					}
+				}
+
+				# seed the non-random iodizium
+				while = {
+					count = 3
+					random_system_planet = {
+						limit = {
+							is_star = no
+							not = { has_planet_flag = giga_suppressor_remove }
+							not = {
+								has_deposit_for = shipclass_research_station
+							}
+						}
+						add_deposit = d_iodizium_deposit_1
+					}
+				}
+
+				# remove the marked planets
+				every_system_planet = {
+					limit = { 
+						has_planet_flag = giga_suppressor_remove
+					}
+					giga_remove_planet = yes
+				}
+
+				# kaboom!
+				create_ambient_object = {
+					type = "explosion_particle_object"
+					location = star
+					duration = 50
+					use_3d_location = yes
+					entity_scale_to_size = yes
+					scale = 100
+				}
+			}
+  		}
+	}
+}

@@ -1,0 +1,160 @@
+# Returns fallback capital_planet
+# This = country
+get_capital_planet = {
+	if = { limit = { exists = capital_scope }
+		capital_scope = { save_event_target_as = capital_planet }
+	} else_if = { limit = { any_owned_planet = { is_colony = yes } }
+		random_owned_planet = {
+			limit = {
+				is_colony = yes
+				is_colonizable = no
+				exists = space_owner
+				solar_system = { exists = starbase }
+			}
+			weights = {
+				base = 1
+				modifier = { add = 3 solar_system = { is_capital_system = yes } }
+				modifier = { add = 3 num_pops > 30 }
+			}
+			save_event_target_as = capital_planet
+		}
+		if = { limit = { NOT  = { exists = event_target:capital_planet } }
+			random_planet_within_border = {
+				limit = {
+					has_owner = yes
+					is_colony = yes
+					OR = {
+						AND = { exists = owner is_owned_by = prev }
+						AND = { exists = controller controller = { is_same_value = prev } }
+					}
+				}
+				weights = {
+					base = 1
+					modifier = { add = 1 exists = owner is_owned_by = prev }
+					modifier = { add = 1 num_pops > 5 }
+				}
+				save_event_target_as = capital_planet
+			}
+		}
+	} else = { log="Failed: no own planet found for \\[This.GetName]?!" }
+}
+
+#####################################
+#									#
+##### Expansionist Development ######
+#									#
+#####################################
+
+deploy_outpost = {
+	custom_tooltip = "UniqueAscensionPerksED.tooltip"
+	hidden_effect = {
+		from = {
+			create_starbase = {
+				size = starbase_outpost
+				owner = event_target:science_ship_owner
+			}
+		}
+		event_target:science_ship_owner = {
+			set_timed_country_flag = { flag = no_expansionist_development_yet months = 1 }
+			if = {
+				limit = {
+					mid_game_years_passed > 0
+					prev.from = {
+						NOR = {
+							has_megastructure = hyper_relay
+							has_megastructure = hyper_relay_restored
+						}
+					}
+					has_technology = tech_hyper_relays
+					OR = {
+						has_edict = relay_network_dummy
+						has_edict = relay_network_amenities
+						has_edict = relay_network_amenities_gestalt
+					}
+					has_country_resource = { type = alloys amount > 500 }
+					has_country_resource = { type = rare_crystals amount > 100 }
+					has_country_resource = { type = influence amount > 25 }
+				}
+				prev.from = {
+					add_resource = {
+						alloys = -500
+						rare_crystals = -100
+						influence = -25
+					}
+					if = { limit = { has_megastructure = hyper_relay_ruined }
+						random_system_megastructure = {
+							limit = { is_megastructure_type = hyper_relay_ruined }
+							prev = {
+								spawn_megastructure = {
+									type = "hyper_relay"
+									coords_from = prev
+								}
+							}
+							remove_megastructure = this
+						}
+					} else = {
+						spawn_megastructure = {
+							type = "hyper_relay"
+							random_pos = yes
+							orbit_angle = 360
+						}
+					}
+				}
+			}
+		}
+		fleet = {
+			set_timed_fleet_flag = { flag = no_expansionist_development_yet months = 2 }
+		}
+	}
+}
+
+# Prev = Virtual Subject (Helper Country)
+# This = Virtual Overlord Country
+sync_subjects_virtual_relation = {
+	every_country = {
+		limit = {
+			has_communications = prev
+			OR = {
+				is_friendly_to = prev
+				is_neutral_to = prev
+				prevprev = { is_hostile_to = prev }
+			}
+			NOR = {
+				is_hostile_to = prev
+				is_same_empire = prev
+				is_same_empire = prevprev
+				has_attitude_behavior = { target = prev behavior = attack }
+			}
+		}
+		prevprev = { set_faction_hostility = { target = prev set_hostile = no set_neutral = yes } }
+	}
+	every_relation = {
+		limit = {
+			# merg_is_default_empire = yes
+			OR = {
+				is_hostile = prev
+				is_hostile_to = prev
+				has_attitude_behavior = { target = prev behavior = attack }
+			}
+			NOR = {
+				prevprev = { is_country_type = civilian_activities }
+				is_friendly_to = prev
+				is_same_empire = prev
+				is_same_empire = prevprev
+				prevprev = { is_hostile_to = prev }
+			}
+		}
+		prevprev = { set_faction_hostility = { target = prev set_hostile = yes set_neutral = no set_friendly = no } }
+	}
+	prev = {
+		if = { limit = { NOT = { is_friendly_to = prev } }
+			set_faction_hostility = { target = prev set_hostile = no set_neutral = no set_friendly = yes }
+		}
+		if = { limit = { exists = prev.overlord NOT = { is_friendly_to = prev.overlord } }
+			set_faction_hostility = { target = prev.overlord set_hostile = no set_neutral = no set_friendly = yes }
+		}
+		if = { limit = { any_owned_starbase = {} }
+			every_owned_starbase = { set_owner = prevprev }
+		}
+	}
+}
