@@ -1,11 +1,11 @@
-#MODIFIED
 ##############################
 # Imperialist Faction
 ##############################
 
 imperialist = {
 	election_header = "GFX_faction_header_yellow"
-	guiding_ethic = ethic_militarist #only pops of this ethic can join the faction
+	guiding_ethic = ethic_militarist
+	visual_ethic = "imperialist_visual_ethic"
 
 	unique = yes
 	support_multiplier = 1
@@ -13,29 +13,12 @@ imperialist = {
 	resources = {
 		category = pop_factions
 		produces = {
-            trigger = {
-                owner = {
-                	OR = {
-                		years_passed > 10
-                		AND = {
-                			days_passed > 30
-                			has_valid_civic = civic_parliamentary_system
-                		}
-                		AND = {
-                			days_passed > 350
-                			has_origin = origin_broken_shackles
-                		}
-                	}
-                }
-            }
-            unity = 0.5
-        }
+			unity = 0.5
+		}
 	}
 
-	#Note: number of potential or actual members is checked by POP_FACTION_MIN_POTENTIAL_MEMBERS define
 	is_potential = {
 		is_faction_allowed = yes
-		NOT = { has_modifier = banned_militarist }
 	}
 
 	parameters = {
@@ -65,7 +48,7 @@ imperialist = {
 			exists = from
 			from = {
 				exists = leader
-				leader = { leader_class = ruler }
+				leader = { is_ruler = yes }
 			}
 		}
 
@@ -81,11 +64,6 @@ imperialist = {
 			factor = 1.25
 			has_citizenship_rights = yes
 		}
-
-		modifier = {
-			factor = 0
-			planet = { has_modifier = planet_culture_shock }
-		}
 	}
 
 	leader = {
@@ -97,16 +75,69 @@ imperialist = {
 		}
 	}
 
-	# DEMAND: Faction Outraged (by a GalCom Resolution)
-	inline_script = {
-		script = pop_faction_types/demand_faction_outraged
-		FLAG = galcom_resolution_passed_anti_imperialist
+
+	demand = {
+		title = "IMPERIALIST_MARTIAL_BROTHERHOOD"
+		unfulfilled_title = "IMPERIALIST_MARTIAL_BROTHERHOOD"
+		desc = "IMPERIALIST_MARTIAL_BROTHERHOOD_DESC"
+
+		fulfilled_effect = 10
+
+		potential = {
+			exists = owner
+			owner = {
+			    has_valid_civic = civic_bugged_martial_brotherhood
+			}
+		}
+
+		trigger = {
+			owner = {
+				OR = {
+					has_valid_civic = civic_bugged_martial_brotherhood
+				}
+			}
+		}
 	}
 
-	# DEMAND: Faction Pleased (by a GalCom Resolution)
-	inline_script = {
-		script = pop_faction_types/demand_faction_pleased
-		FLAG = galcom_resolution_passed_pro_imperialist
+
+	demand = {
+		title = "FACTION_OUTRAGED_GC"
+		unfulfilled_title = "FACTION_OUTRAGED_GC"
+		desc = "FACTION_OUTRAGED_GC_DESC"
+
+		fulfilled_effect = -20
+		unfulfilled_effect = -0.001
+
+		potential = {
+			exists = owner
+			owner = {
+				has_country_flag = faction_militarist_outraged_gc
+			}
+		}
+
+		trigger = {
+			owner = {
+				has_country_flag = faction_militarist_outraged_gc
+			}
+		}
+	}
+
+	demand = {
+		title = "IMPERIALIST_GOVERNMENTAL"
+		unfulfilled_title = "FACTIONS_FUCK_ME"
+		desc = "IMPERIALIST_GOVERNMENTAL_DESC"
+
+		fulfilled_effect = 20
+		unfulfilled_effect = -0.001
+
+		potential = {
+			exists = owner
+			owner = { is_bugged_governmental_militarist = yes }
+		}
+
+		trigger = {
+			owner = { is_bugged_governmental_militarist = yes }
+		}
 	}
 
 	demand = {
@@ -120,6 +151,7 @@ imperialist = {
 		potential = {
 			exists = owner
 			owner = {
+			    is_bugged_interventionalist = no
 				any_relation = {
 					has_communications = root.owner
 					is_country_type = default
@@ -133,6 +165,60 @@ imperialist = {
 				OR = {
 					has_policy_flag = unrestricted_wars
 					has_policy_flag = liberation_wars
+				}
+			}
+		}
+	}
+
+
+	demand = {
+		title = "IMPERIALIST_LIBERATION_PHILOSOPHY"
+		unfulfilled_title = "IMPERIALIST_NO_LIBERATION_PHILOSOPHY"
+		desc = "IMPERIALIST_LIBERATION_PHILOSOPHY_DESC"
+
+		fulfilled_effect = 20
+		unfulfilled_effect = -30
+
+		potential = {
+			exists = owner
+			owner = {
+				is_bugged_interventionalist = yes
+			}
+		}
+
+		trigger = {
+			owner = {
+				OR = {
+					has_policy_flag = liberation_wars
+				}
+			}
+		}
+	}
+
+	demand = {
+		title = "IMPERIALIST_DEFENSIVE_PACTS"
+		unfulfilled_title = "NO_IMPERIALIST_DEFENSIVE_PACTS"
+		desc = "IMPERIALIST_DEFENSIVE_PACTS_DESC"
+
+		fulfilled_effect = 20
+		unfulfilled_effect = -0.001
+
+		potential = {
+			exists = owner
+			owner = {
+				num_communications > 2
+				is_bugged_interventionalist = yes
+			}
+		}
+
+		trigger = {
+			owner = {
+				count_country = {
+					count > 1
+					limit = {
+						exists = this
+						root.owner = { has_defensive_pact = prev }
+					}
 				}
 			}
 		}
@@ -222,7 +308,10 @@ imperialist = {
 			exists = owner
 			owner = {
 				num_communications > 2
-				NOT = { has_valid_civic = civic_fanatic_purifiers }
+				NOR = {
+					has_valid_civic = civic_fanatic_purifiers
+					is_bugged_interventionalist = yes
+				}
 				num_rivals = 2
 			}
 		}
@@ -246,7 +335,10 @@ imperialist = {
 			exists = owner
 			owner = {
 				num_communications > 2
-				NOT = { has_valid_civic = civic_fanatic_purifiers }
+				NOR = {
+					has_valid_civic = civic_fanatic_purifiers
+					is_bugged_interventionalist = yes
+				}
 				num_rivals > 2
 			}
 		}
@@ -282,10 +374,7 @@ imperialist = {
 				owner = {
 					has_federation = yes
 					federation = {
-						OR = {
-							has_federation_type = hegemony_federation
-							has_federation_type = vf_ef_federation
-						}
+						has_federation_type = hegemony_federation
 					}
 					is_federation_leader = yes
 				}
@@ -294,8 +383,8 @@ imperialist = {
 	}
 
 	demand = {
-		title = IMPERIALIST_FEDERATION
-		unfulfilled_title = IMPERIALIST_FEDERATION_NOT_MILITARIST
+		title = "IMPERIALIST_FEDERATION"
+		unfulfilled_title = "IMPERIALIST_FEDERATION_NOT_MILITARIST"
 		desc = "IMPERIALIST_FEDERATION_DESC"
 
 		fulfilled_effect = 5
@@ -312,9 +401,9 @@ imperialist = {
 	}
 
 	demand = {
-		title = IMPERIALIST_FLEET_USAGE_HIGH
-		unfulfilled_title = IMPERIALIST_FLEET_USAGE_NOT_HIGH
-		desc = IMPERIALIST_FLEET_USAGE_HIGH_DESC
+		title = "IMPERIALIST_FLEET_USAGE_HIGH"
+		unfulfilled_title = "IMPERIALIST_FLEET_USAGE_NOT_HIGH"
+		desc = "IMPERIALIST_FLEET_USAGE_HIGH_DESC"
 
 		fulfilled_effect = 5
 		unfulfilled_effect = -0.001
@@ -335,9 +424,9 @@ imperialist = {
 	}
 
 	demand = {
-		title = IMPERIALIST_FLEET_USAGE_LOW
-		unfulfilled_title = IMPERIALIST_FLEET_USAGE_NOT_LOW
-		desc = IMPERIALIST_FLEET_USAGE_LOW_DESC
+		title = "IMPERIALIST_FLEET_USAGE_LOW"
+		unfulfilled_title = "IMPERIALIST_FLEET_USAGE_NOT_LOW"
+		desc = "IMPERIALIST_FLEET_USAGE_LOW_DESC"
 
 		fulfilled_effect = 0.001
 		unfulfilled_effect = -10
@@ -360,7 +449,7 @@ imperialist = {
 		unfulfilled_title = "IMPERIALIST_NOT_UNDERLING"
 		desc = "IMPERIALIST_UNDERLING_DESC"
 
-		unfulfilled_effect = -15
+		unfulfilled_effect = -25
 		fulfilled_effect = 0.001
 
 		potential = {
@@ -383,7 +472,7 @@ imperialist = {
 		unfulfilled_title = "IMPERIALIST_NOT_BULWARK"
 		desc = "IMPERIALIST_BULWARK_DESC"
 
-		unfulfilled_effect = -15
+		unfulfilled_effect = -25
 		fulfilled_effect = 0.001
 
 		potential = {
@@ -406,7 +495,7 @@ imperialist = {
 
 	demand = {
 		title = "IMPERIALIST_SLAYER"
-		unfulfilled_title = "IMPRERIALIST_NOT_SLAYER"
+		unfulfilled_title = "IMPERIALIST_NOT_SLAYER"
 		desc = "IMPERIALIST_SLAYER_DESC"
 
 		fulfilled_effect = 5
@@ -550,50 +639,30 @@ imperialist = {
 	}
 
 	demand = {
-		title = "IMPERIALIST_BENEVOLENT_SUBJUGATION_POLICY"
-		unfulfilled_title = "IMPERIALIST_NO_BENEVOLENT_SUBJUGATION_POLICY"
-		desc = "IMPERIALIST_BENEVOLENT_SUBJUGATION_POLICY_DESC"
+		title = "IMPERIALIST_WARLIKE_ECONOMY"
+		unfulfilled_title = "IMPERIALIST_PEACEFUL_ECONOMY"
+		desc = "IMPERIALIST_WARLIKE_ECONOMY_DESC"
 
+		fulfilled_effect = 10
 		unfulfilled_effect = -5
-		fulfilled_effect = 0.001
 
-		potential = {
+		potential = { 
 			exists = owner
-			owner = {
-				is_subject = no
-				has_policy_flag = benevolent_terms
-			}
 		}
 
 		trigger = {
 			owner = {
-				NOT = { has_policy_flag = benevolent_terms }
+				has_policy_flag = economic_policy_military
 			}
 		}
 	}
 
-	demand = {
-		title = "IMPERIALIST_OPPRESSIVE_SUBJUGATION_POLICY"
-		unfulfilled_title = "IMPERIALIST_ADOPT_OPPRESSIVE_SUBJUGATION_POLICY"
-		desc = "IMPERIALIST_OPPRESSIVE_SUBJUGATION_POLICY_DESC"
-
-		fulfilled_effect = 5
-		unfulfilled_effect = -0.001
-
-		potential = {
-			exists = owner
-			owner = {
-				is_subject = no
-				NOT = { has_policy_flag = benevolent_terms }
-			}
-		}
-
-		trigger = {
-			owner = {
-				has_policy_flag = oppressive_terms
-			}
-		}
-	}
+	inline_script = {
+		script = "paragon/global_faction_demands"
+		ETHIC = ethic_militarist
+		ETHIC_FANATIC = ethic_fanatic_militarist
+		ETHIC_OPPOSED = ethic_pacifist
+	} 
 
 	on_create = {
 		pop_faction_event = { id = factions.1 }
@@ -647,14 +716,14 @@ imperialist = {
 			}
 
 			effect = {
-				add_modifier = { modifier = embraced_faction years = 10 }
+				add_modifier = { modifier = embraced_faction days = 3600 }
 				parameter:empire = {
 					shift_ethic = ethic_militarist
 					hidden_effect = {
-						add_modifier = { modifier = embraced_faction_timer years = 10 }
+						add_modifier = { modifier = embraced_faction_timer days = 3600 }
 						every_pop_faction = {
 							limit = { NOT = { is_same_value = root } }
-							add_modifier = { modifier = embraced_another_faction years = 10 }
+							add_modifier = { modifier = embraced_another_faction days = 3600 }
 						}
 					}
 				}
@@ -690,17 +759,6 @@ imperialist = {
 				modifier = {
 					factor = 0
 					owner = { has_valid_civic = civic_fanatic_purifiers }
-				}
-				modifier = {
-					factor = 0
-					NOT = {
-						owner = {
-							exists = ruler
-							ruler = {
-								leader_of_faction = imperialist
-							}
-						}
-					}
 				}
 				modifier = {
 					factor = 0
