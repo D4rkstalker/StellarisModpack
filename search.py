@@ -12,10 +12,11 @@ while(True):
 	# modFiles += glob.glob('mod\\\! Modpack\\interface\\**',recursive=True)
 	modFiles += glob.glob('common\\**',recursive=True)
 	modFiles += glob.glob('events\\**',recursive=True)
+	modFiles += glob.glob('localisation\\**',recursive=True)
 	# modFiles += glob.glob('mod\\\! Modpack\\common\\scripted_effects\\**',recursive=True)
 	# modFiles += glob.glob('mod\\\! Modpack 2.8\\localisation\\english\\**',recursive=True)
 	for _file in modFiles: 
-		if os.path.isfile(_file) and ".txt" in _file:
+		if os.path.isfile(_file) and (".txt" in _file or ".yml" in _file):
 			try:
 				readFile = open(_file, "r",encoding="utf-8")
 				#print(_file)
