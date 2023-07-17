@@ -1,0 +1,5218 @@
+# Filename:		scluster_init_effects.txt
+# Contributors:	SirBlackAxe, FirePrince
+
+# 224/226 is directly opposite the L-Cluster. Other corners are 134/136 (Bottom right) and 314/316 (top left).
+@scluster_eye_angle_min = 224
+@scluster_eye_angle_max = 226
+
+@scluster_inner_radius 	= 15
+@scluster_middle_radius = 30
+@scluster_outer_radius 	= 45
+@scluster_max_radius 	= 60
+
+@scluster_max_megastructures = 6
+@scluster_max_guardians = 6
+
+@unique_system_spawn_chance = 25
+@usage_odds_factor_2mil = 2000 # 2000000
+@usage_odds_factor_90k = 900 # 90000
+@usage_origin_factor = 4
+
+############################################################
+# effect random_system = { limit = { has_star_flag = time_loop_world_system } log = "The \\[This.GetName] system" }
+
+begin_crisis_scluster = {
+	set_global_flag = mid_game_crisis_happened	# this must be set and not removed
+	set_timed_global_flag = {
+		# this must be set and not removed
+		flag = mid_game_crisis_happened_recently
+		years = 12
+	}
+	set_global_flag = scluster_in_progress	# must be removed when crisis is resolved
+	set_global_flag = scluster_fired	# (optional) only set this flag if you want your crisis to fire only once
+	set_global_flag = midgame_crisis_ongoing	# must be removed when crisis is resolved
+	# BOOM BOOM PEW PEW effects go here
+	# this is in country scope, on global event country
+
+# Space storm must be active
+	if = {
+		limit = { has_global_flag = space_storm_cooldown }
+		remove_global_flag = space_storm_cooldown
+		set_timed_global_flag = { flag = scluster_interrupted_space_storm_cooldown years = 10 }
+	}
+	if = {
+		limit = {
+			NOT = { has_global_flag = ongoing_space_storm }
+		}
+		# effect event_target:global_event_country = { country_event = { id = galactic_features.401 } }
+		event_target:global_event_country = {
+			# Create storm (lasts 1800-3600 days)
+			country_event = { id = galactic_features.401 }
+			# Spawn the Storm Cluster after a delay
+			country_event = { id = scluster.100 days = 180 random = 360 }
+		}
+	}
+	else = {
+		set_timed_global_flag = { flag = scluster_interrupted_space_storm years = 10 }
+		# Spawn the Storm Cluster immediately
+		event_target:global_event_country = {
+			country_event = {
+				id = scluster.100
+				# days = 15
+			}
+		}
+	}
+}
+
+end_crisis_scluster = {
+	remove_global_flag = scluster_in_progress
+	remove_global_flag = midgame_crisis_ongoing
+	# End the space storm
+	if = {
+		limit = { has_global_flag = scluster_in_overtime }
+		event_target:global_event_country = {
+			country_event = { id = galactic_features.403 }
+		}
+	}
+}
+
+# There are a bunch of systems that don't set unique system flags that let me check whether or not they've spawned. Let's try to fix that without overwriting their initializers to add flags.
+# Run at game start for best results. Getting a positive ID on some of these gets difficult if they've had planets destroyed or stars collapsed.
+# I'm not sure what the least computationally-expensive way to check system fingerprints is. Should I check every_system exactly once, or should I do many random_system checks?
+scluster_flag_unflagged_systems = {
+	optimize_memory
+	every_system = { # unique_system_initializers.txt
+		limit = { has_star_flag = unique_system }
+		if = { # Federation's End - Black Hole with habitats inhabited by primitives
+			limit = {
+				has_star_flag = primitive_system
+				is_star_class = sc_black_hole
+				any_system_planet = { is_planet_class = pc_habitat }
+			}
+			set_star_flag = federations_end
+		}
+		# Larionessi Refuge found by arc site
+		# Zevox found by arc site
+		else_if = { # Fehnrax's Stand - Ancient Battlefield 1
+			limit = {
+				is_star_class = sc_a
+				system_star = { has_deposit = d_energy_5 }
+				# asteroid w/ d_alloys_2 deposits & UNIQUE_SYSTEM_BATTLE_CAT anomaly
+				any_system_ambient_object = { is_ambient_object_type = ancient_battlefield_02_object }
+			}
+			set_star_flag = fehraxs_stand
+			# unique_system_initializer_04
+		}
+		else_if = { # Zhanrox's Rest - Ancient Battlefield 2
+			limit = {
+				is_star_class = sc_f
+				system_star = { has_deposit = d_physics_4 }
+				# asteroid w/ d_alloys_2 deposits & UNIQUE_SYSTEM_BATTLE_CAT anomaly
+				any_system_ambient_object = { is_ambient_object_type = ancient_battlefield_02_object }
+			}
+			set_star_flag = zhanroxs_rest
+			# unique_system_initializer_05
+		}
+		else_if = { # Afari - Ancient Battlefield 3
+			limit = {
+				is_star_class = sc_f
+				system_star = { has_deposit = d_energy_5 }
+				# asteroid w/ d_alloys_2 deposits & UNIQUE_SYSTEM_BATTLE_CAT anomaly
+				any_system_ambient_object = { is_ambient_object_type = ancient_battlefield_02_object }
+			}
+			set_star_flag = afari
+			# unique_system_initializer_05
+		}
+		else_if = { # Tragula's Cross - Triple Planet 1
+			limit = { is_star_class = sc_k }
+			set_star_flag = tragulas_cross
+			# unique_system_initializer_07
+		}
+		else_if = { # Trin's Promise - Triple Planet 2
+			limit = { is_star_class = sc_m_giant }
+			set_star_flag = trins_promise
+			# unique_system_initializer_08
+			# No anomalies allowed
+		}
+		else_if = { # Loh - Triple Planet 3
+			limit = { is_star_class = sc_a }
+			set_star_flag = loh_system
+			# unique_system_initializer_09
+			# No anomalies allowed
+		}
+		else = { set_global_flag = scluster_unique_system_confusion }
+	}
+	# distant_stars_initializers.txt
+	# federations_initializers.txt
+	if = { # Hauer System, usage_odds = 1
+		limit = { has_ancrel = no } # Much more easily findable via the arc site that spawns if ancrel is active
+		random_system = {
+			limit = {
+				is_star_class = "sc_g"
+				# has mining drones
+				# planets have unique names
+				any_system_ambient_object = { is_ambient_object_type = tannhauser_gate_object }
+			}
+			set_star_flag = hauer_system
+			# set_star_flag = hostile_system # Drones ARE hostile, but setting this flag might cause issues if the system happens to be a bottleneck.
+		}
+	}
+	# special_system_initializers.txt
+	random_system = { # Crystal Lair / Yormak system, usage_odds = 5
+		limit = {
+			has_star_flag = hostile_system
+			is_in_cluster = resource_cluster_1
+			is_bottleneck_system = no
+			# 1x rl_standard_stars
+			# Planets have unique names
+			# all other bodies are asteroids with minerals deposits and 1 pc_rare_crystal_asteroid with a rare crystals deposits
+			count_system_planet = {
+				count = 1
+				limit = { is_star = yes }
+			}
+			NOT = {
+				any_system_planet = {
+					is_star = no
+					is_asteroid = no
+				}
+			}
+			count_fleet_in_system = {
+				count >= 4
+				limit = {
+					exists = owner
+					is_owned_by = event_target:crystal_country
+				}
+			}
+			# count_system_planet = {
+			# 	count >= 1
+			# 	# name = "NAME_Yormak's_Heart"
+			# 	is_planet_class = pc_rare_crystal_asteroid
+			# 	has_deposit = d_rare_crystals_3
+			# }
+			# count_system_planet = {
+			# 	count >= 3
+			# 	is_planet_class = pc_asteroid
+			# 	has_deposit = d_minerals_2
+			# }
+			# count_system_planet = {
+			# 	count >= 4
+			# 	is_planet_class = pc_asteroid
+			# 	has_deposit = d_minerals_2
+			# }
+		}
+	}
+	random_system = { # Great Wound, usage_odds = 90000, scaled_spawn_chance = 8
+		limit = {
+			is_star_class = sc_black_hole
+			system_star = {
+				has_deposit = d_dark_matter_deposit_10
+				planet_size = 40
+			}
+			# any_system_ambient_object = {
+			# 	is_ambient_object_type = space_storm_1
+			# }
+			# has void clouds
+			NOT = {
+				any_system_planet = {
+					NOT = { is_planet_class = pc_black_hole }
+				}
+			}
+			count_system_planet = {
+				count > 10
+				limit = {
+					is_planet_class = pc_black_hole
+					is_preventing_anomaly = yes
+				}
+			}
+		}
+		set_star_flag = hostile_system
+		set_star_flag = great_wound_system
+	}
+	random_system = {
+		limit = { has_star_flag = sol }
+		set_star_flag = sol_system # missing from some inits
+		if = {
+			limit = { has_star_flag = primitive_sol }
+			set_star_flag = primitive_system
+		}
+		# Barnards_Star # UNFLAGGED (not even neighbor_t1)
+		# Alpha_Centauri # No unique flag
+		# Procyon # UNFLAGGED (not even neighbor_t2)
+		# Sirius # No unique flag
+		# com_barnards_star
+		# lost_colony_barnards_star
+	}
+	# leviathans_system_initializers.txt
+	# guardians_artists_system  # max 1 x3
+	# guardians_curators_system # max 1 x3 (1 sc_black_hole, 1 sc_pulsar)
+	every_system = {
+		limit = { has_star_flag = enclave }
+		switch = { trigger = has_star_flag
+			guardians_artists_system = {
+				# Artist systems are identical
+			}
+			guardians_curators_system = {
+				switch = { trigger = is_star_class
+					sc_black_hole = { set_star_flag = curator_sigma_system }
+					sc_pulsar = { set_star_flag = curator_lambda_system }
+					default = { set_star_flag = curator_alpha_system }
+				}
+			}
+			guardians_artists_system = {}
+			guardians_artists_system = {}
+			guardians_artists_system = {}
+		}
+	}
+	# guardians_traders_system  # max 1 x3, all easily reachable since they're set as global event targets.
+	# event_target:xuracorp_enclave_system
+	# event_target:riggan_enclave_system
+	# event_target:muutagan_enclave_system
+	# salvager_enclave_system  # max 1 x3
+	# shroudwalker_enclave_system # max 1 x3
+	every_system = {
+		if = { # Trappist
+			limit = {
+				is_star_class = sc_m
+				system_star = { planet_size = 20 }
+				any_system_planet = {
+					is_planet_class = pc_continental
+					planet_size = 16
+				}
+				any_system_planet = {
+					is_planet_class = pc_arctic
+					planet_size = 18
+				}
+				any_system_planet = {
+					is_planet_class = pc_frozen
+					planet_size = 12
+				}
+				any_system_planet = {
+					is_planet_class = pc_molten
+					planet_size = 16
+				}
+				any_system_planet = {
+					is_planet_class = pc_barren
+					planet_size = 16
+				}
+				any_system_planet = {
+					is_planet_class = pc_toxic
+					planet_size = 12
+				}
+				any_system_planet = {
+					is_planet_class = pc_desert
+					planet_size = 14
+				}
+			}
+			set_star_flag = trappist_system
+		}
+		else_if = { # Parvus
+			limit = {
+				is_star_class = "sc_k"
+				system_star = { planet_size = 20 }
+				any_system_planet = {
+					is_planet_class = pc_desert
+					planet_size = 22
+					has_anomaly = yes # NANO_SWARM_CAT
+					is_moon = no
+				}
+				any_system_planet = {
+					is_planet_class = pc_molten
+					planet_size = 13
+				}
+				any_system_planet = {
+					is_planet_class = pc_barren
+					planet_size = 13
+				}
+				# 3-6 pc_asteroid
+				any_system_planet = {
+					is_planet_class = pc_gas_giant
+					planet_size = 30
+				}
+				any_system_planet = {
+					is_planet_class = pc_gas_giant
+					planet_size = 36
+					has_moon = yes
+				}
+			}
+			set_star_flag = parvus_system
+		}
+		# polaris_civilization found by arc site
+		# ghost_ship_system_initializer_01 found by global_event_target
+	}
+	every_archaeological_site = {
+		# CWTools: every_archaeological_site is unexpected
+		# limit = { <triggers> }
+		switch = { trigger = is_site_type
+		# special_system_initializers
+			site_polaris_seed_vault = { # polaris_civilization
+				solar_system = { set_star_flag = polaris_system }
+			}
+			site_debris_belt = { # 8, debris_belt_initializer
+				solar_system = { set_star_flag = debris_belt_system }
+			}
+			site_lost_moments = { # hauer_system_initializer
+				# Site won't be created unless has_ancrel = yes
+				solar_system = { set_star_flag = hauer_system }
+			}
+			# unique_system_initializers
+			larion_digsite = { # 25, unique_system_initializer_02
+				solar_system = { set_star_flag = larion_system }
+			}
+			zevox_digsite = { # 25, unique_system_initializer_03
+				solar_system = { set_star_flag = zevox_system }
+			}
+		}
+	}
+	if = { # ghost_ship_system_initializer_01
+		limit = { exists = event_target:hillos_asteroid }
+		event_target:hillos_asteroid = {
+			solar_system = {
+				set_star_flag = hillos_system
+				set_star_flag = ghost_ship_system
+			}
+		}
+	}
+	set_global_flag = scluster_flagged_unflagged_systems
+}
+
+############################################################
+# spawn_scluster_test = { spawn_scluster_effect = { INITIALIZER = basic_init_01 } }
+
+### Create wormholes to storm cluster
+# Every system spawned at game start is in exactly one resource cluster
+# Is there any way to save the wormhole itself as a event_target, so I can order a ship to move to it?
+spawn_linked_bypasses_effect = {
+	$PREV$ = {
+		# done this way to ensure we don't spawn "orphan wormholes (wormholes that aren't linked to anything)
+		spawn_natural_wormhole = {
+			bypass_type = $TYPE|wormhole$
+			random_pos = $RANDOM|yes$
+			orbit_angle = $ANGLE1|360$
+			[[DISTANCE1] orbit_distance = $DISTANCE1$ ]
+		}
+	}
+	spawn_natural_wormhole = {
+		bypass_type = $TYPE|wormhole$
+		random_pos = $RANDOM|yes$
+		orbit_angle = $ANGLE2|360$
+		[[DISTANCE2] orbit_distance = $DISTANCE2$ ]
+	}
+	link_wormholes = prev
+}
+create_scluster_entrance = {
+	random_archaeological_site = {
+		limit = { is_site_type = site_from_gateway_sent }
+		solar_system = { save_event_target_as = galactic_doorstop_system }
+	}
+	random_system = {
+		limit = {
+			has_star_flag = scluster_terminal
+			has_natural_wormhole = no
+		}
+		random_system = {
+		### Selection
+			limit = {
+				OR = {
+					has_star_flag = storm_system
+					is_inside_nebula = yes
+				}
+				# No bypass existing wormhole-style bypass.
+				has_natural_wormhole = no
+				# One in each resource cluster
+				OR = {
+					is_in_cluster = resource_cluster_$NUM$
+					AND = { # Systems spawned after game start aren't added to the resource clusters, they're still valid to use if they connect to the proper cluster
+						is_in_any_resource_cluster = no
+						any_neighbor_system = { is_in_cluster = resource_cluster_$NUM$ }
+					}
+				}
+				# Exclude certain systems
+				NOR = {
+					has_star_flag = scluster
+					has_star_flag = scluster_entrance
+					has_star_flag = empire_home_system
+					has_star_flag = spawned_shroud_tunnel
+					has_star_flag = vluur_system # Don't break VLUUR
+					# Crisis systems
+					has_star_flag = AI_hub	# crisis_vital_planet
+					has_star_flag = cybrex_beta
+					has_star_flag = sentinel_system
+					has_star_flag = extradimensional_origin_system
+					has_star_flag = extradimensional_second_portal_system
+					has_star_flag = extradimensional_third_portal_system
+					# Avoid guardians and enclaves
+					any_fleet_in_system = {
+						exists = owner
+						owner = {
+							OR = {
+								is_guardian_country = yes
+								has_country_flag = guardian_country # For compatability, if any mods add any new guardian country types.
+								# is_enclave_country DNE
+								is_country_type = enclave
+								is_country_type = caravaneer_home
+								# is_country_type = enclave_mercenary # Mercenaries can deal
+								# is_country_type = cybrex_empire
+								# is_country_type = sentinels
+							}
+						}
+						# random_controlled_ship = {
+						# 	limit = { is_ship_size = dimensional_portal_ed }
+						# }
+					}
+				}
+				NAND = {
+					exists = owner
+					owner = {
+						is_country_type = fallen_empire # awakened is fine
+					}
+				}
+			}
+			weights = {
+				base = 10
+				# Any special systems that should have higher weight? like great wound?
+				modifier = { # Galactic Doorstop - Another doorway...
+					factor = 100
+					exists = event_target:galactic_doorstop_system
+					OR = {
+						is_same_value = event_target:galactic_doorstop_system
+						any_neighbor_system = { is_same_value = event_target:galactic_doorstop_system }
+					}
+				}
+				modifier = { factor = 2 has_modifier = turbulent_nebula }
+				# modifier = { # Extend an existing nebula?
+				# 	factor = 2
+				# 	has_modifier = space_storm
+				# 	any_neighbor_system = { is_inside_nebula = yes }
+				# }
+				# x2 for dark wound?
+				modifier = { # -100% sublight speed is a pain in the neck
+					factor = 0.1
+					scluster_is_neutron_star_system = yes
+					has_modifier = space_storm
+				}
+				modifier = { factor = 0.5 is_bottleneck_system = yes }
+				# Neighboring systems
+				modifier = { # Try to avoid systems that border a different resource cluster
+					factor = 0.5
+					any_neighbor_system = {
+						NOT = { is_in_cluster = resource_cluster_$NUM$ }
+						is_in_any_resource_cluster = yes
+					}
+				}
+				modifier = { # Try to avoid neighboring other wormholes.
+					factor = 0.5
+					any_neighbor_system = { has_natural_wormhole = yes }
+				}
+				# Owner
+				modifier = { # less interesting if a fallen empire or marauder gets the wormhole
+					factor = 0.5
+					exists = owner
+					owner = {
+						NOT = { is_country_type = default }
+					}
+				}
+				modifier = { # try to avoid giving multiple wormholes to the same country
+					factor = 0.1
+					exists = owner
+					owner = { has_country_flag = scluster_country }
+				}
+				modifier = {
+					factor = 0.01
+					exists = sector
+					sector = { has_sector_flag = scluster_sector }
+				}
+				# catchup effect: higher weight for single/low system empires, so they can expand?
+			}
+		### Effects
+			set_star_flag = scluster_entrance
+			# set_star_flag = scluster_entrance_$NUM$
+			# set_star_flag = hostile_system # Maybe?
+			# remove_star_flag = storm_system	# Storm becomes permanent # Now handled by overwrites, so VLUUR doesn't eat the storms because they don't have the flag.
+			save_global_event_target_as = scluster_entrance_system_$NUM$
+			# every_playable_country = {
+				# limit = {
+				# 	NOT = { has_country_flag = encountered_first_wormhole }
+				# 	prev = {
+				# 		any_fleet_in_system = {
+				# 			OR = {
+				# 				is_owned_by = prevprev
+				# 				controller = { is_same_value = prevprev }
+				# 			}
+				# 		}
+				# 	}
+				# }
+				# prev = {
+				# 	random_ship_in_system = {
+				# 		limit = {
+				# 			OR = {
+				# 				is_owned_by = prevprev
+				# 				controller = { is_same_value = prevprev }
+				# 			}
+				# 		}
+				# 		ship_event = {
+				# 			id = apoc.5 # Encountered Natural Wormhole
+				# 		}
+				# 	}
+				# }
+			# }
+			if = {
+				limit = { exists = owner }
+				owner = {
+					set_country_flag = scluster_country
+					# Just in case (from apoc.5, also see distar.3043, distar.13060)
+					if = {
+						limit = {
+							NOT = { has_country_flag = encountered_first_wormhole }
+						}
+						set_country_flag = encountered_first_wormhole
+						add_seen_bypass_type = wormhole
+						# Note: Doesn't account for empires that have already entered the system, but don't own it and haven't encountered_first_wormhole yet
+					}
+					if = {
+						limit = { is_variable_set = scluster_wormholes_owned }
+						change_variable = { value = 1 which = scluster_wormholes_owned }
+					}
+					else = {
+						set_variable = { value = 1 which = scluster_wormholes_owned }
+					}
+				}
+				if = {
+					limit = { exists = sector }
+					sector = { set_sector_flag = scluster_sector }
+				}
+			}
+			spawn_linked_bypasses_effect = { PREV = $SYSTEM|prev$ }
+		}
+	}
+}
+
+# copied from game_start.50, modified a bit
+# this = system
+# Creates in-system nebula graphics
+# add_modifier = { modifier = turbulent_nebula }
+scluster_create_system_nebula_effect = {
+	if = {
+		limit = {
+			NOT = { has_star_flag = already_has_nebula_object }
+		}
+		reroll_random = yes
+		if = {
+			limit = { has_star_flag = ocean_paradise_nebula }
+			create_rare_nebula_1 = yes
+		}
+		else_if = { # Force a turbulent nebula with the scluster_turbulent_nebula star flag
+			limit = { has_star_flag = scluster_turbulent_nebula }
+			random_list = {
+				# 50/50: a, black holes, neutrons, pulsars
+				1 = {
+					modifier = {
+						factor = 999
+						OR = {
+							scluster_is_b_star_system = yes
+							scluster_is_f_star_system = yes
+							scluster_is_t_star_system = yes
+						}
+					}
+					create_rare_nebula_1 = yes
+				}
+				1 = {
+					modifier = {
+						factor = 999
+						OR = {
+							scluster_is_g_star_system = yes
+							scluster_is_k_star_system = yes
+							scluster_is_m_star_system = yes
+						}
+					}
+					create_rare_nebula_2 = yes
+				}
+			}
+		}
+		else_if = { # Force a rare nebula with the scluster_rare_nebula star flag
+			limit = { has_star_flag = scluster_rare_nebula }
+			random_list = {
+				# 50/50: a, black holes, neutrons, pulsars
+				1 = {
+					modifier = {
+						factor = 999
+						OR = {
+							scluster_is_b_star_system = yes
+							scluster_is_f_star_system = yes
+							scluster_is_t_star_system = yes
+						}
+					}
+					create_rare_nebula_1 = yes
+				}
+				1 = {
+					modifier = {
+						factor = 999
+						OR = {
+							scluster_is_g_star_system = yes
+							scluster_is_k_star_system = yes
+							scluster_is_m_star_system = yes
+						}
+					}
+					create_rare_nebula_2 = yes
+				}
+			}
+		}
+		else_if = { # Class A
+			limit = { scluster_is_a_star_system = yes }
+			random_list = {
+				20 = { create_nebula_3 = yes }
+				20 = { create_nebula_4 = yes }
+				10 = { create_rare_nebula_1 = yes }
+				10 = { create_rare_nebula_2 = yes }
+				4  = { create_turbulent_nebula_1 = yes }
+				4  = { create_turbulent_nebula_2 = yes }
+			}
+		}
+		else_if = { # Class B, Class F
+			limit = {
+				OR = {
+					scluster_is_b_star_system = yes
+					scluster_is_f_star_system = yes
+				}
+			}
+			random_list = {
+				20 = { create_nebula_3 = yes }
+				20 = { create_nebula_4 = yes }
+				10 = { create_rare_nebula_1 = yes }
+				4  = { create_turbulent_nebula_1 = yes }
+			}
+		}
+		else_if = { # Class G
+			limit = { scluster_is_g_star_system = yes }
+			random_list = {
+				20 = { create_nebula_1 = yes }
+				10 = { create_rare_nebula_2 = yes }
+				4 = { create_turbulent_nebula_2 = yes }
+			}
+		}
+		else_if = { # Class K, Class M
+			limit = {
+				OR = {
+					scluster_is_k_star_system = yes
+					scluster_is_m_star_system = yes
+				}
+			}
+			random_list = {
+				20 = { create_nebula_1 = yes }
+				20 = { create_nebula_2 = yes }
+				10 = { create_rare_nebula_2 = yes }
+				4 = { create_turbulent_nebula_2 = yes }
+			}
+		}
+		else_if = { # Class T
+			limit = { scluster_is_t_star_system = yes }
+			random_list = {
+				20 = { create_nebula_3 = yes }
+				10 = { create_rare_nebula_1 = yes }
+				4 = { create_turbulent_nebula_1 = yes }
+			}
+		}
+		else_if = { # Black Hole
+			limit = { is_star_class = sc_black_hole }
+			random_list = {
+				20 = { create_nebula_1 = yes }
+				20 = { create_nebula_2 = yes }
+				20 = { create_nebula_3 = yes }
+				20 = { create_nebula_4 = yes }
+				10 = { create_rare_nebula_1 = yes }
+				10 = { create_rare_nebula_2 = yes }
+				4 = { create_turbulent_nebula_1 = yes }
+				4 = { create_turbulent_nebula_2 = yes }
+			}
+		}
+		else_if = { # Neutron Star, Pulsar
+			limit = {
+				OR = {
+					is_star_class = sc_neutron_star
+					is_star_class = sc_pulsar
+				}
+			}
+			random_list = {
+				20 = { create_nebula_3 = yes }
+				20 = { create_nebula_4 = yes }
+				10 = { create_rare_nebula_1 = yes }
+				10 = { create_rare_nebula_2 = yes }
+				4 = { create_turbulent_nebula_1 = yes }
+				4 = { create_turbulent_nebula_2 = yes }
+			}
+		}
+		else = {
+			log_error = "scluster_create_system_nebula_effect called on the \\[This.GetName] system, with unaccounted for star class \\[This.GetClassName]"
+			random_list = {
+				20 = { create_nebula_1 = yes } # Reddish
+				20 = { create_nebula_2 = yes } # Orange & green
+				20 = { create_nebula_3 = yes } # Pinkish + green
+				20 = { create_nebula_4 = yes } # Bluish
+				10 = { create_rare_nebula_1 = yes } # Pink & purple w/ blue center
+				10 = { create_rare_nebula_2 = yes } # Blue & orange w/ bright center
+				4 = { create_turbulent_nebula_1 = yes } # Red, yellow, & blue w/ lightning
+				4 = { create_turbulent_nebula_2 = yes } # Blue & purple w/ lightning
+			}
+		}
+	}
+}
+# scluster_create_system_nebula_effect_2 = {
+# 	if = {
+# 		limit = { has_star_flag = ocean_paradise_nebula }
+# 		create_rare_nebula_1 = yes
+# 	}
+# 	else_if = {
+# 		limit = {
+# 			system_star = {
+# 				OR = {
+# 					is_planet_class = pc_a_star
+# 					is_planet_class = pc_b_star
+# 					is_planet_class = pc_f_star
+# 					is_planet_class = pc_g_star
+# 					is_planet_class = pc_k_star
+# 					is_planet_class = pc_m_star
+# 					is_planet_class = pc_m_giant_star
+# 					is_planet_class = pc_t_star
+
+# 					is_planet_class = pc_black_hole
+# 					is_planet_class = pc_neutron_star
+# 					is_planet_class = pc_pulsar
+
+# 					# is_planet_class = pc_toxoid_star
+# 				}
+# 			}
+# 		}
+# 		random_list = {
+# 			# All: pc_black_hole
+# 			20 = { # create_nebula_1
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = { # CWTools: OR is unexpected in limit (for each instance)
+# 								is_planet_class = pc_g_star
+# 								is_planet_class = pc_k_star
+# 								is_planet_class = pc_m_star
+# 								is_planet_class = pc_m_giant_star
+
+# 								is_planet_class = pc_black_hole
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_nebula_1 = yes
+# 			}
+# 			20 = { # create_nebula_2
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_k_star
+# 								is_planet_class = pc_m_star
+# 								is_planet_class = pc_m_giant_star
+
+# 								is_planet_class = pc_black_hole
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_nebula_2 = yes
+# 			}
+# 			20 = { # create_nebula_3
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_b_star
+# 								is_planet_class = pc_f_star
+# 								is_planet_class = pc_t_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_nebula_3 = yes
+# 			}
+# 			20 = { # create_nebula_4
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_b_star
+# 								is_planet_class = pc_f_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_nebula_4 = yes
+# 			}
+# 			10 = { # create_rare_nebula_1
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_b_star
+# 								is_planet_class = pc_f_star
+# 								is_planet_class = pc_t_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_rare_nebula_1 = yes
+# 			}
+# 			10 = { # create_rare_nebula_2
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_g_star
+# 								is_planet_class = pc_k_star
+# 								is_planet_class = pc_m_star
+# 								is_planet_class = pc_m_giant_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_rare_nebula_2 = yes
+# 			}
+# 			4 = { # create_turbulent_nebula_1
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_b_star
+# 								is_planet_class = pc_f_star
+# 								is_planet_class = pc_t_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_turbulent_nebula_1 = yes
+# 			}
+# 			4 = { # create_turbulent_nebula_2
+# 				complex_trigger_modifier = {
+# 					trigger = count_system_planet
+# 					parameters = {
+# 						limit = {
+# 							OR = {
+# 								is_planet_class = pc_a_star
+# 								is_planet_class = pc_g_star
+# 								is_planet_class = pc_k_star
+# 								is_planet_class = pc_m_star
+# 								is_planet_class = pc_m_giant_star
+
+# 								is_planet_class = pc_black_hole
+# 								is_planet_class = pc_neutron_star
+# 								is_planet_class = pc_pulsar
+# 							}
+# 						}
+# 					}
+# 					mode = factor
+# 				}
+# 				create_turbulent_nebula_2 = yes
+# 			}
+# 		}
+# 	}
+# 	else = {
+# 		log_error = "scluster_create_system_nebula_effect_2 called on the \\[This.GetName] system, with unaccounted for star class \\[This.GetClassName]"
+# 		random_list = {
+# 			20 = { create_nebula_1 = yes }
+# 			20 = { create_nebula_2 = yes }
+# 			20 = { create_nebula_3 = yes }
+# 			20 = { create_nebula_4 = yes }
+# 			10 = { create_rare_nebula_1 = yes }
+# 			10 = { create_rare_nebula_2 = yes }
+# 			4 = { create_turbulent_nebula_1 = yes }
+# 			4 = { create_turbulent_nebula_2 = yes }
+# 		}
+# 	}
+# }
+# Modified version of add_extra_hyperlane_to_spawned_system_effect
+scluster_add_extra_hyperlane_to_spawned_system_effect = {
+	# hidden_effect = {
+	# 	last_created_system = {
+			if = { # distance 1-10
+				limit = {
+					any_system = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 10
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 10
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+			else_if = { # distance 1-16
+				limit = {
+					any_system = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 16
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 16
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+			else_if = { # distance 1-23
+				limit = {
+					any_system = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 23
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 23
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+			else_if = { # distance 1-30
+				limit = {
+					any_system = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 30
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 30
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+			else_if = { # distance 1-40
+				limit = {
+					any_system = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 40
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+				}
+				random_system = {
+					limit = {
+						[[FLAG] has_star_flag = $FLAG$ ] # Added
+						distance = {
+							source = prev
+							type = euclidean
+							min_distance >= 1
+							max_distance <= 40
+						}
+						NOT = { has_hyperlane_to = prev }
+					}
+					add_hyperlane = { from = this to = prev }
+				}
+			}
+			else = { log = "scluster_add_extra_hyperlane_to_spawned_system_effect was called on the \\[This.GetName] system, but didn't find a system within 40 units to connect to." }
+	# 	}
+	# }
+}
+
+# Don't want to check every system in the galaxy for every special initializer for each system spawn. Do it once and store all the flags in a single place.
+scluster_log_spawn_chance = { log = "The $FLAG$ system initializer is available. Null spawn chance = $NULL_CHANCE|0$% / $NULL_spawn_chance|0$% / $NULL_scaled_spawn_chance|0$%." }
+scluster_check_flag = {
+	if = {
+		limit = {
+			# any_system = { has_star_flag = $FLAG$ }
+			count_system = {
+				count < $MAX|1$
+				limit = { has_star_flag = $FLAG$ }
+			}
+		}
+		# log = "Found \\$FLAG$ system."
+		# save_event_target_as = scluster_$FLAG$
+	# }
+	# else = {
+		set_star_flag = $FLAG$_available
+		log = "The $FLAG$ system initializer is available."
+		[[NULL_CHANCE]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_CHANCE = $NULL_CHANCE$ }
+			reroll_random = yes
+			random = {
+				chance = $NULL_CHANCE$
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but rolled a $NULL_CHANCE$% null spawn."
+			}
+		]
+		[[spawn_chance]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_spawn_chance = value:scluster_null_spawn|SPAWN_CHANCE|$spawn_chance$| }
+			reroll_random = yes
+			random = {
+				chance = value:scluster_null_spawn|SPAWN_CHANCE|$spawn_chance$|
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but failed a $spawn_chance$% spawn chance."
+			}
+		]
+		[[scaled_spawn_chance]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_scaled_spawn_chance = value:scluster_null_spawn|SCALED_SPAWN_CHANCE|$scaled_spawn_chance$| }
+			reroll_random = yes
+			random = {
+				chance = value:scluster_null_spawn|SCALED_SPAWN_CHANCE|$scaled_spawn_chance$|
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but failed a 10x$scaled_spawn_chance$% scaled spawn chance."
+			}
+		]
+		[[TYPE]
+			if = {
+				limit = { has_star_flag = $FLAG$_available }
+				change_variable = { which = scluster_$TYPE$s value = 1 }
+			}
+		]
+	}
+}
+scluster_set_flag = {
+	event_target:scluster_0 = {
+		set_star_flag = $FLAG$_available
+		# [[!NULL_CHANCE]
+		# 	[[!spawn_chance]
+		# 		[[!scaled_spawn_chance]
+				log = "The $FLAG$ system initializer is available."
+		# 		]
+		# 	]
+		# ]
+		[[NULL_CHANCE]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_CHANCE = $NULL_CHANCE$ }
+			reroll_random = yes
+			random = {
+				chance = $NULL_CHANCE$
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but rolled a $NULL_CHANCE$% null spawn."
+			}
+		]
+		[[spawn_chance]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_spawn_chance = value:scluster_null_spawn|SPAWN_CHANCE|$spawn_chance$| }
+			reroll_random = yes
+			random = {
+				chance = value:scluster_null_spawn|SPAWN_CHANCE|$spawn_chance$|
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but failed a $spawn_chance$% spawn chance."
+			}
+		]
+		[[scaled_spawn_chance]
+			# scluster_log_spawn_chance = { FLAG = $FLAG$ NULL_scaled_spawn_chance = value:scluster_null_spawn|SCALED_SPAWN_CHANCE|$scaled_spawn_chance$| }
+			reroll_random = yes
+			random = {
+				chance = value:scluster_null_spawn|SCALED_SPAWN_CHANCE|$scaled_spawn_chance$|
+				remove_star_flag = $FLAG$_available
+				set_star_flag = $FLAG$_null_spawn
+				log = "...but failed a 10x$scaled_spawn_chance$% scaled spawn chance."
+			}
+		]
+		[[TYPE]
+			if = {
+				limit = { has_star_flag = $FLAG$_available }
+				change_variable = { which = scluster_$TYPE$s value = 1 }
+			}
+		]
+	}
+}
+# scope: scluster_0
+scluster_analyze_galaxy = {
+	optimize_memory
+	log = "The Storm Cluster is analyzing the galaxy for available initializers..."
+	set_variable = { value = 0 which = scluster_megastructures }
+	set_variable = { value = 0 which = scluster_guardians }
+	set_variable = { value = 0 which = scluster_enclaves }
+	# Lets players change the max via console commands
+	event_target:global_event_country = {
+		if = {
+			limit = { NOT = { is_variable_set = scluster_megastructures_max } }
+			set_variable = { which = scluster_megastructures_max value = @scluster_max_megastructures }
+		}
+		if = {
+			limit = { NOT = { is_variable_set = scluster_guardians_max } }
+			set_variable = { which = scluster_guardians_max value = @scluster_max_megastructures }
+		}
+	}
+
+	set_star_flag = scluster_trade_value_asteroid_system_available
+	set_star_flag = scluster_magnetic_mystery_bugpatch_system_available
+
+	# For certain systems that don't have star flags
+	every_archaeological_site = {
+		# limit = { <triggers> }
+		switch = { trigger = is_site_type
+			# federations_initializers
+			site_lost_moments = { # hauer_system_initializer
+				# In federations, but site won't be created unless ancrel was enabled at game start (system itself has no DLC check though)
+				solar_system = {
+					set_star_flag = hauer_system
+					save_event_target_as = hauer_system
+				}
+			}
+			# special_system_initializers
+			site_polaris_seed_vault = { # polaris_civilization, scaled_spawn_chance = 5, usage_odds = 2000000
+				solar_system = {
+					set_star_flag = polaris_system
+					save_event_target_as = polaris_civilization
+				}
+			}
+			# site_fumongus_dig = { # fumongus_init_01 # flag exists
+			# }
+			# site_ancient_robot_world = { # surveillance_supercomputer_system # has flag
+			# }
+			site_debris_belt = { # usage_odds = 8, debris_belt_initializer, scaled_spawn_chance = 10
+				solar_system = {
+					set_star_flag = debris_belt_system
+					save_event_target_as = debris_belt_system
+				}
+			}
+			# unique_system_initializers
+			larion_digsite = { # unique_system_initializer_02, spawn_chance = 25, usage_odds = 1
+				solar_system = {
+					set_star_flag = larion_system
+					save_event_target_as = larion_system
+				}
+			}
+			zevox_digsite = { # unique_system_initializer_03, spawn_chance = 25, usage_odds = 1
+				solar_system = {
+					set_star_flag = zevox_system
+					save_event_target_as = zevox_system
+				}
+			}
+		}
+	}
+	if = { # hauer_system fallback (can't find by arc site w/o ancrel)
+		limit = {
+			NOT = { exists = event_target:hauer_system }
+			any_system = {
+				# sc_g if star hasn't changed
+				OR = {
+					has_star_flag = hauer_system
+					any_system_ambient_object = { is_ambient_object_type = tannhauser_gate_object }
+				}
+			}
+		}
+		random_system = {
+			limit = {
+				OR = {
+					has_star_flag = hauer_system
+					any_system_ambient_object = { is_ambient_object_type = tannhauser_gate_object }
+				}
+			}
+			set_star_flag = hauer_system
+			save_event_target_as = hauer_system
+		}
+	}
+
+	# singleton
+	# every_system = {
+	if = { # ancient_relics_initializers
+		limit = { has_ancrel = yes }
+		scluster_check_flag = { FLAG = relic_system_1 } # minigalaxy, usage_odds = 4
+		scluster_check_flag = { FLAG = relic_system_4 } # Omnicodex, usage_odds = 4
+		if = { # mechanocalibrator_system (C.A.R.E.), usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:mechanocalibrator_planet }
+			}
+			scluster_check_flag = { FLAG = mechanocalibrator_system scaled_spawn_chance = 8 }
+		}
+		# scluster_check_flag = { FLAG = rubricator_system } # From anomaly
+	}
+	if = { # aquatics
+		limit = { has_aquatics = yes }
+		set_star_flag = scluster_ocean_paradise_start_available
+	}
+	if = { # Distant Stars
+		limit = { has_distar = yes }
+		if = { # star_lifting_system, usage_odds = 90k, 80% spawn
+			limit = { NOT = { exists = event_target:broken_star_lifting_platform } }
+			scluster_check_flag = { FLAG = star_lifting_system scaled_spawn_chance = 8 }
+		}
+		# vechtar_zavonia_system, usage_odds = 0
+		if = { # big_rip_system, usage_odds = 90k, 80% spawn
+			limit = { NOT = { exists = event_target:big_rip_planet } }
+			scluster_check_flag = { FLAG = big_rip_system scaled_spawn_chance = 8 }
+		}
+		if = { # time_loop_world_system, usage_odds = 90k, 80% spawn
+			limit = { NOT = { exists = event_target:big_rip_planet } }
+			scluster_check_flag = { FLAG = time_loop_world_system scaled_spawn_chance = 8 }
+		}
+		scluster_check_flag = { FLAG = toxic_moon_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		scluster_check_flag = { FLAG = shattered_world_system scaled_spawn_chance = 8 } # usage_odds = 4
+		scluster_check_flag = { FLAG = asteroid_system scaled_spawn_chance = 8 } # usage_odds = 4
+		scluster_check_flag = { FLAG = drone_system_4 MAX = 2 } # usage_odds = 4, max 2
+		scluster_check_flag = { FLAG = amoeba_4_system MAX = 2 } # usage_odds = 4, max 2
+		scluster_check_flag = { FLAG = void3_system } # usage_odds = 4
+		scluster_check_flag = { FLAG = ice_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		scluster_check_flag = { FLAG = high_energy_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		if = { # guardians_hatchling_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:hatchling_egg }
+			}
+			scluster_check_flag = { FLAG = guardians_hatchling_system scaled_spawn_chance = 8 } # 90k
+		}
+		else_if = { # If it won't hatch, we can have another egg
+			limit = {
+				event_target:hatchling_egg = {
+					NOT = { has_planet_flag = hatchling_will_trigger }
+				}
+			}
+			random = {
+				chance = 80
+				set_star_flag = guardians_hatchling_system_available
+			}
+		}
+		# Great Wound has no flag, 90k, scaled_spawn_chance = 8, no DLC check
+		scluster_check_flag = { # usage_odds = 90k
+			FLAG = primitive_robot_system
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { FLAG = superflare_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		if = { # collapse_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:derelict_particle_accelerator }
+			}
+			scluster_check_flag = { FLAG = collapse_system scaled_spawn_chance = 8 }
+		}
+		scluster_check_flag = { FLAG = old_foes_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		if = { # scavenger_bot_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:scavenger_bot_country }
+			}
+			scluster_check_flag = { FLAG = scavenger_bot_system TYPE = guardian scaled_spawn_chance = 8 }
+		}
+		scluster_check_flag = { FLAG = living_planet_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		if = { # elderly_tiyanki_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:elderly_tiyanki_country }
+			}
+			scluster_check_flag = { FLAG = elderly_tiyanki_system TYPE = guardian scaled_spawn_chance = 8 }
+		}
+		# scluster_check_flag = { FLAG = ratling_home_system scaled_spawn_chance = 8 } # usage_odds = 90k
+		scluster_check_flag = { FLAG = crystal_system MAX = 2 } # usage_odds = 10, max 2 # Comment says it's a free feature, but it can't spawn without dstar
+		# distar_sealed_1_1 # event spawned
+		# distar_sealed_1_2 # event spawned
+		if = { # escape_pod_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:droppod_tar }
+			}
+			scluster_check_flag = { FLAG = escape_pod_system scaled_spawn_chance = 8 }
+		}
+		if = { # phaseshift_system, usage_odds = 90k
+			limit = {
+				NOT = { exists = event_target:phaseshift_planet }
+			}
+			scluster_check_flag = { FLAG = phaseshift_system scaled_spawn_chance = 8 }
+		}
+		if = { # lgate, usage_odds = 2, max 9, scaled_spawn_chance = 10 (x10 = 100%)
+			limit = { lgate_enabled = yes }
+			scluster_check_flag = {
+				FLAG = lgate
+				MAX = 10 # 9 # distantstars_init_06 also has the lgate flag
+			}
+		}
+		# distantstars_init_06 (Guaranteed L-Gate spawn), spawn_chance = 100
+	}
+	# abandoned FE systems?
+	# federations_initializers (no DLC req)
+		if = { # hauer_system_initializer, usage_odds = 1
+			limit = { # has no innate flag
+				NOT = { exists = event_target:hauer_system }
+			}
+			scluster_set_flag = { FLAG = hauer_system }
+		}
+		# Shallarian System # planet_with_too_many_moons_system, usage_odds = 200, scaled_spawn_chance = 3 # spawns nearby the xenophobe FE
+		scluster_check_flag = { FLAG = wenkwort_system } # usage_odds = 1
+	if = { # has_federations_dlc = yes
+		limit = { has_federations_dlc = yes }
+		# void_dweller_system
+		# scion_fallen_1 scion_fe_system
+		# scion_fallen_2 scion_fe_system
+		scluster_check_flag = { FLAG = shattered_ring_system }
+		scluster_check_flag = { # mega_shipyard_init_01, usage_odds = 100
+			FLAG = ruined_mega_shipyard_system
+			TYPE = megastructure
+			scaled_spawn_chance = 2
+		}
+		# sol_system_void_dweller_system
+	}
+	# first_contact_initializers.txt
+	### hostile_system_initializers (Uncapped)
+		### base usage_odds = 2
+		# hostile_init_04	# Crystal Entities - Green (Patrol) VARIATION
+		# hostile_init_05	# Crystal Entities - Red
+		### base usage_odds = 4
+		# hostile_init_02	# Crystal Entities - Blue VARIATION
+		# hostile_init_08	# Cloud Entity
+		# hostile_init_10	# Space Amoeba, Large pack
+		# hostile_init_10_small_amoeba_pack	# Space Amoeba, Small pack
+		# hostile_init_11	# Space Amoeba ROAMING VARIATION
+		# hostile_init_12	# Mining Drones
+		# hostile_init_12_mining_drones		# Mining Drones
+		# hostile_init_12_drone_destroyer	# Mining Drone Destroyers
+		# hostile_init_13	# Mining Drones ALTERNATE
+		# hostile_init_15	# Tiyanki
+	# hostile_system_initializers (Capped)
+		scluster_check_flag = { FLAG = blue_system } # usage_odds = 4, hostile_init_01 # Crystal Entities - Blue (also flag = shield_system )
+		scluster_check_flag = { FLAG = green_system } # usage_odds = 1, hostile_init_03 # Crystal Entities - Green (Patrol)
+		scluster_check_flag = { FLAG = red2_system } # usage_odds = 2, hostile_init_06 # Crystal Entities - Red VARIATION
+		scluster_check_flag = { FLAG = amoeba_home_system } # usage_odds = 5000, hostile_init_20 # Amoeba Home System
+		scluster_check_flag = { FLAG = tiyanki_spawn_system } # usage_odds = 90k, hostile_init_16 # Tiyanki Spawn System
+		scluster_check_flag = { FLAG = tiyanki_graveyard_system } # usage_odds = 90k, hostile_init_21
+		scluster_check_flag = { FLAG = drone_system_4 } # usage_odds = 20, hostile_init_22
+		# scluster_check_flag = { FLAG = crystal_home_system } # usage_odds = 10, spawn_chance = 100%, hostile_init_07 # Crystal Entities - Elites & Base # TODO: Crystal Nidus II?
+		# scluster_check_flag = { FLAG = drone_home_system } # usage_odds = 10, spawn_chance = 100%, hostile_init_14 # Mining Drone Home
+		scluster_check_flag = { FLAG = pirate_home_system } # usage_odds = 100, spawn_chance = 100%*, hostile_init_18, x0 if host_has_dlc = "Apocalypse", resource_cluster_0 # Privateer Conglomerate
+		# scluster_check_flag = { FLAG = }
+	#
+	if = { # dstar OR leviathans (Curators)
+		limit = {
+			OR = {
+				has_leviathans = yes
+				has_distar = yes
+			}
+		}
+		# base usage_odds = 100
+		scluster_check_flag = { FLAG = guardians_curators_system TYPE = enclave MAX = 3 } # scaled spawn = 100/16/12
+		# guardians_curator_init_01, scaled_spawn_chance = 12
+		# guardians_curator_init_02 (sc_black_hole), spawn_chance = 100%
+		# guardians_curator_init_03 (sc_pulsar), scaled_spawn_chance = 16
+	}
+	if = { # leviathans (enclaves, guardians) usage_odds = 100
+		limit = { has_leviathans = yes }
+		# ENCLAVES
+		scluster_check_flag = { # Artist systems are identical, so it doesn't matter that I can't tell exactly which initializers have been used.
+			FLAG = guardians_artists_system
+			TYPE = enclave
+			MAX = 3
+		}
+		if = { # guardians_trader_init_01, spawn_chance = 100%, event_target:xuracorp_country
+			limit = { NOT = { exists = event_target:xuracorp_enclave_system } }
+			scluster_set_flag = { FLAG = xuracorp_enclave_system TYPE = enclave }
+		}
+		if = { # guardians_trader_init_02, scaled_spawn_chance = 16, event_target:riggan_country
+			limit = { NOT = { exists = event_target:riggan_enclave_system } }
+			scluster_set_flag = { FLAG = riggan_enclave_system TYPE = enclave }
+		}
+		if = { # guardians_trader_init_03, scaled_spawn_chance = 12, event_target:muutagan_country
+			limit = { NOT = { exists = event_target:muutagan_enclave_system } }
+			scluster_set_flag = { FLAG = muutagan_enclave_system TYPE = enclave }
+		}
+		# GUARDIANS
+		scluster_check_flag = { # guardians_init_stellarites
+			FLAG = guardians_stellarite_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_dragon
+			FLAG = guardians_dragon_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_horror
+			FLAG = guardians_horror_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_dreadnought
+			FLAG = guardians_dreadnought_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_hive
+			FLAG = guardians_hive_system
+			# TYPE = guardian # Not strong enough to need limiting
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_technosphere
+			FLAG = guardians_technosphere_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_fortress
+			FLAG = guardians_fortress_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+		scluster_check_flag = { # guardians_init_wraith
+			FLAG = guardians_wraith_system
+			TYPE = guardian
+			scaled_spawn_chance = 8
+		}
+	}
+	if = { # Apocalypse (marauders) spawn_chance = 100
+		limit = {
+			host_has_dlc = "Apocalypse" # No scripted trigger exists for checking this DLC
+			num_marauder_empires_to_spawn > 0
+		}
+		scluster_check_flag = { FLAG = marauder_capital_1 } # marauder_1_1 # spawn_chance = 100
+		scluster_check_flag = { FLAG = marauder_capital_2 } # marauder_2_1
+		scluster_check_flag = { FLAG = marauder_capital_3 } # marauder_3_1
+	}
+	if = { # megacorp (megastructures) usage_odds = 100
+		limit = { host_has_dlc = "Megacorp" } # No scripted trigger exists for checking this DLC
+		scluster_check_flag = { # megacorp_matter_decompressor_init_01
+			FLAG = ruined_matter_decompressor_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # megacorp_strategic_coordination_center_init_01
+			FLAG = ruined_strategic_coordination_center_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # megacorp_mega_art_installation_init_01
+			FLAG = ruined_mega_art_installation_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # megacorp_interstellar_assembly_init_01
+			FLAG = ruined_interstellar_assembly_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+	}
+	# misc
+	if = { # overlord_initializers
+		limit = { has_overlord_dlc = yes }
+		# salvager_enclave_init_02, salvager_enclave_init_03
+		# shroudwalker_enclave_init_02, shroudwalker_enclave_init_03
+		scluster_check_flag = { # spawn_chance = 33%, usage_odds = 150, broken_shroudwalker_init_01
+			FLAG = broken_shroudwalker_enclave
+			# TYPE = enclave
+			spawn_chance = 33
+		}
+		scluster_check_flag = { # quantum_catapult_init_01, usage_odds = 100
+			FLAG = ruined_catapult_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # orbital_ring_init_01, usage_odds = 100
+			FLAG = ruined_orbital_ring_system
+			# TYPE = megastructure # Not significant enough
+			scaled_spawn_chance = 8
+		}
+		# Imperial Fiefdom Origin systems
+	}
+	# TODO: pre_ftl_initializers.txt
+		# pre_ftl_init_01
+		# pre_ftl_init_sol # Sol System (Pre-FTL Humans)
+		scluster_check_flag = { # usage_odds = 2mil, sanctuary_system
+			FLAG = sanctuary_system
+			scaled_spawn_chance = 2
+		}
+		# pre_ftl_hive_init_01
+		# pre_ftl_deneb_system
+		# pre_ftl_shattered_ring
+	# prescripted_species_systems
+		scluster_check_flag = { FLAG = deneb_system } # deneb_system, une_deneb_system
+	# sol_initializers
+		scluster_check_flag = { FLAG = sol } # sol_system_initializer, toxic_knights_sol_start
+		# scluster_check_flag = { FLAG = com_sol } # com_sol_system
+		# scluster_check_flag = { FLAG = lost_colony_sol } # lost_colony_sol_system
+		# NAME_Barnards_Star # sol_neighbor_t1, com_sol_neighbor_t1, lost_colony_sol_neighbor_t1
+		# NAME_Alpha_Centauri # sol_neighbor_t1_first_colony, sol_neighbor_t1_no_guaranteed_colony, com_sol_neighbor_t1_first_colony, lost_colony_sol_neighbor_t1_first_colony
+		# NAME_Procyon # sol_neighbor_t2
+		# NAME_Sirius # sol_neighbor_t2_second_colony, sol_neighbor_t2_no_guaranteed_colony, com_sol_neighbor_t2_second_colony, lost_colony_sol_neighbor_t2_second_colony
+	# special_system_initializers (Uncapped)
+		# special_init_01, usage_odds = 2 # Black Holes
+		# Moved to pre_ftl_init_01 in 3.7: special_init_02, usage_odds = 1.5 # Primitive Civilizations
+		# special_init_08, usage_odds = 2 # Neutron Stars
+		# special_init_09, usage_odds = 2 # Pulsars
+	# special_system_initializers (Event)
+		# Moved to pre_ftl_init_sol in 3.7: special_init_03, primitive_sol # Sol System (Primitive Humans)
+		# special_init_04, nuked_sol # Sol System (Nuclear Wasteland)
+		# hyacinth_system (event)
+		# Obsolete: ai_system_1, ai_system # AI Revolt System
+	# special_system_initializers (Capped)
+		scluster_check_flag = { # Guardians of Zanaam, usage_odds = 2mil, special_init_06, hostile_system
+			FLAG = guardians_of_zanaam
+			scaled_spawn_chance = 3
+		}
+		# special_init_07, no flag, 5 # Crystal Lair
+		scluster_check_flag = { # usage_odds = 5, crystal_manufactory_system # Crystal Manufactory
+			FLAG = manufactory_system
+			spawn_chance = 25
+		}
+		# trappist_initializer, no flags, usage_odds = 2mil # Trappist System, scaled_spawn_chance = 10
+		# parvus_system, no flags, usage_odds = 2mil, scaled = 3
+		# polaris_civilization, arc site (non DLC), usage_odds = 2mil # Polaris
+		scluster_check_flag = { FLAG = fumongus_system } # fumongus_init_01, usage_odds = 200
+		if = { # ghost_ship_system_initializer_01, usage_odds = 10
+			limit = {
+				NOR = {
+					exists = event_target:hillos_asteroid
+					any_playable_country = { has_country_flag = met_ubume }
+				}
+			}
+			scluster_set_flag = { FLAG = ghost_ship_system_available }
+		}
+		# surveillance_supercomputer_system, usage_odds = 0
+		scluster_check_flag = { FLAG = lost_swarm_system } # usage_odds = 4, locust_system_initializer_01
+		scluster_check_flag = { FLAG = holibrae_system scaled_spawn_chance = 10 } # usage_odds = 4, Holibrae_initializer, has nebula, scaled_spawn_chance = 10
+		# scluster_check_flag = { FLAG = <DNE> scaled_spawn_chance = 10 } # debris_belt_initializer, usage_odds = 8
+	#
+		# scluster_check_flag = { FLAG = } #
+	if = { # toxoid_initializers: guardian_toxic_god_system
+		limit = {
+			has_toxoids = yes
+			NOR = {
+				has_global_flag = toxic_god_spawned
+				any_playable_country = { has_origin = origin_toxic_knights }
+			}
+		}
+		# toxic_knights_start
+		scluster_set_flag = { FLAG = guardian_toxic_god_system TYPE = guardian }
+	}
+	# unique (Systems from unique_system_initializers.txt don't have individual flags)
+	every_system = {
+		if = { # @unique_system_spawn_chance = 25
+			limit = { has_star_flag = unique_system }
+			if = { # Federation's End - Black Hole with habitats inhabited by primitives
+				limit = {
+					has_star_flag = primitive_system
+					is_star_class = sc_black_hole
+				}
+				set_star_flag = federations_end
+				# event_target:scluster_situation = {
+				# 	set_situation_flag = federations_end_has_spawned
+				# }
+			}
+			else_if = { # Fehnrax's Stand - Ancient Battlefield 1
+				limit = {
+					is_star_class = sc_a
+					any_system_ambient_object = { is_ambient_object_type = ancient_battlefield_02_object }
+				}
+				set_star_flag = fehraxs_stand
+				# unique_system_initializer_04
+			}
+			else_if = { # Zhanrox's Rest - Ancient Battlefield 2
+				limit = {
+					is_star_class = sc_f
+					any_system_ambient_object = { is_ambient_object_type = ancient_battlefield_02_object }
+				}
+				# These systems are unflagged and indistinguishable
+				set_star_flag = zhanroxs_rest
+				set_star_flag = afari
+				# unique_system_initializer_05
+			}
+			# else_if = { # Afari - Ancient Battlefield 3
+			# 	limit = {
+			# 		is_star_class = sc_f
+			# 		any_system_ambient_object = {
+			# 			is_ambient_object_type = ancient_battlefield_02_object
+			# 		}
+			# 	}
+			# 	# unique_system_initializer_05
+			# }
+			else_if = { # Tragula's Cross - Triple Planet 1
+				limit = { is_star_class = sc_k }
+				set_star_flag = tragulas_cross
+				# unique_system_initializer_07
+			}
+			else_if = { # Trin's Promise - Triple Planet 2
+				limit = { is_star_class = sc_m_giant }
+				set_star_flag = trins_promise
+				# unique_system_initializer_08
+				# No anomalies allowed
+			}
+			else_if = { # Loh - Triple Planet 3
+				limit = { is_star_class = sc_a }
+				set_star_flag = loh_system
+				# unique_system_initializer_09
+				# No anomalies allowed
+			}
+			else_if = {
+				limit = { is_star_class = sc_black_hole }
+				set_star_flag = btc_ruining_unique_systems
+			}
+		}
+		else_if = { # Great Wound (no flags, need to fingerprint)
+			limit = {
+				is_star_class = sc_black_hole
+				system_star = {
+					has_deposit = d_dark_matter_deposit_10
+					planet_size = 40
+				}
+				any_system_ambient_object = { is_ambient_object_type = space_storm_1 }
+				count_system_planet = {
+					count = 11
+					limit = {
+						is_planet_class = pc_black_hole
+						is_preventing_anomaly = yes
+					}
+				}
+			}
+			set_star_flag = great_wound_system
+			set_star_flag = hostile_system
+		}
+	}
+	# utopia_initializers (megastructures) usage_odds = 100
+		scluster_check_flag = { # dyson_sphere_init_01
+			FLAG = ruined_dyson_system
+			TYPE = megastructure
+			scaled_spawn_chance = 2
+		}
+		scluster_check_flag = { # science_nexus_init_01
+			FLAG = ruined_nexus_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # sentry_array_init_01 (doesn't actually much from within the nebula until fully upgraded)
+			FLAG = ruined_sentry_system
+			TYPE = megastructure
+			scaled_spawn_chance = 4
+		}
+		scluster_check_flag = { # ring_world_init_01
+			FLAG = ruined_ring_system
+			TYPE = megastructure
+			scaled_spawn_chance = 3
+		}
+	# unique systems have a 25% spawn chance
+	reroll_random = yes
+	random = { # federations_end
+		chance = @unique_system_spawn_chance
+		scluster_check_flag = { FLAG = federations_end }
+	}
+	if = {
+		limit = {
+			NOT = { has_star_flag = btc_ruining_unique_systems }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = fehraxs_stand }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = zhanroxs_rest }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = afari }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = tragulas_cross }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = trins_promise }
+		}
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance
+			scluster_check_flag = { FLAG = loh_system }
+		}
+	}
+
+	if = { # 2mil, polaris_civilization
+		limit = { NOT = { exists = event_target:polaris_civilization } }
+		reroll_random = yes
+		random = {
+			chance = 50 # scaled_spawn_chance = 5
+			set_star_flag = polaris_civilization_available
+		}
+	}
+	if = { # 8, debris_belt_initializer
+		limit = { NOT = { exists = event_target:debris_belt_system } }
+		# scaled_spawn_chance = 10 -> 100%
+		set_star_flag = debris_belt_system_available
+	}
+	if = { # 1, Hauer System
+		limit = {
+			has_ancrel = yes
+			NOT = { exists = event_target:hauer_system }
+		}
+		set_star_flag = hauer_system_available
+	}
+	if = { # 1, Larionessi Refuge (unique_system_initializer_02)
+		limit = { NOT = { exists = event_target:larion_system } }
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance # spawn_chance
+			set_star_flag = larion_system_available
+		}
+	}
+	if = { # 1, Zevox (unique_system_initializer_03)
+		limit = { NOT = { exists = event_target:zevox_system } }
+		reroll_random = yes
+		random = {
+			chance = @unique_system_spawn_chance # spawn_chance
+			set_star_flag = zevox_system_available
+		}
+	}
+	# Precursors
+	# scluster_check_flag = { FLAG = last_baol_system } # Not tagged precursor_system
+	# scluster_check_flag = { FLAG = Zrocursor }
+	# scluster_check_flag = { FLAG = vultaumar } # vultaumar_system
+	# scluster_check_flag = { FLAG = yuhtaan } # yuhtaan_system
+	# scluster_check_flag = { FLAG = fen_habbanis } # fen_habbanis_system
+	# scluster_check_flag = { FLAG = irass } # irass_system
+	# scluster_check_flag = { FLAG = cybrex } # cybrex_system
+
+	# Counters
+	# has_star_flag = lgate
+	# has_star_flag = abandoned_gateway
+	while = {
+		limit = {
+			check_variable = { which = scluster_megastructures value > event_target:global_event_country.scluster_megastructures_max }
+		}
+		log = "Available megastructure systems exceeds max, culling 1"
+		reroll_random = yes
+		random_list = {
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_catapult_system_available }
+				}
+				remove_star_flag = ruined_catapult_system_available
+				set_star_flag = ruined_catapult_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_dyson_system_available }
+				}
+				remove_star_flag = ruined_dyson_system_available
+				set_star_flag = ruined_dyson_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_nexus_system_available }
+				}
+				remove_star_flag = ruined_nexus_system_available
+				set_star_flag = ruined_nexus_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_sentry_system_available }
+				}
+				remove_star_flag = ruined_sentry_system_available
+				set_star_flag = ruined_sentry_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_ring_system_available }
+				}
+				remove_star_flag = ruined_ring_system_available
+				set_star_flag = ruined_ring_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_interstellar_assembly_system_available }
+				}
+				remove_star_flag = ruined_interstellar_assembly_system_available
+				set_star_flag = ruined_interstellar_assembly_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_mega_art_installation_system_available }
+				}
+				remove_star_flag = ruined_mega_art_installation_system_available
+				set_star_flag = ruined_mega_art_installation_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_strategic_coordination_center_system_available }
+				}
+				remove_star_flag = ruined_strategic_coordination_center_system_available
+				set_star_flag = ruined_strategic_coordination_center_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_matter_decompressor_system_available }
+				}
+				remove_star_flag = ruined_matter_decompressor_system_available
+				set_star_flag = ruined_matter_decompressor_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = ruined_mega_shipyard_system_available }
+				}
+				remove_star_flag = ruined_mega_shipyard_system_available
+				set_star_flag = ruined_mega_shipyard_system_culled
+				change_variable = { value = -1 which = scluster_megastructures }
+			}
+		}
+	}
+	while = {
+		limit = {
+			check_variable = { which = scluster_guardians value > event_target:global_event_country.scluster_guardians_max }
+		}
+		log = "Available guardian systems exceeds max, culling 1"
+		reroll_random = yes
+		random_list = {
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = scavenger_bot_system_available }
+				}
+				remove_star_flag = scavenger_bot_system_available
+				set_star_flag = scavenger_bot_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_stellarite_system_available }
+				}
+				remove_star_flag = guardians_stellarite_system_available
+				set_star_flag = guardians_stellarite_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_dragon_system_available }
+				}
+				remove_star_flag = guardians_dragon_system_available
+				set_star_flag = guardians_dragon_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_horror_system_available }
+				}
+				remove_star_flag = guardians_horror_system_available
+				set_star_flag = guardians_horror_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			# 1 = {
+			# 	modifier = {
+			#		factor = 0
+			#		NOT = { has_star_flag = guardians_hive_system_available }
+			#	}
+			# 	remove_star_flag = guardians_hive_system_available
+			#	set_star_flag = _culled
+			# 	change_variable = { value = -1 which = scluster_guardians }
+			# }
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_technosphere_system_available }
+				}
+				remove_star_flag = guardians_technosphere_system_available
+				set_star_flag = guardians_technosphere_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_fortress_system_available }
+				}
+				remove_star_flag = guardians_fortress_system_available
+				set_star_flag = guardians_fortress_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+			1 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = guardians_wraith_system_available }
+				}
+				remove_star_flag = guardians_wraith_system_available
+				set_star_flag = guardians_wraith_system_culled
+				change_variable = { value = -1 which = scluster_guardians }
+			}
+		}
+	}
+}
+### Other stuff:
+# has_global_flag = tiyanki_home_cleared
+### critter respan systems:
+	# has_star_flag = blue_system
+	# has_star_flag = blue2_system
+	# has_star_flag = green_system
+	# has_star_flag = green2_system
+	# has_star_flag = red_system
+	# has_star_flag = red2_system
+	# has_star_flag = elite_system
+	# has_star_flag = void_system
+	# has_star_flag = amoeba_1_system
+	# has_star_flag = amoeba_2_system
+	# has_star_flag = drone_system_1
+	# has_star_flag = drone_system_2
+# random_system_ambient_object = { destroy_ambient_object = this }
+# scluster_analyze_galaxy_2 = {
+	# # By global flag
+	# if = { # fumongus_system
+	# 	limit = { NOT = { has_global_flag = fumongus_spawned } }
+	# 	set_star_flag = fumongus_system_available
+	# }
+	# if = { # guardian_toxic_god_system
+	# 	limit = {
+	# 		has_toxoids = yes
+	# 		NOR = {
+	# 			has_global_flag = toxic_god_spawned
+	# 			any_playable_country = { has_origin = origin_toxic_knights }
+	# 		}
+	# 	}
+	# 	set_star_flag = guardian_toxic_god_system_available
+	# }
+	# # By global event target - possibly unreliable, if target is a planet that gets removed
+	# # By arc site
+	# # By star flag
+	# every_system = {
+	# 	switch = { trigger = has_star_flag
+	# 		# empire_home_system
+	# 		# empire_cluster
+	# 		hostile_system = {
+	# 			switch = { trigger = has_star_flag
+	# 				guardian = {
+	# 					switch = { trigger = has_star_flag
+	# 					# distant_stars_initializers.txt
+	# 						guardians_hatchling_system = {
+	# 							scluster_set_flag = { FLAG = guardians_hatchling_system }
+	# 						}
+	# 						scavenger_bot_system = {}
+	# 						elderly_tiyanki_system = {}
+	# 					# leviathans_system_initializers.txt
+	# 						guardians_stellarite_system = {}
+	# 						guardians_dragon_system = {}
+	# 						guardians_horror_system = {}
+	# 						guardians_dreadnought_system = {}
+	# 						guardians_hive_system = {}
+	# 						guardians_technosphere_system = {}
+	# 						guardians_fortress_system = {}
+	# 						guardians_wraith_system = {}
+	# 					# toxoid_initializers.txt
+	# 						guardian_toxic_god_system = {}
+	# 					}
+	# 				}
+	# 			# distant_stars_initializers.txt
+	# 				drone_system_4 = {} # max 2
+	# 				amoeba_4_system = {} # max 2
+	# 				void3_system = {}
+	# 				lgate = {} # max 9 + 1 lgate_guaranteed
+	# 			# federations_initializers.txt
+	# 				# planet_with_too_many_moons_system # Neighbors fe4_cluster
+	# 				# hostile_system_initializers.txt
+	# 				blue_system = {} # also shield_system
+	# 				blue2_system = {} # Uncapped
+	# 				green_system = {}
+	# 				green2_system = {} # Uncapped
+	# 				red_system = {} # Uncapped
+	# 				red2_system = {}
+	# 				crystal_home_system = {}
+	# 				void_system = {} # Uncapped
+	# 				amoeba_1_system = {} # Uncapped
+	# 				amoeba_2_system = {} # Uncapped
+	# 				drone_system_1 = {} # Uncapped
+	# 				drone_destroyer_system = {} # Uncapped
+	# 				drone_system_3 = {} # Uncapped
+	# 				drone_home_system = {} # spawn_chance = 100
+	# 				pirate_home_system = {}
+	# 				amoeba_home_system = {}
+	# 				drone_system_4 = {}
+	# 			# special_system_initializers.txt
+	# 				guardians_of_zanaam = {}
+	# 				special_init_07 = {} # UNFLAGGED (Crystal Lair)
+	# 				fumongus_system = {}
+	# 				holibrae_system = {}
+	# 				debris_belt_initializer = {} # UNFLAGGED
+	# 				surveillance_supercomputer_system = {} # usage_odds = 0
+	# 			#
+	# 			}
+	# 		}
+	# 	# ancient_relics_initializers.txt
+	# 		relic_system_1 = {}
+	# 		relic_system_4 = {}
+	# 		# Zrocursor = {} # precursor_system
+	# 		# last_baol_system = {} # Does NOT have precursor_system; event_target:the_last_baol_obj
+	# 		mechanocalibrator_system = {} # event_target:mechanocalibrator_planet
+	# 		# rubricator_system # By event; event_target:rubricator_system
+	# 	# apocalypse_initializers.txt
+	# 		abandoned_gateway = {} # max_instances = 15
+	# 	# (n/a) central_crystal_initializers.txt
+	# 		# central_crystal_flag = {}
+	# 	# (n/a) crisis_initializers.txt
+	# 		# AI_system_1
+	# 		# AI_system_2
+	# 		# AI_system_3
+	# 		# AI_system_4
+	# 		# AI_lair
+	# 		# cybrex_beta
+	# 		# sentinel_system
+	# 	# distant_stars_initializers.txt
+	# 		star_lifting_system = {}
+	# 		# vechtar_zavonia_system = {} # usage_odds = 0
+	# 		big_rip_system = {}
+	# 		time_loop_world_system = {}
+	# 		toxic_moon_system = {}
+	# 		shattered_world_system = {}
+	# 		asteroid_system = {}
+	# 		ice_system = {}
+	# 		high_energy_system = {}
+	# 		# great_wound_system = {} # NOT FLAGGED
+	# 		primitive_robot_system = {}
+	# 		superflare_system = {}
+	# 		collapse_system = {}
+	# 		old_foes_system = {}
+	# 		living_planet_system = {}
+	# 		# ruined_empire = {
+	# 		# 	ratling_system = {
+	# 		# 		ratling_home_system
+	# 		# 		default
+	# 		# 	}
+	# 		# }
+	# 		crystal_system = {} # max 2
+	# 		# sealed_entry_system
+	# 		# sealed_system
+	# 		escape_pod_system = {}
+	# 		phaseshift_system = {}
+	# 		# solar_system_initializers\federations_initializers.txt
+	# 		# hauer_system # UNFLAGGED
+	# 		# shattered_ring_system
+	# 		ruined_mega_shipyard_system = {}
+	# 		wenkwort_system = {}
+	# 	# hostile_system_initializers.txt
+	# 		tiyanki_home_system = {} # Uncapped
+	# 		tiyanki_spawn_system = {}
+	# 		tiyanki_graveyard_system = {}
+	# 	# leviathans_system_initializers.txt
+	# 		# guardians_artists_system = {}  # max 1 x3
+	# 		# guardians_curators_system = {} # max 1 x3 (1 sc_black_hole, 1 sc_pulsar)
+	# 		# guardians_traders_system = {}  # max 1 x3
+	# 	# megacorp_intializers.txt
+	# 		# caravaneer_home = {}
+	# 		ruined_matter_decompressor_system = {}
+	# 		ruined_strategic_coordination_center_system = {}
+	# 		ruined_mega_art_installation_system = {}
+	# 		ruined_interstellar_assembly_system = {}
+	# 	# overlord_initializers.txt
+	# 		# salvager_enclave_system = {}  # max 1 x3
+	# 		# shroudwalker_enclave_system = {} # max 1 x3
+	# 		broken_shroudwalker_enclave = {} # spawn_chance = 33
+	# 		ruined_catapult_system = {}
+	# 		ruined_orbital_ring_system = {}
+	# 	# prescripted_species_systems.txt
+	# 		deneb_system = {}
+	# 		vultaumar = {}
+	# 		yuhtaan = {}
+	# 		fen_habbanis = {}
+	# 		irass = {}
+	# 		cybrex = {}
+	# 	# sol_initializers.txt
+	# 		sol = {} # sol_system not used by pre_ftl_init_sol/04
+	# 		Barnards_Star = {} # UNFLAGGED (not even neighbor_t1)
+	# 		Alpha_Centauri = {} # No unique flag
+	# 		Procyon = {} # UNFLAGGED (not even neighbor_t2)
+	# 		Sirius = {} # No unique flag
+	# 		com_barnards_star = {}
+	# 		lost_colony_barnards_star = {}
+	# 	# special_system_initializers.txt
+	# 		primitive_system = {} # Uncapped
+	# 		sanctuary_system = {}
+	# 		# hyacinth_system = {} # event
+	# 		# ai_system = {} # AI Revolt System (unused)
+	# 		manufactory_system = {} # spawn_chance = 25
+	# 		trappist_initializer = {} # UNFLAGGED
+	# 		parvus_system = {} # UNFLAGGED
+	# 		polaris_civilization = {} # UNFLAGGED
+	# 		ghost_ship_system_initializer_01 = {} # UNFLAGGED
+	# 		lost_swarm_system = {}
+	# 	# unique_system_initializers.txt
+	# 		unique_system = { # All UNFLAGGED
+	# 			# unique_system_initializer_01
+	# 			# unique_system_initializer_02
+	# 			# unique_system_initializer_03
+	# 			# unique_system_initializer_04
+	# 			# unique_system_initializer_05
+	# 			# unique_system_initializer_06
+	# 			# unique_system_initializer_07
+	# 			# unique_system_initializer_08
+	# 			# unique_system_initializer_09
+	# 		}
+	# 	# utopia_initializers.txt
+	# 		ruined_dyson_system = {}
+	# 		ruined_nexus_system = {}
+	# 		ruined_sentry_system = {}
+	# 		ruined_ring_system = {}
+	# 	}
+	# }
+# }
+
+# scluster_spawn_next_system = { INITIALIZER = scluster_solar_system_initializer }
+scluster_spawn_next_system = {
+	# log = "Spawning next scluster system using \\$INITIALIZER$!"
+	# last created system remove flag
+	event_target:scluster_0 = {
+	# Inner ring
+		if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 1 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_01$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 15
+				max_orientation_angle = 45
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_1
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_1
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_1 } }
+				# log_error = "Failed to spawn scluster_1 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_01
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 15
+					max_orientation_angle = 45
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_1
+						set_star_flag = scluster_inner_ring
+					}
+				}
+			}
+			# last_created_system = {
+			# 	set_star_flag = scluster_1
+			# 	set_star_flag = scluster_inner_ring
+			# }
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 2 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_02$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 75
+				max_orientation_angle = 105
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_2
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_2
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_2 } }
+				# log_error = "Failed to spawn scluster_2 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_02
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 75
+					max_orientation_angle = 105
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_2
+						set_star_flag = scluster_inner_ring
+						save_global_event_target_as = scluster_2
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 3 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_03$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 135
+				max_orientation_angle = 165
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_3
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_3
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_3 } }
+				# log_error = "Failed to spawn scluster_3 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_03
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 135
+					max_orientation_angle = 165
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_3
+						set_star_flag = scluster_inner_ring
+						save_global_event_target_as = scluster_3
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 4 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_04$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 195
+				max_orientation_angle = 225
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_4
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_4
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_4 } }
+				# log_error = "Failed to spawn scluster_4 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_04
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 195
+					max_orientation_angle = 225
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_4
+						set_star_flag = scluster_inner_ring
+						save_global_event_target_as = scluster_inner_ring_4
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 5 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_05$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 255
+				max_orientation_angle = 285
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_5
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_5
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_5 } }
+				# log_error = "Failed to spawn scluster_5 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_05
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 255
+					max_orientation_angle = 285
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_5
+						set_star_flag = scluster_inner_ring
+						save_global_event_target_as = scluster_5
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 6 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_06$
+				min_distance >= @scluster_inner_radius
+				max_distance <= @scluster_middle_radius
+				min_orientation_angle = 315
+				max_orientation_angle = 345
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_6
+					set_star_flag = scluster_inner_ring
+					save_global_event_target_as = scluster_6
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_6 } }
+				# log_error = "Failed to spawn scluster_6 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_06
+					min_distance >= @scluster_inner_radius
+					max_distance <= @scluster_middle_radius
+					min_orientation_angle = 315
+					max_orientation_angle = 345
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_6
+						set_star_flag = scluster_inner_ring
+						save_global_event_target_as = scluster_6
+					}
+				}
+			}
+		}
+	# Middle ring: wormholes, can't be guardian systems
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 7 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_01$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 10
+				max_orientation_angle = 50
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_7
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_7
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_7 } }
+				# log_error = "Failed to spawn scluster_7 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_01
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 10
+					max_orientation_angle = 50
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_7
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_7
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 8 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_02$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 70
+				max_orientation_angle = 110
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_8
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_8
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_8 } }
+				# log_error = "Failed to spawn scluster_8 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_02
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 70
+					max_orientation_angle = 110
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_8
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_8
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 9 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_03$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 130
+				max_orientation_angle = 170
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+					set_star_flag = scluster_9
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_9
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_9 } }
+				# log_error = "Failed to spawn scluster_9 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_03
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 130
+					max_orientation_angle = 170
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_9
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_9
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 10 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_04$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 190
+				max_orientation_angle = 230
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_10
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_10
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_10 } }
+				# log_error = "Failed to spawn scluster_10 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_04
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 190
+					max_orientation_angle = 230
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_10
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_10
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 11 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_05$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 250
+				max_orientation_angle = 290
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_11
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_11
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_11 } }
+				# log_error = "Failed to spawn scluster_11 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_05
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 250
+					max_orientation_angle = 290
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_11
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_11
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 12 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_06$
+				min_distance >= @scluster_middle_radius
+				max_distance <= @scluster_outer_radius
+				min_orientation_angle = 310
+				max_orientation_angle = 350
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_12
+					set_star_flag = scluster_terminal
+					save_global_event_target_as = scluster_12
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_12 } }
+				# log_error = "Failed to spawn scluster_12 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_06
+					min_distance >= @scluster_middle_radius
+					max_distance <= @scluster_outer_radius
+					min_orientation_angle = 310
+					max_orientation_angle = 350
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_12
+						set_star_flag = scluster_terminal
+						save_global_event_target_as = scluster_12
+					}
+				}
+			}
+		}
+	# Outer ring
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 13 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_01$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 5
+				max_orientation_angle = 55
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_13
+					save_global_event_target_as = scluster_13
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_13 } }
+				# log_error = "Failed to spawn scluster_13 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_01
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 5
+					max_orientation_angle = 55
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_13
+						save_global_event_target_as = scluster_13
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 14 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_02$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 65
+				max_orientation_angle = 115
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_14
+					save_global_event_target_as = scluster_14
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_14 } }
+				# log_error = "Failed to spawn scluster_14 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_02
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 65
+					max_orientation_angle = 115
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_14
+						save_global_event_target_as = scluster_14
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 15 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_03$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 125
+				max_orientation_angle = 175
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_15
+					save_global_event_target_as = scluster_15
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_15 } }
+				# log_error = "Failed to spawn scluster_15 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_03
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 125
+					max_orientation_angle = 175
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_15
+						save_global_event_target_as = scluster_15
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 16 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_04$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 185
+				max_orientation_angle = 235
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_16
+					save_global_event_target_as = scluster_16
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_16 } }
+				# log_error = "Failed to spawn scluster_16 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_04
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 185
+					max_orientation_angle = 235
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_16
+						save_global_event_target_as = scluster_16
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 17 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_05$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 245
+				max_orientation_angle = 295
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_17
+					save_global_event_target_as = scluster_17
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_17 } }
+				# log_error = "Failed to spawn scluster_17 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_05
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 245
+					max_orientation_angle = 295
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_17
+						save_global_event_target_as = scluster_17
+					}
+				}
+			}
+		}
+		else_if = {
+			limit = {
+				check_variable = { which = scluster_system_counter value = 18 }
+			}
+			spawn_system = {
+				initializer = $INITIALIZER|basic_init_06$
+				min_distance >= @scluster_outer_radius
+				max_distance <= @scluster_max_radius
+				min_orientation_angle = 305
+				max_orientation_angle = 355
+				hyperlane = yes
+				is_discovered = no
+				effect = {
+					set_star_flag = scluster_18
+					save_global_event_target_as = scluster_18
+				}
+			}
+			if = {
+				limit = { NOT = { exists = event_target:scluster_18 } }
+				# log_error = "Failed to spawn scluster_18 from \\$INITIALIZER$! Using scluster_test_system instead."
+				spawn_system = {
+					initializer = basic_init_06
+					min_distance >= @scluster_outer_radius
+					max_distance <= @scluster_max_radius
+					min_orientation_angle = 305
+					max_orientation_angle = 355
+					hyperlane = yes
+					is_discovered = no
+					effect = {
+						set_star_flag = scluster_failed_to_spawn_$INITIALIZER$
+						set_star_flag = scluster_18
+						save_global_event_target_as = scluster_18
+					}
+				}
+			}
+		}
+	###
+		else = { log_error = "scluster_counter isn't an integer between 0 and 19" }
+		# last created system has flag? if not, try again with default initializer
+		# if = {
+		# 	limit = { last_created_system = { has_star_flag = $FLAG$ } }
+		# 	set_situation_flag = $FLAG$_has_spawned
+		# }
+		# else = {
+		# 	scluster_spawn_next_system = yes
+		# }
+
+		last_created_system = {
+			set_star_flag = scluster
+			log = "Spawned the \\[This.GetName] scluster system."
+			# track distance from eye, if necessary
+			export_trigger_value_to_variable = {
+				trigger = distance
+				parameters = {
+					source = event_target:scluster_0
+					type = euclidean
+				}
+				variable = distance_from_eye
+			}
+			# effect event_target:scluster_0 = { every_neighbor_system_euclidean = { export_trigger_value_to_variable = { trigger = distance parameters = { source = event_target:scluster_0 type = euclidean } variable = distance_from_eye } } }
+
+			# Ring-specific effects
+			# if = {
+			# 	limit = {
+			# 		check_variable = {
+			# 			which = scluster_system_counter
+			# 			value <= 6
+			# 		}
+			# 	}
+			# 	set_star_flag = scluster_inner
+			# }
+			# else_if = {
+			# 	limit = {
+			# 		check_variable = {
+			# 			which = scluster_system_counter
+			# 			value <= 12
+			# 		}
+			# 	}
+			# 	set_star_flag = scluster_middle
+			# 	set_star_flag = scluster_terminal
+			# }
+			# else_if = {
+			# 	limit = {
+			# 		check_variable = {
+			# 			which = scluster_system_counter
+			# 			value <= 18
+			# 		}
+			# 	}
+			# 	set_star_flag = scluster_outer
+			# }
+			# else log error
+		}
+	}
+	# Could use num_pops in eye a a swich trigger, instead of if/else chain
+}
+
+# Pick a random initializer, then use it to spawn the next scluster system
+scluster_spawn_system_effect = {
+	event_target:scluster_0 = {
+		reroll_random = yes
+		random_list = {
+		### Unlimited
+			# 1 = { scluster_spawn_next_system = { INITIALIZER = scluster_test_system } }
+			4 = {	# Cloud Entity
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_08 }
+				log = "Next Storm Cluster initializer: hostile_init_08"
+			}
+			4 = {	# Tiyanki
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_15 }
+				log = "Next Storm Cluster initializer: hostile_init_15"
+			}
+		### Limited
+		# apocalypse_initializers
+			# abandoned_gateways_01 # Max 15, scaled_spawn_chance = 5, scaled_spawn_settings = num_gateways
+		### Max 1
+			40 = {	# sol ()
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = sol_available }
+				}
+				log = "Next Storm Cluster initializer: pre_ftl_init_sol (sol)"
+				scluster_spawn_next_system = { INITIALIZER = scluster_pre_ftl_init_sol }
+				remove_star_flag = sol_available
+				last_created_system = { scluster_generate_home_system_resources = yes }
+			}
+			10 = {	# sol ()
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = sol_available }
+				}
+				log = "Next Storm Cluster initializer: special_init_04 (sol)"
+				scluster_spawn_next_system = { INITIALIZER = scluster_special_init_04 }
+				remove_star_flag = sol_available
+				last_created_system = { scluster_generate_home_system_resources = yes }
+			}
+		# ancient_relics_initializers
+			4 = {	# ANR relic_system_1 (minigalaxy_planet), base = 4
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_ancrel = yes
+					# 	has_star_flag = relic_system_1_available
+					# }
+					OR = {
+						has_ancrel = no
+						NOT = { has_star_flag = relic_system_1_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: relic_system_1"
+				scluster_spawn_next_system = { INITIALIZER = scluster_relic_system_1 }
+				remove_star_flag = relic_system_1_available
+			}
+			4 = {	# ANR relic_system_4 (omnicodex_planet)
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_ancrel = yes
+					# 	has_star_flag = relic_system_4_available
+					# }
+					OR = {
+						has_ancrel = no
+						NOT = { has_star_flag = relic_system_4_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: relic_system_4"
+				scluster_spawn_next_system = { INITIALIZER = scluster_relic_system_4 }
+				remove_star_flag = relic_system_4_available
+			}
+			1 = {	# ANR 90k mechanocalibrator_system (scaled_spawn_chance = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_ancrel = yes
+					# 	has_star_flag = mechanocalibrator_system_available
+					# }
+					OR = {
+						has_ancrel = no
+						NOT = { has_star_flag = mechanocalibrator_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: mechanocalibrator_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_mechanocalibrator_system }
+				remove_star_flag = mechanocalibrator_system_available
+			}
+			# rubricator_system spawned by anomaly
+		# distant_stars_initializers
+			1 = {	# Star Lifting System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = star_lifting_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: star_lifting_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_star_lifting_system }
+				remove_star_flag = star_lifting_system_available
+			}
+			# vechtar_zavonia_system (usage_odds = 0)
+			1 = {	# ABANDONED OBSERVATION OUTPOST (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = big_rip_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: big_rip_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_big_rip_system }
+				remove_star_flag = big_rip_system_available
+			}
+			1 = {	# time_loop_world_system (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = time_loop_world_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: time_loop_world_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_time_loop_world_system }
+				remove_star_flag = time_loop_world_system_available
+			}
+			1 = {	# Toxic Planet with Toxic Moon (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = toxic_moon_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: toxic_planet_toxic_moon"
+				scluster_spawn_next_system = { INITIALIZER = scluster_toxic_planet_toxic_moon }
+				remove_star_flag = toxic_moon_system_available
+			}
+			4 = {	# DST shattered_world_system (usage = 4, scaled = 8)
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = shattered_world_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: shattered_world_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_shattered_world_system }
+				remove_star_flag = shattered_world_system_available
+			}
+			4 = {	# DST asteroid_system (usage = 4, scaled = 8)
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = asteroid_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: asteroid_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_asteroid_system }
+				remove_star_flag = asteroid_system_available
+			}
+			4 = {	# DST Big Mining Drones Fleet, drone_system_4 (max 2)
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = drone_system_4_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: hostile_init_22"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_22 }
+				remove_star_flag = drone_system_4_available
+			}
+			4 = {	# DST Space Amoeba, Large pack; amoeba_4_system (max 2)
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = amoeba_4_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: hostile_init_amoeba"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_amoeba }
+				remove_star_flag = amoeba_4_system_available
+			}
+			4 = {	# DST Void Cloud System void3_system (usage_odds = 4)
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = void3_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: hostile_init_void_cloud"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_void_cloud }
+				remove_star_flag = void3_system_available
+			}
+			1 = {	# DST ice_system (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = ice_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: ice_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_ice_system }
+				remove_star_flag = ice_system_available
+			}
+			1 = {	# DST high_energy_system (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = high_energy_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: high_energy_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_high_energy_system }
+				remove_star_flag = high_energy_system_available
+			}
+			1 = {	#free Great Wound - Void Cloud Home System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = great_wound_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: great_wound_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_great_wound_system }
+				remove_star_flag = great_wound_system_available
+			}
+			1 = {	# Primitive Robot Civilization (Rage Virus Chain) (usage = 9k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k } # 9k is likely a typo
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = primitive_robot_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: primitive_robot_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_primitive_robot_system }
+				remove_star_flag = primitive_robot_system_available
+			}
+			1 = {	# DST Superflare Star System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = superflare_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: superflare_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_superflare_system }
+				remove_star_flag = superflare_system_available
+			}
+			1 = {	# DST Vacuum Collapse System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = collapse_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: collapse_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_collapse_system }
+				remove_star_flag = collapse_system_available
+			}
+			1 = {	# DST Old Foes System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = old_foes_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: old_foes_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_old_foes_system }
+				remove_star_flag = old_foes_system_available
+			}
+			1 = {	# DST Sea of Consciousness System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = living_planet_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: living_planet_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_living_planet_system }
+				remove_star_flag = living_planet_system_available
+			}
+			10 = {	# DST crystal_system (max 2, note: rare crystals, not crystal entities)
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_distar = yes # Comment says it's a free feature, but it can't spawn without dstar
+					# 	has_star_flag = crystal_system_available
+					# }
+					OR = {
+						has_distar = no # Labeled "Free Feature" but still requires DLC
+						NOT = { has_star_flag = crystal_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: distar_crystal_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_distar_crystal_system }
+				remove_star_flag = crystal_system_available
+			}
+			# DST Sealed System Entry Point
+			# DST Sealed System
+			1 = {	# DST The Caretaker System (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = escape_pod_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: distar_pod_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_distar_pod_system }
+				remove_star_flag = escape_pod_system_available
+			}
+			1 = {	# DST phaseshift_system (usage = 90k, scaled = 8)
+				modifier = { factor = @usage_odds_factor_90k }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = phaseshift_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: distar_phaseshift_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_distar_phaseshift_system }
+				remove_star_flag = phaseshift_system_available
+			}
+			# DST L-Gate System (max 9, scaled = 10)
+			# DST Guaranteed L-Gate spawn (spawn_chance = 100)
+		#
+		# empire_initializers
+			# random_empire_init_01
+			# random_empire_init_02
+			# random_empire_init_03
+			# random_empire_init_04
+			# random_empire_init_05
+			# random_empire_init_06
+		# federations_initializers
+			1 = { # FED hauer_system (usage = 1)
+				modifier = {
+					factor = 0
+					# Not DLC locked
+					NOT = { has_star_flag = hauer_system_available }
+				}
+				log = "Next Storm Cluster initializer: hauer_system_initializer"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hauer_system_initializer }
+				remove_star_flag = hauer_system_available
+			}
+			# void_dweller_system (usage = origin)
+			# scion_fallen_1
+			# scion_fallen_2
+			1 = {	# FED shattered_ring_system (usage = origin)
+				modifier = { factor = @usage_origin_factor }
+				modifier = {
+					factor = 0
+					OR = {
+						has_federations_dlc = no
+						NOT = { has_star_flag = scluster_shattered_ring_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: scluster_shattered_ring_start"
+				scluster_spawn_next_system = { INITIALIZER = scluster_shattered_ring_start }
+				remove_star_flag = scluster_shattered_ring_system_available
+			}
+			100 = { # FED ruined_mega_shipyard_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_federations_dlc = yes
+					# 	has_star_flag = ruined_mega_shipyard_system_available
+					# }
+					OR = {
+						has_federations_dlc = no
+						NOT = { has_star_flag = ruined_mega_shipyard_system_available }
+						# has_situation_flag = ruined_mega_shipyard_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: mega_shipyard_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_mega_shipyard_init_01 }
+				remove_star_flag = ruined_mega_shipyard_system_available
+				# set_situation_flag = ruined_mega_shipyard_system_has_spawned
+			}
+			# 200 = planet_with_too_many_moons_system # Requires neighboring xenophobe FE
+			1 = {	# FED wenkwort_system (usage = 1)
+				modifier = {
+					factor = 0
+					# Not DLC locked
+					NOT = { has_star_flag = wenkwort_system_available }
+					# has_situation_flag = wenkwort_system_has_spawned
+				}
+				log = "Next Storm Cluster initializer: wenkwort_initializer"
+				scluster_spawn_next_system = { INITIALIZER = scluster_wenkwort_initializer }
+				remove_star_flag = wenkwort_system_available
+				# set_situation_flag = wenkwort_system_has_spawned
+			}
+			# sol_system_void_dweller_system
+		# hostile_system_initializers
+			4 = {	# Crystal Entities - Blue
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = blue_system_available }
+				}
+				log = "Next Storm Cluster initializer: hostile_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_01 }
+				remove_star_flag = blue_system_available
+			}
+			1 = {	# Crystal Entities - Green (Patrol)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = green_system_available }
+				}
+				log = "Next Storm Cluster initializer: hostile_init_03"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_03 }
+				remove_star_flag = green_system_available
+			}
+			2 = {	# Crystal Entities - Red VARIATION
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = red2_system_available }
+				}
+				log = "Next Storm Cluster initializer: hostile_init_06"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_06 }
+				remove_star_flag = red2_system_available
+			}
+			# Crystal base, hostile_init_07 (usage = 10, spawn = 100%)
+			# 5000 = { # Amoeba Home System (usage = 5000)
+			# 	modifier = {
+			# 		factor = 0
+			# 		NOT = { has_star_flag = amoeba_home_system_available }
+			# 	}
+			# 	log = "Next Storm Cluster initializer: hostile_init_20"
+			# 	scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_20 }
+			# 	remove_star_flag = amoeba_home_system_available
+			# }
+			#	# Tiyanki graveyard, hostile_init_21 (usage = 90k)
+			20 = {	# Klendath (drones), hostile_init_22 (usage = 20)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = drone_system_4_available }
+				}
+				log = "Next Storm Cluster initializer: hostile_init_22"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_22 }
+				remove_star_flag = drone_system_4_available
+			}
+			100 = { #!APC Privateer Conglomerate pirate_home_system
+				# Normally bocked by Apocalypse DLC
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = pirate_home_system_available }
+					# has_situation_flag = pirate_home_system_has_spawned
+				}
+				log = "Next Storm Cluster initializer: hostile_init_18"
+				scluster_spawn_next_system = { INITIALIZER = scluster_hostile_init_18 }
+				remove_star_flag = pirate_home_system_available
+				# set_situation_flag = pirate_home_system_has_spawned
+			}
+		# Leviathans (Enclaves, usage = 100)
+			100 = { # LEV/DST guardians_artist_init_01/02/03
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_artists_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: scluster_guardians_artist_init"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_artist_init }
+				remove_star_flag = guardians_artists_system_available
+			}
+			# LEV guardians_artist_init_02
+			# LEV guardians_artist_init_03
+			# LEV guardians_curator_init_01 (rl_standard_stars)
+			# LEV guardians_curator_init_02 (sc_black_hole)
+			# LEV guardians_curator_init_03 (sc_pulsar)
+			100 = { # LEV guardians_trader_init_01
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = xuracorp_enclave_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_trader_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_trader_init_01 }
+				remove_star_flag = xuracorp_enclave_system_available
+			}
+			100 = { # LEV guardians_trader_init_02
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = riggan_enclave_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_trader_init_02"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_trader_init_02 }
+				remove_star_flag = riggan_enclave_system_available
+			}
+			100 = { # LEV guardians_trader_init_03
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = muutagan_enclave_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_trader_init_03"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_trader_init_03 }
+				remove_star_flag = muutagan_enclave_system_available
+			}
+		# Leviathans (Guardians, usage = 100)
+			100 = { # LEV guardians_stellarite_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_leviathans = yes
+					# 	has_star_flag = guardians_stellarite_system_available
+					# 	OR = { # No guardians in the middle ring.
+					# 		check_variable = { which = scluster_system_counter value <= 6 }
+					# 		check_variable = { which = scluster_system_counter value >= 13 }
+					# 	}
+					# }
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_stellarite_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_stellarites"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_stellarites }
+				remove_star_flag = guardians_stellarite_system_available
+			}
+			100 = { # LEV guardians_dragon_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_leviathans = yes
+					# 	has_star_flag = guardians_dragon_system_available
+					# 	OR = { # No guardians in the middle ring.
+					# 		check_variable = { which = scluster_system_counter value <= 6 }
+					# 		check_variable = { which = scluster_system_counter value >= 13 }
+					# 	}
+					# }
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_dragon_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_dragon"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_dragon }
+				remove_star_flag = guardians_dragon_system_available
+			}
+			100 = { # LEV guardians_horror_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_leviathans = yes
+					# 	has_star_flag = guardians_horror_system_available
+					# 	OR = { # No guardians in the middle ring.
+					# 		check_variable = { which = scluster_system_counter value <= 6 }
+					# 		check_variable = { which = scluster_system_counter value >= 13 }
+					# 	}
+					# }
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_horror_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_horror"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_horror }
+				remove_star_flag = guardians_horror_system_available
+			}
+			100 = { # LEV guardians_dreadnought_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_leviathans = yes
+					# 	has_star_flag = guardians_dreadnought_system_available
+					# 	OR = { # No guardians in the middle ring.
+					# 		check_variable = { which = scluster_system_counter value <= 6 }
+					# 		check_variable = { which = scluster_system_counter value >= 13 }
+					# 	}
+					# }
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_dreadnought_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_dreadnought"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_dreadnought }
+				remove_star_flag = guardians_dreadnought_system_available
+			}
+			100 = { # LEV guardians_hive_system
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_hive_system_available }
+						# Allowed in middle ring because they aren't immediately hostile.
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_hive"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_hive }
+				remove_star_flag = guardians_hive_system_available
+			}
+			100 = { # LEV guardians_technosphere_system
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_technosphere_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_technosphere"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_technosphere }
+				remove_star_flag = guardians_technosphere_system_available
+			}
+			100 = { # LEV guardians_fortress_system
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_fortress_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_fortress"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_fortress }
+				remove_star_flag = guardians_fortress_system_available
+			}
+			100 = { # LEV guardians_wraith_system
+				modifier = {
+					factor = 0
+					OR = {
+						has_leviathans = no
+						NOT = { has_star_flag = guardians_wraith_system_available }
+						AND = { # No guardians in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_init_wraith"
+				scluster_spawn_next_system = { INITIALIZER = scluster_guardians_init_wraith }
+				remove_star_flag = guardians_wraith_system_available
+			}
+		# MegaCorp (Ruined megastructures, usage = 100)
+			100 = { # MGC ruined_matter_decompressor_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_megacorp = yes
+					# 	has_star_flag = ruined_matter_decompressor_system_available
+					# }
+					OR = {
+						has_megacorp = no
+						NOT = { has_star_flag = ruined_matter_decompressor_system_available }
+						# has_situation_flag = ruined_matter_decompressor_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: megacorp_matter_decompressor_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_megacorp_matter_decompressor_init_01 }
+				remove_star_flag = ruined_matter_decompressor_system_available
+				# set_situation_flag = ruined_matter_decompressor_system_has_spawned
+			}
+			100 = { # MGC ruined_strategic_coordination_center_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_megacorp = yes
+					# 	has_star_flag = ruined_strategic_coordination_center_system_available
+					# }
+					OR = {
+						has_megacorp = no
+						NOT = { has_star_flag = ruined_strategic_coordination_center_system_available }
+						# has_situation_flag = ruined_strategic_coordination_center_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: megacorp_strategic_coordination_center_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_megacorp_strategic_coordination_center_init_01 }
+				remove_star_flag = ruined_strategic_coordination_center_system_available
+				# set_situation_flag = ruined_strategic_coordination_center_system_has_spawned
+			}
+			100 = { # MGC ruined_mega_art_installation_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_megacorp = yes
+					# 	has_star_flag = ruined_mega_art_installation_system_available
+					# }
+					OR = {
+						has_megacorp = no
+						NOT = { has_star_flag = ruined_mega_art_installation_system_available }
+						# has_situation_flag = ruined_mega_art_installation_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: megacorp_mega_art_installation_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_megacorp_mega_art_installation_init_01 }
+				remove_star_flag = ruined_mega_art_installation_system_available
+				# set_situation_flag = ruined_mega_art_installation_system_has_spawned
+			}
+			100 = { # MGC ruined_interstellar_assembly_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_megacorp = yes
+					# 	has_star_flag = ruined_interstellar_assembly_system_available
+					# }
+					OR = {
+						has_megacorp = no
+						NOT = { has_star_flag = ruined_interstellar_assembly_system_available }
+						# has_situation_flag = ruined_interstellar_assembly_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: megacorp_interstellar_assembly_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_megacorp_interstellar_assembly_init_01 }
+				remove_star_flag = ruined_interstellar_assembly_system_available
+				# set_situation_flag = ruined_interstellar_assembly_system_has_spawned
+			}
+		# Overlord
+			150 = {	# Broken Shroudwalker System (usage = 150, spawn_chance = 33%)
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_overlord_dlc = yes
+					# 	has_star_flag = broken_shroudwalker_enclave_available
+					# }
+					OR = {
+						has_overlord_dlc = no
+						NOT = { has_star_flag = broken_shroudwalker_enclave_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: broken_shroudwalker_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_broken_shroudwalker_init_01 }
+				remove_star_flag = broken_shroudwalker_enclave_available
+			}
+			100 = {	# Ruined Quantum Catapult
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_overlord_dlc = yes
+					# 	has_star_flag = ruined_catapult_system_available
+					# }
+					OR = {
+						has_overlord_dlc = no
+						NOT = { has_star_flag = ruined_catapult_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: quantum_catapult_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_quantum_catapult_init_01 }
+				remove_star_flag = ruined_catapult_system_available
+			}
+			100 = {	# Ruined Orbital Ring
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_overlord_dlc = yes
+					# 	has_star_flag = ruined_orbital_ring_system_available
+					# }
+					OR = {
+						has_overlord_dlc = no
+						NOT = { has_star_flag = ruined_orbital_ring_system_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: orbital_ring_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_orbital_ring_init_01 }
+				remove_star_flag = ruined_orbital_ring_system_available
+			}
+		# Special systems
+			# special_init_05 # Stone Age Primitives (deleted initializer)
+			1 = {	# Guardians of Zanaam (usage = 2000000, scaled = 3)
+				modifier = { factor = @usage_odds_factor_2mil }
+				modifier = {
+					factor = 0
+					OR = {
+						NOT = { has_star_flag = guardians_of_zanaam_available }
+						AND = { # No hostile systems in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: guardians_of_zanaam"
+				scluster_spawn_next_system = { INITIALIZER = scluster_special_init_06 }
+				remove_star_flag = guardians_of_zanaam_available
+			}
+			5 = {	# special_init_07, no flag, (usage = 5) # Crystal Lair
+				modifier = {
+					factor = 0
+					OR = {
+						NOT = { has_star_flag = special_init_07_available }
+						AND = { # No hostile systems in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: special_init_07"
+				scluster_spawn_next_system = { INITIALIZER = scluster_special_init_07 }
+				remove_star_flag = special_init_07_available
+			}
+			1 = {	# The Sanctuary (usage = 2000000, scaled = 2)
+				modifier = { factor = @usage_odds_factor_2mil }
+				modifier = {
+					factor = 0
+					OR = {
+						NOT = { has_star_flag = sanctuary_system_available }
+						AND = { # No hostile systems in the middle ring.
+							check_variable = { which = scluster_system_counter value > 6 }
+							check_variable = { which = scluster_system_counter value < 13 }
+						}
+					}
+				}
+				log = "Next Storm Cluster initializer: sanctuary_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_sanctuary_system }
+				remove_star_flag = sanctuary_system_available
+			}
+			# hyacinth_system (event)
+			# ai_system_1 # AI Revolt System (removed event)
+			5 = {	# Crystal Manufactory (usage = 5, spawn = 25%)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = manufactory_system_available }
+				}
+				log = "Next Storm Cluster initializer: crystal_manufactory_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_crystal_manufactory_system }
+				remove_star_flag = manufactory_system_available
+			}
+			# space_nomads_01 (deleted initializer)
+			1 = {	# Trappist - no flags (usage = 2mil, scaled = 10)
+				modifier = { factor = @usage_odds_factor_2mil }
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = trappist_available }
+				}
+				log = "Next Storm Cluster initializer: trappist_initializer"
+				scluster_spawn_next_system = { INITIALIZER = scluster_trappist_initializer }
+				remove_star_flag = trappist_available
+			}
+			1 = {	# Parvus (usage = 2mil, scaled = 3)
+				modifier = { factor = @usage_odds_factor_2mil }
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = parvus_system_available }
+				}
+				log = "Next Storm Cluster initializer: parvus_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_parvus_system }
+				remove_star_flag = parvus_system_available
+			}
+			1 = {	# Polaris (usage = 2mil, scaled = 5)
+				modifier = { factor = @usage_odds_factor_2mil }
+				modifier = {
+					factor = 0
+					OR = {
+						has_distar = no
+						NOT = { has_star_flag = polaris_civilization_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: polaris_civilization"
+				scluster_spawn_next_system = { INITIALIZER = scluster_polaris_civilization }
+				remove_star_flag = polaris_civilization_available
+			}
+			200 = {	# fumongus (usage = 200; tiyanki, nebula, digsite if ancrel)
+				modifier = { factor = 0 has_global_flag = fumongus_spawned }
+				log = "Next Storm Cluster initializer: fumongus_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_fumongus_init_01 }
+				remove_star_flag = fumongus_system_available
+			}
+			10 = {	# Ghost Ship System (usage = 10)
+				modifier = { factor = 0 exists = event_target:hillos_asteroid }
+				log = "Next Storm Cluster initializer: ghost_ship_system_initializer_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_ghost_ship_system_initializer_01 }
+				remove_star_flag = ghost_ship_system_available
+			}
+			# 		# Surveillance Supercomputer System (usage_odds = 0)
+			4 = {	# Lost Swarm - Locust System (usage_odds = 4)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = lost_swarm_system_available }
+				}
+				log = "Next Storm Cluster initializer: locust_system_initializer_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_locust_system_initializer_01 }
+				remove_star_flag = lost_swarm_system_available
+			}
+			4 = {	# Holibrae System [nebula] (usage = 4, scaled = 10)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = holibrae_system_available }
+				}
+				log = "Next Storm Cluster initializer: Holibrae_initializer"
+				scluster_spawn_next_system = { INITIALIZER = scluster_Holibrae_initializer }
+				remove_star_flag = holibrae_system_available
+			}
+			8 = {	# Debris belt system [free digsite] (usage = 8, scaled = 10)
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = debris_belt_system_available }
+				}
+				log = "Next Storm Cluster initializer: debris_belt_initializer"
+				scluster_spawn_next_system = { INITIALIZER = scluster_debris_belt_initializer }
+				remove_star_flag = debris_belt_system_available
+			}
+		# unique_system_initializers (usage_odds = 1, spawn_chance = 25%)
+			1 = {	# Federation's End - Black Hole with habitats inhabited by primitives
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = federations_end_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_01 }
+				remove_star_flag = federations_end_available
+			}
+			1 = {	# Larionessi Refuge - Neutron Star with a Relic planet and arc site
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = larion_system_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_02"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_02 }
+				remove_star_flag = larion_system_available
+			}
+			1 = {	# Zevox - Shrouded planet and arc site nearby
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = zevox_system_available }
+					# exists = event_target:animator_rift_object
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_03"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_03 }
+				remove_star_flag = zevox_system_available
+			}
+			1 = {	# Fehnrax's Stand - Ancient Battlefield 1
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = fehraxs_stand_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_04"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_04 }
+				remove_star_flag = fehraxs_stand_available
+			}
+			1 = {	# Zhanrox's Rest - Ancient Battlefield 2
+				modifier = {
+					factor = 0
+					NOT = {
+						# has_star_flag = zhanroxs_rest_or_afari_available
+						has_star_flag = zhanroxs_rest_available
+					}
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_05"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_05 }
+				# remove_star_flag = zhanroxs_rest_or_afari_available
+				remove_star_flag = zhanroxs_rest_available
+			}
+			1 = {	# Afari - Ancient Battlefield 3
+				modifier = {
+					factor = 0
+					NOT = {
+						# has_star_flag = zhanroxs_rest_or_afari_available
+						has_star_flag = afari_available
+					}
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_06"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_06 }
+				# remove_star_flag = zhanroxs_rest_or_afari_available
+				remove_star_flag = afari_available
+			}
+			1 = {	# Tragula's Cross - Triple Planet 1
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = tragulas_cross_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_07"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_07 }
+				remove_star_flag = tragulas_cross_available
+			}
+			1 = {	# Trin's Promise - Triple Planet 2
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = trins_promise_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_08"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_08 }
+				remove_star_flag = trins_promise_available
+			}
+			1 = {	# Loh - Triple Planet 3
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = loh_system_available }
+				}
+				log = "Next Storm Cluster initializer: unique_system_initializer_09"
+				scluster_spawn_next_system = { INITIALIZER = scluster_unique_system_initializer_09 }
+				remove_star_flag = loh_system_available
+			}
+		# Utopia Initializers (megastructures, usage = 100)
+			100 = { # UTP ruined_dyson_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_utopia = yes
+					# 	has_star_flag = ruined_dyson_system_available
+					# }
+					OR = {
+						has_utopia = no
+						NOT = { has_star_flag = ruined_dyson_system_available }
+						# has_situation_flag = ruined_dyson_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: dyson_sphere_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_dyson_sphere_init_01 }
+				remove_star_flag = ruined_dyson_system_available
+				# set_situation_flag = ruined_dyson_system_has_spawned
+			}
+			100 = { # UTP ruined_nexus_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_utopia = yes
+					# 	has_star_flag = ruined_nexus_system_available
+					# }
+					OR = {
+						has_utopia = no
+						NOT = { has_star_flag = ruined_nexus_system_available }
+						# has_situation_flag = ruined_nexus_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: science_nexus_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_science_nexus_init_01 }
+				remove_star_flag = ruined_nexus_system_available
+				# set_situation_flag = ruined_nexus_system_has_spawned
+			}
+			100 = { # UTP ruined_sentry_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_utopia = yes
+					# 	has_star_flag = ruined_sentry_system_available
+					# }
+					OR = {
+						has_utopia = no
+						NOT = { has_star_flag = ruined_sentry_system_available }
+						# has_situation_flag = ruined_sentry_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: sentry_array_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_sentry_array_init_01 }
+				remove_star_flag = ruined_sentry_system_available
+				# set_situation_flag = ruined_sentry_system_has_spawned
+			}
+			100 = { # UTP ruined_ring_system
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_utopia = yes
+					# 	has_star_flag = ruined_ring_system_available
+					# }
+					OR = {
+						has_utopia = no
+						NOT = { has_star_flag = ruined_ring_system_available }
+						# has_situation_flag = ruined_ring_system_has_spawned
+					}
+				}
+				log = "Next Storm Cluster initializer: ring_world_init_01"
+				scluster_spawn_next_system = { INITIALIZER = scluster_ring_world_init_01 }
+				remove_star_flag = ruined_ring_system_available
+				# set_situation_flag = ruined_ring_system_has_spawned
+				last_created_system = {
+					set_star_flag = ring_world_built # missing from the initializer
+				}
+			}
+		# Modified
+			1 = { # AQU scluster_ocean_paradise_start
+				modifier = { factor = @usage_origin_factor }
+				modifier = {
+					factor = 0
+					# NAND = {
+					# 	has_aquatics = yes
+					# 	has_star_flag = scluster_ocean_paradise_start_available
+					# }
+					OR = {
+						has_aquatics = no
+						NOT = { has_star_flag = scluster_ocean_paradise_start_available }
+					}
+				}
+				log = "Next Storm Cluster initializer: scluster_ocean_paradise_start"
+				scluster_spawn_next_system = { INITIALIZER = scluster_ocean_paradise_start }
+				remove_star_flag = scluster_ocean_paradise_start_available
+			}
+		# Some fallback generic systems
+			3 = {	# Pre-FTL Civilizations, base = 2.6
+				scluster_spawn_next_system = { INITIALIZER = pre_ftl_init_01 }
+				log = "Next Storm Cluster initializer: pre_ftl_init_01"
+				# primitive setting as modifier?
+				last_created_system = {
+					if = {
+						limit = {
+							any_system_planet = { has_modifier = ocean_paradise }
+						}
+						set_star_flag = ocean_paradise
+						set_star_flag = ocean_paradise_nebula
+					}
+				}
+			}
+			1 = {	# Pre-FTL Hive-Minds, base = 0.4
+				modifier = {
+					factor = 0
+					OR = {
+						has_utopia = no
+						has_first_contact_dlc = no
+					}
+				}
+				scluster_spawn_next_system = { INITIALIZER = pre_ftl_hive_init_01 }
+				log = "Next Storm Cluster initializer: pre_ftl_hive_init_01"
+				# primitive setting as modifier?
+				# initializer runs generate_pre_ftl_hive_on_planet, but doesn't validate the ocean_paradise modifier.
+				last_created_system = {
+					if = {
+						limit = {
+							any_system_planet = {
+								has_planet_flag = pre_ftl_hive_mind
+								has_modifier = ocean_paradise
+							}
+						}
+						set_star_flag = ocean_paradise
+						set_star_flag = ocean_paradise_nebula
+						random_system_planet = {
+							limit = { has_modifier = ocean_paradise }
+							remove_modifier = ocean_paradise
+							add_modifier = { modifier = ocean_paradise_hive }
+						}
+					}
+				}
+			}
+			2 = {	# Black Holes
+				scluster_spawn_next_system = { INITIALIZER = special_init_01 }
+				log = "Next Storm Cluster initializer: special_init_01"
+			}
+			2 = {	# Pulsars
+				scluster_spawn_next_system = { INITIALIZER = special_init_09 }
+				log = "Next Storm Cluster initializer: special_init_09"
+			}
+			2 = {	# Asteroid System
+				scluster_spawn_next_system = { INITIALIZER = asteroid_init_01 }
+				log = "Next Storm Cluster initializer: asteroid_init_01"
+			}
+			1 = {	# binary
+				scluster_spawn_next_system = { INITIALIZER = binary_init_01 }
+				log = "Next Storm Cluster initializer: binary_init_01"
+			}
+			1 = {	# binary
+				scluster_spawn_next_system = { INITIALIZER = binary_init_02 }
+				log = "Next Storm Cluster initializer: binary_init_02"
+			}
+			1 = {	# trinary
+				scluster_spawn_next_system = { INITIALIZER = trinary_init_01 }
+				log = "Next Storm Cluster initializer: trinary_init_01"
+			}
+			1 = {	# trinary
+				scluster_spawn_next_system = { INITIALIZER = trinary_init_02 }
+				log = "Next Storm Cluster initializer: trinary_init_02"
+			}
+		# Custom
+			4 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = scluster_trade_value_asteroid_system_available }
+				}
+				log = "Next Storm Cluster initializer: scluster_trade_value_asteroid_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_trade_value_asteroid_system }
+				remove_star_flag = scluster_trade_value_asteroid_system_available
+			}
+			4 = {
+				modifier = {
+					factor = 0
+					NOT = { has_star_flag = scluster_magnetic_mystery_bugpatch_system_available }
+				}
+				log = "Next Storm Cluster initializer: scluster_magnetic_mystery_bugpatch_system"
+				scluster_spawn_next_system = { INITIALIZER = scluster_magnetic_mystery_bugpatch_system }
+				remove_star_flag = scluster_magnetic_mystery_bugpatch_system_available
+			}
+		###
+			#
+			# 100 = {
+			# 	modifier = { factor = 0 has_distar = no }
+			# 	modifier = {
+			# 		factor = 0
+			# 		event_target:scluster_situation = {
+			# 			has_situation_flag = _has_spawned
+			# 		}
+			# 	}
+			# 	set_name =
+			# 	event_target:scluster_situation = {
+			# 		set_situation_flag = _has_spawned
+			# 	}
+			# }
+		}
+	}
+}
+
+scluster_spice_it_up = {
+	# Try to keep spawned fleets out of range of wormhole
+	reroll_random = yes
+	random_list = {
+		# apocalypse_initializers
+		100 = { # abandoned_gateways_01
+			modifier = {
+				factor = 0 # we don't want gateways too close to each other
+				any_neighbor_system = { has_megastructure = gateway_ruined }
+			}
+			spawn_megastructure = {
+				type = "gateway_ruined"
+				random_pos = yes
+				orbit_angle = 360		# range of the randomization
+			}
+			set_star_flag = abandoned_gateway
+		}
+		# distant_stars_initializers
+		2 = { # distantstars_init_00, sc_black_hole
+			modifier = {
+				factor = 0
+				OR = {
+					has_distar = no
+					lgate_enabled = no
+					# has_global_flag = lgates_activated_globally
+				}
+			}
+			spawn_megastructure = {
+				type = "lgate_base"
+				orbit_angle = 225
+				orbit_distance = 30
+			}
+		}
+		#
+		# scluster_generate_home_system_resources = yes
+		4 = { # hostile_init_mining_drones: Big Mining Drones Fleet (max 2)
+			create_drone_country = yes
+			random_system_planet = {
+				limit = {
+					has_deposit_for = shipclass_mining_station
+					is_star = no
+					NOT = { is_planet_class = pc_gas_giant }
+				}
+				set_deposit = d_minerals_4
+				event_target:drone_country = {
+					save_event_target_as = mining_drones
+					create_fleet = {
+						name = "NAME_Ancient_Mining_Drones"
+						effect = {
+							set_owner = event_target:drone_country
+							while = {
+								count = 15
+								create_ship = {
+									name = ""
+									design = "NAME_Ancient_Mining_Drone"
+								}
+							}
+							while = {
+								count = 8
+								create_ship = {
+									name = ""
+									design = "NAME_Ancient_Combat_Drone"
+								}
+							}
+							while = {
+								count = 4
+								create_ship = {
+									name = ""
+									design = "NAME_Ancient_Destroyer"
+								}
+							}
+							set_location = prevprev
+							set_fleet_stance = aggressive
+							set_aggro_range_measure_from = return_point
+							set_aggro_range = 150
+							queue_actions = {
+								repeat = {
+									wait = {
+										duration = 999
+										random = 10
+									}
+								}
+							}
+						}
+					}
+				}
+				create_mining_station = { owner = event_target:mining_drones }
+			}
+		}
+		4 = { # hostile_init_amoeba: Space Amoeba, Large pack # amoeba_4_system, base = 4, max_instances = 2, has_distar
+			create_amoeba_country = yes
+			random_system_planet = {
+				limit = { is_star = no }
+				event_target:amoeba_country = {
+					create_fleet = {
+						name = "NAME_Space_Amoeba_plural"
+						settings = { garrison = yes }
+						effect = {
+							set_owner = event_target:amoeba_country
+							while = {
+								count = 4
+								create_ship = {
+									name = ""
+									design = "NAME_Large_Space_Organism_Teal"
+								}
+							}
+							while = {
+								count = 5
+								create_ship = {
+									name = ""
+									design = "NAME_Large_Space_Organism_Zebra"
+								}
+							}
+							set_formation_scale = 3.0
+							set_location = prevprev
+							set_fleet_stance = aggressive
+							set_aggro_range_measure_from = self
+							set_aggro_range = 100
+						}
+					}
+				}
+			}
+		}
+		# special
+		1 = { # usage_odds = 1.5, modified by primitives setup slider
+			factor = 1.5
+			modifier = {
+				factor = 0
+				NOT = {
+					any_system_planet = {
+						OR = {
+							is_colonizable = yes
+							uninhabitable_regular_planet = yes
+						}
+						NOR = {
+							has_anomaly = yes
+							is_preventing_anomaly = yes
+							exists = archaeological_site
+						}
+					}
+				}
+			}
+			modifier = {
+				factor = 0
+				OR = {
+					has_star_flag = primitive_system
+					any_system_colony = { is_colony = yes }
+				}
+			}
+			scluster_init_primitive_system = yes
+		}
+	}
+}
+
+### Vanilla terraforming candidate rates are:
+# 100:1  for regular candidates
+# 100:1  for frozen candidates
+# 100:15 for toxic candidates
+scluster_init_final_pass = {
+	if = { # has_utopia: Shrouded World w/ 3 zro
+		limit = { has_utopia = yes } # Maybe unnecessary if broken shroudwalker enclave spawned?
+		reroll_random = yes
+		random_system = {
+			limit = {
+				has_star_flag = scluster
+				NOR = {
+					has_star_flag = scluster_0
+					has_star_flag = sol
+				}
+				any_system_planet = {
+					uninhabitable_regular_planet = yes
+					scluster_planet_available_to_modify = yes
+					has_deposit = no
+				}
+			}
+			reroll_random = yes
+			random_system_planet = {
+				limit = {
+					uninhabitable_regular_planet = yes
+					scluster_planet_available_to_modify = yes
+					has_deposit = no
+				}
+				change_pc = pc_shrouded
+				set_deposit = d_zro_deposit_3
+				prevent_anomaly = yes
+			}
+		}
+	}
+	if = { # has_distar: Broken Machine World w/ living metal. An L-Gate if the L-Cluster is enabled but not yet opened.
+		limit = { has_distar = yes }
+		reroll_random = yes
+		random_system = {
+			limit = {
+				has_star_flag = scluster
+				NOR = {
+					has_star_flag = scluster_0
+					has_star_flag = sol
+				}
+				any_system_planet = {
+					uninhabitable_regular_planet = yes
+					scluster_planet_available_to_modify = yes
+					has_deposit = no
+				}
+			}
+			reroll_random = yes
+			random_system_planet = {
+				limit = {
+					uninhabitable_regular_planet = yes
+					scluster_planet_available_to_modify = yes
+					has_deposit = no
+				}
+				change_pc = pc_machine_broken
+				set_deposit = d_living_metal_deposit
+				prevent_anomaly = yes
+			}
+		}
+		if = {
+			limit = {
+				lgate_enabled = yes
+				NOT = { has_global_flag = lgates_activated_globally }
+				# TODO: Does the max number of L-Gates matter?
+			}
+			reroll_random = yes
+			random_system = {
+				limit = {
+					has_star_flag = scluster
+					NOR = {
+						has_star_flag = scluster_0
+						has_star_flag = sol
+					}
+					is_star_class = sc_black_hole
+				}
+				set_star_flag = hostile_system
+				set_star_flag = lgate
+				spawn_megastructure = {
+					type = "lgate_base"
+					orbit_angle = 225
+					orbit_distance = 30
+				}
+				reroll_random = yes
+				random_system_planet = { # Fails in federations end, which only has 2 shattered worlds
+					limit = {
+						uninhabitable_regular_planet = yes
+						scluster_planet_available_to_modify = yes
+						NOT = { has_deposit_for = shipclass_research_station }
+					}
+					change_pc = pc_gray_goo
+					add_deposit = d_nanites_deposit
+					prevent_anomaly = yes
+				}
+			}
+		}
+	}
+	# Precursor flags
+	event_target:scluster_0 = {
+		set_variable = { which = precursors_available value = 0 }
+		set_variable = { which = precursors_free value = 0 }
+		if = { # scluster_check_flag = { FLAG = vultaumar } # vultaumar_system
+			limit = { NOT = { any_system = { has_star_flag = vultaumar } } }
+			set_star_flag = vultaumar_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = vultaum_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_1
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = yuhtaan } # yuhtaan_system
+			limit = { NOT = { any_system = { has_star_flag = yuhtaan } } }
+			set_star_flag = yuhtaan_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = yuht_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_2
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = fen_habbanis } # fen_habbanis_system
+			limit = { NOT = { any_system = { has_star_flag = fen_habbanis } } }
+			set_star_flag = fen_habbanis_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = first_league_intro } } }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_3
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = irass } # irass_system
+			limit = { NOT = { any_system = { has_star_flag = irass } } }
+			set_star_flag = irass_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = irassian_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_4
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = cybrex } # cybrex_system
+			limit = { NOT = { any_system = { has_star_flag = cybrex } } }
+			set_star_flag = cybrex_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = cybrex_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_5
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = last_baol_system } # Not tagged precursor_system
+			limit = {
+				has_ancrel = yes
+				NOT = { any_system = { has_star_flag = last_baol_system } }
+			}
+			set_star_flag = last_baol_system_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = baol_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_baol_1
+				}
+			}
+		}
+		if = { # scluster_check_flag = { FLAG = Zrocursor }
+			limit = {
+				has_ancrel = yes
+				NOT = { any_system = { has_star_flag = Zrocursor } }
+			}
+			set_star_flag = Zrocursor_available
+			change_variable = { which = precursors_available value = 1 }
+			if = {
+				limit = { NOT = { any_playable_country = { has_country_flag = zroni_intro } } }
+				change_variable = { which = precursors_free value = 1 }
+				every_system = {
+					limit = { has_star_flag = scluster }
+					set_star_flag = precursor_zroni_1
+				}
+			}
+		}
+		if = {
+			limit = {
+				check_variable = { which = precursors_available value > 0 }
+				check_variable = { which = precursors_free value = 0 }
+			}
+			every_system = {
+				limit = { has_star_flag = scluster }
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = vultaumar_available }
+					}
+					set_star_flag = precursor_1
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = yuhtaan_available }
+					}
+					set_star_flag = precursor_2
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = fen_habbanis_available }
+					}
+					set_star_flag = precursor_3
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = irass_available }
+					}
+					set_star_flag = precursor_4
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = cybrex_available }
+					}
+					set_star_flag = precursor_5
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = last_baol_system_available }
+					}
+					set_star_flag = precursor_baol_1
+				}
+				if = {
+					limit = {
+						event_target:scluster_0 = { has_star_flag = Zrocursor_available }
+					}
+					set_star_flag = precursor_zroni_1
+				}
+			}
+		}
+	}
+	# At least one primitive
+	if = {
+		limit = {
+			NOT = {
+				any_system = {
+					has_star_flag = scluster
+					has_star_flag = primitive_system
+				}
+			}
+		}
+		reroll_random = yes
+		random_system = {
+			limit = {
+				has_star_flag = scluster
+				NOR = {
+					has_star_flag = hostile_system
+					any_system_colony = { exists = this }
+					has_star_flag = mechanocalibrator_system
+				}
+				any_system_planet = {
+					OR = {
+						is_colonizable = yes
+						uninhabitable_regular_planet = yes
+					}
+					NOR = {
+						has_anomaly = yes
+						is_preventing_anomaly = yes
+						exists = archaeological_site
+					}
+				}
+				OR = { # select_pre_ftl_origin
+					has_first_contact_dlc = yes
+					NOT = { has_star_flag = ocean_paradise }
+				}
+			}
+			weights = {
+				base = 10
+				modifier = {
+					factor = 5
+					any_system_planet = {
+						is_colonizable = yes
+						NOR = {
+							has_anomaly = yes
+							is_preventing_anomaly = yes
+							exists = archaeological_site
+						}
+					}
+				}
+				modifier = {
+					factor = 25
+					OR = {
+						has_star_flag = shattered_ring_system
+						has_star_flag = ocean_paradise
+					}
+				}
+				modifier = {
+					factor = 0.1
+					OR = {
+						scluster_is_black_hole_star_system = yes
+						scluster_is_neutron_star_system = yes
+						scluster_is_pulsar_star_system = yes
+					}
+				}
+			}
+			scluster_init_primitive_system = yes
+		}
+	}
+	# Ruined gateway
+	reroll_random = yes
+	random_system = {
+		limit = {
+			has_star_flag = scluster
+			NOR = {
+				has_star_flag = scluster_0
+				has_megastructure = gateway_ruined
+			}
+		}
+		weights = { # abandoned_gateways_01
+			base = 1
+			modifier = {
+				factor = 0 # we don't want gateways too close to each other
+				any_neighbor_system = { has_megastructure = gateway_ruined }
+			}
+		}
+		spawn_megastructure = {
+			type = "gateway_ruined"
+			random_pos = yes
+			orbit_angle = 360		# range of the randomization
+		}
+		set_star_flag = abandoned_gateway
+	}
+
+	# Prescripted planets
+	while = {
+		count = 3
+		reroll_random = yes
+		random_system = {
+			limit = {
+				has_star_flag = scluster
+				NOR = {
+					has_star_flag = scluster_0
+					has_star_flag = sol_system
+					has_star_flag = ring_world_built
+					has_star_flag = scluster_prescripted_habitable_planets_disabled
+				}
+				any_system_planet = {
+					NOR = {
+						has_anomaly = yes
+						is_preventing_anomaly = yes
+						exists = archaeological_site
+						has_deposit_for = shipclass_mining_station
+						has_deposit_for = shipclass_research_station
+						# is_colonizable = yes
+						is_colony = yes
+					}
+					OR = {
+						uninhabitable_regular_planet = yes
+						scluster_habitable_planet_normal = yes
+					}
+				}
+			}
+			random_system_planet = {
+				limit = {
+					NOR = {
+						has_anomaly = yes
+						is_preventing_anomaly = yes
+						exists = archaeological_site
+						has_deposit_for = shipclass_mining_station
+						has_deposit_for = shipclass_research_station
+						# is_colonizable = yes
+						is_colony = yes
+					}
+					OR = {
+						uninhabitable_regular_planet = yes
+						scluster_habitable_planet_normal = yes
+					}
+				}
+				random_list = {
+					1 = { # Snowfort: Arctic w/ lots of glaciers
+						modifier = {
+							factor = 0
+							event_target:scluster_0 = { has_star_flag = snowfort_spawned }
+						}
+						scluster_planet_init_snowfort = yes
+					}
+					1 = { # Relic with ring (Overlord)
+						modifier = {
+							factor = 0
+							OR = {
+								has_overlord_dlc = no
+								event_target:scluster_0 = { has_star_flag = relic_with_ring_spawned }
+							}
+						}
+						scluster_planet_init_relic_with_ring = yes
+					}
+					1 = { # Storm World: bad weather modifiers & tempestuous mountain deposits
+						modifier = {
+							factor = 0
+							event_target:scluster_0 = { has_star_flag = storm_world_spawned }
+						}
+						scluster_planet_init_storm_world = yes
+					}
+					1 = { # Danger Zone: +20% research
+						modifier = {
+							factor = 0
+							event_target:scluster_0 = { has_star_flag = deadly_world_spawned }
+						}
+						scluster_planet_init_deadly_world = yes
+					}
+					1 = { # Motherlode: +% minerals modifier stack
+						# TODO: try to select a planet with has_moon = no is_moon = no
+						modifier = {
+							factor = 0
+							event_target:scluster_0 = { has_star_flag = good_mining_planet_spawned }
+						}
+						scluster_planet_init_good_mining_planet = yes
+					}
+				}
+			}
+		}
+	}
+
+	# if = { # Spawn voyager probe?
+		# limit = { exists = event_target:scluster_sol }
+		# event_target:scluster_sol = {
+		# 	closest_system = {
+		# 		max_steps = 3
+		# 		use_bypasses = yes
+		# 		limit = { has_star_flag = scluster_entrance }
+		# 		# scope to wormhole coordinates?
+		# 		# create_ambient_object = { type = sublight_probe_object location = <target> }
+		# 		# last_created_ambient_object = {
+		# 		# 	add_anomaly = {
+		# 		# 		category = AST_DEBRIS_FIELD_1_CAT
+		# 		# 	}
+		# 		# }
+		# 		# anomaly.95 # pioneer, "An aluminum plaque is found drifting among the detritus around [From.GetName]"
+		# 		# anomaly.105 # voyager, "A golden disc strikes the forward viewport of the [Root.GetName] as it is surveying the weak gravitational field of [From.GetName]."
+		# 	}
+		# }
+	# }
+
+	every_system = {
+		limit = { has_star_flag = scluster }
+	# Terraforming candidates (from game_start.2)
+		if = {
+			limit = {
+				NOR = {
+					is_star_class = sc_black_hole
+					is_star_class = sc_neutron_star
+					is_star_class = sc_pulsar
+				}
+			}
+			# Regular
+			every_system_planet = {
+				limit = {
+					OR = {
+						is_planet_class = pc_barren
+						is_planet_class = pc_barren_cold
+					}
+					NOR = {
+						has_deposit = d_nanites_deposit
+						has_anomaly = yes
+						has_modifier = terraforming_candidate
+					}
+					planet_size > 9
+					planet_size < 31
+				}
+				reroll_random = yes
+				random_list = {
+					100 = {}
+					1 = { # about 20 on a huge galaxy with default settings.
+						add_modifier = { modifier = terraforming_candidate }
+						complex_trigger_modifier = {
+							trigger = check_galaxy_setup_value
+							parameters = { setting = habitable_worlds_scale }
+							mode = factor
+						}
+						solar_system = { set_star_flag = spawned_terraforming_candidate }
+					}
+				}
+			}
+			if = { # Frozen
+				limit = { has_aquatics = yes }
+				every_system_planet = {
+					limit = {
+						is_planet_class = pc_frozen
+						NOR = {
+							has_deposit = d_nanites_deposit
+							has_anomaly = yes
+							has_modifier = frozen_terraforming_candidate
+						}
+						planet_size > 9
+						planet_size < 31
+					}
+					reroll_random = yes
+					random_list = {
+						100 = {}
+						1 = { #Not very common, Hydrocentric gives you lots of other things
+							add_modifier = { modifier = frozen_terraforming_candidate }
+							complex_trigger_modifier = {
+								trigger = check_galaxy_setup_value
+								parameters = { setting = habitable_worlds_scale }
+								mode = factor
+							}
+							solar_system = { set_star_flag = spawned_frozen_terraforming_candidate }
+						}
+					}
+				}
+			}
+			if = { # Toxic
+				limit = { has_toxoids = yes }
+				every_system_planet = {
+					limit = {
+						is_planet_class = pc_toxic
+						NOR = {
+							has_deposit = d_nanites_deposit
+							has_anomaly = yes
+							has_modifier = toxic_terraforming_candidate
+						}
+						planet_size > 9
+						planet_size < 31
+					}
+					reroll_random = yes
+					random_list = {
+						100 = {}
+						15 = { #Detox only gives you this. About 50 planets in a huge galaxy
+							add_modifier = { modifier = toxic_terraforming_candidate }
+							set_planet_flag = toxic_terraforming_candidate
+							complex_trigger_modifier = {
+								trigger = check_galaxy_setup_value
+								parameters = { setting = habitable_worlds_scale }
+								mode = factor
+							}
+							solar_system = { set_star_flag = spawned_toxic_terraforming_candidate }
+						}
+					}
+				}
+			}
+			# In the Storm Cluster, terraforming candidates can have other modifiers too.
+			every_system_planet = {
+				limit = {
+					scluster_is_terraforming_candidate = yes
+					num_modifiers < 2
+				}
+				reroll_random = yes
+				random_list = {
+					275 = { } # Null modifier (x3 per modifier, up to x27 with 3+)
+					# Magnetosphere
+					10 = { add_modifier = { modifier = "weak_magnetic_field" }
+						modifier = { factor = 2 has_modifier = "low_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "weak_magnetic_field"
+								has_modifier = "strong_magnetic_field"
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "strong_magnetic_field" }
+						modifier = { factor = 2 has_modifier = "high_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "weak_magnetic_field"
+								has_modifier = "strong_magnetic_field"
+							}
+						}
+					}
+					# Asteroids/Orbital
+					1 = { add_modifier = { modifier = "tidal_locked" }
+						modifier = { factor = 3 is_moon = yes }
+						modifier = { factor = 0 has_modifier = "tidal_locked" }
+					}
+					10 = { add_modifier = { modifier = "asteroid_belt" }
+						modifier = { factor = 2 has_modifier = "low_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_moon = yes
+								is_moon = yes
+								has_modifier = "asteroid_belt"
+							}
+						}
+					}
+					1 = { add_modifier = { modifier = "asteroid_impacts" }
+						# Sink into the ice on frozen
+						# Destroyed/erased by atmosphere on toxic
+						modifier = {
+							factor = 30 # No atmosphere to destroy asteroids
+							OR = {
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+						}
+						modifier = { factor = 0 has_modifier = "asteroid_impacts" }
+					}
+					# Lithosphere
+					# 10 = { add_modifier = "mineral_poor" # Can already spawn on regular uninhabitable worlds
+						# modifier = {
+						# 	factor = 4
+						# 	has_modifier = "low_gravity"
+						# }
+						# modifier = {
+						# 	factor = 0
+						# 	OR = {
+						# 		has_modifier = "mineral_poor"
+						# 		has_modifier = "mineral_rich"
+						# 		has_modifier = "ultra_rich"
+						# 		has_modifier = "carbon_world"
+						# 		has_modifier = "chthonian_planet"
+						# 	}
+						# }
+					# }
+					10 = { add_modifier = { modifier = "mineral_rich" }
+						modifier = { factor = 4 has_modifier = "high_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "mineral_poor"
+								has_modifier = "mineral_rich"
+								has_modifier = "ultra_rich"
+							}
+						}
+					}
+					1 = { add_modifier = { modifier = "ultra_rich" }
+						modifier = { factor = 8 has_modifier = "high_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "mineral_poor"
+								has_modifier = "mineral_rich"
+								has_modifier = "ultra_rich"
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "unstable_tectonics" }
+						modifier = { factor = 4 has_modifier = "high_gravity" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "unstable_tectonics"
+								NOT = { is_planet_class = pc_toxic } # barren and frozen worlds don't seem like they'd be tectonically active.
+							}
+						}
+					}
+					# Gravity
+					10 = { add_modifier = { modifier = "low_gravity" }
+						modifier = { factor = 0.5 planet_size > 19 }
+						modifier = { factor = 2 planet_size < 14 }
+						modifier = { factor = 2 planet_size < 12 }
+						modifier = { factor = 2 planet_size < 7 }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "high_gravity"
+								has_modifier = "low_gravity"
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "high_gravity" }
+						modifier = { factor = 2 planet_size > 22 }
+						modifier = { factor = 2 planet_size > 19 }
+						modifier = { factor = 0.5 planet_size < 16 }
+						modifier = {
+							factor = 0
+							OR = {
+								planet_size < 12
+								has_modifier = "high_gravity"
+								has_modifier = "low_gravity"
+							}
+						}
+					}
+					# Atmosphere/Weather: Yes on toxic, no on barren
+					10 = { add_modifier = { modifier = "atmospheric_aphrodisiac" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "atmospheric_aphrodisiac"
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+								is_planet_class = pc_frozen
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "atmospheric_hallucinogen" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "atmospheric_hallucinogen"
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+								is_planet_class = pc_frozen
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "hazardous_weather" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "hazardous_weather"
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+						}
+					}
+					10 = { add_modifier = { modifier = "wild_storms" }
+						modifier = {
+							factor = 0
+							OR = {
+								has_modifier = "wild_storms"
+								is_planet_class = pc_barren
+								is_planet_class = pc_barren_cold
+							}
+						}
+					}
+					# No biosphere modifiers.
+				}
+			}
+		}
+	# Add 6 minerals deposits on chthonian & carbon worlds
+		every_system_planet = {
+			if = {
+				limit = {
+					OR = {
+						has_modifier = chthonian_planet
+						has_modifier = carbon_world
+					}
+				}
+				# remove research & energy deposits
+				every_deposit = {
+					limit = {
+						OR = {
+							scluster_has_orbital_deposit_category_energy = yes
+							# has_deposit_for = shipclass_research_station # Not for deposit scope, we have to do this thte long way
+							scluster_has_orbital_deposit_category_research = yes
+						}
+					}
+					remove_deposit = yes
+				}
+				add_deposit = d_minerals_6
+			}
+		}
+	}
+
+	every_country = {
+		limit = {
+			is_country_type = primitive
+			capital_star.solar_system = { has_star_flag = scluster }
+		}
+		capital_scope = {
+			if = {
+				limit = { is_planet_class = pc_gaia }
+				owner = { set_origin = origin_life_seeded }
+			}
+			# if = {
+			# 	limit = { is_planet_class = pc_relic }
+			# 	owner = { set_origin = origin_remnants }
+			# }
+			# if = {
+			# 	limit = { is_planet_class = pc_nuked }
+			# 	owner = { set_origin = origin_survivor } # Check origin key
+			# }
+		}
+	}
+
+	# NOT = { has_global_flag = spawn_caravaneer_1 }
+	# NOT = { has_global_flag = spawn_caravaneer_2 }
+	# NOT = { has_global_flag = spawn_caravaneer_3 }
+}
+
+# Was for calculating system position in while loops, no longer in use.
+# scluster_variable_calculator = {
+	# event_target:scluster_0 = {
+	# # Don't exceed 360 degrees
+	# 	if = {
+	# 		limit = {
+	# 			OR = {
+	# 				NOT = { is_variable_set = scluster_counter }
+	# 				check_variable = {
+	# 					which = scluster_counter
+	# 					value > 5
+	# 				}
+	# 			}
+	# 		}
+	# 		set_variable = {
+	# 			which = scluster_counter
+	# 			value = 0.0
+	# 		}
+	# 	}
+	# # Calculate minimum angle
+	# 	set_variable = {
+	# 		which = scluster_angle_min
+	# 		value = 60.0
+	# 	}
+	# 	multiply_variable = {
+	# 		which = scluster_angle_min
+	# 		value = scluster_counter # $ANGLE$
+	# 	}
+	# 	change_variable = {
+	# 		which = scluster_angle_min
+	# 		value = 15.0
+	# 	}
+	# # Calculate maximum angle
+	# 	set_variable = {
+	# 		which = scluster_angle_max
+	# 		value = scluster_angle_min
+	# 	}
+	# 	change_variable = {
+	# 		which = scluster_angle_max
+	# 		value = 30.0
+	# 	}
+	# }
+# }

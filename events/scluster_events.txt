@@ -1,0 +1,1260 @@
+# Filename:		scluster_events.txt
+# Contributors:	SirBlackAxe
+
+namespace = scluster
+
+# 224/226 is directly opposite the L-Cluster. Other corners are 134/136 (Bottom right) and 314/316 (top left).
+@scluster_eye_angle_min = 224
+@scluster_eye_angle_max = 226
+
+@scluster_inner_radius = 15
+@scluster_middle_radius = 30
+@scluster_outer_radius = 45
+@scluster_max_radius = 60
+# 0:
+
+# announcement
+# clock
+# clones
+# federation_fleet (w/ wormhole)
+# friendly_amoeba
+# galactic_senate
+# mysterious_signal
+# news_room
+# physics_research
+# ship_travel (red nebula)
+# star_chart
+# toyanki_family
+# vortex
+# wormhole
+# worrying_signal
+
+### Events
+# midgame_crisis_trigger.1 -> begin_crisis_scluster = yes
+	# galactic_features.401 Start space storm, if not already active
+	# scluster.100			Spawn Storm Cluster
+		#
+		# scluster_init_final_pass
+###
+# scluster_spawn_effect
+	# scluster_spawn_next_system
+
+# Gatekeeper
+country_event = {
+	id = scluster.100
+	hide_window = yes
+
+	is_triggered_only = yes
+	# trigger = {  }
+
+	immediate = {
+		every_playable_country = {
+			limit = { is_ai = no }
+			country_event = { id = scluster.101 } # alert about impending spawn
+		}
+		event_target:global_event_country = {
+			country_event = {
+				id = scluster.105 # Spawn cluster
+				days = 10
+			}
+		}
+	}
+}
+
+# Brace yourselves!
+country_event = {
+	id = scluster.101
+	title = crisis.11.name # scluster.101.name
+	desc = scluster.101.desc
+	picture = GFX_evt_mysterious_signal
+	show_sound = event_yellow_alert #
+	# show_sound = event_mystic_reveal #
+	# show_sound = event_red_alert #
+	# show_sound = event_sensor_ping #
+	# location = event_target:scluster_0
+
+	is_triggered_only = yes
+	force_open = yes
+
+	option = {
+		name = BRACE_YOURSELVES
+		# begin_event_chain = {
+		# 	event_chain = "storm_cluster_chain"
+		# 	target = root
+		# }
+		# create_point_of_interest = {
+		# 	id = coming_storm_poi.1
+		# 	name = "scluster_poi_1"
+		# 	desc = "scluster_poi_1_desc"
+		# 	event_chain = "storm_cluster_chain"
+		# 	category = coming_storm
+		# 	location = event_target:scluster_0
+		# }
+	}
+}
+
+### Spawn Storm Cluster
+# Based on L-Cluster code
+country_event = {
+	id = scluster.105
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	fire_only_once = yes
+
+	immediate = {
+		set_spawn_system_batch = begin
+		no_scope = {
+		# Spawn the central system.
+			spawn_system = {
+				initializer = scluster_init_eye
+				min_distance >= 550
+				max_distance <= 560
+				min_orientation_angle = @scluster_eye_angle_min
+				max_orientation_angle = @scluster_eye_angle_min
+				hyperlane = no
+				is_discovered = no
+				effect = {
+					save_global_event_target_as = scluster_0
+					scluster_analyze_galaxy = yes
+				}
+			}
+			event_target:global_event_country = {
+				start_situation = {
+					type = scluster_situation
+					target = event_target:scluster_0
+				}
+			}
+		# Spawn cluster systems.
+			# # Forced to do this one-by-one instead of with a while loop because the spawn_system effect doesn't accept variables or parameters for the orientation angles.
+			event_target:scluster_0 = {
+				set_variable = { value = 0 which = scluster_system_counter }
+				while = {
+					# count = 19
+					limit = {
+						check_variable = {
+							which = scluster_system_counter
+							value < 18
+						}
+					}
+					change_variable = {
+						which = scluster_system_counter
+						value = 1
+					}
+					last_created_system = { set_star_flag = scluster }
+					scluster_spawn_system_effect = yes
+				}
+			# Spawn wormholes
+				create_scluster_entrance = { NUM = 0 }
+				create_scluster_entrance = { NUM = 1 }
+				create_scluster_entrance = { NUM = 2 }
+				create_scluster_entrance = { NUM = 3 }
+				create_scluster_entrance = { NUM = 4 }
+				create_scluster_entrance = { NUM = 5 }
+			# Create nebula
+				create_nebula = {
+					name = THE_STORM_CLUSTER
+					radius = @scluster_max_radius
+					effect = { nebula_cloaking_effect = yes }
+				}
+			}
+
+			create_cluster = {
+				id = storm_cluster
+				center = event_target:scluster_0
+				radius = @scluster_max_radius
+			}
+
+			### Ensure hyperlane connections
+			# All inner ring systems connect to the Eye
+			every_system = {
+				limit = { has_star_flag = scluster_inner_ring }
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_0
+				}
+			}
+			# All middle ring systems connect to the corresponding inner and outer ring systems
+			event_target:scluster_7 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_1
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_13
+				}
+			}
+			event_target:scluster_8 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_2
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_14
+				}
+			}
+			event_target:scluster_9 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_3
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_15
+				}
+			}
+			event_target:scluster_10 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_4
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_16
+				}
+			}
+			event_target:scluster_11 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_5
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_17
+				}
+			}
+			event_target:scluster_12 = {
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_6
+				}
+				imperial_origin_start_hyperlane_effect = {
+					ORIGINAL_STAR_SYSTEM = this
+					SECOND_STAR_SYSTEM = event_target:scluster_18
+				}
+			}
+			# every_system_in_cluster = { limit = { <triggers> } <effects> }
+			every_system = {
+				limit = { has_star_flag = scluster }
+				# Spawn in-system nebula
+				if = {
+					limit = {
+						NOR = {
+							has_star_flag = already_has_nebula_object
+							any_system_ambient_object = {
+								OR = {
+									# system_effects.txt
+									is_ambient_object_type = space_storm_1
+									is_ambient_object_type = space_storm_2
+									is_ambient_object_type = psi_storm_1
+									is_ambient_object_type = nebula_1
+									is_ambient_object_type = nebula_2
+									is_ambient_object_type = nebula_3
+									is_ambient_object_type = nebula_4
+									is_ambient_object_type = rare_nebula_1
+									is_ambient_object_type = rare_nebula_2
+									is_ambient_object_type = turbulent_nebula_1
+									is_ambient_object_type = turbulent_nebula_2
+									# nebula_objects_test.txt
+									# is_ambient_object_type = nebula_L1_entity
+									# is_ambient_object_type = nebula_L2_entity
+									is_ambient_object_type = nebula_L3_entity
+									is_ambient_object_type = nebula_L4_entity
+									# is_ambient_object_type = nebula_L5_entity
+									is_ambient_object_type = nebula_L6_entity
+									is_ambient_object_type = nebula_L7_entity
+									is_ambient_object_type = nebula_L8_entity # broken_shroudwalker_enclave
+									is_ambient_object_type = nebula_L10_entity
+								}
+							}
+						}
+					}
+					scluster_create_system_nebula_effect = yes
+				}
+				# Hyperlanes
+				if = {
+					limit = {
+						any_neighbor_system = {
+							NOT = { has_star_flag = scluster }
+						}
+					}
+					every_neighbor_system = {
+						limit = { NOT = { has_star_flag = scluster } }
+						remove_hyperlane = { from = this to = prev }
+					}
+				}
+				if = {
+					limit = { count_neighbor_system = { count < 2 } }
+					scluster_add_extra_hyperlane_to_spawned_system_effect = { FLAG = scluster } # TODO: Inspect
+				}
+				if = {
+					limit = {
+						count_neighbor_system = { count < 3 }
+						any_neighbor_system_euclidean = { # Appears to be distance <= 30
+							NOT = { has_hyperlane_to = prev }
+							count_neighbor_system = { count < 4 }
+						}
+					}
+					get_galaxy_setup_value = {
+						setting = num_hyperlanes
+						which = hyperlane_factor
+					}
+					reroll_random = yes
+					random_list = {
+						50 = {}
+						50 = {
+							modifier = { factor = hyperlane_factor }
+							scluster_add_extra_hyperlane_to_spawned_system_effect = { FLAG = scluster }
+						}
+					}
+				}
+				# closest_system = {
+				# 	NOT = { has_hyperlane_to = prev }
+				# 	distance = {
+				# 		source = prev
+				# 		max_distance <= 20
+				# 	}
+				# }
+				# ordered_neighbor_system_euclidean = {
+				# 	# Exactly how close a system needs to be to count as a euclidean neighbor is undocumented in effects.log
+				# 	limit = {
+				# 		has_star_flag = scluster
+				# 		NOT = {
+				# 			has_hyperlane_to = prev
+				# 		}
+				# 		distance = {
+				# 			source = prev
+				# 			# min_distance >= 50
+				# 			max_distance <= 30
+				# 			type = euclidean
+				# 		}
+				# 	}
+				# 	position = 0
+				# 	order_by = value:scluster_num_hyperlanes_system # I really want to order them by euclidean closeness
+				# 	# inverse = yes/no (default: no - if yes, then 0 is lowest rather than highest)
+				# 	imperial_origin_start_hyperlane_effect = { # Adds hyperlane between to systems if they don't have one already
+				# 		ORIGINAL_STAR_SYSTEM = this
+				# 		SECOND_STAR_SYSTEM = prev
+				# 	}
+				# }
+			}
+		}
+		scluster_init_final_pass = yes # terraforming candidates
+		set_spawn_system_batch = end
+		log = "Due to scripting limitations, the nebula graphics for the storm cluster won't appear on the galaxy map until you reload the game or use the reload_graphical_map console command."
+		# Notifications
+		every_playable_country = {
+			set_variable = { value = 0 which = scluster_wormholes_seen }
+		}
+		if = {
+			limit = {
+				OR = {
+					is_active_resolution = "resolution_galacticstudies_cooperative_research_channels"
+					is_active_resolution = "resolution_galacticstudies_astral_studies_network"
+					is_active_resolution = "resolution_galacticstudies_advanced_xenostudies"
+					is_active_resolution = "resolution_galacticstudies_ethical_guideline_refactoring"
+					is_active_resolution = "resolution_galacticstudies_extradimensional_experimentation"
+				}
+			}
+			set_variable = {
+				value = 0
+				which = scluster_wormholes_seen_galcom
+			}
+		}
+		every_system = {
+			limit = { has_star_flag = scluster_entrance }
+			system_event = { id = scluster.110 } # Send alerts to everyone who can see the new wormholes
+			prev = {
+				if = {
+					limit = {
+						is_variable_set = scluster_wormholes_seen_galcom
+						any_galcom_member = {
+							intel_level = {
+								level > low
+								system = prevprev
+							}
+						}
+					}
+					change_variable = { value = 1 which = scluster_wormholes_seen_galcom }
+				}
+			}
+		}
+		every_playable_country = {
+			if = {
+				limit = {
+					# is_ai = no
+					OR = {
+						check_variable = {
+							value > 0
+							which = scluster_wormholes_seen
+						}
+						AND = {
+							is_galactic_community_member = yes
+							event_target:global_event_country = {
+								is_variable_set = scluster_wormholes_seen_galcom
+								check_variable = {
+									value > 0
+									which = scluster_wormholes_seen_galcom
+								}
+							}
+						}
+					}
+				}
+				country_event = { id = scluster.115 } # Notifications
+			}
+			else = {
+				country_event = { id = scluster.115 } # Notifications
+			}
+		}
+		# event_target:scluster_entrance_system_0 = { system_event = scluster.110 }
+		# event_target:scluster_entrance_system_1 = { system_event = scluster.110 }
+		# event_target:scluster_entrance_system_2 = { system_event = scluster.110 }
+		# event_target:scluster_entrance_system_3 = { system_event = scluster.110 }
+		# event_target:scluster_entrance_system_4 = { system_event = scluster.110 }
+		# event_target:scluster_entrance_system_5 = { system_event = scluster.110 }
+		# reload_graphical_map # Is there a way to do this from script instead of the console?
+		# space monster respawn: galactic_features.362
+		# tiyanki respawn: galactic_features.365
+	}
+}
+
+### Send alert messages for new wormhole systems
+# owners (scluster_country), sensors (medium system intel can see them, low can't), community
+system_event = {
+	id = scluster.110
+	hide_window = yes
+
+	# title = fallen_empires_awakening.2.name
+	# desc = fallen_empires_awakening.2.desc
+	# picture = GFX_evt_wormhole
+	# show_sound = event_mystic_reveal #
+	# location = event_target:scluster_0
+
+	is_triggered_only = yes
+	trigger = { has_star_flag = scluster_entrance }
+
+	immediate = {
+		# print_scope_effect = yes
+		every_playable_country = {
+			limit = {
+				# is_ai = no
+				intel_level = { level > low system = prev }
+			}
+			change_variable = { value = 1 which = scluster_wormholes_seen }
+			create_message = {
+				type = SCLUSTER_NEW_WORMHOLE
+				localization = SCLUSTER_NEW_WORMHOLE_MESSAGE
+				days = 30
+				target = root # the Go To
+				variable = {
+					type = name
+					localization = SYSTEM
+					scope = prev
+				}
+				# variable = {
+				# 	type = name
+				# 	localization = WORMHOLE
+				# 	scope =
+				# }
+			}
+			# Make AI send ship to explore somehow?
+			if = {
+				limit = { is_ai = yes }
+				every_controlled_fleet = {
+					limit = {
+						is_ship_class = shipclass_science_ship
+						OR = {
+							is_fleet_idle = yes
+							has_fleet_order = assist_research_order
+							has_fleet_order = auto_explore_order
+							has_fleet_order = survey_planet_order
+							has_fleet_order = orbit_planet_order
+						}
+					}
+					set_fleet_stance = evasive
+					clear_orders = yes
+					# fleet_event = { id = scluster.200 }
+				}
+			}
+		}
+	}
+}
+
+### Alert event
+# New wormholes
+# New cluster
+country_event = {
+	id = scluster.115
+	title = "scluster.115.name"
+	# this.scluster_wormholes_owned
+	# this.scluster_wormholes_seen
+	# global_event_country.scluster_wormholes_seen_galcom
+	desc = "scluster.115.desc"
+	# Galcom report
+	# desc = {
+		# text = scluster.115.desc.galcom
+		# trigger = {
+		# 	check_variable = {
+		# 		which = scluster_wormholes_owned
+		# 		value = 1
+		# 	}
+		# 	check_variable = {
+		# 		which = scluster_wormholes_seen
+		# 		value = 1
+		# 	}
+		# 	is_galactic_community_member = yes
+		# 	event_target:global_event_country = {
+		# 		is_variable_set = scluster_wormholes_seen_galcom
+		# 	}
+		# }
+	# }
+	desc = {
+		text = "scluster.115.desc.galcom"
+		trigger = {
+			# check_variable = {
+			# 	which = scluster_wormholes_seen
+			# 	value = 0
+			# }
+			is_galactic_community_member = yes
+			event_target:global_event_country = {
+				is_variable_set = scluster_wormholes_seen_galcom
+			}
+		}
+	}
+	picture = GFX_evt_star_chart # GFX_evt_wormhole GFX_evt_physics_research GFX_evt_
+	show_sound = event_mystic_reveal
+	location = event_target:scluster_0
+
+	is_triggered_only = yes
+	# trigger = { }
+
+	immediate = {
+		# if = {
+		# 	limit = {
+		# 		check_variable = {
+		# 			which = scluster_wormholes_owned
+		# 			value > 0
+		# 		}
+		# 	}
+		# 	capital_scope = {
+		# 		closest_system = {
+		# 			limit = {
+		# 				has_star_flag = scluster_entrance
+		# 				exists = owner
+		# 				is_owned_by = prev.owner
+		# 			}
+		# 			# use_bypasses = yes
+		# 			system_event = { id = scluster.116 }
+		# 		}
+		# 	}
+		# }
+		# else_if = {
+		# 	limit = {
+		# 		check_variable = {
+		# 			which = scluster_wormholes_seen
+		# 			value > 0
+		# 		}
+		# 	}
+		# 	capital_scope = {
+		# 		closest_system = {
+		# 			limit = {
+		# 				has_star_flag = scluster_entrance
+		# 				exists = owner
+		# 				prev.owner = {
+		# 					intel_level = { level > low system = prev }
+		# 				}
+		# 			}
+		# 			# use_bypasses = yes
+		# 			system_event = { id = scluster.116 }
+		# 		}
+		# 	}
+		# }
+		# else = { country_event = { id = scluster.117 } }
+	}
+
+	option = {
+		name = "scluster.115.a"
+		custom_tooltip = "scluster.115.a.tooltip"
+		# Progress in wormhole stabilization if not already researched?
+		# tech_hyper_drive_2 -> tech_wormhole_stabilization
+		# sensors?
+		owner = {
+			# hidden_effect = {
+				# if = {
+				# 	limit = { is_variable_set = scluster_wormholes_owned }
+				# 	change_variable = {
+				# 		which = scluster_wormholes_seen
+				# 		value = scluster_wormholes_owned
+				# 	}
+				# }
+				# multiply_variable = {
+				# 	which = scluster_wormholes_seen
+				# 	value = 0.05
+				# }
+				# if = {
+				# 	limit = {
+				# 		is_galactic_community_member = yes
+				# 		event_target:global_event_country = {
+				# 			is_variable_set = scluster_wormholes_seen_galcom
+				# 			check_variable = {
+				# 				value > 0
+				# 				which = scluster_wormholes_seen_galcom
+				# 			}
+				# 		}
+				# 	}
+				# 	change_variable = {
+				# 		which = scluster_wormholes_seen
+				# 		value = 0.1
+				# 	}
+				# }
+			# }
+			if = {
+				limit = { NOT = { has_country_flag = encountered_first_wormhole } }
+				set_country_flag = encountered_first_wormhole
+				add_seen_bypass_type = wormhole
+			}
+			add_tech_option_or_research_effect = {
+				TECH = tech_wormhole_stabilization
+				PROGRESS = 0.2 # owner.scluster_wormholes_seen
+				CATEGORY = physics_research
+			}
+		}
+	}
+
+	# after = {
+	# 	hidden_effect = {
+	# 		clear_variable = scluster_wormholes_seen
+	# 	}
+	# }
+}
+# No wormholes detected
+country_event = {
+	id = scluster.120
+	title = "scluster.120.name"
+	# this.scluster_wormholes_owned
+	# this.scluster_wormholes_seen
+	# global_event_country.scluster_wormholes_seen_galcom
+	desc = "scluster.120.desc"
+	picture = GFX_evt_star_chart # GFX_evt_wormhole GFX_evt_physics_research GFX_evt_
+	show_sound = event_mystic_reveal
+	location = event_target:scluster_0
+
+	is_triggered_only = yes
+	# trigger = { }
+
+	immediate = {}
+
+	option = {
+		name = "scluster.120.a"
+	}
+}
+
+# wormhole emergence
+system_event = {
+	id = scluster.150
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		# 70% chance of nomads, even if megacorp
+		# Voyager if Sol
+		# anomaly.95
+	}
+}
+
+# The Storm Ends
+country_event = {
+	id = scluster.403 # galactic_features.403
+	hide_window = yes
+
+	is_triggered_only = yes
+
+	immediate = {
+		remove_global_flag = ongoing_space_storm
+		set_timed_global_flag = { flag = space_storm_cooldown years = 20 }
+		every_system = {
+			limit = {
+				has_star_flag = storm_system
+				NOR = { # Added, just in case
+					has_star_flag = scluster
+					has_star_flag = scluster_entrance
+				}
+			}
+			random_system_ambient_object = {
+				limit = { has_ambient_object_flag = space_storm_object }
+				destroy_ambient_object = this
+			}
+			remove_star_flag = storm_system
+			remove_modifier = space_storm
+		}
+		if = {
+			limit = { is_galactic_community_formed = yes }
+			every_playable_country = {
+				limit = { is_ai = no }
+				country_event = { id = galactic_features.406 }
+			}
+		}
+		else = {
+			every_playable_country = {
+				limit = { is_ai = no }
+				country_event = { id = galactic_features.404 }
+			}
+		}
+	}
+}
+
+# ================================= TODO / WIP ================================= #
+
+### TODO: Force AI empires to explore wormholes they don't own
+# clear_orders = yes
+# clear_fleet_actions = <target> # Clears all queued fleet actions for target fleet
+# queue_actions = { repeat = { <fleet_actions> } } # Adds actions to the scoped fleet's action queue
+# set_fleet_stance = evasive
+
+### Force AI to explore wormholes it doesn't own
+# Within claim distance (3 jumps) of border
+# Owned by an ally
+country_event = {
+	id = scluster.200
+	hide_window = yes
+
+	is_triggered_only = yes # pulse
+	trigger = {
+		has_global_flag = scluster_in_progress
+		is_ai = yes
+		is_country_type = default
+		has_technology = tech_wormhole_stabilization
+		has_seen_any_bypass = wormhole # Checks the scoped country has ever encountered a bypass of a given type before
+		any_system = {
+			has_star_flag = scluster_entrance
+			# prev = { has_seen_specific_bypass = root }
+			has_access_fleet = root # Checks if the target country is allowed to enter the system
+			exists = owner
+			owner = {
+				# NOT = { has_closed_borders = root }
+				OR = {
+					is_in_federation_with = root
+					has_subject = root
+					has_overlord = root
+				}
+			}
+		}
+		# no science ship has the explore wormhole order, hasn't entered the scluster yet
+		# any science ship is idling, assisting research, or auto-surveying outside the scluster
+		# any_controlled_ship = {
+		# 	has_fleet_order = survey_planet_order
+		# }
+		# survey_planet_order
+		# evade_hostiles_order
+		# assist_research_order
+		# auto_explore_order
+		# explore_bypass_order, use_bypass_order
+		# jumpdrive_order, jumpdrive_windup, experimental_subspace_navigation_fleet_order
+		# excavate_archaeological_site_fleet_order
+	}
+
+	immediate = {
+		# if any nearby accessible system you don't own has an scluster wormhole, assign your nearest science ship to explore it
+		random_controlled_fleet = {
+			limit = {
+				is_ship_class = shipclass_science_ship
+				OR = {
+					is_fleet_idle = yes
+					has_fleet_order = assist_research_order
+					has_fleet_order = auto_explore_order
+				}
+				# can_access_system = prevprev
+			}
+			# weights = {}
+			set_fleet_stance = evasive
+			clear_orders = yes # Clears all fleet orders from the scoped fleet
+			# queue_actions = { repeat = { <fleet actions> } } # Adds actions to the scoped fleet's action queue
+			clear_fleet_actions = this # Clears all queued fleet actions for target fleet
+
+			# queue_actions = {
+			# 	find_closest_system = {
+			# 		trigger = {
+			# 			# id
+			# 			has_natural_wormhole = yes
+			# 		}
+			# 		found_planet = {
+			# 			move_to = this
+			# 			# orbit_planet = this
+			# 			explore_bypass = this
+			# 		}
+			# 	}
+			# 	add_seen_bypass = from
+			# }
+			# closest_system = {
+			# 	limit = {
+			# 		has_star_flag = scluster_entrance
+			# 		prev.controller = {
+			# 			intel_level = { level > low system = prev }
+			# 		}
+			# 	}
+			# 	max_steps = 15
+			# }
+		}
+	}
+}
+
+# ### Tiyanki back from extinction
+# # Tiyanki Extinct
+# country_event = {
+	# id = scluster.369
+	# hide_window = yes
+
+	# is_triggered_only = yes
+
+	# trigger = {
+	# 	has_global_flag = tiyanki_extinct
+	# 	is_country_type = tiyanki
+	# 	OR = {
+	# 		num_ships > 0
+	# 		any_country = {
+	# 			is_country_type = tiyanki_garrison
+	# 			num_ships > 0
+	# 		}
+	# 	}
+	# }
+
+	# immediate = {
+	# 	remove_global_flag = tiyanki_extinct
+	# 	# from = { save_event_target_as = tiyanki_killer }
+	# 	# fromfrom = { save_event_target_as = tiyanki_system }
+	# 	every_playable_country = {
+	# 		limit = {
+	# 			is_ai = no
+	# 			has_communications = from
+	# 			intel_level = {
+	# 				level > none
+	# 				system = event_target:tiyanki_system
+	# 			}
+	# 		}
+	# 		country_event = { id = scluster.370 }
+	# 	}
+	# }
+# }
+# # Tiyanki no longer Extinct - Informed
+# country_event = {
+	# id = scluster.370
+	# title = "galactic_features.370.name"
+	# desc = {
+	# 	trigger = {
+	# 		NOR = {
+	# 			any_system = { has_star_flag = elderly_tiyanki_system }
+	# 			exists = event_target:elderly_tiyanki_fleet
+	# 			exists = event_target:elderly_tiyanki_country
+	# 		}
+	# 	}
+	# 	text = "galactic_features.370.a.desc"
+	# }
+	# desc = {
+	# 	trigger = {
+	# 		any_system = { has_star_flag = elderly_tiyanki_system }
+	# 		exists = event_target:elderly_tiyanki_fleet
+	# 		exists = event_target:elderly_tiyanki_country
+	# 	}
+	# 	text = "galactic_features.370.b.desc"
+	# }
+	# picture = GFX_evt_tiyanki_family
+	# show_sound = evn_ove_tiyanki_family
+
+	# is_triggered_only = yes
+
+	# immediate = {
+	# 	if = {
+	# 		limit = {
+	# 			event_target:tiyanki_killer = { is_country_type = default }
+	# 			any_country = {
+	# 				OR = {
+	# 					is_country_type = fallen_empire
+	# 					is_country_type = awakened_fallen_empire
+	# 				}
+	# 				has_country_flag = fallen_empire_3
+	# 			}
+	# 		}
+	# 		random_country = {
+	# 			limit = {
+	# 				OR = {
+	# 					is_country_type = fallen_empire
+	# 					is_country_type = awakened_fallen_empire
+	# 				}
+	# 				has_country_flag = fallen_empire_3
+	# 			}
+	# 			save_event_target_as = upset_elders
+	# 			event_target:tiyanki_killer = {
+	# 				country_event = { id = galactic_features.371 days = 20 }
+	# 			}
+	# 		}
+	# 	}
+	# 	if = {
+	# 		limit = {
+	# 			NOT = { is_active_resolution = "resolution_tiyanki_pest_control" }
+	# 		}
+	# 		every_country = {
+	# 			limit = {
+	# 				is_country_type = default
+	# 				has_communications = root
+	# 				has_ethic = "ethic_xenophile"
+	# 			}
+	# 			add_opinion_modifier = {
+	# 				who = root
+	# 				modifier = opinion_killed_all_tiyanki_1
+	# 			}
+	# 		}
+	# 		every_country = {
+	# 			limit = {
+	# 				is_country_type = default
+	# 				has_communications = root
+	# 				has_ethic = "ethic_fanatic_xenophile"
+	# 			}
+	# 			add_opinion_modifier = {
+	# 				who = root
+	# 				modifier = opinion_killed_all_tiyanki_2
+	# 			}
+	# 		}
+	# 	}
+	# }
+
+	# option = {
+	# 	name = galactic_features.367.a
+	# 	trigger = {
+	# 		is_same_value = event_target:tiyanki_killer
+	# 	}
+	# }
+	# option = {
+	# 	name = galactic_features.367.b
+	# 	trigger = {
+	# 		NOT = { is_same_value = event_target:tiyanki_killer }
+	# 		OR = {
+	# 			values_others = yes # is_xenophile = yes
+	# 			AND = {
+	# 				is_xenophobe = no
+	# 				has_valid_civic = civic_environmentalist
+	# 			}
+	# 		}
+	# 	}
+	# }
+	# option = {
+	# 	name = galactic_features.367.c
+	# 	trigger = {
+	# 		NOT = { is_same_value = event_target:tiyanki_killer }
+	# 		is_xenophobe = yes
+	# 	}
+	# }
+	# option = {
+	# 	name = UNFORTUNATE
+	# 	trigger = {
+	# 		NOR = { is_same_value = event_target:tiyanki_killer }
+	# 		# OR = {
+	# 			is_xenophobe = no
+	# 		# 	has_valid_civic = civic_environmentalist
+	# 		# }
+	# 		values_others = no # is_xenophile = no
+	# 	}
+	# }
+# }
+# # Tiyanki Extinct - Fallen Empire Reaction
+# country_event = {
+	# id = galactic_features.371
+	# title = TRANSMISSION
+	# desc = "galactic_features.371.desc"
+
+	# diplomatic = yes
+
+	# is_triggered_only = yes
+
+	# picture_event_data = {
+	# 	portrait = event_target:upset_elders
+	# 	planet_background = event_target:upset_elders
+	# 	graphical_culture = event_target:upset_elders
+	# 	city_level = event_target:upset_elders
+	# 	room = event_target:upset_elders
+	# }
+
+	# immediate = {
+	# 	if = {
+	# 		limit = {
+	# 			NOT = { has_communications = event_target:upset_elders }
+	# 		}
+	# 		establish_communications_no_message = event_target:upset_elders
+	# 	}
+	# 	event_target:upset_elders = {
+	# 		add_opinion_modifier = {
+	# 			who = root
+	# 			modifier = opinion_killed_all_tiyanki_3
+	# 		}
+	# 	}
+	# }
+
+	# option = {
+	# 	name = galactic_features.371.a
+	# 	trigger = {
+	# 		is_xenophile = yes
+	# 	}
+	# }
+	# option = {
+	# 	name = galactic_features.371.b
+	# 	trigger = {
+	# 		is_xenophobe = yes
+	# 	}
+	# }
+	# option = {
+	# 	name = galactic_features.371.c
+	# 	trigger = {
+	# 		is_xenophobe = no
+	# 		is_xenophile = no
+	# 	}
+	# }
+# }
+
+
+# galactic_features.365 # tiyanki respan event (
+
+# remove_global_flag = tiyanki_home_cleared # NOT = { has_global_flag = tiyanki_home_cleared }
+# save_global_event_target = tiyanki_spawn_system # exists = event_target:tiyanki_spawn_system
+# any_country = { is_tiyanki_country_type = yes }
+# event_target:tiyanki_spawn_system = {
+# 	random_system_planet = {
+# 		limit = {
+# 			OR = {
+# 				has_planet_flag = tiyanki_giant1
+# 				has_planet_flag = tiyanki_giant2
+# 				has_planet_flag = tiyanki_giant3
+# 				has_planet_flag = tiyanki_giant4
+# 			}
+# 		}
+# 	}
+# }
+
+
+# Create Nomads
+# country_event = {
+# 	id = scluster.151
+# 	hide_window = yes # DEBUG TO NO TO SEE WHERE THE NOMADS SPAWN
+# 	location = event_target:nomad_spawn
+# 	is_triggered_only = yes
+
+# 	trigger = {
+# 		# has_megacorp = no # nomads can't compete with caravaneers
+# 		NOR = {
+# 			exists = event_target:nomad01_country
+# 			exists = event_target:base_namarian
+# 		}
+# 		# Need to also block if nomads haven't spawned yet
+# 	}
+
+# 	immediate = {
+# 		random_rim_system = {
+# 			limit = {
+# 				has_star_flag = scluster_terminal # Added
+# 				NOR = {
+# 					any_playable_country = {
+# 						intel_level = {
+# 							level > low
+# 							system = prev
+# 						}
+# 					}
+# 					has_star_flag = hostile_system
+# 				}
+# 			}
+# 			# Pick midpoint
+# 			random_system = {
+# 				limit = {
+# 					NOR = {
+# 						has_star_flag = hostile_system
+# 						has_star_flag = scluster # Added
+# 					}
+# 					distance = {
+# 						source = prev
+# 						min_distance >= 250 #5
+# 						max_distance <= 500 #50
+# 					}
+# 					any_neighbor_system = { # Added
+# 						NOT = { has_star_flag = hostile_system }
+# 					}
+# 				}
+# 				set_star_flag = nomad_mid_point
+# 			}
+# 			if = {
+# 				limit = {
+# 					NOT = {
+# 						any_system = {
+# 							has_star_flag = nomad_mid_point
+# 						}
+# 					}
+# 				}
+# 				random_system = {
+# 					limit = {
+# 						distance = {
+# 							source = prev
+# 							min_distance >= 150
+# 							max_distance <= 500
+# 						}
+# 						NOT = { has_star_flag = scluster } # Added
+# 					}
+# 					set_star_flag = nomad_mid_point
+# 				}
+# 			}
+# 			# Pick endpoint
+# 			random_rim_system = {
+# 				limit = {
+# 					distance = {
+# 						source = prev
+# 						min_distance >= 400 #50
+# 						#Distance trigger distances are squared and stored in CFixedPoint which will overflow at values larger than +-2^31/1000 ~= +-2147483
+# 						#Largest value for a distance trigger distance is therefore sqrt(2147483) ~= +-1465
+# 						max_distance <= 1450 #9999 #100
+# 					}
+# 					any_neighbor_system = { # Added
+# 						NOT = { has_star_flag = hostile_system }
+# 					}
+# 					NOT = { has_star_flag = scluster } # Added
+# 				}
+# 				set_star_flag = nomad_end_point
+# 			}
+# 			if = {
+# 				limit = {
+# 					NOT = {
+# 						any_system = {
+# 							has_star_flag = nomad_end_point
+# 						}
+# 					}
+# 				}
+# 				random_rim_system = {
+# 					limit = {
+# 						distance = {
+# 							source = prev
+# 							min_distance >= 250
+# 							#Distance trigger distances are squared and stored in CFixedPoint which will overflow at values larger than +-2^31/1000 ~= +-2147483
+# 							#Largest value for a distance trigger distance is therefore sqrt(2147483) ~= +-1465
+# 							max_distance <= 1450 #9999
+# 						}
+# 						NOT = { has_star_flag = scluster } # Added
+# 					}
+# 					set_star_flag = nomad_end_point
+# 				}
+# 			}
+# 			create_species = {
+# 				name = NAME_Namarian
+# 				plural = "NAME_Namarian_plural"
+# 				adjective = "NAME_Namarian"
+# 				class = AVI
+# 				portrait = random
+# 				traits = {
+# 					trait = "trait_nomadic"
+# 					trait = "trait_venerable"
+# 					trait = "trait_natural_engineers"
+# 					trait = "trait_pc_desert_preference"
+# 				}
+# 				immortal = yes # Don't like this
+# 			}
+# 			last_created_species = {
+# 				save_global_event_target_as = base_namarian
+# 			}
+# 			create_country = {
+# 				name = "NAME_Galactic_Nomads"
+# 				type = nomad
+# 				species = last_created_species
+# 				flag = {
+# 					icon = {
+# 						category = "spherical"
+# 						file = "flag_spherical_8.dds"
+# 					}
+# 					background= {
+# 						category = "backgrounds"
+# 						file = "circle.dds"
+# 					}
+# 					colors={
+# 						"purple"
+# 						"indigo"
+# 						"null"
+# 						"null"
+# 					}
+# 				}
+# 			}
+# 			last_created_country = {
+# 				set_country_flag = nomad01_country_flag
+# 				save_global_event_target_as = nomad01_country
+# 				add_modifier = {
+# 					modifier = nomad_strength # "Galactic Nomads" ship_weapon_damage = 1.25, ship_hull_mult = 1.25
+# 					days = -1
+# 					# mult = crisis_strength_factor # Add?
+# 				}
+# 				# Pacify space critters?
+# 				# Give better tech?
+# 				give_technology = {
+# 					tech = tech_wormhole_stabilization # Just in case
+# 				}
+# 			}
+# 			random_system_planet = { # TODO: Wants to start at the wormhole
+# 				set_planet_flag = nomad_starting_point
+# 				save_event_target_as = nomad_spawn
+# 			}
+# 			event_target:nomad01_country = {
+# 				create_leader = {
+# 					class = admiral
+# 					species = owner_main_species
+# 					name = random
+# 					skill = 3 # 2
+# 				}
+# 				create_fleet = {
+# 					name = "NAME_Nomadic_Armada"
+# 					effect = {
+# 						set_owner = prev
+# 						set_fleet_flag = nomad_main_fleet
+# 						set_fleet_stance = passive
+# 						set_aggro_range_measure_from = self
+# 						set_aggro_range = 50
+# 						#while = {
+# 						#	count = 15
+# 						#	create_ship = {
+# 						#		name = "NAME_Defender"
+# 						#		design = NAME_Defender
+# 						#	}
+# 						#}
+# 						while = {
+# 							#count = 6
+# 							count = 20
+# 							create_ship = {
+# 								name = "NAME_Protector"
+# 								design = NAME_Protector
+# 							}
+# 						}
+# 						create_ship = {
+# 							name = "NAME_Home_One"
+# 							design = NAME_Diaspora
+# 						}
+# 						create_ship = {
+# 							name = "NAME_Home_Two"
+# 							design = NAME_Diaspora
+# 						}
+# 						create_ship = {
+# 							name = "NAME_Home_Three"
+# 							design = NAME_Diaspora
+# 						}
+# 						#create_ship = {
+# 						#	name = "NAME_Home_Four" # No loc
+# 						#	design = Diaspora
+# 						#}
+# 						#create_ship = {
+# 						#	name = "NAME_Home_Five" # No loc
+# 						#	design = Diaspora
+# 						#}
+# 						assign_leader = last_created_leader
+# 						set_location = event_target:nomad_spawn
+# 						set_fleet_flag = nomad_fleet
+# 						set_formation_scale = 1.6
+# 						fleet_event = { id = nomad.2 days = 1 } #Nomads fly towards current destination
+# 						save_event_target_as = CustomCapital
+# 					}
+# 				}
+# 			}
+# 		}
+# 	}
+# }

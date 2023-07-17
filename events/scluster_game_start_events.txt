@@ -1,0 +1,95 @@
+# Filename:		scluster_game_start_events.txt
+# Contributors:	SirBlackAxe
+
+namespace = scluster_game_start
+
+event = {
+	id = scluster_game_start.1
+	is_triggered_only = yes
+	hide_window = yes
+
+	trigger = {}
+
+	immediate = {
+		set_global_flag = scluster_installed	# required for the Mod Jam mod to detect your submission
+		set_global_flag = scluster_allowed		# required for spawning
+	# Set missing star flags
+		# I'm not sure what the least computationally-expensive way to check system fingerprints is. Should I check every_system exactly once, or should I do many random_system checks?
+
+	}
+}
+
+# In case mod is installed after game is started, ask player if they want to enable it.
+
+event = {
+	id = scluster_game_start.2
+	is_triggered_only = yes # on single player save load
+	hide_window = yes
+	fire_only_once = yes
+
+	trigger = {
+		NOT = {
+			has_global_flag = scluster_installed
+			# has_global_flag = lode_runner_installed # MODJAM manager made the whole event near pointless
+			# has_global_flag = scluster_allowed
+			# has_global_flag = scluster_in_progress
+			# has_global_flag = scluster_fired
+		}
+	}
+
+	immediate = {
+		set_global_flag = scluster_installed
+		random_playable_country = {
+			limit = { is_ai = no }
+			country_event = { id = scluster_game_start.3 }
+		}
+	}
+}
+country_event = {
+	id = scluster_game_start.3
+	title = scluster_installed_after_game_start
+	desc = scluster_installed_after_game_start_desc
+	diplomatic = yes
+	picture_event_data = {
+		portrait = root.owner_main_species
+		room = enclave_curator_room
+	}
+	is_triggered_only = yes # by scluster_game_start.2
+	force_open = yes
+
+	option = {	# The Storm Cluster enabled
+		trigger = {
+			has_global_flag = scluster_installed
+			has_global_flag = scluster_allowed
+		}
+		name = scluster_allowed
+		remove_global_flag = scluster_allowed
+		country_event = {
+			id = scluster_game_start.3
+			scopes = {
+				from = from
+				fromfrom = fromfrom
+			}
+		}
+		custom_tooltip = scluster_tooltip
+	}
+	option = {	# The Storm Cluster disabled
+		trigger = {
+			has_global_flag = scluster_installed
+			NOT = { has_global_flag = scluster_allowed }
+		}
+		name = scluster_disabled
+		set_global_flag = scluster_allowed
+		country_event = {
+			id = scluster_game_start.3
+			scopes = {
+				from = from
+				fromfrom = fromfrom
+			}
+		}
+		custom_tooltip = scluster_tooltip
+	}
+	option = {
+		name = CONFIRM
+	}
+}
