@@ -1,0 +1,143 @@
+# Use in war scope. War is deleted.
+# Prev = war_participant
+# Vanilla Fix: don't break the loop
+end_war_effect = {
+	# every_war_participant = {
+	if = { # Is defenders
+		# Because strange log behavior
+		limit = {
+			# years_passed > 1 # Try to omit error.log
+			exists = this
+			is_scope_valid = yes
+			is_scope_type = war
+			# count_attacker = { count > 0 throws already error
+			exists = prev
+			prev = { is_scope_valid = yes is_scope_type = country }
+			any_attacker = { always = yes }
+			any_defender = { always = yes }
+		}
+		# Try to omit error.log
+		every_defender = {
+			limit = {
+				is_war_participant = { war = prev side = defenders } # Because strange log behavior
+			}
+			prev = { remove_war_participant = prev }
+		}
+
+		if = {
+			limit = { # Check again all after remove_war_participant.
+				exists = this
+				is_scope_valid = yes
+				is_scope_type = war
+				any_attacker = { always = yes }
+				# count_war_participants = {
+				# 	count > 0
+				# 	# limit = { }
+				# 	side = prev
+				# }
+				# prev = { is_war_participant = { who = prev side = prevprev } }
+			}
+			every_attacker = {
+				limit = {
+					# NOT = { is_same_empire = prevprev }
+					# NOT = { is_war_participant = { war = prev side = prevprev } }
+					is_war_participant = { war = prev side = attackers } # Because strange log behavior
+				}
+				prev = { remove_war_participant = prev }
+			}
+			# remove_war_participant = prev
+		}
+	}
+}
+
+# Make some factions neutral (not everything should be hostile to non crisis factions)
+# Scope = country (hostile)
+make_moderately_hostile = {
+	set_country_flag = first_alien_life
+	set_country_flag = has_encountered_other_empire
+	every_country = {
+		limit = {
+			merg_is_default_empire = no
+			OR = {
+				# merg_is_fallen_empire = yes # is_fallen_empire = yes
+				is_country_type = enclave
+				is_country_type = enclave_mercenary
+				is_country_type = caravaneer_home
+				is_country_type = caravaneer_fleet
+				is_country_type = guardian_sphere
+				is_country_type = marauder_raiders
+				is_country_type = ratlings
+				is_country_type = ldragon_country
+				is_tiyanki_country_type = yes
+				is_amoeba_country_type = yes
+				is_crystal_country_type = yes
+				is_drone_country_type = yes
+				is_country_type = vluur
+				is_primitive = yes
+			}
+			OR = {
+				is_hostile = prev
+				prev = { is_hostile = prev }
+				# prev = { NOT = { is_neutral_to = prev } }
+			}
+			# prev = { NOR = { is_friendly_to = prev is_neutral_to = prev } }
+		}
+		establish_communications_no_message = prev
+		prev = {
+			set_faction_hostility = {
+				target = prev
+				set_hostile = no
+				set_neutral = yes
+				# set_friendly = no
+			}
+		}
+	}
+}
+
+### Marauders ###
+create_marauder_starbase = {
+	optimize_memory
+	create_starbase = {
+		size = "starbase_marauder"
+		owner = event_target:marauder_starbase_owner
+	}
+}
+
+create_marauder_merc_admiral = {
+	create_leader = {
+		class = admiral
+		species = event_target:marauder_species
+		name = random
+		event_leader = yes
+		skill = 3
+		leader_age_min = 25
+		leader_age_max = 45
+		traits = {
+			0 = leader_trait_mercenary_warrior
+		}
+		background_ethic = "ethic_militarist"
+		skip_background_generation = yes
+		custom_description = "custom_mercenary_admiral_desc"
+	}
+	last_created_leader = {
+		set_leader_flag = marauder_merc_leader
+	}
+}
+
+create_marauder_general = {
+	create_leader = {
+		class = general
+		species = event_target:marauder_species
+		name = random
+		event_leader = yes
+		skill = 3
+		leader_age_min = 25
+		leader_age_max = 45
+		traits = {
+			0 = leader_trait_mercenary_warrior
+		}
+		background_ethic = "ethic_militarist"
+		skip_background_generation = yes
+		custom_description = "custom_mercenary_admiral_desc"
+	}
+}

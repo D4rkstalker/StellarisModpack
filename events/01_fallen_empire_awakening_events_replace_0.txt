@@ -1,0 +1,139 @@
+namespace = fallen_empires_awakening
+
+###################################################
+###################################################
+#####										 #####
+#####	Awakening Events of Fallen Empire	#####
+#####										 #####
+#####	Replaced by Crisis Manager		   #####
+#####	Re-overwrite End-Game Edition		#####
+#####										 #####
+###################################################
+###################################################
+
+# Sleepers Awake (MTTH removed)
+country_event = {
+	id = fallen_empires_awakening.1
+	hide_window = yes
+	is_triggered_only = yes
+	trigger = { CmtTriggerIsOrganicSleeper = yes }
+	# mean_time_to_happen = {
+	# 	years = 50
+	# 	modifier = {
+	# 		factor = 0.5
+	# 		any_playable_country = { fleet_power > 120000 }
+	# 	}
+	# 	modifier = { factor = 1.5 num_fallen_empires > 1 num_fallen_empires < 3 }
+	# 	modifier = { factor = 2 num_fallen_empires > 2 num_fallen_empires < 4 }
+	# 	modifier = { factor = 2.5 num_fallen_empires > 3 }
+	# 	modifier = {
+	# 		factor = 0.1
+	# 		any_playable_country = {
+	# 			any_owned_planet = {
+	# 				has_planet_flag = fallen_empire_world
+	# 				NOT = { is_original_owner = root }
+	# 			}
+	# 		}
+	# 	}
+	# 	modifier = {
+	# 		factor = 0.01
+	# 		has_global_flag = high_awaken_chance			# Ascended Spiritualist awakening does this.
+	# 	}
+	# }
+	immediate = {
+		set_global_flag = sleepers_awake_happened
+		country_event = { id = fallen_empires_awakening.3 }		### Do this process at FIRST
+		every_playable_country = {
+			limit = { is_ai = no }
+			country_event = { id = fallen_empires_awakening.2 }
+		}
+		observer_event = { id = observer.73 }
+
+		### Declare War because of fragged Holy World
+		if = {
+			limit = {
+				has_country_flag = holy_world_killed
+				NOT = { event_target:CmtGlobalVar = { check_variable = { which = CmtVarSleeperHolyClacker value = 1 } } }
+			}
+			country_event = { id = planet_destruction.611 days = 5 }
+		}
+
+		### War in Heaven
+		if = {
+			limit = {
+				has_leviathans = yes
+				NOR = {
+					has_global_flag = CmtFlagWarInHeavenTriggered
+					AND = { ## Triggered manually
+						exists = event_target:CmtTargetManualSleeperA
+						exists = event_target:CmtTargetManualSleeperB
+					}
+				}
+			}
+			CmtEffectSelectAncientRival = yes
+		} else = { set_global_flag = no_war_in_heaven }
+	}
+}
+
+### Awakening of Sleeper
+country_event = {
+	id = fallen_empires_awakening.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		### Flag/Target Control for War in Heaven
+		if = {
+			limit = {
+				NOR = {
+					has_country_flag = guardians_of_the_galaxy
+					has_global_flag = CmtFlagWarInHeavenTriggered
+				}
+			}
+			if = {
+				limit = { exists = event_target:CmtTargetFirstSleeper }
+				clear_global_event_target = CmtTargetFirstSleeper
+			}
+			every_country = {
+				limit = { has_country_flag = sleepers_awake_first_sleeper }
+				remove_country_flag = sleepers_awake_first_sleeper
+			}
+			save_global_event_target_as = CmtTargetFirstSleeper
+		} else = {
+			set_timed_global_flag = { flag = war_in_heaven_debug days = @CmtConstHeavenPreludeSpeed_2c }
+			set_timed_country_flag = { flag = ai_no_wars days = @CmtConstHeavenPreludeSpeed_4a }
+		}
+		set_country_flag = sleepers_awake_first_sleeper
+
+		### Change Government
+		set_country_type = awakened_fallen_empire
+		CmtEffectChangeAwakenerCivic = yes
+		add_awakened_fallen_empire_resources = yes
+
+		### Initial Reinforcements
+		if = {
+			limit = {
+				event_target:CmtGlobalVar = { check_variable = { which = CmtVarGuardianWornOut value = 3 } }
+				CmtTriggerCheckSleeperFleetPower = no
+			}
+			country_event = { id = fallen_empires.13 }
+		}
+		if = {
+			limit = { CmtTriggerCheckYoungsFleetPower = yes }
+			country_event = { id = fallen_empires.13 }
+		}
+		country_event = { id = fallen_empires.13 }
+		# legacy: add_awakened_fallen_empire_fleet = yes # also some more fleet
+
+		### Establish Communications
+		every_country = {
+			limit = {
+				is_default_or_fallen = yes
+				NOT = { has_communications = root }
+			}
+			establish_communications_no_message = root
+			root = { save_event_target_as = contact_empire }
+			country_event = { id = action.1 }
+		}
+	}
+}
