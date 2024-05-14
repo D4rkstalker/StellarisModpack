@@ -1,0 +1,1648 @@
+@resolution_weight_hated = 3
+@resolution_weight_disliked = 4
+@resolution_weight_unpopular = 5
+@resolution_weight_normal = 6
+@resolution_weight_popular = 6.5
+@resolution_weight_liked = 6.5
+@resolution_weight_loved = 7
+
+@resolution_cost_t1 = 100
+@resolution_cost_t2 = 150
+@resolution_cost_t3 = 200
+@resolution_cost_t4 = 250
+@resolution_cost_t5 = 300
+@resolution_cost_t6 = 500
+@resolution_cost_denounce = 25
+
+@resolution_flag_timer = 360
+
+
+# NEW - LEVEL 4 SANCTIONS
+
+#level 4 of tech, economic, military, administrative sanctions ("Absolute" sanctions)
+
+#would like to add a more "absolute" modifier to these "absolute" sanctions, e.g. make diplo weight from tech -> 0 for tech_4 (i'm not sure if this is doable since it may be that simply adding an enormous diploweight penalty (like how arrested development, pop controls, etc work) might actually make diploweight NEGATIVE, if some bug reports on the internet are to be believed. will need to test at some point)
+
+#ai weights have been drastically edited; they were backwards in the vanilla, and also didn't really include much consideration for who sanctions might hurt
+
+#hm, reducing/negating diplomatic-weight-from-envoys would be a cool administrative sanctions effect. i wonder if that's possible
+
+
+resolution_sanctions_tech_repeal_4 = {
+	icon = "GFX_repeal_blue"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_denounce			
+			#wil, note: intentionally easier to propose repeal than to propose enaction
+		}
+	}
+	target = no
+	sanction = yes
+	fire_and_forget = yes
+
+	effect = {
+		custom_tooltip = resolution_sanctions_tech_repeal_4_effect_success
+		hidden_effect = {
+			cancel_resolution = "resolution_sanctions_tech_4"
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_sanction_repeal_passed
+				years = 2.5
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_federations_dlc = yes
+		is_active_resolution = "resolution_sanctions_tech_4"
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_tech = 3
+		}
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_popular		#was unpopular
+		
+		#wil, note: weights completely reworked, in part to no longer be ultra-stupid -- previously was 0.25 OPPOSED by materialists not in breach, despite them being the most likely to be hurt by the sanctions at some future date
+		#other vanilla ones were 2 if in breach, 2 if fedallies in breach, 0.75 if rival in breach
+		
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {										
+			factor = 3
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+		modifier = {
+			factor = 0
+			has_global_flag = recent_sanction_repeal_passed
+			desc = recent_repeal_passed_eu
+		}
+
+		modifier = {
+			factor = 2
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			has_valid_civic = civic_cutthroat_politics			
+			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {										
+			factor = 3
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			OR = {
+				is_materialist = yes
+				has_valid_civic = civic_hive_natural_neural_network
+				has_valid_civic = civic_machine_introspective
+				has_valid_civic = civic_machine_predictive_analysis
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 2
+			OR = { 
+				is_materialist = yes
+				has_valid_civic = civic_hive_natural_neural_network
+				has_valid_civic = civic_machine_introspective
+				has_valid_civic = civic_machine_predictive_analysis
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 1.2
+			OR = { 
+				has_valid_civic = civic_technocracy
+				has_origin = origin_mechanists
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = civic_technocracy
+		}
+		
+		modifier = {
+			factor = 0.7
+			is_spiritualist = yes
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = ethic_spiritualist
+		}
+		
+		modifier = {
+			factor = 1.2
+			any_federation_ally = {
+				OR = {
+					is_materialist = yes
+					has_valid_civic = civic_hive_natural_neural_network
+					has_valid_civic = civic_machine_introspective
+					has_valid_civic = civic_machine_predictive_analysis
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 0.5
+			any_rival_country = {
+				OR = {
+					is_materialist = yes
+					has_valid_civic = civic_hive_natural_neural_network
+					has_valid_civic = civic_machine_introspective
+					has_valid_civic = civic_machine_predictive_analysis
+				}
+			}
+			NOR = {
+				is_materialist = yes
+				has_valid_civic = civic_hive_natural_neural_network
+				has_valid_civic = civic_machine_introspective
+				has_valid_civic = civic_machine_predictive_analysis
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+resolution_sanctions_tech_4 = {
+	icon = "GFX_sanctions_blue"
+	level = 4
+
+	potential = {
+		has_federations_dlc = yes
+		#is_active_resolution = "resolution_sanctions_tech_3"
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1			#wil, note: was @resolution_cost_denounce, deliberately increased it
+		}
+	}
+
+	target = no
+	sanction = yes
+
+	effect = {
+		custom_tooltip = sanctions_effect
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_galcom_sanctions_passed
+				years = 10
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = 	@resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_tech = 5
+			#resolution_sanctions_tech_absolute = 1
+			#wil, note: this will be an extra modifier that neutralizes tech diplomatic weight, for "absolute"-ness
+		}
+	}
+
+	allow = {
+		is_active_resolution = "resolution_sanctions_tech_3"
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_disliked
+		
+		#weights completely reworked, in part to no longer be ultra-stupid -- previously was 1.25 SUPPORTed by materialists, despite them being the most likely to be hurt by it
+		#other vanilla ones were 0 if in breach, 0.5 if fedallies in breach, 1.25 if rival in breach
+
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {
+			factor = 0.5
+			has_global_flag = recent_galcom_sanctions_passed
+			desc = gal_com_recent_sanction_passed
+		}
+
+		modifier = {										
+			factor = 0
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 4
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 3
+			has_valid_civic = civic_cutthroat_politics			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {
+			factor = 0.5
+			OR = { 
+				is_materialist = yes
+				has_valid_civic = civic_hive_natural_neural_network
+				has_valid_civic = civic_machine_introspective
+				has_valid_civic = civic_machine_predictive_analysis
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 0.8
+			OR = { 
+				has_valid_civic = civic_technocracy
+				has_origin = origin_mechanists
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = civic_technocracy
+		}
+		
+		modifier = {
+			factor = 2
+			is_spiritualist = yes
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = ethic_spiritualist
+		}
+		
+		modifier = {
+			factor = 0.8
+			any_federation_ally = {
+				OR = {
+					is_materialist = yes
+					has_valid_civic = civic_hive_natural_neural_network
+					has_valid_civic = civic_machine_introspective
+					has_valid_civic = civic_machine_predictive_analysis
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 2
+			any_rival_country = {
+				OR = {
+					is_materialist = yes
+					has_valid_civic = civic_hive_natural_neural_network
+					has_valid_civic = civic_machine_introspective
+					has_valid_civic = civic_machine_predictive_analysis
+				}
+			}
+			NOR = {
+				is_materialist = yes
+				has_valid_civic = civic_hive_natural_neural_network
+				has_valid_civic = civic_machine_introspective
+				has_valid_civic = civic_machine_predictive_analysis
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+
+resolution_sanctions_economic_repeal_4 = {
+	icon = "GFX_repeal_orange"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1
+		}
+	}
+	target = no
+	sanction = yes
+	fire_and_forget = yes
+	effect = {
+		custom_tooltip = resolution_sanctions_economic_repeal_4_effect_success
+		hidden_effect = {
+			cancel_resolution = "resolution_sanctions_economic_4"
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_sanction_repeal_passed
+				years = 2.5
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_federations_dlc = yes
+		is_active_resolution = "resolution_sanctions_economic_4"
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_economic = 3
+		}
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_popular	#was unpopular
+
+		#wil, note: weights completely reworked, in part to no longer be ultra-stupid -- previously was 0.25 OPPOSED by megacorps not in breach, despite them being the most likely to be hurt by the sanctions at some future date
+		#other vanilla ones were 2 if in breach, 2 if fedallies in breach, 0.75 if rival in breach
+		
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {										
+			factor = 4
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			has_global_flag = recent_sanction_repeal_passed
+			desc = recent_repeal_passed_eu
+		}
+
+		modifier = {
+			factor = 3
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			has_valid_civic = civic_cutthroat_politics			
+			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		
+		modifier = {
+			factor = 2
+			OR = { 
+				is_megacorp = yes
+				has_valid_civic = civic_corporate_dominion
+				has_valid_civic = civic_merchant_guilds
+				has_modifier = galactic_market_founder
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_civics
+		}
+		
+		modifier = {
+			factor = 0.7
+			OR = {
+				has_valid_civic = civic_agrarian_idyll
+				has_valid_civic = civic_inwards_perfection
+				has_valid_civic = civic_environmentalist
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_civics
+		}
+		
+		modifier = {
+			factor = 1.2
+			any_federation_ally = {
+				OR = { 
+					is_megacorp = yes
+					has_valid_civic = civic_corporate_dominion
+					has_valid_civic = civic_merchant_guilds
+					has_modifier = galactic_market_founder
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 0.5
+			any_rival_country = {
+				OR = { 
+					is_megacorp = yes
+					has_valid_civic = civic_corporate_dominion
+					has_valid_civic = civic_merchant_guilds
+					has_modifier = galactic_market_founder
+				}
+			}
+			NOR = { 
+				is_megacorp = yes
+				has_valid_civic = civic_corporate_dominion
+				has_valid_civic = civic_merchant_guilds
+				has_modifier = galactic_market_founder
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+resolution_sanctions_economic_4 = {
+	icon = "GFX_sanctions_orange"
+	level = 4
+
+	potential = {
+		has_federations_dlc = yes
+		#is_active_resolution = "resolution_sanctions_economic_3"
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t2			#wil, note: was @resolution_cost_denounce, deliberately increased it
+		}
+	}
+
+	target = no
+	sanction = yes
+
+	effect = {
+		custom_tooltip = sanctions_effect
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_galcom_sanctions_passed
+				years = 10
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_economic = 5
+			#resolution_sanctions_economic_absolute = 1
+			#wil, note: this will be an extra modifier that neutralizes economic diplomatic weight, for "absolute"-ness
+		}
+	}
+
+	allow = {
+		is_active_resolution = "resolution_sanctions_economic_3"
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_disliked
+		
+		#weights completely reworked, in part to no longer be ultra-stupid -- previously was 1.25 SUPPORTed by megacorps, despite them being the most likely to be hurt by it
+		#other vanilla ones were 0 if in breach, 0.5 if fedallies in breach, 1.25 if rival in breach
+
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {
+			factor = 0.5
+			has_global_flag = recent_galcom_sanctions_passed
+			desc = gal_com_recent_sanction_passed
+		}
+
+		modifier = {										
+			factor = 0
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 4
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 3
+			has_valid_civic = civic_cutthroat_politics			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {
+			factor = 0.4
+			OR = { 
+				is_megacorp = yes
+				has_valid_civic = civic_corporate_dominion
+				has_valid_civic = civic_merchant_guilds
+				has_modifier = galactic_market_founder
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_civics
+		}
+		
+		modifier = {
+			factor = 2
+			OR = {
+				has_valid_civic = civic_agrarian_idyll
+				has_valid_civic = civic_inwards_perfection
+				has_valid_civic = civic_environmentalist
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_civics
+		}
+		
+		modifier = {
+			factor = 0.8
+			any_federation_ally = {
+				OR = { 
+					is_megacorp = yes
+					has_valid_civic = civic_corporate_dominion
+					has_valid_civic = civic_merchant_guilds
+					has_modifier = galactic_market_founder
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 2
+			any_rival_country = {
+				OR = { 
+					is_megacorp = yes
+					has_valid_civic = civic_corporate_dominion
+					has_valid_civic = civic_merchant_guilds
+					has_modifier = galactic_market_founder
+				}
+			}
+			NOR = { 
+				is_megacorp = yes
+				has_valid_civic = civic_corporate_dominion
+				has_valid_civic = civic_merchant_guilds
+				has_modifier = galactic_market_founder
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+
+resolution_sanctions_military_repeal_4 = {
+	icon = "GFX_repeal_red"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1
+		}
+	}
+	target = no
+	sanction = yes
+	fire_and_forget = yes
+	effect = {
+		custom_tooltip = resolution_sanctions_military_repeal_4_effect_success
+		hidden_effect = {
+			cancel_resolution = "resolution_sanctions_military_4"
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_sanction_repeal_passed
+				years = 2.5
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_federations_dlc = yes
+		is_active_resolution = "resolution_sanctions_military_4"
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_military = 3
+		}
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_popular	#was unpopular
+
+		#wil, note: weights completely reworked, in part to no longer be ultra-stupid -- previously was 0.25 OPPOSED by militarists not in breach, despite them being the most likely to be hurt by the sanctions at some future date
+		#other vanilla ones were 2 if in breach, 2 if fedallies in breach, 0.75 if rival in breach, and 0.25 for pacifist, which did make sense at least
+		
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {										
+			factor = 4
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			has_global_flag = recent_sanction_repeal_passed
+			desc = recent_repeal_passed_eu
+		}
+
+		modifier = {
+			factor = 3
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			has_valid_civic = civic_cutthroat_politics			
+			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {
+			factor = 1.5
+			OR = {
+				is_militarist = yes
+				has_valid_civic = civic_machine_warbots
+				has_valid_civic = civic_hive_subspace_ephapse
+				has_valid_civic = civic_hive_strength_of_legions
+				has_policy_flag = diplo_stance_belligerent
+				has_policy_flag = diplo_stance_supremacist
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_supporting_ethics
+		}
+
+		modifier = {										
+			factor = 4
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_in_breach
+		}
+		
+		modifier = {
+			factor = 0.5
+			is_pacifist = yes
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = ethic_pacifist
+		}
+		
+		modifier = {
+			factor = 0.5
+			has_valid_civic = civic_inwards_perfection
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_inwards_perfection
+		}
+		
+		modifier = {
+			factor = 0.5
+			any_rival_country = {
+				OR = { 
+					is_militarist = yes
+					has_valid_civic = civic_machine_warbots
+					has_valid_civic = civic_hive_subspace_ephapse
+					has_valid_civic = civic_hive_strength_of_legions
+					has_policy_flag = diplo_stance_belligerent
+					has_policy_flag = diplo_stance_supremacist
+				}
+			}
+			NOR = { 
+				is_militarist = yes
+				has_valid_civic = civic_machine_warbots
+				has_valid_civic = civic_hive_subspace_ephapse
+				has_valid_civic = civic_hive_strength_of_legions
+				has_policy_flag = diplo_stance_belligerent
+				has_policy_flag = diplo_stance_supremacist
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+resolution_sanctions_military_4 = {
+	icon = "GFX_sanctions_red"
+	level = 4
+
+	potential = {
+		has_federations_dlc = yes
+		#is_active_resolution = "resolution_sanctions_military_3"
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t2			#wil, note: was @resolution_cost_denounce, deliberately increased it
+		}
+	}
+
+	target = no
+	sanction = yes
+
+	effect = {
+		custom_tooltip = sanctions_effect
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_galcom_sanctions_passed
+				years = 10
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_military = 5
+			#resolution_sanctions_military_absolute = 1
+			#wil, note: this will be an extra modifier that neutralizes fleet diplomatic weight, for "absolute"-ness
+		}
+	}
+
+	allow = {
+		is_active_resolution = "resolution_sanctions_military_3"
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_disliked
+		
+		#weights completely reworked, in part to no longer be ultra-stupid -- previously was 1.25 SUPPORTed by militarists, despite them being the most likely to be hurt by it
+		#other vanilla ones were 0 if in breach, 0.5 if fedallies in breach, 1.25 if rival in breach. at least 1.25 support from pacifists made sense
+
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {
+			factor = 0.5
+			has_global_flag = recent_galcom_sanctions_passed
+			desc = gal_com_recent_sanction_passed
+		}
+
+		modifier = {										
+			factor = 0
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 4
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 3
+			has_valid_civic = civic_cutthroat_politics			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {
+			factor = 0.6
+			OR = {
+				is_militarist = yes
+				has_valid_civic = civic_machine_warbots
+				has_valid_civic = civic_hive_subspace_ephapse
+				has_valid_civic = civic_hive_strength_of_legions
+				has_policy_flag = diplo_stance_belligerent
+				has_policy_flag = diplo_stance_supremacist
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+
+		modifier = {
+			factor = 4
+			is_pacifist = yes
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = ethic_pacifist
+		}
+		
+		modifier = {
+			factor = 2
+			has_valid_civic = civic_inwards_perfection
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_inwards_perfection
+		}
+		modifier = {
+			factor = 2
+			any_rival_country = {
+				OR = { 
+					is_militarist = yes
+					has_valid_civic = civic_machine_warbots
+					has_valid_civic = civic_hive_subspace_ephapse
+					has_valid_civic = civic_hive_strength_of_legions
+					has_policy_flag = diplo_stance_belligerent
+					has_policy_flag = diplo_stance_supremacist
+				}
+			}		
+			NOR = { 
+				is_militarist = yes
+				has_valid_civic = civic_machine_warbots
+				has_valid_civic = civic_hive_subspace_ephapse
+				has_valid_civic = civic_hive_strength_of_legions
+				has_policy_flag = diplo_stance_belligerent
+				has_policy_flag = diplo_stance_supremacist
+			}			
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+
+resolution_sanctions_administrative_repeal_4 = {
+	icon = "GFX_resolution_council_veto"
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t1
+		}
+	}
+	target = no
+	sanction = yes
+	fire_and_forget = yes
+	effect = {
+		custom_tooltip = resolution_sanctions_administrative_repeal_4_effect_success
+		hidden_effect = {
+			cancel_resolution = "resolution_sanctions_administrative_4"
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_sanction_repeal_passed
+				years = 2.5
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	potential = {
+		has_federations_dlc = yes
+		is_active_resolution = "resolution_sanctions_administrative_4"
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_administrative = 3
+		}
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_popular	#was unpopular
+		
+		#wil, note: weights completely reworked, in part to no longer be ultra-stupid -- previously was 0.25 OPPOSED by xenophiles and diplomatic types not in breach, despite them being the most likely to be hurt by the sanctions at some future date
+		#0.25 if xenophile, diplomatic corps, public relations experts, empath, servitors, OR on the galactic council
+		#other vanilla ones were 2 if in breach, 2 if fedallies in breach, 0.75 if rival in breach
+		
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {										
+			factor = 4
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			has_global_flag = recent_sanction_repeal_passed
+			desc = recent_repeal_passed_eu
+		}
+
+		modifier = {
+			factor = 3
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 0.25
+			has_valid_civic = civic_cutthroat_politics			
+			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {										
+			factor = 4
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			OR = { 
+				is_xenophile = yes
+				is_megacorp = yes
+				has_valid_civic = civic_hive_empath
+				has_valid_civic = civic_machine_servitor
+				has_ai_personality = federation_builders
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 2
+			OR = { 
+				is_xenophile = yes
+				is_megacorp = yes
+				has_valid_civic = civic_hive_empath
+				has_valid_civic = civic_machine_servitor
+				has_ai_personality = federation_builders
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 1.2
+			OR = { 
+				has_valid_civic = civic_diplomatic_corps
+				has_valid_civic = civic_public_relations_specialists
+				is_machine_empire = yes #as they already have a sprawl penalty to deal with
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			OR = {
+				is_xenophobe = yes
+				has_policy_flag = diplo_stance_supremacist
+				has_federation = no
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 0.5
+			OR = { 
+				has_valid_civic = civic_efficient_bureaucracy
+				has_valid_civic = civic_byzantine_bureaucracy
+				has_authority = auth_hive_mind
+				has_valid_civic = civic_inwards_perfection
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_civics
+		}
+		
+		modifier = {
+			factor = 1.2
+			any_federation_ally = {
+				OR = { 
+					is_xenophile = yes
+					is_megacorp = yes
+					has_valid_civic = civic_hive_empath
+					has_valid_civic = civic_machine_servitor
+					has_ai_personality = federation_builders
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 0.5
+			any_rival_country = {
+				OR = { 
+					is_xenophile = yes
+					is_megacorp = yes
+					has_valid_civic = civic_hive_empath
+					has_valid_civic = civic_machine_servitor
+					has_ai_personality = federation_builders
+				}
+			}
+			NOR = { 
+				is_xenophile = yes
+				is_megacorp = yes
+				has_valid_civic = civic_hive_empath
+				has_valid_civic = civic_machine_servitor
+				has_ai_personality = federation_builders
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
+resolution_sanctions_administrative_4 = {
+	icon = "GFX_sanctions_purple"
+	level = 4
+
+	potential = {
+		has_federations_dlc = yes
+	}
+
+	resources = {
+		category = resolutions
+		cost = {
+			influence = @resolution_cost_t2			#wil, note: was @resolution_cost_denounce, deliberately increased it
+		}
+	}
+
+	target = no
+	sanction = yes
+
+	effect = {
+		custom_tooltip = sanctions_effect
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_passed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_passed_diplomatic_weight
+				days = 2200
+			}
+			set_timed_global_flag = {
+				flag = recent_galcom_sanctions_passed
+				years = 10
+			}
+		}
+	}
+
+	fail_effects = {
+		hidden_effect = {
+			set_timed_country_flag = { flag = galactic_community_resolution_failed_general days = @resolution_flag_timer }
+			add_modifier = {
+				modifier = resolution_failed_diplomatic_weight
+				days = 2200
+			}
+		}
+	}
+
+	triggered_modifier = {
+		potential = {
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+		}
+		modifier = {
+			resolution_sanctions_administrative = 5
+			#resolution_sanctions_tech_absolute = 1
+			#wil, note: not sure what it will be yet, but this will be an extra modifier for "absolute"-ness
+		}
+	}
+
+	allow = {
+		is_active_resolution = "resolution_sanctions_administrative_3"
+		is_part_of_galactic_council = yes
+	}
+
+	ai_weight = {
+		weight = @resolution_weight_disliked
+		
+		#weights completely reworked, in part to no longer be ultra-stupid -- previously was 1.25 SUPPORTed by militarists, despite them being the most likely to be hurt by it
+		#other vanilla ones were 0 if in breach, 0.5 if fedallies in breach, 1.25 if rival in breach. at least 1.25 support from pacifists made sense
+
+		#these weights are an attempt to both fix that and make sanctions depend more on who will (or who will likely eventually) be affected by them
+		#they may very well need adjusting
+
+		modifier = {
+			factor = 0.5
+			has_global_flag = recent_galcom_sanctions_passed
+			desc = gal_com_recent_sanction_passed
+		}
+
+		modifier = {										
+			factor = 0
+			OR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_is_denounced_or_in_breach
+		}
+
+		modifier = {
+			factor = 0
+			any_federation_ally = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_federation_member_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 4
+			any_rival_country = {
+				OR = {
+					is_in_breach_of_any = yes
+					has_modifier = resolution_denounced
+				}
+			}
+			desc = gal_com_rival_in_breach_or_denounced
+		}
+		
+		modifier = {
+			factor = 3
+			has_valid_civic = civic_cutthroat_politics			#wil, note: i like flavor-focused weights like this
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = civic_cutthroat_politics
+		}
+		
+		##########################
+		#sanction-specific stuff:#
+		##########################
+		
+		modifier = {
+			factor = 0.5
+			OR = { 
+				is_xenophile = yes
+				is_megacorp = yes
+				has_valid_civic = civic_hive_empath
+				has_valid_civic = civic_machine_servitor
+				has_ai_personality = federation_builders
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_ethics
+		}
+		
+		modifier = {
+			factor = 0.8
+			OR = { 
+				has_valid_civic = civic_diplomatic_corps
+				has_valid_civic = civic_public_relations_specialists
+				is_machine_empire = yes #as they already have a sprawl penalty to deal with
+			}
+			NOR = {
+				is_galactic_emperor = yes
+				imperial_authority > 140
+			}
+			desc = gal_com_opposing_civics
+		}
+		
+		modifier = {
+			factor = 2
+			OR = {
+				is_xenophobe = yes
+				has_policy_flag = diplo_stance_supremacist
+				has_federation = no
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_ethics
+		}
+		
+		modifier = {
+			factor = 2
+			OR = { 
+				has_valid_civic = civic_efficient_bureaucracy
+				has_valid_civic = civic_byzantine_bureaucracy
+				has_authority = auth_hive_mind
+				has_valid_civic = civic_inwards_perfection
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = gal_com_supporting_civics
+		}
+		
+		modifier = {
+			factor = 0.8
+			any_federation_ally = {
+				OR = { 
+					is_xenophile = yes
+					is_megacorp = yes
+					has_valid_civic = civic_hive_empath
+					has_valid_civic = civic_machine_servitor
+					has_ai_personality = federation_builders
+				}
+			}
+			desc = fed_ally_eu
+		}
+		
+		modifier = {
+			factor = 2
+			any_rival_country = {
+				OR = { 
+					is_xenophile = yes
+					is_megacorp = yes
+					has_valid_civic = civic_hive_empath
+					has_valid_civic = civic_machine_servitor
+					has_ai_personality = federation_builders
+				}
+			}
+			NOR = { 
+				is_xenophile = yes
+				is_megacorp = yes
+				has_valid_civic = civic_hive_empath
+				has_valid_civic = civic_machine_servitor
+				has_ai_personality = federation_builders
+			}
+			NOR = {
+				is_in_breach_of_any = yes
+				has_modifier = resolution_denounced
+			}
+			desc = rival_target_eu
+		}
+	}
+}
+
